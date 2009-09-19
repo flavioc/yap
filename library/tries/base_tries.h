@@ -124,3 +124,4 @@ inline void     trie_stats(YAP_Int *memory, YAP_Int *tries, YAP_Int *entries, YA
 inline void     trie_max_stats(YAP_Int *memory, YAP_Int *tries, YAP_Int *entries, YAP_Int *nodes);
 inline void     trie_usage(TrEntry trie, YAP_Int *entries, YAP_Int *nodes, YAP_Int *virtual_nodes);
 inline void     trie_print(TrEntry trie);
+inline YAP_Term trie_tree(TrEntry trie);

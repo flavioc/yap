@@ -279,3 +279,9 @@ void trie_print(TrEntry trie) {
   core_trie_print(TrEntry_trie(trie), NULL);
   return;
 }
+
+inline
+YAP_Term trie_tree(TrEntry trie) {
+  TrNode node = TrEntry_trie(trie);
+  return core_trie_tree(node);
+}

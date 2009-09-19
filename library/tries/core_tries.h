@@ -299,3 +299,4 @@ inline void     core_trie_stats(TrEngine engine, YAP_Int *memory, YAP_Int *tries
 inline void     core_trie_max_stats(TrEngine engine, YAP_Int *memory, YAP_Int *tries, YAP_Int *entries, YAP_Int *nodes);
 inline void     core_trie_usage(TrNode node, YAP_Int *entries, YAP_Int *nodes, YAP_Int *virtual_nodes);
 inline void     core_trie_print(TrNode node, void (*print_function)(TrNode));
+inline YAP_Term core_trie_tree(TrNode node);

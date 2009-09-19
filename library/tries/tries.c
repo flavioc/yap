@@ -53,6 +53,7 @@ static int p_put_trie_entry(void);
 static int p_get_trie_entry(void);
 static int p_remove_trie_entry(void);
 static int p_print_trie(void);
+static int p_trie_tree(void);
 
 
 
@@ -91,6 +92,7 @@ void init_tries(void) {
   YAP_UserCPredicate("get_trie_entry", p_get_trie_entry, 3);
   YAP_UserCPredicate("remove_trie_entry", p_remove_trie_entry, 1);
   YAP_UserCPredicate("print_trie", p_print_trie, 1);
+  YAP_UserCPredicate("trie_tree", p_trie_tree, 2);
   return;
 }
 
@@ -627,3 +629,22 @@ static int p_trie_print(void) {
   return TRUE;
 }
 #undef arg_trie
+
+/* trie_tree(-Trie, +Tree) */
+#define arg_trie YAP_ARG1
+#define arg_tree YAP_ARG2
+static int p_trie_tree(void) {
+  TrEntry trie;
+  YAP_Term tree;
+  
+  /* check arg */
+  if (!YAP_IsIntTerm(arg_trie))
+    return FALSE;
+    
+  trie = (TrEntry) YAP_IntOfTerm(arg_trie);
+  tree = trie_tree(trie);
+  
+  return YAP_Unify(arg_tree, tree);
+}
+#undef arg_trie
+#undef arg_tree
