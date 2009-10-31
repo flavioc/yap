@@ -683,6 +683,7 @@ SHLIB_SUFFIX
 SHLIB_CFLAGS
 MERGE_DLL_OBJS
 INSTALL_DLLS
+ARCH
 M4GENHDRS
 M4
 EXTEND_DYNLOADER_PATH
@@ -719,6 +720,7 @@ build
 C_PARSER_FLAGS
 C_INTERF_FLAGS
 GCC
+AWK
 OBJEXT
 EXEEXT
 ac_ct_CC
@@ -2872,6 +2874,48 @@ ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
 ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
+for ac_prog in gawk mawk nawk awk
+do
+  # Extract the first word of "$ac_prog", so it can be a program name with args.
+set dummy $ac_prog; ac_word=$2
+{ $as_echo "$as_me:$LINENO: checking for $ac_word" >&5
+$as_echo_n "checking for $ac_word... " >&6; }
+if test "${ac_cv_prog_AWK+set}" = set; then
+  $as_echo_n "(cached) " >&6
+else
+  if test -n "$AWK"; then
+  ac_cv_prog_AWK="$AWK" # Let the user override the test.
+else
+as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+  for ac_exec_ext in '' $ac_executable_extensions; do
+  if { test -f "$as_dir/$ac_word$ac_exec_ext" && $as_test_x "$as_dir/$ac_word$ac_exec_ext"; }; then
+    ac_cv_prog_AWK="$ac_prog"
+    $as_echo "$as_me:$LINENO: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+done
+IFS=$as_save_IFS
+
+fi
+fi
+AWK=$ac_cv_prog_AWK
+if test -n "$AWK"; then
+  { $as_echo "$as_me:$LINENO: result: $AWK" >&5
+$as_echo "$AWK" >&6; }
+else
+  { $as_echo "$as_me:$LINENO: result: no" >&5
+$as_echo "no" >&6; }
+fi
+
+
+  test -n "$AWK" && break
+done
+
 
 
 
@@ -3317,8 +3361,7 @@ _ACEOF
   cat >>confdefs.h <<\_ACEOF
 #define MinStackSpace (300*SIZEOF_INT_P)
 _ACEOF
-
-  cat >>confdefs.h <<\_ACEOF
+   cat >>confdefs.h <<\_ACEOF
 #define MinTrailSpace ( 48*SIZEOF_INT_P)
 _ACEOF
 
@@ -5118,84 +5161,6 @@ fi
 
 fi
 
-if test "$yap_cv_cudd" != "no"
-then
-
-{ $as_echo "$as_me:$LINENO: checking for Cudd_Init in -lcudd" >&5
-$as_echo_n "checking for Cudd_Init in -lcudd... " >&6; }
-if test "${ac_cv_lib_cudd_Cudd_Init+set}" = set; then
-  $as_echo_n "(cached) " >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-lcudd  $LIBS"
-cat >conftest.$ac_ext <<_ACEOF
-/* confdefs.h.  */
-_ACEOF
-cat confdefs.h >>conftest.$ac_ext
-cat >>conftest.$ac_ext <<_ACEOF
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char Cudd_Init ();
-int
-main ()
-{
-return Cudd_Init ();
-  ;
-  return 0;
-}
-_ACEOF
-rm -f conftest.$ac_objext conftest$ac_exeext
-if { (ac_try="$ac_link"
-case "(($ac_try" in
-  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
-  *) ac_try_echo=$ac_try;;
-esac
-eval ac_try_echo="\"\$as_me:$LINENO: $ac_try_echo\""
-$as_echo "$ac_try_echo") >&5
-  (eval "$ac_link") 2>conftest.er1
-  ac_status=$?
-  grep -v '^ *+' conftest.er1 >conftest.err
-  rm -f conftest.er1
-  cat conftest.err >&5
-  $as_echo "$as_me:$LINENO: \$? = $ac_status" >&5
-  (exit $ac_status); } && {
-	 test -z "$ac_c_werror_flag" ||
-	 test ! -s conftest.err
-       } && test -s conftest$ac_exeext && {
-	 test "$cross_compiling" = yes ||
-	 $as_test_x conftest$ac_exeext
-       }; then
-  ac_cv_lib_cudd_Cudd_Init=yes
-else
-  $as_echo "$as_me: failed program was:" >&5
-sed 's/^/| /' conftest.$ac_ext >&5
-
-	ac_cv_lib_cudd_Cudd_Init=no
-fi
-
-rm -rf conftest.dSYM
-rm -f core conftest.err conftest.$ac_objext conftest_ipa8_conftest.oo \
-      conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ $as_echo "$as_me:$LINENO: result: $ac_cv_lib_cudd_Cudd_Init" >&5
-$as_echo "$ac_cv_lib_cudd_Cudd_Init" >&6; }
-if test "x$ac_cv_lib_cudd_Cudd_Init" = x""yes; then
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_LIBCUDD 1
-_ACEOF
-
-  LIBS="-lcudd $LIBS"
-
-fi
-
-fi
 
 if test "$yap_cv_myddas" != "no"
 then
@@ -8478,7 +8443,8 @@ done
 
 
 
-for ac_header in errno.h fcntl.h
+
+for ac_header in errno.h fcntl.h fenv.h
 do
 as_ac_Header=`$as_echo "ac_cv_header_$ac_header" | $as_tr_sh`
 if { as_var=$as_ac_Header; eval "test \"\${$as_var+set}\" = set"; }; then
@@ -8628,7 +8594,7 @@ done
 
 
 
-for ac_header in fenv.h fpu_control.h ieeefp.h io.h limits.h
+for ac_header in float.h fpu_control.h ieeefp.h io.h limits.h
 do
 as_ac_Header=`$as_echo "ac_cv_header_$ac_header" | $as_tr_sh`
 if { as_var=$as_ac_Header; eval "test \"\${$as_var+set}\" = set"; }; then
@@ -13945,6 +13911,21 @@ fi
 
 
 
+if test "x$ARCH" = "x"; then
+  case "$host" in
+    *linux*)
+      ARCH=`echo $host | sed 's/-.*/-linux/'`
+      ;;
+    *-gnu)
+      ARCH=`echo $host | sed 's/\([^-]*\)-[^-]*-\([^-]*\)-gnu/\1-\2/'`
+      ;;
+    *)
+      ARCH=`echo $host | sed 's/\([^-]*\)-[^-]*-\([^-]*\)/\1-\2/'`
+      ;;
+  esac
+fi
+
+
 
 
 
@@ -17755,6 +17736,7 @@ gives unlimited permission to copy, distribute and modify it."
 ac_pwd='$ac_pwd'
 srcdir='$srcdir'
 INSTALL='$INSTALL'
+AWK='$AWK'
 test -n "\$AWK" || AWK=awk
 _ACEOF
 

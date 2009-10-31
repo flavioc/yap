@@ -25,7 +25,7 @@ static char     SccsId[] = "%W% %G%";
 
 #include "Yap.h"
 #include "Yatom.h"
-#include "Heap.h"
+#include "YapHeap.h"
 #include "eval.h"
 
 #include "arith2.h"
@@ -1093,6 +1093,7 @@ static InitBinEntry InitBinTab[] = {
   {"\\/", op_or},
   {"#", op_xor},
   {"><", op_xor},
+  {"atan", op_atan2},
   {"atan2", op_atan2},
   /* C-Prolog exponentiation */
   {"^", op_power},
