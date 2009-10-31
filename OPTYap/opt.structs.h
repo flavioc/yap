@@ -91,6 +91,9 @@ struct global_pages {
   struct pages subgoal_trie_hash_pages;
   struct pages answer_trie_hash_pages;
   struct pages dependency_frame_pages;
+#ifdef TABLING_ANSWER_LIST
+  struct pages answer_list_pages;
+#endif /* TABLING_ANSWER_LIST */
 #endif /* TABLING */
 #if defined(YAPOR) && defined(TABLING)
   struct pages suspension_frame_pages;
@@ -207,6 +210,7 @@ struct global_data{
 #define GLOBAL_PAGES_sg_hash                    (GLOBAL.pages.subgoal_trie_hash_pages)
 #define GLOBAL_PAGES_ans_hash                   (GLOBAL.pages.answer_trie_hash_pages)
 #define GLOBAL_PAGES_dep_fr                     (GLOBAL.pages.dependency_frame_pages)
+#define GLOBAL_PAGES_ans_list                   (GLOBAL.pages.answer_list_pages)
 #define GLOBAL_PAGES_susp_fr                    (GLOBAL.pages.suspension_frame_pages)
 #define SCHEDULER_LOOP                          (GLOBAL.scheduler_loop)
 #define DELAYED_RELEASE_LOAD                    (GLOBAL.delayed_release_load)

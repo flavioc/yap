@@ -145,16 +145,15 @@ extern int Yap_page_size;
               /* Yap_Error(PURE_ABORT, TermNil, "");               */                                   \
               /* restore_absmi_regs(&Yap_standard_regs);           */                                   \
               /* siglongjmp (Yap_RestartEnv, 1);                   */                                   \
-            if (SgFr_first_answer(sg_fr) &&                                                             \
-                SgFr_first_answer(sg_fr) != SgFr_answer_trie(sg_fr)) {                                  \
+            if (SgFr_has_real_answers(sg_fr)) {                                                         \
               SgFr_state(sg_fr) = ready;                                                                \
-	      free_answer_trie_hash_chain(SgFr_hash_chain(sg_fr));                                      \
-	      SgFr_hash_chain(sg_fr) = NULL;                                                            \
-	      SgFr_first_answer(sg_fr) = NULL;                                                          \
+	            free_answer_trie_hash_chain(SgFr_hash_chain(sg_fr));                                      \
+	            SgFr_hash_chain(sg_fr) = NULL;                                                            \
+	            SgFr_first_answer(sg_fr) = NULL;                                                          \
               SgFr_last_answer(sg_fr) = NULL;                                                           \
               free_answer_trie_branch(TrNode_child(SgFr_answer_trie(sg_fr)), TRAVERSE_POSITION_FIRST);  \
               TrNode_child(SgFr_answer_trie(sg_fr)) = NULL;                                             \
-	    }                                                                                           \
+	          }                                                                                           \
           } while (Pg_free_pg(GLOBAL_PAGES_void) == Pg_free_pg(STR_PAGES));                             \
           GLOBAL_check_sg_fr = sg_fr;                                                                   \
         }
@@ -420,6 +419,9 @@ extern int Yap_page_size;
 
 #define ALLOC_DEPENDENCY_FRAME(STR)    ALLOC_STRUCT(STR, GLOBAL_PAGES_dep_fr, struct dependency_frame)
 #define FREE_DEPENDENCY_FRAME(STR)     FREE_STRUCT(STR, GLOBAL_PAGES_dep_fr, struct dependency_frame)
+
+#define ALLOC_ANSWER_LIST(STR)         ALLOC_STRUCT(STR, GLOBAL_PAGES_ans_list, struct answer_list)
+#define FREE_ANSWER_LIST(STR)          FREE_STRUCT(STR, GLOBAL_PAGES_ans_list, struct answer_list)
 
 #define ALLOC_SUSPENSION_FRAME(STR)    ALLOC_STRUCT(STR, GLOBAL_PAGES_susp_fr, struct suspension_frame)
 #define FREE_SUSPENSION_FRAME(STR)     FREE_BLOCK(SuspFr_global_start(STR));                         \

@@ -308,13 +308,30 @@
       UNLOCK_OR_FRAME(LOCAL_top_or_fr);
     }
 #endif /* YAPOR */
+
     subs_ptr = (CELL *) (LOAD_CP(B) + 1);
+    
+#ifdef TABLING_ANSWER_LIST
+    ans_list_ptr list = LOAD_CP(B)->cp_last_answer;
+    ans_list_ptr next = AnsList_next(list);
+    
+    ans_node = AnsList_answer(list);
+    
+    if(next != NULL) {
+      restore_loader_node(list);
+    } else {
+      pop_loader_node();
+    }
+#else
     ans_node = TrNode_child(LOAD_CP(B)->cp_last_answer);
+    
     if(TrNode_child(ans_node) != NULL) {
       restore_loader_node(ans_node);
     } else {
       pop_loader_node();
     }
+#endif /* !TABLING_ANSWER_LIST */
+    
     PREG = (yamop *) CPREG;
     PREFETCH_OP(PREG);
     load_answer(ans_node, subs_ptr);
@@ -327,10 +344,18 @@
   PBOp(table_try_answer, Otapl)
 #ifdef INCOMPLETE_TABLING
     sg_fr_ptr sg_fr;
-    ans_node_ptr ans_node;
+    ans_node_ptr ans_node = NULL;
 
     sg_fr = GEN_CP(B)->cp_sg_fr;
+#ifdef TABLING_ANSWER_LIST
+    ans_list_ptr list = SgFr_try_ans_list(sg_fr);
+    ans_list_ptr next = AnsList_next(list);
+    
+    if(next)
+      ans_node = AnsList_answer(next);
+#else
     ans_node = TrNode_child(SgFr_try_answer(sg_fr));
+#endif
     if(ans_node) {
       CELL *subs_ptr = (CELL *) (GEN_CP(B) + 1) + SgFr_arity(sg_fr);
 
@@ -338,7 +363,12 @@
       restore_yaam_reg_cpdepth(B);
       CPREG = B->cp_cp;
       ENV = B->cp_env;
+#ifdef TABLING_ANSWER_LIST
+      SgFr_try_ans_list(sg_fr) = next;
+#else
       SgFr_try_answer(sg_fr) = ans_node;
+#endif
+
 #ifdef YAPOR
       if (SCH_top_shared_cp(B))
 	UNLOCK_OR_FRAME(LOCAL_top_or_fr);
@@ -412,11 +442,22 @@
 #ifdef INCOMPLETE_TABLING
     } else if (SgFr_state(sg_fr) == incomplete) {
       /* subgoal incomplete --> start by loading the answers already found */
-      ans_node_ptr ans_node = SgFr_first_answer(sg_fr);
+      
+      ans_node_ptr ans_node;
+#ifdef TABLING_ANSWER_LIST
+      ans_node = AnsList_answer(SgFr_first_ans_list(sg_fr));
+#else
+      ans_node = SgFr_first_answer(sg_fr);
+#endif /* !TABLING_ANSWER_LIST */
+      
       CELL *subs_ptr = YENV;
       init_subgoal_frame(sg_fr);
       UNLOCK(SgFr_lock(sg_fr));
+#ifdef TABLING_ANSWER_LIST
+      SgFr_try_ans_list(sg_fr) = SgFr_first_ans_list(sg_fr);
+#else
       SgFr_try_answer(sg_fr) = ans_node;
+#endif /* !TABLING_ANSWER_LIST */
       store_generator_node(tab_ent, sg_fr, PREG->u.Otapl.s, TRY_ANSWER);
       PREG = (yamop *) CPREG;
       PREFETCH_OP(PREG);
@@ -449,55 +490,77 @@
 #endif /* OPTYAP_ERRORS */
       goto answer_resolution;
     } else {
+      
       /* subgoal completed */
-      ans_node_ptr ans_node = SgFr_first_answer(sg_fr);
+      ans_node_ptr ans_node = NULL;
+      
+#ifdef TABLING_ANSWER_LIST
+      ans_list_ptr list = SgFr_first_ans_list(sg_fr);
+      
+      if(list)
+        ans_node = AnsList_answer(list);
+#else
+      ans_node = SgFr_first_answer(sg_fr); 
+#endif /* !TABLING_ANSWER_LIST */
+
       if (ans_node == NULL) {
-	/* no answers --> fail */
-	UNLOCK(SgFr_lock(sg_fr));
-	goto fail;
-      } else if (ans_node == SgFr_answer_trie(sg_fr)) {
-	/* yes answer --> procceed */
-	UNLOCK(SgFr_lock(sg_fr));
-	PREG = (yamop *) CPREG;
-	PREFETCH_OP(PREG);
-	YENV = ENV;
-	GONext();
+        /* no answers --> fail */
+        UNLOCK(SgFr_lock(sg_fr));
+        goto fail;
+      }
+      
+      if (ans_node == SgFr_answer_trie(sg_fr)) {
+  /* yes answer --> procceed */
+        UNLOCK(SgFr_lock(sg_fr));
+        PREG = (yamop *) CPREG;
+        PREFETCH_OP(PREG);
+        YENV = ENV;
+        GONext();
       } else {
-	/* answers -> get first answer */
+  /* answers -> get first answer */
 #ifdef LIMIT_TABLING
-	if (SgFr_state(sg_fr) == complete || SgFr_state(sg_fr) == compiled) {
-	  SgFr_state(sg_fr)++;  /* complete --> complete_in_use : compiled --> compiled_in_use */
-	  remove_from_global_sg_fr_list(sg_fr);
-	  TRAIL_FRAME(sg_fr);
-	}
+        if (SgFr_state(sg_fr) == complete || SgFr_state(sg_fr) == compiled) {
+          SgFr_state(sg_fr)++;  /* complete --> complete_in_use : compiled --> compiled_in_use */
+          remove_from_global_sg_fr_list(sg_fr);
+          TRAIL_FRAME(sg_fr);
+        }
 #endif /* LIMIT_TABLING */
-	if (IsMode_LoadAnswers(TabEnt_mode(tab_ent))) {
+        if (IsMode_LoadAnswers(TabEnt_mode(tab_ent))) {
           /* load answers from the trie */
-	  UNLOCK(SgFr_lock(sg_fr));
-	  if(TrNode_child(ans_node) != NULL) {
-	    store_loader_node(tab_ent, ans_node);
-	  }
+          UNLOCK(SgFr_lock(sg_fr));
+          
+#ifdef TABLING_ANSWER_LIST
+          ans_list_ptr next = AnsList_next(list);
+          
+          if(next != NULL) {
+            store_loader_node(tab_ent, next);
+          }
+#else
+          if(TrNode_child(ans_node) != NULL) {
+            store_loader_node(tab_ent, ans_node);
+          }
+#endif
           PREG = (yamop *) CPREG;
           PREFETCH_OP(PREG);
           load_answer(ans_node, YENV);
-	  YENV = ENV;
+          YENV = ENV;
           GONext();
-	} else {
-	  /* execute compiled code from the trie */
-	  if (SgFr_state(sg_fr) < compiled)
-	    update_answer_trie(sg_fr);
-	  UNLOCK(SgFr_lock(sg_fr));
-	  PREG = (yamop *) TrNode_child(SgFr_answer_trie(sg_fr));
-	  PREFETCH_OP(PREG);
-	  *--YENV = 0;  /* vars_arity */
+        } else {
+          /* execute compiled code from the trie */
+          if (SgFr_state(sg_fr) < compiled)
+            update_answer_trie(sg_fr);
+          UNLOCK(SgFr_lock(sg_fr));
+          PREG = (yamop *) TrNode_child(SgFr_answer_trie(sg_fr));
+          PREFETCH_OP(PREG);
+          *--YENV = 0;  /* vars_arity */
 #ifndef GLOBAL_TRIE
-	  *--YENV = 0;  /* heap_arity */
+          *--YENV = 0;  /* heap_arity */
 #endif /* GLOBAL_TRIE */
-	  GONext();
-	}
+          GONext();
+        }
       }
     }
-  ENDPBOp();
+    ENDPBOp();
 
 
 
@@ -523,11 +586,22 @@
 #ifdef INCOMPLETE_TABLING
     } else if (SgFr_state(sg_fr) == incomplete) {
       /* subgoal incomplete --> start by loading the answers already found */
-      ans_node_ptr ans_node = SgFr_first_answer(sg_fr);
+
+      ans_node_ptr ans_node;
+#ifdef TABLING_ANSWER_LIST
+      ans_list_ptr list = SgFr_first_ans_list(sg_fr);
+      ans_node = AnsList_answer(list);
+#else
+      ans_node = SgFr_first_answer(sg_fr);
+#endif
       CELL *subs_ptr = YENV;
       init_subgoal_frame(sg_fr);
       UNLOCK(SgFr_lock(sg_fr));
+#ifdef TABLING_ANSWER_LIST
+      SgFr_try_ans_list(sg_fr) = list;
+#else
       SgFr_try_answer(sg_fr) = ans_node;
+#endif
       store_generator_node(tab_ent, sg_fr, PREG->u.Otapl.s, TRY_ANSWER);
       PREG = (yamop *) CPREG;
       PREFETCH_OP(PREG);
@@ -561,18 +635,30 @@
       goto answer_resolution;
     } else {
       /* subgoal completed */
-      ans_node_ptr ans_node = SgFr_first_answer(sg_fr);
+      ans_node_ptr ans_node = NULL;
+      
+#ifdef TABLING_ANSWER_LIST
+      ans_list_ptr list = SgFr_first_ans_list(sg_fr);
+      
+      if(list)
+        ans_node = AnsList_answer(list);
+#else
+      ans_node = SgFr_first_answer(sg_fr);
+#endif /* !TABLING_ANSWER_LIST */
+
       if (ans_node == NULL) {
-	/* no answers --> fail */
-	UNLOCK(SgFr_lock(sg_fr));
-	goto fail;
-      } else if (ans_node == SgFr_answer_trie(sg_fr)) {
-	/* yes answer --> procceed */
-	UNLOCK(SgFr_lock(sg_fr));
-	PREG = (yamop *) CPREG;
-	PREFETCH_OP(PREG);
-	YENV = ENV;
-	GONext();
+	      /* no answers --> fail */
+	      UNLOCK(SgFr_lock(sg_fr));
+	      goto fail;
+      }
+
+      if (ans_node == SgFr_answer_trie(sg_fr)) {
+	      /* yes answer --> procceed */
+	      UNLOCK(SgFr_lock(sg_fr));
+	      PREG = (yamop *) CPREG;
+	      PREFETCH_OP(PREG);
+	      YENV = ENV;
+	      GONext();
       } else {
 	/* answers -> get first answer */
 #ifdef LIMIT_TABLING
@@ -585,14 +671,24 @@
 	if (IsMode_LoadAnswers(TabEnt_mode(tab_ent))) {
           /* load answers from the trie */
 	  UNLOCK(SgFr_lock(sg_fr));
+	  
+#ifdef TABLING_ANSWER_LIST
+    ans_list_ptr next = AnsList_next(list);
+    
+    if(next != NULL) {
+      store_loader_node(tab_ent, list);
+    }
+#else
 	  if(TrNode_child(ans_node) != NULL) {
 	    store_loader_node(tab_ent, ans_node);
 	  }
-          PREG = (yamop *) CPREG;
-          PREFETCH_OP(PREG);
-          load_answer(ans_node, YENV);
+#endif
+    
+    PREG = (yamop *) CPREG;
+    PREFETCH_OP(PREG);
+    load_answer(ans_node, YENV);
 	  YENV = ENV;
-          GONext();
+    GONext();
 	} else {
 	  /* execute compiled code from the trie */
 	  if (SgFr_state(sg_fr) < compiled)
@@ -634,11 +730,25 @@
 #ifdef INCOMPLETE_TABLING
     } else if (SgFr_state(sg_fr) == incomplete) {
       /* subgoal incomplete --> start by loading the answers already found */
-      ans_node_ptr ans_node = SgFr_first_answer(sg_fr);
+
+      ans_node_ptr ans_node;
+      
+#ifdef TABLING_ANSWER_LIST
+      ans_list_ptr list = SgFr_first_ans_list(sg_fr);
+      ans_node = AnsList_answer(list);
+#else
+      ans_node = SgFr_first_answer(sg_fr);
+#endif
+
       CELL *subs_ptr = YENV;
       init_subgoal_frame(sg_fr);
       UNLOCK(SgFr_lock(sg_fr));
+      
+#ifdef TABLING_ANSWER_LIST
+      SgFr_try_ans_list(sg_fr) = list;
+#else
       SgFr_try_answer(sg_fr) = ans_node;
+#endif
       store_generator_node(tab_ent, sg_fr, PREG->u.Otapl.s, TRY_ANSWER);
       PREG = (yamop *) CPREG;
       PREFETCH_OP(PREG);
@@ -672,51 +782,72 @@
       goto answer_resolution;
     } else {
       /* subgoal completed */
-      ans_node_ptr ans_node = SgFr_first_answer(sg_fr);
+      ans_node_ptr ans_node = NULL;
+      
+#ifdef TABLING_ANSWER_LIST
+      ans_list_ptr list = SgFr_first_ans_list(sg_fr);
+      
+      if(list)
+        ans_node = AnsList_answer(list);
+#else
+      ans_node = SgFr_first_answer(sg_fr);
+#endif /* !TABLING_ANSWER_LIST */
+
       if (ans_node == NULL) {
-	/* no answers --> fail */
-	UNLOCK(SgFr_lock(sg_fr));
-	goto fail;
-      } else if (ans_node == SgFr_answer_trie(sg_fr)) {
-	/* yes answer --> procceed */
-	UNLOCK(SgFr_lock(sg_fr));
-	PREG = (yamop *) CPREG;
-	PREFETCH_OP(PREG);
-	YENV = ENV;
-	GONext();
+	      /* no answers --> fail */
+	      UNLOCK(SgFr_lock(sg_fr));
+	      goto fail;
+      }
+      
+      if (ans_node == SgFr_answer_trie(sg_fr)) {
+	      /* yes answer --> procceed */
+	      UNLOCK(SgFr_lock(sg_fr));
+	      PREG = (yamop *) CPREG;
+	      PREFETCH_OP(PREG);
+	      YENV = ENV;
+	      GONext();
       } else {
         /* answers -> get first answer */
 #ifdef LIMIT_TABLING
-	if (SgFr_state(sg_fr) == complete || SgFr_state(sg_fr) == compiled) {
-	  SgFr_state(sg_fr)++;  /* complete --> complete_in_use : compiled --> compiled_in_use */
-	  remove_from_global_sg_fr_list(sg_fr);
-	  TRAIL_FRAME(sg_fr);
-	}
+	      if (SgFr_state(sg_fr) == complete || SgFr_state(sg_fr) == compiled) {
+	        SgFr_state(sg_fr)++;  /* complete --> complete_in_use : compiled --> compiled_in_use */
+	        remove_from_global_sg_fr_list(sg_fr);
+	        TRAIL_FRAME(sg_fr);
+	      }
 #endif /* LIMIT_TABLING */
-	if (IsMode_LoadAnswers(TabEnt_mode(tab_ent))) {
+	      if (IsMode_LoadAnswers(TabEnt_mode(tab_ent))) {
           /* load answers from the trie */
-	  UNLOCK(SgFr_lock(sg_fr));
-	  if(TrNode_child(ans_node) != NULL) {
-	    store_loader_node(tab_ent, ans_node);
-	  }
+	        UNLOCK(SgFr_lock(sg_fr));
+	        
+#ifdef TABLING_ANSWER_LIST
+          ans_list_ptr next = AnsList_next(list);
+          
+          if(next != NULL) {
+            store_loader_node(tab_ent, list);
+          }
+#else
+	        if(TrNode_child(ans_node) != NULL) {
+	          store_loader_node(tab_ent, ans_node);
+	        }
+#endif
           PREG = (yamop *) CPREG;
           PREFETCH_OP(PREG);
           load_answer(ans_node, YENV);
-	  YENV = ENV;
+	        YENV = ENV;
           GONext();
-	} else {
-	  /* execute compiled code from the trie */
-	  if (SgFr_state(sg_fr) < compiled)
-	    update_answer_trie(sg_fr);
-	  UNLOCK(SgFr_lock(sg_fr));
-	  PREG = (yamop *) TrNode_child(SgFr_answer_trie(sg_fr));
-	  PREFETCH_OP(PREG);
-	  *--YENV = 0;  /* vars_arity */
+	      } else {
+	        /* execute compiled code from the trie */
+	        if (SgFr_state(sg_fr) < compiled)
+	          update_answer_trie(sg_fr);
+	        UNLOCK(SgFr_lock(sg_fr));
+	        PREG = (yamop *) TrNode_child(SgFr_answer_trie(sg_fr));
+	        PREFETCH_OP(PREG);
+	        *--YENV = 0;  /* vars_arity */
 #ifndef GLOBAL_TRIE
-	  *--YENV = 0;  /* heap_arity */
+	        *--YENV = 0;  /* heap_arity */
 #endif /* GLOBAL_TRIE */
-	  GONext();
-	}
+	        GONext();
+	      }
       }
     }
   ENDPBOp();
@@ -844,6 +975,7 @@
 #ifdef TABLE_LOCK_AT_ENTRY_LEVEL
     LOCK(SgFr_lock(sg_fr));
 #endif /* TABLE_LOCK_LEVEL */
+    // XXX: aqui quando a resposta é yes ans_node aponta para a answer_trie
     ans_node = answer_search(sg_fr, subs_ptr);
 #if defined(TABLE_LOCK_AT_NODE_LEVEL)
     LOCK(TrNode_lock(ans_node));
@@ -986,19 +1118,57 @@
       UNLOCK_TABLE(ans_node);
       LOCK(SgFr_lock(sg_fr));
 #endif /* TABLE_LOCK_LEVEL */
+
+#ifdef TABLING_ANSWER_LIST
+      {
+        ans_list_ptr new_ans_list;
+        
+        ALLOC_ANSWER_LIST(new_ans_list);
+        
+        AnsList_answer(new_ans_list) = ans_node;
+        AnsList_next(new_ans_list) = NULL;
+        
+        if(SgFr_first_ans_list(sg_fr) == NULL) {
+          SgFr_first_ans_list(sg_fr) = new_ans_list;
+          fprintf(stderr, "First ans list\n");
+        }
+        else {
+          fprintf(stderr, "Last ans list");
+          AnsList_next(SgFr_last_ans_list(sg_fr)) = new_ans_list;
+        }
+        
+        SgFr_last_ans_list(sg_fr) = new_ans_list;
+      }
+#else
       if (SgFr_first_answer(sg_fr) == NULL)
-	SgFr_first_answer(sg_fr) = ans_node;
+        SgFr_first_answer(sg_fr) = ans_node;
       else
         TrNode_child(SgFr_last_answer(sg_fr)) = ans_node;
       SgFr_last_answer(sg_fr) = ans_node;
+#endif /* !TABLING_ANSWER_LIST */
+
 #ifdef TABLING_ERRORS
-      { 
+      {
+
+#ifdef TABLING_ANSWER_LIST
+        if(SgFr_first_ans_list(sg_fr)) {
+          // found answers
+          ans_list_ptr aux_ans_list = SgFr_first_ans_list(sg_fr);
+          do {
+            fprintf(stderr, "Checking one answer node from list...\n");
+            if(!IS_ANSWER_LEAF_NODE(AnsList_answer(aux_ans_list)))
+              TABLING_ERROR_MESSAGE("! IS_ANSWER_LEAF_NODE(aux_ans_list) (table_new_answer)");
+          } while((aux_ans_list = AnsList_next(aux_ans_list)));
+        }
+#else
+    
         ans_node_ptr aux_ans_node = SgFr_first_answer(sg_fr);
         while (aux_ans_node != SgFr_last_answer(sg_fr)) {
           if (! IS_ANSWER_LEAF_NODE(aux_ans_node))
             TABLING_ERROR_MESSAGE("! IS_ANSWER_LEAF_NODE(aux_ans_node) (table_new_answer)");
           aux_ans_node = TrNode_child(aux_ans_node);
         }
+#endif /* !TABLING_ANSWER_LIST */
       }
 #endif /* TABLING_ERRORS */
       UNLOCK(SgFr_lock(sg_fr));
@@ -1069,7 +1239,6 @@
   answer_resolution:
     INIT_PREFETCH()
     dep_fr_ptr dep_fr;
-    ans_node_ptr ans_node;
 
 #ifdef OPTYAP_ERRORS
     if (SCH_top_shared_cp(B)) {
@@ -1082,6 +1251,21 @@
 #endif /* OPTYAP_ERRORS */
     dep_fr = CONS_CP(B)->cp_dep_fr;
     LOCK(DepFr_lock(dep_fr));
+    
+    ans_node_ptr ans_node;
+    
+#ifdef TABLING_ANSWER_LIST
+    ans_list_ptr list = DepFr_last_answer(dep_fr);
+    ans_list_ptr next = AnsList_next(list);
+    
+    if(next != NULL) {
+      /* unconsumed answer */
+      ans_node = AnsList_answer(next);
+      DepFr_last_answer(dep_fr) = next;
+      UNLOCK(DepFr_lock(dep_fr));
+      consume_answer_and_procceed(dep_fr, ans_node);
+    }
+#else
     ans_node = DepFr_last_answer(dep_fr);
     if (TrNode_child(ans_node)) {
       /* unconsumed answer */
@@ -1089,6 +1273,8 @@
       UNLOCK(DepFr_lock(dep_fr));
       consume_answer_and_procceed(dep_fr, ans_node);
     }
+#endif /* !TABLING_ANSWER_LIST */
+
     UNLOCK(DepFr_lock(dep_fr));
 
 #ifdef YAPOR
@@ -1136,10 +1322,26 @@
       dep_fr = DepFr_next(dep_fr);
       while (YOUNGER_CP(DepFr_cons_cp(dep_fr), chain_cp)) {
         LOCK(DepFr_lock(dep_fr));
+        
+        ans_node = NULL;
+        
+#ifdef TABLING_ANSWER_LIST
+        ans_list_ptr list = DepFr_last_answer(dep_fr);
+        ans_list_ptr next = AnsList_next(list);
+        
+        if(next != NULL) {
+          /* dependency frame with unconsumed answers */
+          ans_node = AnsList_answer(next);
+          DepFr_last_answer(dep_fr) = next;
+        }
+#else
         ans_node = DepFr_last_answer(dep_fr);
         if (TrNode_child(ans_node)) {
           /* dependency frame with unconsumed answers */
           ans_node = DepFr_last_answer(dep_fr) = TrNode_child(ans_node);
+        }
+#endif
+        if(ans_node != NULL) {
 #ifdef YAPOR
           if (YOUNGER_CP(DepFr_backchain_cp(dep_fr), top_chain_cp))
 #endif /* YAPOR */
@@ -1404,10 +1606,26 @@
     dep_fr = LOCAL_top_dep_fr;
     while (YOUNGER_CP(DepFr_cons_cp(dep_fr), B)) {
       LOCK(DepFr_lock(dep_fr));
+      ans_node = NULL;
+      
+#ifdef TABLING_ANSWER_LIST
+      ans_list_ptr list = DepFr_last_answer(dep_fr);
+      ans_list_ptr next = AnsList_next(list);
+      
+      if(next != NULL) {
+        /* dependency frame with unconsumed answers */
+        ans_node = AnsList_answer(next);
+        DepFr_last_answer(dep_fr) = next;
+      }
+#else
       ans_node = DepFr_last_answer(dep_fr);
       if (TrNode_child(ans_node)) {    
         /* dependency frame with unconsumed answers */
         ans_node = DepFr_last_answer(dep_fr) = TrNode_child(ans_node);
+      }
+#endif /* !TABLING_ANSWER_LIST */
+      
+      if(ans_node != NULL) {
         if (B->cp_ap) {
 #ifdef YAPOR
           if (YOUNGER_CP(DepFr_backchain_cp(dep_fr), B))
@@ -1593,6 +1811,20 @@
         SET_BB(B);
         LOCK_OR_FRAME(LOCAL_top_or_fr);
         LOCK(DepFr_lock(LOCAL_top_dep_fr));
+        
+#ifdef TABLING_ANSWER_LIST
+        ans_list_ptr list = DepFr_last_answer(LOCAL_top_dep_fr);
+        ans_list_ptr next = AnsList_next(list);
+        
+        if(next != NULL) {
+          /* unconsumed answer */
+          UNLOCK_OR_FRAME(LOCAL_top_or_fr);
+          ans_node = AnsList_answer(next);
+          DepFr_last_answer(LOCAL_top_dep_fr) = next;
+          UNLOCK(DepFr_lock(LOCAL_top_dep_fr));
+          consume_answer_and_procceed(LOCAL_top_dep_fr, ans_node);
+        }
+#else
         ans_node = DepFr_last_answer(LOCAL_top_dep_fr);
         if (TrNode_child(ans_node)) {
           /* unconsumed answer */
@@ -1601,6 +1833,7 @@
           UNLOCK(DepFr_lock(LOCAL_top_dep_fr));
           consume_answer_and_procceed(LOCAL_top_dep_fr, ans_node);
         }
+#endif /* !TABLING_ANSWER_LIST */
         /* no unconsumed answers */
         UNLOCK(DepFr_lock(LOCAL_top_dep_fr));
         if (OrFr_owners(LOCAL_top_or_fr) > 1) {
@@ -1654,7 +1887,15 @@
         goto fail;
       } else {
         /* subgoal completed */
-	ans_node = SgFr_first_answer(sg_fr);
+
+#ifdef TABLING_ANSWER_LIST
+        ans_list_ptr list = SgFr_first_ans_list(sg_fr);
+        
+        ans_node = list == NULL ? NULL : AnsList_answer(list);
+#else
+	      ans_node = SgFr_first_answer(sg_fr);
+#endif /* !TABLING_ANSWER_LIST */
+        
         if (ans_node == NULL) {
           /* no answers --> fail */
           B = B->cp_b;
@@ -1678,38 +1919,47 @@
           GONext();
         } else  {
           /* answers -> get first answer */
-	  tab_ent_ptr tab_ent = SgFr_tab_ent(sg_fr);
+	        tab_ent_ptr tab_ent = SgFr_tab_ent(sg_fr);
 #ifdef LIMIT_TABLING
-	  SgFr_state(sg_fr)++;  /* complete --> complete_in_use */
-	  remove_from_global_sg_fr_list(sg_fr);
-	  TRAIL_FRAME(sg_fr);
+	        SgFr_state(sg_fr)++;  /* complete --> complete_in_use */
+	        remove_from_global_sg_fr_list(sg_fr);
+	        TRAIL_FRAME(sg_fr);
 #endif /* LIMIT_TABLING */
-	  if (IsMode_LoadAnswers(TabEnt_mode(tab_ent))) {
+          if (IsMode_LoadAnswers(TabEnt_mode(tab_ent))) {
             /* load answers from the trie */
-	    if(TrNode_child(ans_node) != NULL) {
-	      store_loader_node(tab_ent, ans_node);
-	    }
+            
+#ifdef TABLING_ANSWER_LIST
+            ans_list_ptr next = AnsList_next(list);
+            
+            if(next != NULL) {
+              store_loader_node(tab_ent, next);
+            }
+#else
+            if(TrNode_child(ans_node) != NULL) {
+              store_loader_node(tab_ent, ans_node);
+            }
+#endif /* !TABLING_ANSWER_LIST */
             PREG = (yamop *) CPREG;
             PREFETCH_OP(PREG);
             load_answer(ans_node, YENV);
-	    YENV = ENV;
+            YENV = ENV;
             GONext();
-	  } else {
-	    /* execute compiled code from the trie */
-	    LOCK(SgFr_lock(sg_fr));
-	    if (SgFr_state(sg_fr) < compiled)
-	      update_answer_trie(sg_fr);
-	    UNLOCK(SgFr_lock(sg_fr));
-	    PREG = (yamop *) TrNode_child(SgFr_answer_trie(sg_fr));
-	    PREFETCH_OP(PREG);
-	    *--YENV = 0;  /* vars_arity */
+          } else {
+            /* execute compiled code from the trie */
+            LOCK(SgFr_lock(sg_fr));
+            if (SgFr_state(sg_fr) < compiled)
+              update_answer_trie(sg_fr);
+            UNLOCK(SgFr_lock(sg_fr));
+            PREG = (yamop *) TrNode_child(SgFr_answer_trie(sg_fr));
+            PREFETCH_OP(PREG);
+            *--YENV = 0;  /* vars_arity */
 #ifndef GLOBAL_TRIE
-	  *--YENV = 0;  /* heap_arity */
+            *--YENV = 0;  /* heap_arity */
 #endif /* GLOBAL_TRIE */
-	    GONext();
-	  }
-	}
+            GONext();
+	        }
+	      }
       }
     }
-    END_PREFETCH()
+  END_PREFETCH()
   ENDBOp();

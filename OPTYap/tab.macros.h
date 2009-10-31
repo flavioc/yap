@@ -33,6 +33,10 @@ STD_PROTO(static inline void free_answer_trie_hash_chain, (ans_hash_ptr));
 STD_PROTO(static inline choiceptr freeze_current_cp, (void));
 STD_PROTO(static inline void resume_frozen_cp, (choiceptr));
 
+#ifdef TABLING_ANSWER_LIST
+STD_PROTO(static inline void free_answer_list, (ans_list_ptr));
+#endif
+
 #ifdef YAPOR
 STD_PROTO(static inline void pruning_over_tabling_data_structures, (void));
 STD_PROTO(static inline void collect_suspension_frames, (or_fr_ptr));
@@ -283,20 +287,30 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
         memcpy(SuspFr_local_start(SUSP_FR), SuspFr_local_reg(SUSP_FR), B_SIZE);    \
         memcpy(SuspFr_trail_start(SUSP_FR), SuspFr_trail_reg(SUSP_FR), TR_SIZE)
 
+#define base_new_subgoal_frame(SG_FR, CODE)                        \
+      { register ans_node_ptr ans_node;                          \
+        new_root_answer_trie_node(ans_node);                     \
+        ALLOC_SUBGOAL_FRAME(SG_FR);                              \
+        INIT_LOCK(SgFr_lock(SG_FR));                             \
+        SgFr_code(SG_FR) = CODE;                                 \
+        SgFr_state(SG_FR) = ready;                               \
+        SgFr_hash_chain(SG_FR) = NULL;                           \
+        SgFr_answer_trie(SG_FR) = ans_node;                      \
+}
 
-#define new_subgoal_frame(SG_FR, CODE)                             \
-        { register ans_node_ptr ans_node;                          \
-          new_root_answer_trie_node(ans_node);                     \
-          ALLOC_SUBGOAL_FRAME(SG_FR);                              \
-          INIT_LOCK(SgFr_lock(SG_FR));                             \
-          SgFr_code(SG_FR) = CODE;                                 \
-          SgFr_state(SG_FR) = ready;                               \
-          SgFr_hash_chain(SG_FR) = NULL;                           \
-          SgFr_answer_trie(SG_FR) = ans_node;                      \
-          SgFr_first_answer(SG_FR) = NULL;                         \
-          SgFr_last_answer(SG_FR) = NULL;                          \
-	}
-
+#ifdef TABLING_ANSWER_LIST
+#define new_subgoal_frame(SG_FR, CODE)                          \
+        { base_new_subgoal_frame(SG_FR, CODE)                   \
+          SgFr_first_ans_list(SG_FR) = NULL;                    \
+          SgFr_last_ans_list(SG_FR) = NULL;                     \
+        }
+#else
+#define new_subgoal_frame(SG_FR, CODE)                          \
+        { base_new_subgoal_frame(SG_FR, CODE)                   \
+          SgFr_first_answer(SG_FR) = NULL;                      \
+          SgFr_last_answer(SG_FR) = NULL;                       \
+        }
+#endif
 
 #define init_subgoal_frame(SG_FR)                                  \
         { SgFr_init_yapor_fields(SG_FR);                           \
@@ -306,18 +320,35 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
 	}
 
 
-#define new_dependency_frame(DEP_FR, DEP_ON_STACK, TOP_OR_FR, LEADER_CP, CONS_CP, SG_FR, NEXT)         \
+#define base_new_dependency_frame(DEP_FR, DEP_ON_STACK, TOP_OR_FR, LEADER_CP, CONS_CP, SG_FR, NEXT)         \
         ALLOC_DEPENDENCY_FRAME(DEP_FR);                                                                \
         INIT_LOCK(DepFr_lock(DEP_FR));                                                                 \
         DepFr_init_yapor_fields(DEP_FR, DEP_ON_STACK, TOP_OR_FR);                                      \
         DepFr_backchain_cp(DEP_FR) = NULL;                                                             \
         DepFr_leader_cp(DEP_FR) = NORM_CP(LEADER_CP);                                                  \
         DepFr_cons_cp(DEP_FR) = NORM_CP(CONS_CP);                                                      \
+        DepFr_next(DEP_FR) = NEXT
+        
+#ifdef TABLING_ANSWER_LIST
+
+#define new_dependency_frame(DEP_FR, DEP_ON_STACK, TOP_OR_FR, LEADER_CP, CONS_CP, SG_FR, NEXT) \
+        base_new_dependency_frame(DEP_FR, DEP_ON_STACK, TOP_OR_FR, LEADER_CP, CONS_CP, SG_FR, NEXT); \
+        /* start with AnsList_next(DepFr_last_answer(DEP_FR)) pointing to SgFr_first_ans_list(SG_FR) */ \
+        DepFr_last_answer(DEP_FR) = (ans_list_ptr)((unsigned long int) (SG_FR) +                        \
+                                    (unsigned long int) (&SgFr_first_ans_list((sg_fr_ptr)DEP_FR)) -     \
+                                    (unsigned long int) (&AnsList_next((ans_list_ptr)DEP_FR)))
+
+#else
+
+#define new_dependency_frame(DEP_FR, DEP_ON_STACK, TOP_OR_FR, LEADER_CP, CONS_CP, SG_FR, NEXT) \
+        base_new_dependency_frame(DEP_FR, DEP_ON_STACK, TOP_OR_FR, LEADER_CP, CONS_CP, SG_FR, NEXT); \
+        
         /* start with TrNode_child(DepFr_last_answer(DEP_FR)) pointing to SgFr_first_answer(SG_FR) */  \
         DepFr_last_answer(DEP_FR) = (ans_node_ptr) ((unsigned long int) (SG_FR) +                      \
                                     (unsigned long int) (&SgFr_first_answer((sg_fr_ptr)DEP_FR)) -      \
-                                    (unsigned long int) (&TrNode_child((ans_node_ptr)DEP_FR)));        \
-        DepFr_next(DEP_FR) = NEXT
+                                    (unsigned long int) (&TrNode_child((ans_node_ptr)DEP_FR)))
+
+#endif /* !TABLING_ANSWER_LIST */
 
 
 #define new_table_entry(TAB_ENT, PRED_ENTRY, ATOM, ARITY)       \
@@ -630,6 +661,18 @@ void restore_bindings(tr_fr_ptr unbind_tr, tr_fr_ptr rebind_tr) {
   return;
 }
 
+#ifdef TABLING_ANSWER_LIST
+static inline
+void free_answer_list(ans_list_ptr list) {
+  ans_list_ptr next;
+  
+  while(list) {
+    next = AnsList_next(list);
+    FREE_ANSWER_LIST(list);
+    list = next;
+  }
+}
+#endif
 
 static inline
 void abolish_incomplete_subgoals(choiceptr prune_cp) {
@@ -660,11 +703,21 @@ void abolish_incomplete_subgoals(choiceptr prune_cp) {
     sg_fr = LOCAL_top_sg_fr;
     LOCAL_top_sg_fr = SgFr_next(sg_fr);
     LOCK(SgFr_lock(sg_fr));
-    if (SgFr_first_answer(sg_fr) == NULL) {
+    ans_node_ptr ans_node = NULL;
+    
+#ifdef TABLING_ANSWER_LIST
+    ans_list_ptr list = SgFr_first_ans_list(sg_fr);
+    if(list)
+      ans_node = AnsList_answer(list);
+#else
+    ans_node = SgFr_first_answer(sg_fr);
+#endif
+
+    if (ans_node == NULL) {
       /* no answers --> ready */
       SgFr_state(sg_fr) = ready;
       UNLOCK(SgFr_lock(sg_fr));
-    } else if (SgFr_first_answer(sg_fr) == SgFr_answer_trie(sg_fr)) {
+    } else if (ans_node == SgFr_answer_trie(sg_fr)) {
       /* yes answer --> complete */
 #ifndef TABLING_EARLY_COMPLETION
       /* with early completion, at this point the subgoal should be already completed */
@@ -681,8 +734,16 @@ void abolish_incomplete_subgoals(choiceptr prune_cp) {
       SgFr_state(sg_fr) = ready;
       free_answer_trie_hash_chain(SgFr_hash_chain(sg_fr));
       SgFr_hash_chain(sg_fr) = NULL;
+      
+#ifdef TABLING_ANSWER_LIST
+      free_answer_list(SgFr_first_ans_list(sg_fr));
+      SgFr_first_ans_list(sg_fr) = NULL;
+      SgFr_last_ans_list(sg_fr) = NULL;
+#else
       SgFr_first_answer(sg_fr) = NULL;
       SgFr_last_answer(sg_fr) = NULL;
+#endif /* !TABLING_ANSWER_LIST */
+      
       node = TrNode_child(SgFr_answer_trie(sg_fr));
       TrNode_child(SgFr_answer_trie(sg_fr)) = NULL;
       UNLOCK(SgFr_lock(sg_fr));
@@ -854,7 +915,17 @@ susp_fr_ptr suspension_frame_to_resume(or_fr_ptr susp_or_fr) {
   while (susp_fr) {
     dep_fr = SuspFr_top_dep_fr(susp_fr);
     do {
-      if (TrNode_child(DepFr_last_answer(dep_fr))) {
+      ans_node_ptr ans_node = NULL;
+      
+#ifdef TABLING_ANSWER_LIST
+      ans_list_ptr list = DepFr_last_answer(dep_fr);
+      ans_list_ptr next = AnsList_next(list);
+      if(list)
+        ans_node = AnsList_answer(next);
+#else
+      ans_node = TrNode_child(DepFr_last_answer(dep_fr))
+#endif
+      if (ans_node) {
         /* unconsumed answers in susp_fr */
         *susp_ptr = SuspFr_next(susp_fr);
         return susp_fr;
@@ -1043,6 +1114,9 @@ void CUT_validate_tg_answers(tg_sol_fr_ptr valid_solutions) {
     } while (ltt_valid_solutions);
     if (first_answer) {
       LOCK(SgFr_lock(sg_fr));
+#ifdef TABLING_ANSWER_LIST
+      // TODO
+#endif
       if (SgFr_first_answer(sg_fr) == NULL) {
         SgFr_first_answer(sg_fr) = first_answer;
       } else {

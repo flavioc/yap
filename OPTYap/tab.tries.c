@@ -1463,6 +1463,9 @@ void free_subgoal_trie_branch(sg_node_ptr current_node, int nodes_left, int node
     ans_node_ptr ans_node;
     sg_fr = (sg_fr_ptr) TrNode_sg_fr(current_node);
     free_answer_trie_hash_chain(SgFr_hash_chain(sg_fr));
+#ifdef TABLING_ANSWER_LIST
+    free_answer_list(SgFr_first_ans_list(sg_fr));
+#endif
     ans_node = SgFr_answer_trie(sg_fr);
     if (TrNode_child(ans_node))
       free_answer_trie_branch(TrNode_child(ans_node), TRAVERSE_POSITION_FIRST);
@@ -1614,20 +1617,28 @@ void show_table(tab_ent_ptr tab_ent, int show_mode) {
       free(arity);
     } else {
       sg_fr_ptr sg_fr = (sg_fr_ptr) sg_node;
+      int has_answers = 0;
       TrStat_subgoals++;
       SHOW_TABLE_STRUCTURE("  ?- %s.\n", AtomName(TabEnt_atom(tab_ent)));
       TrStat_ans_nodes++;
-      if (SgFr_first_answer(sg_fr) == NULL) {
-	if (SgFr_state(sg_fr) < complete) {
-	  TrStat_sg_incomplete++;
-	  SHOW_TABLE_STRUCTURE("    ---> INCOMPLETE\n");
-	} else {
-	  TrStat_answers_no++;
-	  SHOW_TABLE_STRUCTURE("    NO\n");
-	}
-      } else {  /* SgFr_first_answer(sg_fr) == SgFr_answer_trie(sg_fr) */
-	TrStat_answers_true++;
-	SHOW_TABLE_STRUCTURE("    TRUE\n");
+
+#ifdef TABLING_ANSWER_LIST
+      has_answers = (SgFr_first_ans_list(sg_fr) != NULL);
+#else
+      has_answers = (SgFr_first_answer(sg_fr) != NULL)
+#endif
+
+      if (!has_answers) {
+	      if (SgFr_state(sg_fr) < complete) {
+	        TrStat_sg_incomplete++;
+	        SHOW_TABLE_STRUCTURE("    ---> INCOMPLETE\n");
+	      } else {
+	        TrStat_answers_no++;
+	        SHOW_TABLE_STRUCTURE("    NO\n");
+	      }
+      } else {  /* yes answer */
+	      TrStat_answers_true++;
+	      SHOW_TABLE_STRUCTURE("    TRUE\n");
       }
     }
   } else
@@ -1819,19 +1830,31 @@ void traverse_subgoal_trie(sg_node_ptr current_node, char *str, int str_index, i
   /* ... or show answers */
   else {
     sg_fr_ptr sg_fr = (sg_fr_ptr) TrNode_sg_fr(current_node);
+    ans_node_ptr ans_node = NULL;
+    
     TrStat_subgoals++;
     str[str_index] = 0;
     SHOW_TABLE_STRUCTURE("%s.\n", str);
     TrStat_ans_nodes++;
-    if (SgFr_first_answer(sg_fr) == NULL) {
+    
+#ifdef TABLING_ANSWER_LIST
+    ans_list_ptr list = SgFr_first_ans_list(sg_fr);
+    
+    if(list)
+      ans_node = AnsList_answer(list);
+#else
+    ans_node = SgFr_first_answer(sg_fr);
+#endif
+
+    if (ans_node == NULL) {
       if (SgFr_state(sg_fr) < complete) {
-	TrStat_sg_incomplete++;
-	SHOW_TABLE_STRUCTURE("    ---> INCOMPLETE\n");
+	      TrStat_sg_incomplete++;
+	      SHOW_TABLE_STRUCTURE("    ---> INCOMPLETE\n");
       } else {
-	TrStat_answers_no++;
-	SHOW_TABLE_STRUCTURE("    NO\n");
+	      TrStat_answers_no++;
+	      SHOW_TABLE_STRUCTURE("    NO\n");
       }
-    } else if (SgFr_first_answer(sg_fr) == SgFr_answer_trie(sg_fr)) {
+    } else if (ans_node == SgFr_answer_trie(sg_fr)) {
       TrStat_answers_true++;
       SHOW_TABLE_STRUCTURE("    TRUE\n");
     } else {
