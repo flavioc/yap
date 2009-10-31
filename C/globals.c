@@ -20,7 +20,7 @@ static char SccsId[] = "%W% %G%";
 
 #include "Yap.h"
 #include "Yatom.h"
-#include "Heap.h"
+#include "YapHeap.h"
 #include "yapio.h"
 #include "iopreds.h"
 #include "attvar.h"
@@ -1590,7 +1590,7 @@ p_nb_queue_close(void)
   Term t = Deref(ARG1);
   Int out;
 
-  DepthArenas--;
+ DepthArenas--;
   if (!IsVarTerm(t)) {
     CELL *qp;
 

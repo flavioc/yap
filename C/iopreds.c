@@ -26,7 +26,7 @@ static char SccsId[] = "%W% %G%";
 
 #include "Yap.h"
 #include "Yatom.h"
-#include "Heap.h"
+#include "YapHeap.h"
 #include "yapio.h"
 #include <stdlib.h>
 #if HAVE_STDARG_H
@@ -967,7 +967,7 @@ p_setprompt (void)
   Term t = Deref(ARG1);
   if (IsVarTerm (t) || !IsAtomTerm (t))
     return (FALSE);
-  *AtPrompt = AtomOfTerm (t);
+  AtPrompt = AtomOfTerm (t);
   return (TRUE);
 }
 
@@ -989,7 +989,7 @@ p_prompt (void)
 {				/* prompt(Old,New)       */
   Term t = Deref (ARG2);
   Atom a;
-  if (!Yap_unify_constant (ARG1, MkAtomTerm (*AtPrompt)))
+  if (!Yap_unify_constant (ARG1, MkAtomTerm (AtPrompt)))
     return (FALSE);
   if (IsVarTerm (t) || !IsAtomTerm (t))
     return (FALSE);
@@ -999,7 +999,7 @@ p_prompt (void)
     return(FALSE);
   }
   strncpy(Prompt, RepAtom (a)->StrOfAE, MAX_PROMPT);
-  *AtPrompt = a;
+  AtPrompt = a;
   return (TRUE);
 }
 
@@ -1118,7 +1118,7 @@ ReadlineGetc(int sno)
       Yap_PrologMode &= ~ConsoleGetcMode;
     }
     newline=FALSE;
-    strncpy (Prompt, RepAtom (*AtPrompt)->StrOfAE, MAX_PROMPT);
+    strncpy (Prompt, RepAtom (AtPrompt)->StrOfAE, MAX_PROMPT);
     /* window of vulnerability closed */
     if (myrl_line == NULL)
       return console_post_process_eof(s);
@@ -1369,7 +1369,7 @@ ConsoleSocketGetc(int sno)
     while ((ch = *cptr++) != '\0') {
       Stream[StdErrStream].stream_putc(StdErrStream, ch);
     }
-    strncpy(Prompt, RepAtom (*AtPrompt)->StrOfAE, MAX_PROMPT);
+    strncpy(Prompt, RepAtom (AtPrompt)->StrOfAE, MAX_PROMPT);
     newline = FALSE;
   }
   /* should be able to use a buffer */
@@ -1444,7 +1444,7 @@ ConsolePipeGetc(int sno)
     while ((ch = *cptr++) != '\0') {
       Stream[StdErrStream].stream_putc(StdErrStream, ch);
     }
-    strncpy(Prompt, RepAtom (*AtPrompt)->StrOfAE, MAX_PROMPT);
+    strncpy(Prompt, RepAtom (AtPrompt)->StrOfAE, MAX_PROMPT);
     newline = FALSE;
   }
 #if _MSC_VER || defined(__MINGW32__) 
@@ -1577,7 +1577,7 @@ ConsoleGetc(int sno)
 	Stream[StdErrStream].stream_putc(StdErrStream, ch);
       }
     }
-    strncpy (Prompt, RepAtom (*AtPrompt)->StrOfAE, MAX_PROMPT);
+    strncpy (Prompt, RepAtom (AtPrompt)->StrOfAE, MAX_PROMPT);
     newline = FALSE;
   }
 #if HAVE_SIGINTERRUPT
@@ -3704,7 +3704,7 @@ clean_vars(VarEntry *p)
 }
 
 static Term
-syntax_error (TokEntry * tokptr, int sno)
+syntax_error (TokEntry * tokptr, int sno, Term *outp)
 {
   Term info;
   int count = 0, out = 0;
@@ -3798,7 +3798,7 @@ syntax_error (TokEntry * tokptr, int sno)
     }
     tokptr = tokptr->TokNext;
   }
-  tf[0] = Yap_MkApplTerm(Yap_MkFunctor(AtomRead,1),1,&ARG2);
+  tf[0] = Yap_MkApplTerm(Yap_MkFunctor(AtomRead,1),1,outp);
   {
     Term t[3];
 
@@ -4048,7 +4048,7 @@ static Int
 	/* try again */
 	goto repeat_cycle;
       } else {
-	Term terr = syntax_error(tokstart, inp_stream);
+	Term terr = syntax_error(tokstart, inp_stream, &ARG2);
 	if (Yap_ErrorMessage == NULL)
 	  Yap_ErrorMessage = "SYNTAX ERROR";
 	
@@ -5273,7 +5273,7 @@ format(volatile Term otail, volatile Term oargs, int sno)
 	      ta[1] = MkVarTerm();
 	      sl2 = Yap_InitSlot(ta[1]);
 	      ts = Yap_MkApplTerm(FunctorGFormatAt, 2, ta);
-	      res = Yap_execute_goal(ts, 0, 1);
+	      res = Yap_execute_goal(ts, 0, CurrentModule);
 	      FormatInfo = &finfo;
 	      args = Yap_GetFromSlot(sl);
 	      if (EX) goto ex_handler;
@@ -6130,9 +6130,10 @@ Yap_StringToTerm(char *s,Term *tp)
   }
   t = Yap_Parse();
   TR = TR_before_parse;
-  if (Yap_ErrorMessage) {
+  if (!t && !Yap_ErrorMessage) {
     if (tp) {
-      *tp = syntax_error(tokstart, sno);
+      t = MkVarTerm();
+      *tp = syntax_error(tokstart, sno, &t);
     }
     Yap_clean_tokenizer(tokstart, Yap_VarTable, Yap_AnonVarTable);
     /* cannot actually use CloseStream, because we didn't allocate the buffer */  

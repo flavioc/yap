@@ -1,10 +1,3 @@
-
-
-
-
-
-
-
 /*************************************************************************
 *									 *
 *	 YAP Prolog   %W% %G%
@@ -21,6 +14,9 @@
 * comments:	stack shifter functionality for YAP			 *
 *									 *
 *************************************************************************/
+
+#define REINIT_LOCK(P) INIT_LOCK(P) 
+#define REINIT_RWLOCK(P) INIT_RWLOCK(P) 
 
 
 #define CharP(ptr)	((char *) (ptr))
@@ -357,6 +353,14 @@ PredEntryAdjust (PredEntry *p)
   return (PredEntry *) ((p == NULL ? (p) : (PredEntry *) (CharP (p) + HDiff)));
 }
 
+inline EXTERN struct mod_entry *ModEntryPtrAdjust (struct mod_entry *);
+
+inline EXTERN struct mod_entry *
+ModEntryPtrAdjust (struct mod_entry *p)
+{
+  return (struct mod_entry *) ((p == NULL ? (p) : (struct mod_entry *) (CharP (p) + HDiff)));
+}
+
 inline EXTERN COUNT ConstantAdjust (COUNT);
 
 inline EXTERN COUNT
@@ -578,6 +582,18 @@ inline EXTERN char * CodeCharPAdjust (char *);
 inline EXTERN char *
 CodeCharPAdjust (char * addr)
 {
+  if (!addr)
+    return NULL;
+  return addr + HDiff;
+}
+
+inline EXTERN void * CodeVoidPAdjust (void *);
+
+inline EXTERN void *
+CodeVoidPAdjust (void * addr)
+{
+  if (!addr)
+    return NULL;
   return addr + HDiff;
 }
 
@@ -599,6 +615,16 @@ inline EXTERN yamop *
 PtoOpAdjust (yamop * ptr)
 {
   return (yamop *) (CharP (ptr) + HDiff);
+}
+
+inline EXTERN struct operator_entry *OpListAdjust (struct operator_entry *);
+
+inline EXTERN struct operator_entry *
+OpListAdjust (struct operator_entry * ptr)
+{
+  if (!ptr)
+    return ptr;
+  return (struct operator_entry *) (CharP (ptr) + HDiff);
 }
 
 
@@ -638,12 +664,30 @@ PtoAtomHashEntryAdjust (AtomHashEntry * ptr)
 
 
 
+inline EXTERN opentry *OpRTableAdjust (opentry *);
+
+inline EXTERN opentry *
+OpRTableAdjust (opentry * ptr)
+{
+  return (opentry *) (((opentry *) (CharP (ptr) + HDiff)));
+}
+
 inline EXTERN PredEntry *PtoPredAdjust (PredEntry *);
 
 inline EXTERN PredEntry *
 PtoPredAdjust (PredEntry * ptr)
 {
   return (PredEntry *) (((PredEntry *) (CharP (ptr) + HDiff)));
+}
+
+inline EXTERN PredEntry **PtoPtoPredAdjust (PredEntry **);
+
+inline EXTERN PredEntry **
+PtoPtoPredAdjust (PredEntry **ptr)
+{
+  if (!ptr)
+    return NULL;
+  return (PredEntry **) (((PredEntry **) (CharP (ptr) + HDiff)));
 }
 
 

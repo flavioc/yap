@@ -11,6 +11,7 @@ dnl store the environment's compilation flags
 mycflags="$CFLAGS"
 
 AC_PROG_CC
+AC_PROG_AWK
 AC_SUBST(GCC)
 AC_SUBST(C_INTERF_FLAGS)
 AC_SUBST(C_PARSER_FLAGS)
@@ -293,7 +294,7 @@ AC_ARG_WITH(junit, [  --with-junit=PATH	  Specify location of the junit JAR file
 if test "$tabling" = yes -o "$orparallelism" = yes -o "$threads" = yes
 then
   AC_DEFINE(MinHeapSpace, (1000*SIZEOF_INT_P))
-  AC_DEFINE(MinStackSpace,(300*SIZEOF_INT_P))
+  AC_DEFINE(MinStackSpace,(300*SIZEOF_INT_P)) dnl 
   AC_DEFINE(MinTrailSpace,( 48*SIZEOF_INT_P))
 else
   AC_DEFINE(MinHeapSpace, (300*SIZEOF_INT_P))
@@ -524,10 +525,10 @@ then
   AC_CHECK_LIB(gmp,main)
 fi
 
-if test "$yap_cv_cudd" != "no"
-then
-  AC_CHECK_LIB(cudd,Cudd_Init)
-fi
+dnl if test "$yap_cv_cudd" != "no"
+dnl then
+dnl   AC_CHECK_LIB(cudd,Cudd_Init)
+dnl fi
 
 if test "$yap_cv_myddas" != "no"
 then
@@ -1136,8 +1137,8 @@ dnl Checks for header files.
 AC_HEADER_STDC
 AC_HEADER_SYS_WAIT
 AC_CHECK_HEADERS(arpa/inet.h ctype.h direct.h dirent.h dlfcn.h)
-AC_CHECK_HEADERS(errno.h fcntl.h)
-AC_CHECK_HEADERS(fenv.h fpu_control.h ieeefp.h io.h limits.h)
+AC_CHECK_HEADERS(errno.h fcntl.h fenv.h)
+AC_CHECK_HEADERS(float.h fpu_control.h ieeefp.h io.h limits.h)
 AC_CHECK_HEADERS(locale.h malloc.h math.h memory.h mpi.h)
 AC_CHECK_HEADERS(netdb.h netinet/in.h pwd.h regex.h)
 AC_CHECK_HEADERS(siginfo.h signal.h stdarg.h string.h stropts.h)
@@ -1217,6 +1218,24 @@ AC_DEFINE(HAVE_GCC,0)
 fi
 AC_SUBST(M4)
 AC_SUBST(M4GENHDRS)
+
+dnl SWI compatibility, I don't know why just use host...
+changequote(,)dnl
+if test "x$ARCH" = "x"; then
+  case "$host" in
+    *linux*)
+      ARCH=`echo $host | sed 's/-.*/-linux/'`
+      ;;
+    *-gnu)
+      ARCH=`echo $host | sed 's/\([^-]*\)-[^-]*-\([^-]*\)-gnu/\1-\2/'`
+      ;;
+    *)
+      ARCH=`echo $host | sed 's/\([^-]*\)-[^-]*-\([^-]*\)/\1-\2/'`
+      ;;
+  esac
+fi
+changequote([,])dnl
+AC_SUBST(ARCH)
 
 dnl System stuff for dynamic linking.
 dnl

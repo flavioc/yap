@@ -224,6 +224,7 @@ print_usage(void)
   fprintf(stderr,"\n[ Valid switches for command line arguments: ]\n");
   fprintf(stderr,"  -?   Shows this screen\n");
   fprintf(stderr,"  -b   Boot file \n");
+  fprintf(stderr,"  -dump-runtime-variables\n");
   fprintf(stderr,"  -f   initialization file or \"none\"\n");
   fprintf(stderr,"  -g   Run Goal Before Top-Level \n");
   fprintf(stderr,"  -z   Run Goal Before Top-Level \n");
@@ -292,6 +293,18 @@ add_end_dot(char arg[])
   return arg;
 }
 
+static int
+dump_runtime_variables(void)
+{
+  fprintf(stderr,"CC=\"%s\"\n",YAP_CC);
+  fprintf(stderr,"YAP_ROOTDIR=\"%s\"\n",YAP_ROOTDIR);
+  fprintf(stderr,"YAP_LIBS=\"%s\"\n",YAP_LIBS);
+  fprintf(stderr,"YAP_SHLIB_SUFFIX=\"%s\"\n",YAP_SHLIB_SUFFIX);
+  fprintf(stderr,"YAP_VERSION=%d\n",YAP_VERSION);
+  exit(0);
+  return 1;
+}
+
 /*
  * proccess command line arguments: valid switches are: -b    boot -s
  * stack area size (K) -h    heap area size -a    aux stack size -e
@@ -336,8 +349,14 @@ parse_yap_arguments(int argc, char *argv[], YAP_init_args *iap)
 	    ssize = &(iap->NumberWorkers);
 	    goto GetSize;
           case 'd':
+	    if (!strcmp("dump-runtime-variables",p))
+		return dump_runtime_variables();
             ssize = &(iap->DelayedReleaseLoad);
 	    goto GetSize;
+#else
+          case 'd':
+	    if (!strcmp("dump-runtime-variables",p))
+		return dump_runtime_variables();
 #endif /* ENV_COPY || ACOW || SBA */
 #ifdef USE_SOCKET
           case 'c':          /* running as client */
@@ -751,9 +770,14 @@ init_standard_system(int argc, char *argv[], YAP_init_args *iap)
 
   if (BootMode == YAP_FULL_BOOT_FROM_PROLOG) {
 #if HAVE_STRNCAT
-    strncpy(boot_file, PL_SRC_DIR, 256);
+    strncpy(boot_file, YAP_PL_SRCDIR, 256);
 #else
-    strcpy(boot_file, PL_SRC_DIR);
+    strcpy(boot_file, YAP_PL_SRCDIR);
+#endif
+#if HAVE_STRNCAT
+    strncat(boot_file, "/", 255);
+#else
+    strcat(boot_file, "/");
 #endif
 #if HAVE_STRNCAT
     strncat(boot_file, BootFile, 255);
@@ -805,9 +829,14 @@ exec_top_level(int BootMode, YAP_init_args *iap)
 	YAP_Term goal, as[2];
 
 #if HAVE_STRNCAT
-	strncpy(init_file, PL_SRC_DIR, 256);
+	strncpy(init_file, YAP_PL_SRCDIR, 256);
 #else
-	strcpy(init_file, PL_SRC_DIR);
+	strcpy(init_file, YAP_PL_SRCDIR);
+#endif
+#if HAVE_STRNCAT
+	strncat(init_file, "/", 255);
+#else
+	strcat(init_file, "/");
 #endif
 #if HAVE_STRNCAT
 	strncat(init_file, InitFile, 255);

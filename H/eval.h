@@ -21,6 +21,9 @@
 #if HAVE_MATH_H
 #include <math.h>
 #endif
+#ifdef HAVE_FLOAT_H
+#include <float.h>
+#endif
 #ifdef HAVE_IEEEFP_H
 #include <ieeefp.h>
 #endif
@@ -42,6 +45,7 @@
 typedef enum {
   op_pi,
   op_e,
+  op_epsilon,
   op_inf,
   op_nan,
   op_random,
@@ -82,7 +86,9 @@ typedef enum {
   op_integer,
   op_float,
   op_abs,
+  op_lsb,
   op_msb,
+  op_popcount,
   op_ffracp,
   op_fintp,
   op_sign,
