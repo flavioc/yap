@@ -370,10 +370,18 @@ or.sbaengine.o: $(srcdir)/OPTYap/or.sbaengine.c
 or.scheduler.o: $(srcdir)/OPTYap/or.scheduler.c
 	$(CC) -c $(CFLAGS) $(srcdir)/OPTYap/or.scheduler.c -o $@
 
-tab.tries.o: $(srcdir)/OPTYap/tab.tries.c
+tab.tries.o: $(srcdir)/OPTYap/tab.tries.c $(srcdir)/OPTYap/tab.macros.h \
+	$(srcdir)/OPTYap/tab.structs.h \
+	$(srcdir)/H/Yatom.h \
+	$(srcdir)/H/Heap.h \
+	$(srcdir)/H/yapio.h
 	$(CC) -c $(CFLAGS) $(srcdir)/OPTYap/tab.tries.c -o $@
 
-tab.suspend.o: $(srcdir)/OPTYap/tab.suspend.c
+tab.suspend.o: $(srcdir)/OPTYap/tab.suspend.c \
+	$(srcdir)/OPTYap/tab.macros.h \
+	$(srcdir)/OPTYap/or.macros.h \
+	$(srcdir)/H/Heap.h \
+	$(srcdir)/H/Yatom.h
 	$(CC) -c $(CFLAGS) $(srcdir)/OPTYap/tab.suspend.c -o $@
 
 eam_showcode.o:  $(srcdir)/BEAM/eam_showcode.c
@@ -412,10 +420,23 @@ regfree.o: $(srcdir)/library/regex/regfree.c $(srcdir)/library/regex/regex2.h
 regexec.o: $(srcdir)/library/regex/regexec.c
 	$(CC) -c $(CFLAGS) -I$(srcdir)/include -I$(srcdir)/library/regex $(srcdir)/library/regex/regexec.c -o regexec.o
 
+absmi.o: $(srcdir)/C/absmi.c \
+	$(srcdir)/OPTYap/tab.tries.insts.i \
+	$(srcdir)/OPTYap/tab.insts.i \
+	$(srcdir)/OPTYap/opt.structs.h \
+	$(srcdir)/OPTYap/or.macros.h \
+	$(srcdir)/OPTYap/tab.macros.h \
+	$(srcdir)/OPTYap/or.insts.i
+	$(CC) -c $(CFLAGS) $< -o $@
+
 # default rule
 %.o : $(srcdir)/C/%.c
 	$(CC) -c $(CFLAGS) $< -o $@
 
+# dependencies for header files
+$(srcdir)/OPTYap/tab.macros.h: $(srcdir)/OPTYap/opt.mavar.h
+$(srcdir)/OPTYap/opt.structs.h: $(srcdir)/OPTYap/or.structs.h \
+	$(srcdir)/OPTYap/tab.structs.h
 
 ## CPP'ed files (for macro debugging)
 
