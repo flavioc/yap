@@ -184,7 +184,7 @@ find_nth(N, [Head|Tail], Elem, [Head|Rest]) :-
 
 
 generate_nth(I, I, [Head|Tail], Head, Tail).
-generate_nth(I, IN, [_|List], El, Tail) :-
+generate_nth(I, IN, [E|List], El, [E|Tail]) :-
 	I1 is I+1,
 	generate_nth(I1, IN, List, El, Tail).
 

@@ -79,9 +79,9 @@ STD_PROTO(void  exit, (int));
 
 /************* variables related to memory allocation ***************/
 
-ADDR Yap_HeapBase;
-
 #if defined(THREADS)
+
+ADDR Yap_HeapBase;
 
 struct restore_info rinfo[MAX_THREADS];
 
@@ -973,104 +973,157 @@ InitFlags(void)
   yap_flags[QUIET_MODE_FLAG] = FALSE;
 }
 
-static void 
-InitCodes(void)
+static void
+InitPredHash(void)
 {
-  /* initialise invisible chain */
-  Yap_heap_regs->execution_mode = INTERPRETED;
-  Yap_heap_regs->invisiblechain.Entry = NIL;
-  INIT_RWLOCK(Yap_heap_regs->invisiblechain.AERWLock);
-#include "iatoms.h"
-  Yap_heap_regs->term_prolog = MkAtomTerm(AtomProlog);
-  Yap_heap_regs->user_module = MkAtomTerm(AtomUser);
-  Yap_heap_regs->idb_module = MkAtomTerm(AtomIDB);
-  Yap_heap_regs->attributes_module = MkAtomTerm(AtomAttributes);
-  Yap_heap_regs->charsio_module = MkAtomTerm(AtomCharsio);
-  Yap_heap_regs->terms_module = MkAtomTerm(AtomTerms);
-  Yap_heap_regs->system_module = MkAtomTerm(AtomSystem);
-  Yap_heap_regs->readutil_module = MkAtomTerm(AtomReadutil);
-  Yap_heap_regs->hacks_module = MkAtomTerm(AtomYapHacks);
-  Yap_heap_regs->globals_module = MkAtomTerm(AtomNb);
-  Yap_heap_regs->arg_module = MkAtomTerm(AtomArg);
-  Yap_heap_regs->swi_module = MkAtomTerm(AtomSwi);
-  Yap_InitModules();
-#ifdef BEAM
-  Yap_heap_regs->beam_retry_code.opc = Yap_opcode(_retry_eam);
-#endif
+  UInt i;
+
+  PredHash = (PredEntry **)Yap_AllocAtomSpace(sizeof(PredEntry **) * PredHashInitialSize);
+  PredHashTableSize = PredHashInitialSize;
+  if (PredHash == NULL) {
+    Yap_Error(FATAL_ERROR,MkIntTerm(0),"allocating initial predicate hash table");
+  }
+  for (i = 0; i < PredHashTableSize; ++i) {
+    PredHash[i] = NULL;
+  }
+  INIT_RWLOCK(PredHashRWLock);
+}
+
+static void
+InitEnvInst(yamop start[2], yamop **instp, op_numbers opc, PredEntry *pred)
+{
+  yamop *ipc = start;
+
+  /* make it look like the instruction is preceeded by a call instruction */
+  ipc->opc = Yap_opcode(_call);
+  ipc->u.Osbpp.s = -Signed(RealEnvSize);
+  ipc->u.Osbpp.bmap = NULL;
+  ipc->u.Osbpp.p = pred;
+  ipc->u.Osbpp.p0 = pred;
+  ipc = NEXTOP(ipc, Osbpp);
+  ipc->opc = Yap_opcode(opc);
+  *instp = ipc;
+}
+
+static void
+InitOtaplInst(yamop start[1], OPCODE opc, PredEntry *pe)
+{
+  yamop *ipc = start;
+
+  /* this is a place holder, it should not really be used */
+  ipc->opc = Yap_opcode(opc);
+  ipc->u.Otapl.s = 0;
+  ipc->u.Otapl.p = pe;
+  ipc->u.Otapl.d = NULL;
 #ifdef YAPOR
-  Yap_heap_regs->seq_def = TRUE;
-  Yap_heap_regs->getwork_code.opc = Yap_opcode(_getwork);
-  INIT_YAMOP_LTT(&(Yap_heap_regs->getwork_code), 0);
-  Yap_heap_regs->getwork_seq_code.opc = Yap_opcode(_getwork_seq);
-  INIT_YAMOP_LTT(&(Yap_heap_regs->getwork_seq_code), 0);
-  Yap_heap_regs->getwork_first_time_code.opc = Yap_opcode(_getwork_first_time);
+  INIT_YAMOP_LTT(ipc, 1);
 #endif /* YAPOR */
 #ifdef TABLING
-  Yap_heap_regs->table_load_answer_code.opc = Yap_opcode(_table_load_answer);
-  Yap_heap_regs->table_try_answer_code.opc = Yap_opcode(_table_try_answer);
-  Yap_heap_regs->table_completion_code.opc = Yap_opcode(_table_completion);
-  Yap_heap_regs->table_answer_resolution_code.opc = Yap_opcode(_table_answer_resolution);
-#ifdef YAPOR
-  INIT_YAMOP_LTT(&(Yap_heap_regs->table_load_answer_code), 0);
-  INIT_YAMOP_LTT(&(Yap_heap_regs->table_try_answer_code), 0);
-  INIT_YAMOP_LTT(&(Yap_heap_regs->table_completion_code), 0);
-  INIT_YAMOP_LTT(&(Yap_heap_regs->table_answer_resolution_code), 0);
-#endif /* YAPOR */
+  ipc->u.Otapl.te = NULL;
 #endif /* TABLING */
-  Yap_heap_regs->execute_cpred_op_code = Yap_opcode(_execute_cpred);
-  Yap_heap_regs->expand_op_code = Yap_opcode(_expand_index);
-  INIT_LOCK(Yap_heap_regs->expand_clauses_list_lock);
-#ifdef LOW_LEVEL_TRACER
-  Yap_heap_regs->yap_do_low_level_trace = FALSE;
-  INIT_LOCK(Yap_heap_regs->low_level_trace_lock);
+}
+
+static void 
+InitDBErasedMarker(void)
+{
+  Yap_heap_regs->db_erased_marker =
+    (DBRef)Yap_AllocCodeSpace(sizeof(DBStruct));
+  Yap_LUClauseSpace += sizeof(DBStruct);
+  Yap_heap_regs->db_erased_marker->id = FunctorDBRef;
+  Yap_heap_regs->db_erased_marker->Flags = ErasedMask;
+  Yap_heap_regs->db_erased_marker->Code = NULL;
+  Yap_heap_regs->db_erased_marker->DBT.DBRefs = NULL;
+  Yap_heap_regs->db_erased_marker->Parent = NULL;
+}
+
+static void 
+InitLogDBErasedMarker(void)
+{
+  Yap_heap_regs->logdb_erased_marker =
+    (LogUpdClause *)Yap_AllocCodeSpace(sizeof(LogUpdClause)+(UInt)NEXTOP((yamop*)NULL,e));
+  Yap_LUClauseSpace += sizeof(LogUpdClause)+(UInt)NEXTOP((yamop*)NULL,e);
+  Yap_heap_regs->logdb_erased_marker->Id = FunctorDBRef;
+  Yap_heap_regs->logdb_erased_marker->ClFlags = ErasedMask|LogUpdMask;
+  Yap_heap_regs->logdb_erased_marker->ClSource = NULL;
+  Yap_heap_regs->logdb_erased_marker->ClRefCount = 0;
+  Yap_heap_regs->logdb_erased_marker->ClPred = PredLogUpdClause;
+  Yap_heap_regs->logdb_erased_marker->ClExt = NULL;
+  Yap_heap_regs->logdb_erased_marker->ClPrev = NULL;
+  Yap_heap_regs->logdb_erased_marker->ClNext = NULL;
+  Yap_heap_regs->logdb_erased_marker->ClSize = (UInt)NEXTOP(((LogUpdClause *)NULL)->ClCode,e);
+  Yap_heap_regs->logdb_erased_marker->ClCode->opc = Yap_opcode(_op_fail);
+  INIT_CLREF_COUNT(Yap_heap_regs->logdb_erased_marker);
+}
+
+static void 
+InitAtoms(void)
+{
+  int i;
+  AtomHashTableSize = MaxHash;
+  HashChain = (AtomHashEntry *)Yap_AllocAtomSpace(sizeof(AtomHashEntry) * MaxHash);
+  if (HashChain == NULL) {
+    Yap_Error(FATAL_ERROR,MkIntTerm(0),"allocating initial atom table");
+  }
+  for (i = 0; i < MaxHash; ++i) {
+    INIT_RWLOCK(HashChain[i].AERWLock);
+    HashChain[i].Entry = NIL;
+  }
+  NOfAtoms = 0;
+#if THREADS
+  SF_STORE->AtFoundVar = Yap_LookupAtom("**");
+  Yap_ReleaseAtom(AtomFoundVar);
+  SF_STORE->AtFreeTerm = Yap_LookupAtom("?");
+  Yap_ReleaseAtom(AtomFreeTerm);
+  SF_STORE->AtNil = Yap_LookupAtom("[]");
+  SF_STORE->AtDot = Yap_LookupAtom(".");
+#else
+  Yap_LookupAtomWithAddress("**",&(SF_STORE->AtFoundVar));
+  Yap_ReleaseAtom(AtomFoundVar);
+  Yap_LookupAtomWithAddress("?",&(SF_STORE->AtFreeTerm));
+  Yap_ReleaseAtom(AtomFreeTerm);
+  Yap_LookupAtomWithAddress("[]",&(SF_STORE->AtNil));
+  Yap_LookupAtomWithAddress(".",&(SF_STORE->AtDot));
 #endif
-  Yap_heap_regs->expand_clauses_first = NULL;
-  Yap_heap_regs->expand_clauses_last = NULL;
-  Yap_heap_regs->expand_clauses = 0;
-  Yap_heap_regs->failcode->opc = Yap_opcode(_op_fail);
-  Yap_heap_regs->failcode_1 = Yap_opcode(_op_fail);
-  Yap_heap_regs->failcode_2 = Yap_opcode(_op_fail);
-  Yap_heap_regs->failcode_3 = Yap_opcode(_op_fail);
-  Yap_heap_regs->failcode_4 = Yap_opcode(_op_fail);
-  Yap_heap_regs->failcode_5 = Yap_opcode(_op_fail);
-  Yap_heap_regs->failcode_6 = Yap_opcode(_op_fail);
-  
-  Yap_heap_regs->env_for_trustfail_code.op = Yap_opcode(_call);
-  Yap_heap_regs->env_for_trustfail_code.s = -Signed(RealEnvSize);
-  Yap_heap_regs->env_for_trustfail_code.l2 = NULL;
-  Yap_heap_regs->trustfailcode->opc = Yap_opcode(_trust_fail);
+}
 
-  Yap_heap_regs->env_for_yes_code.op = Yap_opcode(_call);
-  Yap_heap_regs->env_for_yes_code.s = -Signed(RealEnvSize);
-  Yap_heap_regs->env_for_yes_code.l2 = NULL;
-  Yap_heap_regs->yescode.opc = Yap_opcode(_Ystop);
-  Yap_heap_regs->undef_op = Yap_opcode(_undef_p);
-  Yap_heap_regs->index_op = Yap_opcode(_index_pred);
-  Yap_heap_regs->lockpred_op = Yap_opcode(_lock_pred);
-  Yap_heap_regs->fail_op = Yap_opcode(_op_fail);
+static void 
+InitWideAtoms(void)
+{
+  int i;
 
-  Yap_heap_regs->nocode.opc = Yap_opcode(_Nstop);
+  WideAtomHashTableSize = MaxWideHash;
+  WideHashChain = (AtomHashEntry *)Yap_AllocAtomSpace(sizeof(AtomHashEntry) * MaxWideHash);
+  if (WideHashChain == NULL) {
+    Yap_Error(FATAL_ERROR,MkIntTerm(0),"allocating wide atom table");
+  }
+  for (i = 0; i < MaxWideHash; ++i) {
+    INIT_RWLOCK(WideHashChain[i].AERWLock);
+    WideHashChain[i].Entry = NIL;
+  }
+  NOfWideAtoms = 0;
+}
 
-  Yap_heap_regs->rtrycode.opc = Yap_opcode(_retry_and_mark);
-  Yap_heap_regs->rtrycode.u.Otapl.s = 0;
-  Yap_heap_regs->rtrycode.u.Otapl.d = NIL;
-#ifdef YAPOR
-  INIT_YAMOP_LTT(&(Yap_heap_regs->rtrycode), 1);
-#endif /* YAPOR */
+static void 
+InitInvisibleAtoms(void)
+{
+  /* initialise invisible chain */
+  Yap_heap_regs->invisiblechain.Entry = NIL;
+  INIT_RWLOCK(Yap_heap_regs->invisiblechain.AERWLock);
+}
 
 #ifdef  THREADS
-  INIT_LOCK(Yap_heap_regs->thread_handles_lock);
-  {
-    int i;
-    for (i=0; i < MAX_THREADS; i++) {
-      Yap_heap_regs->thread_handle[i].in_use = FALSE;
-      Yap_heap_regs->thread_handle[i].zombie = FALSE;
-      Yap_heap_regs->thread_handle[i].local_preds = NULL;
+static void 
+InitThreadHandles(void)
+{
+  int i;
+  for (i=0; i < MAX_THREADS; i++) {
+    Yap_heap_regs->thread_handle[i].in_use = FALSE;
+    Yap_heap_regs->thread_handle[i].zombie = FALSE;
+    Yap_heap_regs->thread_handle[i].local_preds = NULL;
 #ifdef LOW_LEVEL_TRACER
-      Yap_heap_regs->thread_handle[i].thread_inst_count = 0LL;
+    Yap_heap_regs->thread_handle[i].thread_inst_count = 0LL;
 #endif
-      pthread_mutex_init(&Yap_heap_regs->thread_handle[i].tlock, NULL);
-    }
+    pthread_mutex_init(&Yap_heap_regs->thread_handle[i].tlock, NULL);
   }
   Yap_heap_regs->thread_handle[0].id = 0;
   Yap_heap_regs->thread_handle[0].in_use = TRUE;
@@ -1080,23 +1133,14 @@ InitCodes(void)
   Yap_heap_regs->thread_handle[0].handle = pthread_self();
   pthread_mutex_init(&ThreadHandle[0].tlock, NULL);
   pthread_mutex_init(&ThreadHandle[0].tlock_status, NULL);
-  Yap_heap_regs->n_of_threads = 1;
-  Yap_heap_regs->n_of_threads_created = 1;
-  Yap_heap_regs->threads_total_time = 0;
+}
 #endif
-#ifdef  YAPOR
-  Yap_heap_regs->n_of_threads = 1;
-#endif
+
+static void 
+InitCodes(void)
+{
+#include "ihstruct.h"
 #if defined(YAPOR) || defined(THREADS)
-  INIT_LOCK(Yap_heap_regs->bgl);
-  INIT_LOCK(Yap_heap_regs->free_blocks_lock);
-  INIT_LOCK(Yap_heap_regs->heap_used_lock);
-  INIT_LOCK(Yap_heap_regs->heap_top_lock);
-  INIT_LOCK(Yap_heap_regs->dead_static_clauses_lock);
-  INIT_LOCK(Yap_heap_regs->dead_mega_clauses_lock);
-  INIT_LOCK(Yap_heap_regs->dead_static_indices_lock);
-  INIT_LOCK(Yap_heap_regs->op_list_lock);
-  Yap_heap_regs->heap_top_owner = -1;
   {
     int i;
     for (i=0; i < MAX_AGENTS; i++) {
@@ -1150,106 +1194,12 @@ InitCodes(void)
   Yap_heap_regs->wl.consultbase = Yap_heap_regs->wl.consultsp =
     Yap_heap_regs->wl.consultlow + Yap_heap_regs->wl.consultcapacity;
 #endif /* YAPOR */
-  Yap_heap_regs->clausecode->arity = 0;
-  Yap_heap_regs->clausecode->clause = NULL;
-  Yap_heap_regs->clausecode->func = NIL;
 
-  {
-    Atom            at;
-    PredEntry      *pred;
-
-    at = AtomCreep;
-    pred = RepPredProp(PredPropByFunc(Yap_MkFunctor(at, 1),PROLOG_MODULE));
-    Yap_heap_regs->creep_code = pred;
-    at = AtomUndefp;
-    pred = RepPredProp(PredPropByFunc(Yap_MkFunctor(at, 1),PROLOG_MODULE));
-    Yap_heap_regs->undef_code = pred;
-    at = AtomSpy;
-    pred = RepPredProp(PredPropByFunc(Yap_MkFunctor(at, 1),0));
-    Yap_heap_regs->spy_code = pred;
-    Yap_heap_regs->env_for_trustfail_code.p =
-      Yap_heap_regs->env_for_trustfail_code.p0 =
-      RepPredProp(PredPropByAtom(Yap_FullLookupAtom("fail"),PROLOG_MODULE));
-  }
-#if DEBUG
-  Yap_heap_regs->new_cps = 0;
-  Yap_heap_regs->live_cps = 0;
-  Yap_heap_regs->dirty_cps = 0;
-  Yap_heap_regs->freed_cps = 0;
-#endif
-  Yap_heap_regs->system_profiling = FALSE;
-  Yap_heap_regs->system_call_counting = FALSE;
-  Yap_heap_regs->system_pred_goal_expansion_all = FALSE;
-  Yap_heap_regs->system_pred_goal_expansion_on = FALSE;
-  Yap_heap_regs->update_mode = UPDATE_MODE_LOGICAL;
-  Yap_heap_regs->compiler_compile_mode = 0; /* fast will be for native code */
-  Yap_heap_regs->compiler_optimizer_on = TRUE;
-  Yap_heap_regs->compiler_compile_arrays = FALSE;
-  Yap_heap_regs->maxdepth      = 0;
-  Yap_heap_regs->maxlist       = 0;
-  Yap_heap_regs->maxwriteargs  = 0;
-
-  Yap_heap_regs->atprompt = 0;
-#ifdef COROUTINING
-  Yap_heap_regs->num_of_atts = 1; /* initially only coroutining is supported */
-#endif
-  /* system boots in compile mode */
-  Yap_heap_regs->static_predicates_marked = TRUE;
-  /* use Quintus compatible atom_chars and number_chars, not ISO compatible */
-  Yap_heap_regs->static_predicates_marked = FALSE;
-
-  Yap_heap_regs->int_keys_size = INT_KEYS_DEFAULT_SIZE;
-  Yap_heap_regs->int_keys_timestamp = 0;
-  Yap_heap_regs->IntKeys = NULL;
-  Yap_heap_regs->int_bb_keys_size = INT_KEYS_DEFAULT_SIZE;
-  Yap_heap_regs->IntBBKeys = NULL;
-  Yap_heap_regs->char_conversion_table = NULL;
-  Yap_heap_regs->char_conversion_table2 = NULL;
-  /*
-    don't initialise this here, this is initialised by Yap_InitModules!!!!
-     Yap_heap_regs->no_of_modules = 1;
-  */
-#ifdef EUROTRA
-  Yap_heap_regs->term_dollar_u = MkAtomTerm(AtomDollarU);
-#endif
-  Yap_heap_regs->term_refound_var = MkAtomTerm(AtomRefoundVar);
-  Yap_heap_regs->n_of_file_aliases = 0;
-  Yap_heap_regs->file_aliases = NULL;
-  Yap_heap_regs->foreign_code_loaded = NULL;
-  Yap_heap_regs->yap_lib_dir = NULL;
-  Yap_heap_regs->agc_last_call = 0;
-  Yap_heap_regs->agc_threshold = 10000;
-  Yap_heap_regs->agc_hook = NULL;
-  Yap_heap_regs->parser_error_style = EXCEPTION_ON_PARSER_ERROR;
-  Yap_heap_regs->global_hold_entry = Yap_InitAtomHold();
-  Yap_heap_regs->size_of_overflow  = 0;
   /* make sure no one else can use these two atoms */
   CurrentModule = 0;
-  OpList = NULL;
-  Yap_heap_regs->op_list = NULL;
-  Yap_heap_regs->dead_static_clauses = NULL;
-  Yap_heap_regs->dead_mega_clauses = NULL;
-  Yap_heap_regs->dead_static_indices = NULL;
   Yap_ReleaseAtom(AtomOfTerm(Yap_heap_regs->term_refound_var));
   /* make sure we have undefp defined */
   /* predicates can only be defined after this point */
-  Yap_heap_regs->env_for_yes_code.p =
-    Yap_heap_regs->env_for_yes_code.p0 =
-    RepPredProp(PredPropByAtom(AtomTrue,0));
-  Yap_heap_regs->pred_meta_call = RepPredProp(PredPropByFunc(FunctorMetaCall,PROLOG_MODULE));
-  Yap_heap_regs->pred_dollar_catch = RepPredProp(PredPropByFunc(FunctorCatch,PROLOG_MODULE));
-  Yap_heap_regs->pred_recorded_with_key = RepPredProp(PredPropByFunc(FunctorRecordedWithKey,PROLOG_MODULE));
-  Yap_heap_regs->pred_log_upd_clause = RepPredProp(PredPropByFunc(FunctorDoLogUpdClause,PROLOG_MODULE));
-  Yap_heap_regs->pred_log_upd_clause_erase = RepPredProp(PredPropByFunc(FunctorDoLogUpdClauseErase,PROLOG_MODULE));
-  Yap_heap_regs->pred_log_upd_clause0 = RepPredProp(PredPropByFunc(FunctorDoLogUpdClause,PROLOG_MODULE));
-  Yap_heap_regs->pred_static_clause = RepPredProp(PredPropByFunc(FunctorDoStaticClause,PROLOG_MODULE));
-  Yap_heap_regs->pred_throw = RepPredProp(PredPropByFunc(FunctorThrow,PROLOG_MODULE));
-  Yap_heap_regs->pred_handle_throw = RepPredProp(PredPropByFunc(FunctorHandleThrow,PROLOG_MODULE));
-  Yap_heap_regs->pred_is = RepPredProp(PredPropByFunc(FunctorIs,PROLOG_MODULE));
-  Yap_heap_regs->pred_goal_expansion = RepPredProp(PredPropByFunc(FunctorGoalExpansion,USER_MODULE));
-  Yap_heap_regs->env_for_trustfail_code.p =
-    Yap_heap_regs->env_for_trustfail_code.p0 =
-    RepPredProp(PredPropByAtom(AtomFalse,PROLOG_MODULE));
   {
     /* make sure we know about the module predicate */
     PredEntry *modp = RepPredProp(PredPropByFunc(FunctorModule,PROLOG_MODULE));
@@ -1259,35 +1209,7 @@ InitCodes(void)
   Yap_heap_regs->getwork_code.u.Otapl.p = RepPredProp(PredPropByAtom(AtomGetwork, PROLOG_MODULE));
   Yap_heap_regs->getwork_seq_code.u.Otapl.p = RepPredProp(PredPropByAtom(AtomGetworkSeq, PROLOG_MODULE));
 #endif /* YAPOR */
-  Yap_heap_regs->db_erased_marker =
-    (DBRef)Yap_AllocCodeSpace(sizeof(DBStruct));
-  Yap_LUClauseSpace += sizeof(DBStruct);
-  INIT_LOCK(Yap_heap_regs->dbterms_list_lock);
-  Yap_heap_regs->dbterms_list = NULL;
-  Yap_heap_regs->db_erased_marker->id = FunctorDBRef;
-  Yap_heap_regs->db_erased_marker->Flags = ErasedMask;
-  Yap_heap_regs->db_erased_marker->Code = NULL;
-  Yap_heap_regs->db_erased_marker->DBT.DBRefs = NULL;
-  Yap_heap_regs->db_erased_marker->Parent = NULL;
-  Yap_heap_regs->logdb_erased_marker =
-    (LogUpdClause *)Yap_AllocCodeSpace(sizeof(LogUpdClause)+(UInt)NEXTOP((yamop*)NULL,e));
-  Yap_LUClauseSpace += sizeof(LogUpdClause)+(UInt)NEXTOP((yamop*)NULL,e);
-  Yap_heap_regs->logdb_erased_marker->Id = FunctorDBRef;
-  Yap_heap_regs->logdb_erased_marker->ClFlags = ErasedMask|LogUpdMask;
-  Yap_heap_regs->logdb_erased_marker->ClSource = NULL;
-  Yap_heap_regs->logdb_erased_marker->ClRefCount = 0;
-  Yap_heap_regs->logdb_erased_marker->ClPred = RepPredProp(PredPropByFunc(Yap_MkFunctor(AtomDoLogUpdClause,5),PROLOG_MODULE));
-  Yap_heap_regs->logdb_erased_marker->ClExt = NULL;
-  Yap_heap_regs->logdb_erased_marker->ClPrev = NULL;
-  Yap_heap_regs->logdb_erased_marker->ClNext = NULL;
-  Yap_heap_regs->logdb_erased_marker->ClSize = (UInt)NEXTOP(((LogUpdClause *)NULL)->ClCode,e);
-  Yap_heap_regs->logdb_erased_marker->ClCode->opc = Yap_opcode(_op_fail);
-  //  INIT_LOCK(Yap_heap_regs->logdb_erased_marker->ClLock);
-  INIT_CLREF_COUNT(Yap_heap_regs->logdb_erased_marker);
-  Yap_heap_regs->yap_streams = NULL;
-#if DEBUG
-  Yap_heap_regs->expand_clauses_sz = 0L;
-#endif
+
 }
 
 
@@ -1295,13 +1217,12 @@ static void
 InitVersion(void)
 {
   Yap_PutValue(AtomVersionNumber,
-	       MkAtomTerm(Yap_LookupAtom(YAP_VERSION)));
+	       MkAtomTerm(Yap_LookupAtom(YAP_SVERSION)));
 #if defined MYDDAS_MYSQL || defined MYDDAS_ODBC
   Yap_PutValue(AtomMyddasVersionName,
 	       MkAtomTerm(Yap_LookupAtom(MYDDAS_VERSION)));
 #endif  
 }
-
 
 void
 Yap_InitWorkspace(UInt Heap, UInt Stack, UInt Trail, UInt Atts, UInt max_table_size, 
@@ -1359,79 +1280,17 @@ Yap_InitWorkspace(UInt Heap, UInt Stack, UInt Trail, UInt Atts, UInt max_table_s
 #else
   Yap_InitMemory (Trail, Heap, Stack+Atts);
 #endif /* YAPOR */
-  Yap_AttsSize = Atts;
-  Yap_ClauseSpace = 0;
-  Yap_IndexSpace_Tree = 0;
-  Yap_IndexSpace_EXT = 0;
-  Yap_IndexSpace_SW = 0;
-  Yap_LUClauseSpace = 0;
-  Yap_LUIndexSpace_Tree = 0;
-  Yap_LUIndexSpace_CP = 0;
-  Yap_LUIndexSpace_EXT = 0;
-  Yap_LUIndexSpace_SW = 0;
-#if USE_THREADED_CODE
-  Yap_heap_regs->op_rtable = NULL;
-#endif
 #if defined(YAPOR) || defined(TABLING)
   Yap_init_global(max_table_size, n_workers, sch_loop, delay_load);
 #endif /* YAPOR || TABLING */
+  Yap_AttsSize = Atts;
 
   Yap_InitTime ();
-  AtomHashTableSize = MaxHash;
-  WideAtomHashTableSize = MaxWideHash;
-  HashChain = (AtomHashEntry *)Yap_AllocAtomSpace(sizeof(AtomHashEntry) * MaxHash);
-  if (HashChain == NULL) {
-    Yap_Error(FATAL_ERROR,MkIntTerm(0),"allocating initial atom table");
-  }
-  for (i = 0; i < MaxHash; ++i) {
-    INIT_RWLOCK(HashChain[i].AERWLock);
-    HashChain[i].Entry = NIL;
-  }
-  WideHashChain = (AtomHashEntry *)Yap_AllocAtomSpace(sizeof(AtomHashEntry) * MaxWideHash);
-  if (WideHashChain == NULL) {
-    Yap_Error(FATAL_ERROR,MkIntTerm(0),"allocating initial atom table");
-  }
-  for (i = 0; i < MaxWideHash; ++i) {
-    INIT_RWLOCK(WideHashChain[i].AERWLock);
-    WideHashChain[i].Entry = NIL;
-  }
-  PredHash = (PredEntry **)Yap_AllocAtomSpace(sizeof(PredEntry **) * PredHashInitialSize);
-  PredHashTableSize = PredHashInitialSize;
-  if (PredHash == NULL) {
-    Yap_Error(FATAL_ERROR,MkIntTerm(0),"allocating initial predicate hash table");
-  }
-  for (i = 0; i < PredHashTableSize; ++i) {
-    PredHash[i] = NULL;
-  }
-  INIT_RWLOCK(PredHashRWLock);
-  NOfAtoms = 0;
-  NOfWideAtoms = 0;
-  PredsInHashTable = 0;
-#if THREADS
-  SF_STORE->AtFoundVar = Yap_LookupAtom("**");
-  Yap_ReleaseAtom(AtomFoundVar);
-  SF_STORE->AtFreeTerm = Yap_LookupAtom("?");
-  Yap_ReleaseAtom(AtomFreeTerm);
-  SF_STORE->AtNil = Yap_LookupAtom("[]");
-  SF_STORE->AtDot = Yap_LookupAtom(".");
-#else
-  Yap_LookupAtomWithAddress("**",&(SF_STORE->AtFoundVar));
-  Yap_ReleaseAtom(AtomFoundVar);
-  Yap_LookupAtomWithAddress("?",&(SF_STORE->AtFreeTerm));
-  Yap_ReleaseAtom(AtomFreeTerm);
-  Yap_LookupAtomWithAddress("[]",&(SF_STORE->AtNil));
-  Yap_LookupAtomWithAddress(".",&(SF_STORE->AtDot));
-#endif
   /* InitAbsmi must be done before InitCodes */
   /* This must be done before initialising predicates */
-  Yap_heap_regs->system_pred_goal_expansion_func = FALSE;
   for (i = 0; i <= LAST_FLAG; i++) {
     yap_flags[i] = 0;
   }
-#ifdef LOW_PROF
-  ProfilerOn = FALSE;
-  FPreds = NULL;
-#endif
   ActiveSignals = 0;
   DoingUndefp = FALSE;
   DelayArenaOverflows = 0;
@@ -1450,7 +1309,6 @@ Yap_InitWorkspace(UInt Heap, UInt Stack, UInt Trail, UInt Atts, UInt max_table_s
   InitDebug();
   InitVersion();
   Yap_InitSysPath();
-  InitFlags();
   InitStdPreds();
   /* make sure tmp area is available */
   {

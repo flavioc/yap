@@ -149,7 +149,6 @@ A	LT			N	"<"
 A	LastExecuteWithin	F	"$last_execute_within"
 A	Leash			F	"$leash"
 A	List			N	"list"
-A	Live			F	"$live"
 A	LoadAnswers		N	"load_answers"
 A	Local			N	"local_sp"
 A	LocalA			N	"local"
@@ -362,7 +361,7 @@ F	GAtom			Atom		1
 F	GAtomic			Atomic		1
 F	GCompound		Compound	1
 F	GFloat			Float		1
-F	GFormatAt		FormatAt	1
+F	GFormatAt		FormatAt	2
 F	GInteger		Integer		1
 F	GNumber			Number		1
 F	GPrimitive		Primitive	1
