@@ -676,6 +676,7 @@ DYNYAPLIB
 YAPLIB
 DYNLIB_LD
 SHLIB_SWI_LD
+SHLIB_LOWER_LD
 SHLIB_LD
 DO_SECOND_LD
 EXEC_SUFFIX
@@ -717,10 +718,16 @@ build_os
 build_vendor
 build_cpu
 build
+DefTrailSpace
+DefStackSpace
+DefHeapSpace
 C_PARSER_FLAGS
 C_INTERF_FLAGS
 GCC
 AWK
+ac_ct_CXX
+CXXFLAGS
+CXX
 OBJEXT
 EXEEXT
 ac_ct_CC
@@ -817,6 +824,9 @@ CFLAGS
 LDFLAGS
 LIBS
 CPPFLAGS
+CXX
+CXXFLAGS
+CCC
 CPP'
 
 
@@ -1495,6 +1505,8 @@ Some influential environment variables:
   LIBS        libraries to pass to the linker, e.g. -l<library>
   CPPFLAGS    C/C++/Objective C preprocessor flags, e.g. -I<include dir> if
               you have headers in a nonstandard directory <include dir>
+  CXX         C++ compiler command
+  CXXFLAGS    C++ compiler flags
   CPP         C preprocessor
 
 Use these variables to override the choices made by `configure' or to help
@@ -2874,6 +2886,378 @@ ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
 ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
+ac_ext=cpp
+ac_cpp='$CXXCPP $CPPFLAGS'
+ac_compile='$CXX -c $CXXFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CXX -o conftest$ac_exeext $CXXFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_cxx_compiler_gnu
+if test -z "$CXX"; then
+  if test -n "$CCC"; then
+    CXX=$CCC
+  else
+    if test -n "$ac_tool_prefix"; then
+  for ac_prog in g++ c++ gpp aCC CC cxx cc++ cl.exe FCC KCC RCC xlC_r xlC
+  do
+    # Extract the first word of "$ac_tool_prefix$ac_prog", so it can be a program name with args.
+set dummy $ac_tool_prefix$ac_prog; ac_word=$2
+{ $as_echo "$as_me:$LINENO: checking for $ac_word" >&5
+$as_echo_n "checking for $ac_word... " >&6; }
+if test "${ac_cv_prog_CXX+set}" = set; then
+  $as_echo_n "(cached) " >&6
+else
+  if test -n "$CXX"; then
+  ac_cv_prog_CXX="$CXX" # Let the user override the test.
+else
+as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+  for ac_exec_ext in '' $ac_executable_extensions; do
+  if { test -f "$as_dir/$ac_word$ac_exec_ext" && $as_test_x "$as_dir/$ac_word$ac_exec_ext"; }; then
+    ac_cv_prog_CXX="$ac_tool_prefix$ac_prog"
+    $as_echo "$as_me:$LINENO: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+done
+IFS=$as_save_IFS
+
+fi
+fi
+CXX=$ac_cv_prog_CXX
+if test -n "$CXX"; then
+  { $as_echo "$as_me:$LINENO: result: $CXX" >&5
+$as_echo "$CXX" >&6; }
+else
+  { $as_echo "$as_me:$LINENO: result: no" >&5
+$as_echo "no" >&6; }
+fi
+
+
+    test -n "$CXX" && break
+  done
+fi
+if test -z "$CXX"; then
+  ac_ct_CXX=$CXX
+  for ac_prog in g++ c++ gpp aCC CC cxx cc++ cl.exe FCC KCC RCC xlC_r xlC
+do
+  # Extract the first word of "$ac_prog", so it can be a program name with args.
+set dummy $ac_prog; ac_word=$2
+{ $as_echo "$as_me:$LINENO: checking for $ac_word" >&5
+$as_echo_n "checking for $ac_word... " >&6; }
+if test "${ac_cv_prog_ac_ct_CXX+set}" = set; then
+  $as_echo_n "(cached) " >&6
+else
+  if test -n "$ac_ct_CXX"; then
+  ac_cv_prog_ac_ct_CXX="$ac_ct_CXX" # Let the user override the test.
+else
+as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+  for ac_exec_ext in '' $ac_executable_extensions; do
+  if { test -f "$as_dir/$ac_word$ac_exec_ext" && $as_test_x "$as_dir/$ac_word$ac_exec_ext"; }; then
+    ac_cv_prog_ac_ct_CXX="$ac_prog"
+    $as_echo "$as_me:$LINENO: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+done
+IFS=$as_save_IFS
+
+fi
+fi
+ac_ct_CXX=$ac_cv_prog_ac_ct_CXX
+if test -n "$ac_ct_CXX"; then
+  { $as_echo "$as_me:$LINENO: result: $ac_ct_CXX" >&5
+$as_echo "$ac_ct_CXX" >&6; }
+else
+  { $as_echo "$as_me:$LINENO: result: no" >&5
+$as_echo "no" >&6; }
+fi
+
+
+  test -n "$ac_ct_CXX" && break
+done
+
+  if test "x$ac_ct_CXX" = x; then
+    CXX="g++"
+  else
+    case $cross_compiling:$ac_tool_warned in
+yes:)
+{ $as_echo "$as_me:$LINENO: WARNING: using cross tools not prefixed with host triplet" >&5
+$as_echo "$as_me: WARNING: using cross tools not prefixed with host triplet" >&2;}
+ac_tool_warned=yes ;;
+esac
+    CXX=$ac_ct_CXX
+  fi
+fi
+
+  fi
+fi
+# Provide some information about the compiler.
+$as_echo "$as_me:$LINENO: checking for C++ compiler version" >&5
+set X $ac_compile
+ac_compiler=$2
+{ (ac_try="$ac_compiler --version >&5"
+case "(($ac_try" in
+  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
+  *) ac_try_echo=$ac_try;;
+esac
+eval ac_try_echo="\"\$as_me:$LINENO: $ac_try_echo\""
+$as_echo "$ac_try_echo") >&5
+  (eval "$ac_compiler --version >&5") 2>&5
+  ac_status=$?
+  $as_echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }
+{ (ac_try="$ac_compiler -v >&5"
+case "(($ac_try" in
+  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
+  *) ac_try_echo=$ac_try;;
+esac
+eval ac_try_echo="\"\$as_me:$LINENO: $ac_try_echo\""
+$as_echo "$ac_try_echo") >&5
+  (eval "$ac_compiler -v >&5") 2>&5
+  ac_status=$?
+  $as_echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }
+{ (ac_try="$ac_compiler -V >&5"
+case "(($ac_try" in
+  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
+  *) ac_try_echo=$ac_try;;
+esac
+eval ac_try_echo="\"\$as_me:$LINENO: $ac_try_echo\""
+$as_echo "$ac_try_echo") >&5
+  (eval "$ac_compiler -V >&5") 2>&5
+  ac_status=$?
+  $as_echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }
+
+{ $as_echo "$as_me:$LINENO: checking whether we are using the GNU C++ compiler" >&5
+$as_echo_n "checking whether we are using the GNU C++ compiler... " >&6; }
+if test "${ac_cv_cxx_compiler_gnu+set}" = set; then
+  $as_echo_n "(cached) " >&6
+else
+  cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+
+int
+main ()
+{
+#ifndef __GNUC__
+       choke me
+#endif
+
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext
+if { (ac_try="$ac_compile"
+case "(($ac_try" in
+  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
+  *) ac_try_echo=$ac_try;;
+esac
+eval ac_try_echo="\"\$as_me:$LINENO: $ac_try_echo\""
+$as_echo "$ac_try_echo") >&5
+  (eval "$ac_compile") 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  $as_echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } && {
+	 test -z "$ac_cxx_werror_flag" ||
+	 test ! -s conftest.err
+       } && test -s conftest.$ac_objext; then
+  ac_compiler_gnu=yes
+else
+  $as_echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+	ac_compiler_gnu=no
+fi
+
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+ac_cv_cxx_compiler_gnu=$ac_compiler_gnu
+
+fi
+{ $as_echo "$as_me:$LINENO: result: $ac_cv_cxx_compiler_gnu" >&5
+$as_echo "$ac_cv_cxx_compiler_gnu" >&6; }
+if test $ac_compiler_gnu = yes; then
+  GXX=yes
+else
+  GXX=
+fi
+ac_test_CXXFLAGS=${CXXFLAGS+set}
+ac_save_CXXFLAGS=$CXXFLAGS
+{ $as_echo "$as_me:$LINENO: checking whether $CXX accepts -g" >&5
+$as_echo_n "checking whether $CXX accepts -g... " >&6; }
+if test "${ac_cv_prog_cxx_g+set}" = set; then
+  $as_echo_n "(cached) " >&6
+else
+  ac_save_cxx_werror_flag=$ac_cxx_werror_flag
+   ac_cxx_werror_flag=yes
+   ac_cv_prog_cxx_g=no
+   CXXFLAGS="-g"
+   cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+
+int
+main ()
+{
+
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext
+if { (ac_try="$ac_compile"
+case "(($ac_try" in
+  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
+  *) ac_try_echo=$ac_try;;
+esac
+eval ac_try_echo="\"\$as_me:$LINENO: $ac_try_echo\""
+$as_echo "$ac_try_echo") >&5
+  (eval "$ac_compile") 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  $as_echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } && {
+	 test -z "$ac_cxx_werror_flag" ||
+	 test ! -s conftest.err
+       } && test -s conftest.$ac_objext; then
+  ac_cv_prog_cxx_g=yes
+else
+  $as_echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+	CXXFLAGS=""
+      cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+
+int
+main ()
+{
+
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext
+if { (ac_try="$ac_compile"
+case "(($ac_try" in
+  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
+  *) ac_try_echo=$ac_try;;
+esac
+eval ac_try_echo="\"\$as_me:$LINENO: $ac_try_echo\""
+$as_echo "$ac_try_echo") >&5
+  (eval "$ac_compile") 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  $as_echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } && {
+	 test -z "$ac_cxx_werror_flag" ||
+	 test ! -s conftest.err
+       } && test -s conftest.$ac_objext; then
+  :
+else
+  $as_echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+	ac_cxx_werror_flag=$ac_save_cxx_werror_flag
+	 CXXFLAGS="-g"
+	 cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+
+int
+main ()
+{
+
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext
+if { (ac_try="$ac_compile"
+case "(($ac_try" in
+  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
+  *) ac_try_echo=$ac_try;;
+esac
+eval ac_try_echo="\"\$as_me:$LINENO: $ac_try_echo\""
+$as_echo "$ac_try_echo") >&5
+  (eval "$ac_compile") 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  $as_echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } && {
+	 test -z "$ac_cxx_werror_flag" ||
+	 test ! -s conftest.err
+       } && test -s conftest.$ac_objext; then
+  ac_cv_prog_cxx_g=yes
+else
+  $as_echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+
+fi
+
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+fi
+
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+fi
+
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+   ac_cxx_werror_flag=$ac_save_cxx_werror_flag
+fi
+{ $as_echo "$as_me:$LINENO: result: $ac_cv_prog_cxx_g" >&5
+$as_echo "$ac_cv_prog_cxx_g" >&6; }
+if test "$ac_test_CXXFLAGS" = set; then
+  CXXFLAGS=$ac_save_CXXFLAGS
+elif test $ac_cv_prog_cxx_g = yes; then
+  if test "$GXX" = yes; then
+    CXXFLAGS="-g -O2"
+  else
+    CXXFLAGS="-g"
+  fi
+else
+  if test "$GXX" = yes; then
+    CXXFLAGS="-O2"
+  else
+    CXXFLAGS=
+  fi
+fi
+ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
 for ac_prog in gawk mawk nawk awk
 do
   # Extract the first word of "$ac_prog", so it can be a program name with args.
@@ -3361,7 +3745,8 @@ _ACEOF
   cat >>confdefs.h <<\_ACEOF
 #define MinStackSpace (300*SIZEOF_INT_P)
 _ACEOF
-   cat >>confdefs.h <<\_ACEOF
+
+  cat >>confdefs.h <<\_ACEOF
 #define MinTrailSpace ( 48*SIZEOF_INT_P)
 _ACEOF
 
@@ -3380,18 +3765,22 @@ _ACEOF
 
 fi
 
-eval "cat >>confdefs.h <<\_ACEOF
-#define DefHeapSpace ($yap_cv_heap_space)
+cat >>confdefs.h <<_ACEOF
+#define DefHeapSpace $yap_cv_heap_space
 _ACEOF
-"
-eval "cat >>confdefs.h <<\_ACEOF
-#define DefStackSpace ($yap_cv_stack_space)
+
+cat >>confdefs.h <<_ACEOF
+#define DefStackSpace $yap_cv_stack_space
 _ACEOF
-"
-eval "cat >>confdefs.h <<\_ACEOF
-#define DefTrailSpace ($yap_cv_trail_space)
+
+cat >>confdefs.h <<_ACEOF
+#define DefTrailSpace $yap_cv_trail_space
 _ACEOF
-"
+
+
+
+
+
 
 ac_aux_dir=
 for ac_dir in "$srcdir" "$srcdir/.." "$srcdir/../.."; do
@@ -3563,10 +3952,10 @@ then
 _ACEOF
 
 else
-eval "cat >>confdefs.h <<\_ACEOF
+  cat >>confdefs.h <<_ACEOF
 #define MAX_WORKERS $yap_cv_max_workers
 _ACEOF
-"
+
 fi
 
 if test "$threads" = no
@@ -3576,10 +3965,10 @@ then
 _ACEOF
 
 else
-eval "cat >>confdefs.h <<\_ACEOF
+ cat >>confdefs.h <<_ACEOF
 #define MAX_THREADS $yap_cv_max_threads
 _ACEOF
-"
+
 fi
 
 
@@ -3632,9 +4021,11 @@ then
      if test "$debugyap" = "yes"
      then
        CFLAGS="-O -g -Wall -Wstrict-prototypes -Wmissing-prototypes"
+       CXXFLAGS="-O -g -Wall"
        C_INTERF_FLAGS="-O -g -Wall -Wstrict-prototypes -Wmissing-prototypes"
      else
        CFLAGS="-O3 -fomit-frame-pointer -Wall -Wstrict-prototypes -Wmissing-prototypes"
+       CXXFLAGS="-O3 -fomit-frame-pointer -Wall"
        case "`$CC --version < /dev/null`" in
 	  *3.4*) CFLAGS="-fno-gcse -fno-crossjumping $CFLAGS" ;;
        esac
@@ -3643,10 +4034,12 @@ then
        case "$target_cpu" in
         i*86*)
            CFLAGS="-DBP_FREE $CFLAGS"
+           CXXFLAGS="-DBP_FREE $CXXFLAGS"
         ;;
         sparc*)
 	  case "$target_os" in
            *solaris2-9*)	             CFLAGS="-mno-app-regs -DOPTIMISE_ALL_REGS_FOR_SPARC=1 $CFLAGS"
+             CXXFLAGS="-mno-app-regs -DOPTIMISE_ALL_REGS_FOR_SPARC=1 $CFPPLAGS"
             ;;
           esac
         ;;
@@ -3659,18 +4052,23 @@ then
          case "$target_cpu" in
 	  athlon)
            CFLAGS="-march=athlon $CFLAGS"
+           CXXFLAGS="-march=athlon $CXXFLAGS"
 	  ;;
           i686*)
            CFLAGS="-march=i686 $CFLAGS"
+           CXXFLAGS="-march=i686 $CXXFLAGS"
           ;;
           i586*)
            CFLAGS="-march=i586 $CFLAGS"
+           CXXFLAGS="-march=i586 $CXXFLAGS"
           ;;
           i486*)
            CFLAGS="-march=i486 $CFLAGS"
+           CXXFLAGS="-march=i486 $CXXFLAGS"
           ;;
           i386*)
            CFLAGS="-march=i386 $CFLAGS"
+           CXXFLAGS="-march=i386 $CXXFLAGS"
           ;;
          esac
        fi
@@ -3693,6 +4091,7 @@ else
         elif test "$CC" = "cl"
         then
           CFLAGS="/nologo"
+          CXXFLAGS="-/nologo"
           CPP="/nologo /E"
         fi
         ;;
@@ -3702,8 +4101,10 @@ else
            if test "$debugyap" = "yes"
            then
              CFLAGS="-Ae -g -O"
+             CXXFLAGS="-Ae -g -O"
            else
              CFLAGS="-Ae +O3 +Onolimit"
+             CXXFLAGS="-Ae +O3 +Onolimit"
            fi
         fi
         ;;
@@ -4795,6 +5196,75 @@ if test "x$ac_cv_lib_xnet_getsockname" = x""yes; then
 _ACEOF
 
   LIBS="-lxnet $LIBS"
+
+fi
+
+
+{ $as_echo "$as_me:$LINENO: checking for main in -lstdc++" >&5
+$as_echo_n "checking for main in -lstdc++... " >&6; }
+if test "${ac_cv_lib_stdcpp_main+set}" = set; then
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lstdc++  $LIBS"
+cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+
+
+int
+main ()
+{
+return main ();
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext conftest$ac_exeext
+if { (ac_try="$ac_link"
+case "(($ac_try" in
+  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
+  *) ac_try_echo=$ac_try;;
+esac
+eval ac_try_echo="\"\$as_me:$LINENO: $ac_try_echo\""
+$as_echo "$ac_try_echo") >&5
+  (eval "$ac_link") 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  $as_echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } && {
+	 test -z "$ac_c_werror_flag" ||
+	 test ! -s conftest.err
+       } && test -s conftest$ac_exeext && {
+	 test "$cross_compiling" = yes ||
+	 $as_test_x conftest$ac_exeext
+       }; then
+  ac_cv_lib_stdcpp_main=yes
+else
+  $as_echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+	ac_cv_lib_stdcpp_main=no
+fi
+
+rm -rf conftest.dSYM
+rm -f core conftest.err conftest.$ac_objext conftest_ipa8_conftest.oo \
+      conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:$LINENO: result: $ac_cv_lib_stdcpp_main" >&5
+$as_echo "$ac_cv_lib_stdcpp_main" >&6; }
+if test "x$ac_cv_lib_stdcpp_main" = x""yes; then
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBSTDC__ 1
+_ACEOF
+
+  LIBS="-lstdc++ $LIBS"
 
 fi
 
@@ -7047,6 +7517,7 @@ fi
 INSTALL_DLLS="#"
 EXTRA_OBJS=""
 SHLIB_LD="#"
+SHLIB_LOWER_LD="#"
 SHLIB_SWI_LD="#"
 DO_SECOND_LD="#"
 M4="m4"
@@ -7135,6 +7606,7 @@ fi
 	  then
 	    SHLIB_SUFFIX=".so"
             SHLIB_LD="$CC -shared -export-dynamic"
+            SHLIB_LOWER_LD="$SHLIB_LD"
             SHLIB_SWI_LD="$CC -shared -export-dynamic"
             DO_SECOND_LD=""
 	    LIBS="$LIBS -ldl"
@@ -7196,6 +7668,7 @@ _ACEOF
 	    #this tells ld to export all non-static symbols,
 	    #otherwise no external predicates.
             SHLIB_LD="$CC -shared -export-dynamic"
+            SHLIB_LOWER_LD="$SHLIB_LD"
             SHLIB_SWI_LD="$CC -shared -export-dynamic"
             DO_SECOND_LD=""
             SHLIB_SUFFIX=".sl"
@@ -7320,6 +7793,7 @@ fi
 	SHLIB_SUFFIX=".so"
         DO_SECOND_LD=""
 	SHLIB_LD="ld -n32 -shared -rdata_shared"
+        SHLIB_LOWER_LD="$SHLIB_LD"
 	SHLIB_SWI_LD="ld -n32 -shared -rdata_shared"
 	INSTALL_DLLS=""
 	;;
@@ -7410,6 +7884,7 @@ fi
 # 	SHLIB_LD="$CC -bundle -bundle_loader \$(abs_top_builddir)/yap -L\$(abs_top_builddir) -lYap -undefined dynamic_lookup -Wl,-x -dead-strip -dead_strip_dylibs"
 # 	LDFLAGS="-Wl,-x -dead_strip -dead_strip_dylibs $LDFLAGS"
 	SHLIB_LD="$CC -bundle -flat_namespace -undefined suppress"
+        SHLIB_LOWER_LD="$SHLIB_LD"
 	SHLIB_SWI_LD="$CC -bundle -flat_namespace -undefined suppress"
 	INSTALL_DLLS=""
         CC="$CC -fstrict-aliasing -freorder-blocks -fsched-interblock -Wall -Wstrict-aliasing=2"
@@ -7427,6 +7902,7 @@ fi
 	  LDFLAGS="-Wl,--export-dynamic $LDFLAGS"
 	  SHLIB_CFLAGS="-fPIC"
 	  SHLIB_LD="ld -Bshareable -x"
+          SHLIB_LOWER_LD="$SHLIB_LD"
 	  SHLIB_SWI_LD="ld -Bshareable -x"
           DO_SECOND_LD=""
 	  SHLIB_SUFFIX=".so"
@@ -7438,6 +7914,7 @@ fi
         LDFLAGS="-dynamic $LDFLAGS"
 	SHLIB_CFLAGS="-fPIC"
 	SHLIB_LD="$CC -shared"
+        SHLIB_LOWER_LD="$SHLIB_LD"
 	SHLIB_SWI_LD="$CC -shared"
         DO_SECOND_LD=""
 	SHLIB_SUFFIX=".so"
@@ -7449,6 +7926,7 @@ fi
 	YAPLIB="libWYap.a"
 	SHLIB_CFLAGS=""
         SHLIB_LD="\$(CC) -shared -Wl,--export-all-symbols ../../yap.dll"
+        SHLIB_LOWER_LD="\$(CC) -shared -Wl,--export-all-symbols ../../../yap.dll"
         SHLIB_SWI_LD="\$(CC) -shared -Wl,--export-all-symbols ../../yap.dll  ../../packages/PLStream/plstream.dll"
 	SHLIB_SUFFIX=".dll"
 	C_PARSER_FLAGS="$C_INTERF_FLAGS"
@@ -13930,7 +14408,9 @@ fi
 
 
 
+
 EXEC_SUFFIX=""
+
 
 
 
@@ -17224,6 +17704,10 @@ ac_config_files="$ac_config_files packages/sgml/Makefile"
 
 ac_config_files="$ac_config_files packages/PLStream/Makefile"
 
+ac_config_files="$ac_config_files packages/swi-minisat2/Makefile"
+
+ac_config_files="$ac_config_files packages/swi-minisat2/C/Makefile"
+
 ac_config_files="$ac_config_files packages/ProbLog/Makefile"
 
 
@@ -17863,6 +18347,8 @@ do
     "packages/cplint/Makefile") CONFIG_FILES="$CONFIG_FILES packages/cplint/Makefile" ;;
     "packages/sgml/Makefile") CONFIG_FILES="$CONFIG_FILES packages/sgml/Makefile" ;;
     "packages/PLStream/Makefile") CONFIG_FILES="$CONFIG_FILES packages/PLStream/Makefile" ;;
+    "packages/swi-minisat2/Makefile") CONFIG_FILES="$CONFIG_FILES packages/swi-minisat2/Makefile" ;;
+    "packages/swi-minisat2/C/Makefile") CONFIG_FILES="$CONFIG_FILES packages/swi-minisat2/C/Makefile" ;;
     "packages/ProbLog/Makefile") CONFIG_FILES="$CONFIG_FILES packages/ProbLog/Makefile" ;;
     "packages/chr/Makefile") CONFIG_FILES="$CONFIG_FILES packages/chr/Makefile" ;;
     "packages/clpqr/Makefile") CONFIG_FILES="$CONFIG_FILES packages/clpqr/Makefile" ;;

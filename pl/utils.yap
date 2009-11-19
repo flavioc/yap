@@ -96,6 +96,10 @@ op(P,T,V) :-
 	'$opl'(P, T, As).
 
 '$op2'(P,T,A) :-
+	atom(A),
+	prolog_load_context(module, Mod), Mod \= user, !,
+	'$opdec'(P,T,A,Mod).
+'$op2'(P,T,A) :-
 	atom(A), !,
 	'$opdec'(P,T,A,prolog).
 '$op2'(P,T,A) :-
@@ -472,12 +476,20 @@ callable(V) :- var(V), !, fail.
 callable(V) :- atom(V), !.
 callable(V) :- functor(V,_,Ar), Ar > 0.
 
-nth_instance(X,Y,Z) :-
-	nonvar(X), var(Y), var(Z), !,
-	recorded(X,_,Z),
-	'$nth_instance'(_,Y,Z).
-nth_instance(X,Y,Z) :-
-	'$nth_instance'(X,Y,Z).
+nth_instance(Key,Index,Ref) :-
+	nonvar(Key), var(Index), var(Ref), !,
+	recorded(Key,_,Ref),
+	'$nth_instance'(_,Index,Ref).
+nth_instance(Key,Index,Ref) :-
+	'$nth_instance'(Key,Index,Ref).
+
+nth_instance(Key,Index,T,Ref) :-
+	nonvar(Key), var(Index), var(Ref), !,
+	recorded(Key,T,Ref),
+	'$nth_instance'(_,Index,Ref).
+nth_instance(Key,Index,T,Ref) :-
+	'$nth_instance'(Key,Index,Ref),
+	instance(Ref,T).
 
 nb_current(GlobalVariable, Val) :-
 	var(GlobalVariable), !,
