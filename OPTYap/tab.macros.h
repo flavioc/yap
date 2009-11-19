@@ -920,7 +920,7 @@ susp_fr_ptr suspension_frame_to_resume(or_fr_ptr susp_or_fr) {
 #ifdef TABLING_ANSWER_LIST
       ans_list_ptr list = DepFr_last_answer(dep_fr);
       ans_list_ptr next = AnsList_next(list);
-      if(list)
+      if(next)
         ans_node = AnsList_answer(next);
 #else
       ans_node = TrNode_child(DepFr_last_answer(dep_fr))
