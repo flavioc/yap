@@ -74,8 +74,9 @@ CallPredicate(PredEntry *pen, choiceptr cut_pt, yamop *code) {
     CP = P;
     ENV = YENV;
     YENV = ASP;
-    YENV[E_CB] = (CELL) cut_pt;
   }
+  /* make sure we have access to the user given cut */
+  YENV[E_CB] = (CELL) cut_pt;
   P = code;
   return TRUE;
 }
@@ -1630,7 +1631,8 @@ JumpToEnv(Term t) {
      to the emulator */
   P = (yamop *)FAILCODE;
   /* try to recover space */
-  H = B->cp_h;
+  /* can only do that when we recover space */
+  /* H = B->cp_h; */
   t = clean_trail(t, dbt, B->cp_a1);
   B->cp_a3 = t;
   if (first_func != NULL) {

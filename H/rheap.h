@@ -386,7 +386,8 @@ RestoreAtoms(void)
   AtomHashEntry *HashPtr;
   register int    i;
 
-
+  Yap_heap_regs->hash_chain = 
+    PtoAtomHashEntryAdjust(Yap_heap_regs->hash_chain);
   HashPtr = HashChain;
   for (i = 0; i < AtomHashTableSize; ++i) {
     HashPtr->Entry = AtomAdjust(HashPtr->Entry);
@@ -401,6 +402,8 @@ RestoreWideAtoms(void)
   AtomHashEntry *HashPtr;
   register int    i;
 
+  Yap_heap_regs->wide_hash_chain = 
+    PtoAtomHashEntryAdjust(Yap_heap_regs->wide_hash_chain);
   HashPtr = WideHashChain;
   for (i = 0; i < WideAtomHashTableSize; ++i) {
     HashPtr->Entry = AtomAdjust(HashPtr->Entry);
@@ -517,7 +520,7 @@ RestoreStaticClause(StaticClause *cl)
   if (cl->ClNext) {
     cl->ClNext = PtoStCAdjust(cl->ClNext);
   }
-  restore_opcodes(cl->ClCode);
+  restore_opcodes(cl->ClCode, NULL);
 }
 
 /* Restores a prolog clause, in its compiled form */
@@ -528,11 +531,20 @@ RestoreMegaClause(MegaClause *cl)
  * clause for this predicate or not 
  */
 {
+  UInt ncls, i;
+  yamop *ptr;
+
   cl->ClPred = PtoPredAdjust(cl->ClPred);
   if (cl->ClNext) {
-     cl->ClNext = (MegaClause *)AddrAdjust((ADDR)(cl->ClNext));
+    cl->ClNext = (MegaClause *)AddrAdjust((ADDR)(cl->ClNext));
   }
-  restore_opcodes(cl->ClCode);
+  ncls = cl->ClPred->cs.p_code.NOfClauses;
+
+  for (i = 0, ptr = cl->ClCode; i < ncls; i++) {
+    yamop *nextptr = (yamop *)((char *)ptr + cl->ClItemSize);
+    restore_opcodes(ptr, nextptr);
+    ptr = nextptr;
+  }
 }
 
 /* Restores a prolog clause, in its compiled form */
@@ -547,7 +559,7 @@ RestoreDynamicClause(DynamicClause *cl, PredEntry *pp)
     cl->ClPrevious = PtoOpAdjust(cl->ClPrevious);
   }
   INIT_LOCK(cl->ClLock);
-  restore_opcodes(cl->ClCode);
+  restore_opcodes(cl->ClCode, NULL);
 }
 
 /* Restores a prolog clause, in its compiled form */
@@ -573,7 +585,7 @@ RestoreLUClause(LogUpdClause *cl, PredEntry *pp)
     cl->ClNext = PtoLUCAdjust(cl->ClNext);
   }
   cl->ClPred = PtoPredAdjust(cl->ClPred);
-  restore_opcodes(cl->ClCode);
+  restore_opcodes(cl->ClCode, NULL);
 }
 
 static void
@@ -615,7 +627,7 @@ CleanLUIndex(LogUpdIndex *idx, int recurse)
       CleanLUIndex(idx->ChildIndex, TRUE);
   }
   if (!(idx->ClFlags & SwitchTableMask)) {
-    restore_opcodes(idx->ClCode);
+    restore_opcodes(idx->ClCode, NULL);
   }
 }
 
@@ -634,7 +646,7 @@ CleanSIndex(StaticIndex *idx, int recurse)
       CleanSIndex(idx->ChildIndex, TRUE);
   }
   if (!(idx->ClFlags & SwitchTableMask)) {
-    restore_opcodes(idx->ClCode);
+    restore_opcodes(idx->ClCode, NULL);
   }
 }
 
@@ -950,6 +962,7 @@ static void
 restore_codes(void)
 {
   Yap_heap_regs->heap_top = AddrAdjust(OldHeapTop);
+#include "rhstruct.h"
 #if !defined(THREADS) && !defined(YAPOR)
   /* restore consult stack. It consists of heap pointers, so it
      is easy to fix.
@@ -970,7 +983,6 @@ restore_codes(void)
     }
   }
 #endif
-#include "rhstruct.h"
 #if !defined(THREADS) && !defined(YAPOR)
   if (Yap_heap_regs->wl.scratchpad.ptr) {
     Yap_heap_regs->wl.scratchpad.ptr =
@@ -1014,13 +1026,7 @@ restore_codes(void)
   Yap_heap_regs->wl.allow_restart = FALSE;
 #endif
 #endif
-  if (Yap_heap_regs->last_wtime != NULL)
-    Yap_heap_regs->last_wtime = (void *)PtoHeapCellAdjust((CELL *)(Yap_heap_regs->last_wtime));
-  Yap_heap_regs->hash_chain = 
-    PtoAtomHashEntryAdjust(Yap_heap_regs->hash_chain);
-  Yap_heap_regs->wide_hash_chain = 
-    PtoAtomHashEntryAdjust(Yap_heap_regs->wide_hash_chain);
-}
+ }
 
 
 static void
