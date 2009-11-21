@@ -1061,9 +1061,14 @@ static inline
 void CUT_validate_tg_answers(tg_sol_fr_ptr valid_solutions) {
   tg_ans_fr_ptr valid_answers, free_answer;
   tg_sol_fr_ptr ltt_valid_solutions, free_solution;
-  ans_node_ptr first_answer, last_answer, ans_node;
   sg_fr_ptr sg_fr;
   int slots;
+  ans_node_ptr ans_node;
+#ifdef TABLING_ANSWER_LIST
+  ans_list_ptr first_list = NULL, last_list, next_list;
+#else
+  ans_node_ptr first_answer, last_answer;
+#endif
 
   while (valid_solutions) {
     first_answer = last_answer = NULL;
@@ -1090,12 +1095,25 @@ void CUT_validate_tg_answers(tg_sol_fr_ptr valid_solutions) {
 #endif /* TABLE_LOCK_LEVEL */
           if (! IS_ANSWER_LEAF_NODE(ans_node)) {
             TAG_AS_ANSWER_LEAF_NODE(ans_node);
+            
+#ifdef TABLING_ANSWER_LIST
+            ALLOC_ANSWER_LIST(next_list);
+            
+            if(first_list == NULL)
+              first_list = next_list;
+            else
+              AnsList_next(last_list) = next_list;
+
+            AnsList_answer(next_list) = ans_node;
+            last_list = next_list;
+#else       
             if (first_answer == NULL)
-	      first_answer = ans_node;
-	    else
+              first_answer = ans_node;
+            else
               TrNode_child(last_answer) = ans_node;
-	    last_answer = ans_node;
-	  }
+            last_answer = ans_node;
+#endif /* TABLING_ANSWER_LIST */
+	        }
 #if defined(TABLE_LOCK_AT_ENTRY_LEVEL)
           UNLOCK(SgFr_lock(sg_fr));
 #elif defined(TABLE_LOCK_AT_NODE_LEVEL)
@@ -1112,11 +1130,24 @@ void CUT_validate_tg_answers(tg_sol_fr_ptr valid_solutions) {
       ltt_valid_solutions = TgSolFr_ltt_next(ltt_valid_solutions);
       FREE_TG_SOLUTION_FRAME(free_solution);
     } while (ltt_valid_solutions);
+#ifdef TABLING_ANSWER_LIST
+    if(first_list) {
+      AnsList_next(last_list) = NULL;
+      
+      LOCK(SgFr_lock(sg_fr));
+      
+      if(SgFr_first_ans_list(sg_fr) == NULL)
+        SgFr_first_ans_list(sg_fr) = first_list;
+      else
+        AnsList_next(SgFr_last_ans_list(sg_fr)) = first_list;
+      
+      SgFr_last_ans_list(sg_fr) = last_list;
+      
+      UNLOCK(SgFr_lock(sg_fr));
+    }
+#else
     if (first_answer) {
       LOCK(SgFr_lock(sg_fr));
-#ifdef TABLING_ANSWER_LIST
-      // TODO
-#endif
       if (SgFr_first_answer(sg_fr) == NULL) {
         SgFr_first_answer(sg_fr) = first_answer;
       } else {
@@ -1125,6 +1156,7 @@ void CUT_validate_tg_answers(tg_sol_fr_ptr valid_solutions) {
       SgFr_last_answer(sg_fr) = last_answer;
       UNLOCK(SgFr_lock(sg_fr));
     }
+#endif /* TABLING_ANSWER_LIST */
   }
   return;
 }
