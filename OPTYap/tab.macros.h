@@ -318,7 +318,23 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
           SgFr_next(SG_FR) = LOCAL_top_sg_fr;                      \
           LOCAL_top_sg_fr = SG_FR;                                 \
 	}
+	
 
+#ifdef TABLING_ANSWER_LIST
+#define SgFr_has_real_answers(SG_FR) (SgFr_first_ans_list(SG_FR) \
+      && AnsList_answer(SgFr_first_ans_list(SG_FR)) != SgFr_answer_trie(SG_FR))
+#else
+#define SgFr_has_real_answers(SG_FR) (SgFr_first_answer(SG_FR)   \
+      && SgFr_first_answer(SG_FR) != SgFr_answer_trie(SG_FR))
+#endif
+
+#ifdef TABLING_ANSWER_LIST
+#define SgFr_has_yes_answer(SG_FR) (SgFr_first_ans_list(SG_FR) \
+      && AnsList_answer(SgFr_first_ans_list(SG_FR)) == SgFr_answer_trie(SG_FR))
+#else
+#define SgFr_has_yes_answer(SG_FR) (SgFr_first_ans_list(SG_FR) \
+      && SgFr_first_answer(SG_FR) == SgFr_answer_trie(SG_FR))
+#endif
 
 #define base_new_dependency_frame(DEP_FR, DEP_ON_STACK, TOP_OR_FR, LEADER_CP, CONS_CP, SG_FR, NEXT)         \
         ALLOC_DEPENDENCY_FRAME(DEP_FR);                                                                \

@@ -192,7 +192,6 @@ typedef struct answer_list {
 
 #define AnsList_answer(X)       ((X)->answer)
 #define AnsList_next(X)         ((X)->next)
-#define AnsList_null_answer(X)  ((X) == NULL || AnsList_answer(X) == NULL)
 
 #endif
 
@@ -261,12 +260,6 @@ typedef struct subgoal_frame {
 #define SgFr_try_ans_list(X)   ((X)->try_ans_list)
 #define SgFr_previous(X)       ((X)->previous)
 #define SgFr_next(X)           ((X)->next)
-
-#ifdef TABLING_ANSWER_LIST
-#define SgFr_has_real_answers(X) (SgFr_first_ans_list(X) && AnsList_answer(SgFr_first_ans_list(X)) != SgFr_answer_trie(X))
-#else
-#define SgFr_has_real_answers(X) (SgFr_first_answer(X) &&  SgFr_first_answer(X) != SgFr_answer_trie(X))
-#endif
 
 /* ------------------------------------------------------------------------------------------- **
    SgFr_lock:          spin-lock to modify the frame fields.

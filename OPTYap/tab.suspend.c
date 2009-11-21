@@ -376,13 +376,7 @@ void complete_suspension_branch(susp_fr_ptr susp_fr, choiceptr top_cp, or_fr_ptr
     while (aux_sg_fr && 
 	   /* continue if the subgoal was early completed */ 
            /* SgFr_state(aux_sg_fr) == evaluating && */
-          (SgFr_state(aux_sg_fr) == evaluating || 
-#ifdef TABLING_ANSWER_LIST
-           AnsList_null_answer(SgFr_first_ans_list(aux_sg_fr))
-#else
-           SgFr_first_answer(aux_sg_fr) == SgFr_answer_trie(aux_sg_fr)
-#endif
-          ) &&
+          (SgFr_state(aux_sg_fr) == evaluating || SgFr_has_yes_answer(aux_sg_fr)) &&
            EQUAL_OR_YOUNGER_CP(SgFr_gen_cp(aux_sg_fr), top_cp)) {
       mark_as_completed(aux_sg_fr);
       aux_sg_fr = SgFr_next(aux_sg_fr);
@@ -391,13 +385,7 @@ void complete_suspension_branch(susp_fr_ptr susp_fr, choiceptr top_cp, or_fr_ptr
     while (aux_sg_fr && 
 	   /* continue if the subgoal was early completed */ 
            /* SgFr_state(aux_sg_fr) == evaluating && */
-           (SgFr_state(aux_sg_fr) == evaluating ||
-#ifdef TABLING_ANSWER_LIST
-            AnsList_null_answer(SgFr_first_ans_list(aux_sg_fr))
-#else
-            SgFr_first_answer(aux_sg_fr) == SgFr_answer_trie(aux_sg_fr)
-#endif
-            ) &&
+           (SgFr_state(aux_sg_fr) == evaluating || SgFr_has_yes_answer(aux_sg_fr)) &&
            YOUNGER_CP(SgFr_gen_cp(aux_sg_fr), top_cp)) {
       mark_as_completed(aux_sg_fr);
       aux_sg_fr = SgFr_next(aux_sg_fr);
