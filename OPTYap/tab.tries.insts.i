@@ -92,8 +92,8 @@
           PREG = (yamop *) TrNode_child(NODE);                  \
         } else {                                                \
           /* procceed */                                        \
-	  PREG = (yamop *) CPREG;                               \
-	  YENV = ENV;                                           \
+	        PREG = (yamop *) CPREG;                               \
+	        YENV = ENV;                                           \
         }                                                       \
         PREFETCH_OP(PREG);                                      \
         GONext()

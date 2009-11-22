@@ -420,8 +420,10 @@ extern int Yap_page_size;
 #define ALLOC_DEPENDENCY_FRAME(STR)    ALLOC_STRUCT(STR, GLOBAL_PAGES_dep_fr, struct dependency_frame)
 #define FREE_DEPENDENCY_FRAME(STR)     FREE_STRUCT(STR, GLOBAL_PAGES_dep_fr, struct dependency_frame)
 
+#ifdef TABLING_ANSWER_LIST
 #define ALLOC_ANSWER_LIST(STR)         ALLOC_STRUCT(STR, GLOBAL_PAGES_ans_list, struct answer_list)
 #define FREE_ANSWER_LIST(STR)          FREE_STRUCT(STR, GLOBAL_PAGES_ans_list, struct answer_list)
+#endif /* TABLING_ANSWER_LIST */
 
 #define ALLOC_SUSPENSION_FRAME(STR)    ALLOC_STRUCT(STR, GLOBAL_PAGES_susp_fr, struct suspension_frame)
 #define FREE_SUSPENSION_FRAME(STR)     FREE_BLOCK(SuspFr_global_start(STR));                         \

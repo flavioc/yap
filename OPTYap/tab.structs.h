@@ -192,8 +192,21 @@ typedef struct answer_list {
 
 #define AnsList_answer(X)       ((X)->answer)
 #define AnsList_next(X)         ((X)->next)
-
 #endif
+
+#ifdef TABLING_ANSWER_LIST
+
+typedef ans_list_ptr continuation_ptr;
+#define ContPtr_next(X)   AnsList_next(X)
+#define ContPtr_answer(X) AnsList_answer(X)
+
+#else
+
+typedef ans_node_ptr continuation_ptr;
+#define ContPtr_next(X)   TrNode_child(X)
+#define ContPtr_answer(X) (X)
+
+#endif /* TABLING_ANSWER_LIST */
 
 
 /* ------------------------------ **
@@ -220,20 +233,11 @@ typedef struct subgoal_frame {
   struct answer_trie_hash *hash_chain;
   struct answer_trie_node *answer_trie;
   
-#ifdef TABLING_ANSWER_LIST
-  struct answer_list *first_ans_list;
-  struct answer_list *last_ans_list;
-#else
-  struct answer_trie_node *first_answer;
-  struct answer_trie_node *last_answer;
-#endif
+  continuation_ptr first_answer;
+  continuation_ptr last_answer;
 
 #ifdef INCOMPLETE_TABLING
-#ifdef TABLING_ANSWER_LIST
-  struct answer_list *try_ans_list;
-#else
-  struct answer_trie_node *try_answer;
-#endif /* !TABLING_ANSWER_LIST */
+  continuation_ptr try_answer;
 #endif /* INCOMPLETE_TABLING */´
 
 #ifdef LIMIT_TABLING
@@ -254,10 +258,7 @@ typedef struct subgoal_frame {
 #define SgFr_answer_trie(X)    ((X)->answer_trie)
 #define SgFr_first_answer(X)   ((X)->first_answer)
 #define SgFr_last_answer(X)    ((X)->last_answer)
-#define SgFr_first_ans_list(X) ((X)->first_ans_list)
-#define SgFr_last_ans_list(X)  ((X)->last_ans_list)
 #define SgFr_try_answer(X)     ((X)->try_answer)
-#define SgFr_try_ans_list(X)   ((X)->try_ans_list)
 #define SgFr_previous(X)       ((X)->previous)
 #define SgFr_next(X)           ((X)->next)
 
@@ -303,11 +304,7 @@ typedef struct dependency_frame {
   choiceptr backchain_choice_point;
   choiceptr leader_choice_point;
   choiceptr consumer_choice_point;
-#ifdef TABLING_ANSWER_LIST
-  struct answer_list *last_consumed_answer;
-#else
-  struct answer_trie_node *last_consumed_answer;
-#endif
+  continuation_ptr last_consumed_answer;
   struct dependency_frame *next;
 } *dep_fr_ptr;
 
@@ -409,11 +406,7 @@ struct consumer_choicept {
 
 struct loader_choicept {
   struct choicept cp;
-#ifdef TABLING_ANSWER_LIST
-  struct answer_list *cp_last_answer;
-#else
-  struct answer_trie_node *cp_last_answer;
-#endif
+  continuation_ptr cp_last_answer;
 #ifdef LOW_LEVEL_TRACER
   struct pred_entry *cp_pred_entry;
 #endif /* LOW_LEVEL_TRACER */
