@@ -312,7 +312,7 @@
     subs_ptr = (CELL *) (LOAD_CP(B) + 1);
     
 #ifdef TABLING_ANSWER_LIST
-    ans_list_ptr list = LOAD_CP(B)->cp_last_answer;
+    ans_list_ptr list = AnsList_next(LOAD_CP(B)->cp_last_answer);
     ans_list_ptr next = AnsList_next(list);
     
     ans_node = AnsList_answer(list);
@@ -330,7 +330,7 @@
     } else {
       pop_loader_node();
     }
-#endif /* !TABLING_ANSWER_LIST */
+#endif /* TABLING_ANSWER_LIST */
     
     PREG = (yamop *) CPREG;
     PREFETCH_OP(PREG);
@@ -533,7 +533,7 @@
           ans_list_ptr next = AnsList_next(list);
           
           if(next != NULL) {
-            store_loader_node(tab_ent, next);
+            store_loader_node(tab_ent, list);
           }
 #else
           if(TrNode_child(ans_node) != NULL) {
@@ -1932,13 +1932,13 @@
             ans_list_ptr next = AnsList_next(list);
             
             if(next != NULL) {
-              store_loader_node(tab_ent, next);
+              store_loader_node(tab_ent, list);
             }
 #else
             if(TrNode_child(ans_node) != NULL) {
               store_loader_node(tab_ent, ans_node);
             }
-#endif /* !TABLING_ANSWER_LIST */
+#endif /* TABLING_ANSWER_LIST */
             PREG = (yamop *) CPREG;
             PREFETCH_OP(PREG);
             load_answer(ans_node, YENV);
