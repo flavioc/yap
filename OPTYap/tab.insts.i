@@ -882,7 +882,6 @@
 #ifdef TABLE_LOCK_AT_ENTRY_LEVEL
     LOCK(SgFr_lock(sg_fr));
 #endif /* TABLE_LOCK_LEVEL */
-    // XXX: aqui quando a resposta é yes ans_node aponta para a answer_trie
     ans_node = answer_search(sg_fr, subs_ptr);
 #if defined(TABLE_LOCK_AT_NODE_LEVEL)
     LOCK(TrNode_lock(ans_node));
@@ -1031,7 +1030,7 @@
       alloc_answer_continuation(next);
       
       ContPtr_answer(next) = ans_node;
-      ContPtr_next(next) = NULL; // XXX child = null??
+      ContPtr_next(next) = NULL;
       
       if(SgFr_first_answer(sg_fr) == NULL)
         SgFr_first_answer(sg_fr) = next;

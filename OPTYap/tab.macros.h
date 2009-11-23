@@ -1089,7 +1089,6 @@ void CUT_validate_tg_answers(tg_sol_fr_ptr valid_solutions) {
     } while (ltt_valid_solutions);
     
     if(first_cont) {
-      // XXX: ha problema se o child for colocado a null?
       ContPtr_next(last_cont) = NULL;
       
       LOCK(SgFr_lock(sg_fr));

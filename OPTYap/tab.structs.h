@@ -192,9 +192,6 @@ typedef struct answer_list {
 
 #define AnsList_answer(X)       ((X)->answer)
 #define AnsList_next(X)         ((X)->next)
-#endif
-
-#ifdef TABLING_ANSWER_LIST
 
 typedef ans_list_ptr continuation_ptr;
 #define ContPtr_next(X)   AnsList_next(X)
@@ -238,7 +235,7 @@ typedef struct subgoal_frame {
 
 #ifdef INCOMPLETE_TABLING
   continuation_ptr try_answer;
-#endif /* INCOMPLETE_TABLING */´
+#endif /* INCOMPLETE_TABLING */
 
 #ifdef LIMIT_TABLING
   struct subgoal_frame *previous;
