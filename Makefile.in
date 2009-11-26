@@ -498,6 +498,7 @@ all: startup.yss
 	@INSTALL_DLLS@ (cd library/lammpi; $(MAKE))
 	@INSTALL_DLLS@ (cd library/matrix; $(MAKE))
 	@INSTALL_DLLS@ (cd packages/sgml; $(MAKE))
+	@INSTALL_DLLS@ (cd packages/plunit; $(MAKE))
 	@INSTALL_DLLS@ (cd packages/swi-minisat2/C; $(MAKE))
 	@INSTALL_MATLAB@ (cd library/matlab; $(MAKE))
 	@ENABLE_JPL@ @INSTALL_DLLS@ (cd packages/jpl; $(MAKE))
@@ -533,6 +534,7 @@ install_unix: startup.yss libYap.a
 	mkdir -p $(DESTDIR)$(SHAREDIR)/Yap/pl
 	for f in $(PL_SOURCES); do $(INSTALL) $$f $(DESTDIR)$(SHAREDIR)/Yap/pl; done
 	@INSTALL_DLLS@ (cd packages/PLStream; $(MAKE) install)
+	@INSTALL_DLLS@ (cd packages/plunit; $(MAKE) install)
 	@INSTALL_DLLS@ (cd packages/sgml; $(MAKE) install)
 	@INSTALL_DLLS@ (cd packages/swi-minisat2/C; $(MAKE) install)
 	@INSTALL_DLLS@ (cd library/random; $(MAKE) install)
@@ -571,6 +573,7 @@ install_win32: startup.yss
 	$(INSTALL) config.h $(DESTDIR)$(INCLUDEDIR)/config.h
 	$(INSTALL) parms.h $(DESTDIR)$(INCLUDEDIR)/parms.h
 	(cd packages/PLStream; $(MAKE) install)
+	(cd packages/plunit; $(MAKE) install)
 	(cd packages/sgml; $(MAKE) install)
 	(cd packages/swi-minisat2/C; $(MAKE) install)
 	(cd library/random; $(MAKE) install)
@@ -621,6 +624,7 @@ depend: $(HEADERS) $(C_SOURCES)
 clean: clean_docs
 	rm -f *.o *~ *.BAK *.a
 	@INSTALL_DLLS@ (cd packages/PLStream; $(MAKE) clean)
+	@INSTALL_DLLS@ (cd packages/plunit; $(MAKE) clean)
 	@INSTALL_DLLS@ (cd library/matrix; $(MAKE) clean)
 	@INSTALL_DLLS@ (cd library/random; $(MAKE) clean)
 	@INSTALL_DLLS@ (cd library/regex; $(MAKE) clean)
