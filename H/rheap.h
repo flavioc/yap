@@ -1523,6 +1523,12 @@ RestoreEntries(PropEntry *pp, int int_key)
     case OpProperty:
       {
 	OpEntry *opp = (OpEntry *)pp;
+	if (opp->NextOfPE) {
+	  opp->NextOfPE =
+	    PropAdjust(opp->NextOfPE);
+	}
+	opp->OpName =
+	  AtomAdjust(opp->OpName);
 	if (opp->OpModule) {
 	 opp->OpModule = AtomTermAdjust(opp->OpModule);
 	}
@@ -1569,13 +1575,14 @@ RestoreAtom(AtomEntry *at)
 {
   AtomEntry *nat;
 
-#ifdef DEBUG_RESTORE2			/* useful during debug */
+  /* this should be done before testing for wide atoms */
+  at->PropsOfAE = PropAdjust(at->PropsOfAE);
+#if DEBUG_RESTORE2			/* useful during debug */
   if (IsWideAtom(AbsAtom(at)))
     fprintf(errout, "Restoring %S\n", at->WStrOfAE);
   else
     fprintf(errout, "Restoring %s\n", at->StrOfAE);
 #endif
-  at->PropsOfAE = PropAdjust(at->PropsOfAE);
   RestoreEntries(RepProp(at->PropsOfAE), FALSE);
   /* cannot use AtomAdjust without breaking agc */
   nat = RepAtom(at->NextOfAE);

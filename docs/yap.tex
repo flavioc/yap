@@ -3083,6 +3083,11 @@ format statements as described with @code{print_message_lines/3}.
 This predicate should be defined dynamic and multifile to allow other
 modules defining clauses for it too.
 
+@item message_to_string(+@var{Term}, -@var{String})
+@findex message_to_string/2
+@snindex message_to_string/2
+@cnindex message_to_string/2 
+Translates a message-term into a string object. Primarily intended for SWI-Prolog emulation.
 @end table
 
 @node Testing Terms, Predicates on Atoms, Messages, Top
@@ -3370,7 +3375,16 @@ the first list.
 @findex atomic_concat/2
 @snindex atomic_concat/2
 @cnindex atomic_concat/2
-The predicate holds when the first argument is a list of atoms, and
+The predicate holds when the first argument is a list of atomic terms, and
+the second unifies with the atom obtained by concatenating all the
+atomic terms in the first list. The first argument thus may contain
+atoms or numbers.
+
+@item atomic_list_concat(+@var{As},?@var{A})
+@findex atomic_list_concat/2
+@snindex atomic_list_concat/2
+@cnindex atomic_list_concat/2
+The predicate holds when the first argument is a list of atomic terms, and
 the second unifies with the atom obtained by concatenating all the
 atomic terms in the first list. The first argument thus may contain
 atoms or numbers.
@@ -8093,6 +8107,12 @@ Stream position at the stream currently being read in.
 
 
 @end table
+
+@item source_location(?@var{FileName}, ?@var{Line})
+@findex source_location/2
+@syindex source_location/2
+@cnindex source_location/2
+SWI-compatible predicate. If the last term has been read from a physical file (i.e., not from the file user or a string), unify File with an absolute path to the file and Line with the line-number in the file. Please use @code{prolog_load_context/2}.
 
 @node Library, SWI-Prolog, Built-ins, Top
 

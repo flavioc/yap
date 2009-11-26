@@ -107,8 +107,7 @@ op(P,T,V) :-
 
 current_op(X,Y,V) :- var(V), !,
 	'$current_module'(M),
-	V = M:Z,
-	'$do_current_op'(X,Y,Z,M).
+	'$do_current_op'(X,Y,V,M).
 current_op(X,Y,M:Z) :- !,
 	'$current_opm'(X,Y,Z,M).
 current_op(X,Y,Z) :-
@@ -125,8 +124,64 @@ current_op(X,Y,Z) :-
 	'$do_current_op'(X,Y,Z,M).
 
 '$do_current_op'(X,Y,Z,M) :-
-	'$current_op'(X,Y,Z,M1),
-	( M1 = prolog -> true ; M1 = M ).
+	atom(Z), !,
+	'$current_atom_op'(Z, M1, Prefix, Infix, Posfix),
+	( M1 = prolog -> true ; M1 = M ),
+	(
+	 '$get_prefix'(Prefix, X, Y)
+	;
+	 '$get_infix'(Infix, X, Y)
+	;
+	 '$get_posfix'(Posfix, X, Y)
+	).
+'$do_current_op'(X,Y,Z,M) :-
+	'$current_op'(Z, M1, Prefix, Infix, Posfix),
+	( M1 = prolog -> true ; M1 = M ),
+	(
+	 '$get_prefix'(Prefix, X, Y)
+	;
+	 '$get_infix'(Infix, X, Y)
+	;
+	 '$get_posfix'(Posfix, X, Y)
+	).
+
+'$get_prefix'(Prefix, X, Y) :-
+	Prefix > 0,
+	X is Prefix /\ 0xfff,
+	(
+         0x2000 /\ Prefix =:= 0x2000
+        ->
+         Y = fx
+        ;
+         Y = fy
+        ).
+
+'$get_infix'(Infix, X, Y) :-
+	Infix > 0,
+	X is Infix  /\ 0xfff,
+	(
+         0x3000 /\ Infix =:= 0x3000
+        ->
+         Y = xfx
+	;
+         0x1000 /\ Infix =:= 0x1000
+        ->
+         Y = xfy
+        ;
+         Y = yfx
+        ).
+
+'$get_posfix'(Posfix, X, Y) :-
+	Posfix > 0,
+	X is Posfix /\ 0xfff,
+	(
+         0x1000 /\ Posfix =:= 0x1000
+        ->
+         Y = xf
+	;
+         Y = yf
+        ).
+
 
 %%% Operating System utilities
 
@@ -259,8 +314,7 @@ atom_concat(X,Y,At) :-
 	  atom_concat([X,Y],At)
 	;
 	  atom(At) ->
-	  atom_length(At,Len),
-	  '$atom_contact_split'(At,0,Len,X,Y)
+	  '$atom_contact_split'(At,X,Y)
 	;
 	  var(At) ->
 	  '$do_error'(instantiation_error,atom_concat(X,Y,At))
@@ -268,6 +322,28 @@ atom_concat(X,Y,At) :-
 	  '$do_error'(type_error(atom,At),atomic_concant(X,Y,At))
 	).
 
+'$atom_contact_split'(At,X,Y) :-
+	nonvar(X), !,
+	atom_codes(At, Codes),
+	atom_codes(X, Xs),
+	lists:append(Xs,Ys,Codes),
+	atom_codes(Y, Ys).
+'$atom_contact_split'(At,X,Y) :-
+	nonvar(Y), !,
+	atom_codes(At, Codes),
+	atom_codes(Y, Ys),
+	once(lists:append(Xs,Ys,Codes)),
+	atom_codes(Y, Ys).
+'$atom_contact_split'(At,X,Y) :-
+	atom_codes(At, Codes),
+	'$split_codes'(Codes, Xs, Ys),
+	atom_codes(X, Xs),
+	atom_codes(Y, Ys).
+
+
+atomic_list_concat(L,At) :-
+	atomic_concat(L, At).
+	
 atomic_concat(X,Y,At) :-
 	(
 	  nonvar(X),  nonvar(Y)
@@ -279,10 +355,7 @@ atomic_concat(X,Y,At) :-
 	  '$atom_contact_split'(At,0,Len,X,Y)
 	;
 	  number(At) ->
-	  number_codes(At,Codes),
-	  lists:append(X0,Y0,Codes),
-	  name(X,X0),
-	  name(Y,Y0)
+	  '$number_contact_split'(At,X,Y)
 	;
 	  var(At) ->
 	  '$do_error'(instantiation_error,atomic_concat(X,Y,At))
@@ -290,13 +363,23 @@ atomic_concat(X,Y,At) :-
 	  '$do_error'(type_error(atomic,At),atomic_concant(X,Y,At))
 	).
 
-'$atom_contact_split'(At,Len,Len,X,Y) :- !,
-	'$atom_split'(At,Len,X,Y).
-'$atom_contact_split'(At,Len1,_,X,Y) :-
-	'$atom_split'(At,Len1,X,Y).
-'$atom_contact_split'(At,Len1,Len,X,Y) :-
-	Len2 is Len1+1,
-	'$atom_contact_split'(At,Len2,Len,X,Y).
+'$number_contact_split'(At,X,Y) :-
+	nonvar(X), !,
+	number_codes(At, Codes),
+	name(X, Xs),
+	lists:append(Xs,Ys,Codes),
+	name(Y, Ys).
+'$number_contact_split'(At,X,Y) :-
+	nonvar(Y), !,
+	number_codes(At, Codes),
+	name(Y, Ys),
+	once(lists:append(Xs,Ys,Codes)),
+	name(Y, Ys).
+'$number_contact_split'(At,X,Y) :-
+	number_codes(At, Codes),
+	'$split_codes'(Codes, Xs, Ys),
+	name(X, Xs),
+	name(Y, Ys).
 
 sub_atom(At, Bef, Size, After, SubAt) :-
 	% extract something from an atom
