@@ -1,4 +1,5 @@
 :- module(ex_simple, []).
+
 :- use_module(library(plunit)).
 
 :- begin_tests(lists).
@@ -29,3 +30,8 @@ test(append) :-
 	X == "aapnoot".
 
 :- end_tests(lists).
+
+:- run_tests.
+
+:- run_tests(lists:member).
+

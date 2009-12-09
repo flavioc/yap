@@ -904,19 +904,13 @@ not(G) :-    \+ '$execute'(G).
 '$undefp'([M|G]) :-
 	% make sure we do not loop on undefined predicates
         % for undefined_predicates.
+	'$enter_undefp',
 	(
-	 recorded('$import','$import'(NM,M,Goal,G,_,_),_)
+	 '$get_undefined_pred'(G, M, Goal, NM)
 	->
-	 true
+	 '$exit_undefp'
 	;
-	 '$enter_undefp',
-	 (
-	  swi:swi_predicate_table(M,G,NM,Goal)
-	 ->
-	  '$exit_undefp'
-	 ;
-	  once('$find_undefp_handler'(G,M,Goal,NM))
-	 )
+	 once('$find_undefp_handler'(G,M,Goal,NM))
 	),
 	!,
 	Goal \= fail,
@@ -1163,6 +1157,11 @@ catch(G, C, A) :-
 %
 % throw has to be *exactly* after system catch!
 %
+throw(_Ball) :-
+	% use existing ball
+	'$get_exception'(Ball),
+	!,
+	'$jump_env_and_store_ball'(Ball).
 throw(Ball) :-
 	% get current jump point
 	'$jump_env_and_store_ball'(Ball).
@@ -1173,7 +1172,8 @@ throw(Ball) :-
 '$catch'(_,_,_) :- fail.
 
 '$handle_throw'(_, _, _).
-'$handle_throw'(C, A, Ball) :-
+'$handle_throw'(C, A, _Ball) :-
+	'$reset_exception'(Ball),
         % reset info
 	('catch_ball'(Ball, C) ->
 	    '$execute'(A)

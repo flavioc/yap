@@ -354,6 +354,7 @@ static Opdef    Ops[] = {
   {"dynamic", fx, 1150},
   {"thread_local", fx, 1150},
   {"initialization", fx, 1150},
+  {"volatile", fx, 1150},
   {"mode", fx, 1150},
   {"public", fx, 1150},
   {"multifile", fx, 1150},
@@ -369,8 +370,8 @@ static Opdef    Ops[] = {
 #ifndef UNCUTABLE
   {"uncutable", fx, 1150},
 #endif /*UNCUTABLE ceh:*/
+  {"|", xfy, 1105},
   {";", xfy, 1100},
-  {"|", xfy, 1100},
   /*  {";", yf, 1100}, not allowed in ISO */
   {"->", xfy, 1050},
   {"*->", xfy, 1050},
@@ -1199,6 +1200,7 @@ InitCodes(void)
   Yap_heap_regs->wl.consultbase = Yap_heap_regs->wl.consultsp =
     Yap_heap_regs->wl.consultlow + Yap_heap_regs->wl.consultcapacity;
 #endif /* YAPOR */
+  Yap_heap_regs->wl.ball_term = NULL;
 
   /* make sure no one else can use these two atoms */
   CurrentModule = 0;

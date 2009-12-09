@@ -91,6 +91,7 @@ void    STD_PROTO(Yap_init_agc, (void));
 void	STD_PROTO(Yap_FreeCodeSpace,(char *));
 char   *STD_PROTO(Yap_AllocAtomSpace,(unsigned long int));
 char   *STD_PROTO(Yap_AllocCodeSpace,(unsigned long int));
+char   *STD_PROTO(Yap_ReallocCodeSpace,(char *,unsigned long int));
 ADDR	STD_PROTO(Yap_AllocFromForeignArea,(Int));
 int     STD_PROTO(Yap_ExtendWorkSpace,(Int));
 void	STD_PROTO(Yap_FreeAtomSpace,(char *));
@@ -175,6 +176,7 @@ Term	STD_PROTO(Yap_ExecuteCallMetaCall,(Term));
 void	STD_PROTO(Yap_InitExecFs,(void));
 Int	STD_PROTO(Yap_JumpToEnv,(Term));
 Term	STD_PROTO(Yap_RunTopGoal,(Term));
+void	STD_PROTO(Yap_ResetExceptionTerm,(void));
 Int	STD_PROTO(Yap_execute_goal,(Term, int, Term));
 int	STD_PROTO(Yap_exec_absmi,(int));
 void	STD_PROTO(Yap_trust_last,(void));
@@ -192,6 +194,7 @@ Term	STD_PROTO(Yap_NewArena,(UInt,CELL *));
 void	STD_PROTO(Yap_InitGlobals,(void));
 Term	STD_PROTO(Yap_SaveTerm, (Term));
 Term	STD_PROTO(Yap_SetGlobalVal, (Atom, Term));
+Int	STD_PROTO(Yap_DeleteGlobal, (Atom));
 void	STD_PROTO(Yap_AllocateDefaultArena, (Int, Int));
 
 /* grow.c */
