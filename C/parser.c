@@ -581,31 +581,19 @@ ParseTerm(int prio, JMPBUFF *FailBuff)
       break;
     case '[':
       NextToken;
-      if (Yap_tokptr->Tok == Ord(Ponctuation_tok) &&
-	  Unsigned(Yap_tokptr->TokInfo) == ']') {
-	t = TermNil;
-	NextToken;
-      } else {
-	t = ParseList(FailBuff);
-	checkfor((Term) ']', FailBuff);
-      }
+      t = ParseList(FailBuff);
+      checkfor((Term) ']', FailBuff);
       break;
     case '{':
       NextToken;
-      if (Yap_tokptr->Tok == Ord(Ponctuation_tok) &&
-	  Unsigned(Yap_tokptr->TokInfo) == '}') {
-	t = MkAtomTerm(NameOfFunctor(FunctorBraces));
-	NextToken;
-      } else {
-	t = ParseTerm(1200, FailBuff);
-	t = Yap_MkApplTerm(FunctorBraces, 1, &t);
-	/* check for possible overflow against local stack */
-	if (H > ASP-4096) {
-	  Yap_ErrorMessage = "Stack Overflow";
-	  FAIL;
-	}  
-	checkfor((Term) '}', FailBuff);
-      }
+      t = ParseTerm(1200, FailBuff);
+      t = Yap_MkApplTerm(FunctorBraces, 1, &t);
+      /* check for possible overflow against local stack */
+      if (H > ASP-4096) {
+	Yap_ErrorMessage = "Stack Overflow";
+	FAIL;
+      }  
+      checkfor((Term) '}', FailBuff);
       break;
     default:
       FAIL;
@@ -687,19 +675,20 @@ ParseTerm(int prio, JMPBUFF *FailBuff)
 	}  
 	curprio = 1000;
 	continue;
-      } else if (Unsigned(Yap_tokptr->TokInfo) == '|' && prio >= 1100 &&
-		 curprio <= 1099) {
+      } else if (Unsigned(Yap_tokptr->TokInfo) == '|' &&
+		 IsInfixOp(AtomVBar, &opprio, &oplprio, &oprprio)
+		 && opprio <= prio && oplprio >= curprio) {
 	Volatile Term args[2];
 	NextToken;
 	args[0] = t;
-	args[1] = ParseTerm(1100, FailBuff);
+	args[1] = ParseTerm(oprprio, FailBuff);
 	t = Yap_MkApplTerm(FunctorVBar, 2, args);
 	/* check for possible overflow against local stack */
 	if (H > ASP-4096) {
 	  Yap_ErrorMessage = "Stack Overflow";
 	  FAIL;
 	}  
-	curprio = 1100;
+	curprio = opprio;
 	continue;
       }
     }

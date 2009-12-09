@@ -25,6 +25,16 @@
 			      nth1/3,
 			      nth0/3]).
 
+:- use_module(library(apply),[maplist/2,
+			      maplist/3,
+			      maplist/4,
+			      maplist/5,
+			      include/3,
+			      exclude/3,
+			      partition/4,
+			      partition/5
+			     ]).
+
 :- use_module(library(system),
 	      [datime/1,
 	       mktime/2,
@@ -35,12 +45,6 @@
 
 :- use_module(library(apply_macros),
 	      []).
-
-:- use_module(library(maplist),
-	      [maplist/2,
-	       maplist/3,
-	       maplist/4,
-	       maplist/5]).
 
 :- use_module(library(terms),
 	      [subsumes/2,
@@ -97,6 +101,23 @@ swi_predicate_table(_,cyclic_term(X),terms,cyclic_term(X)).
 swi_predicate_table(_,acyclic_term(X),terms,acyclic_term(X)).
 swi_predicate_table(_,genarg(X,Y,Z),arg,genarg(X,Y,Z)).
 swi_predicate_table(_,tmp_file(X,Y),system,tmp_file(X,Y)).
+swi_predicate_table(_,maplist(X,Y),apply,maplist(X,Y)).
+swi_predicate_table(_,maplist(X,Y,Z),apply,maplist(X,Y,Z)).
+swi_predicate_table(_,maplist(X,Y,Z,A),apply,maplist(X,Y,Z,A)).
+swi_predicate_table(_,maplist(X,Y,Z,A,B),apply,maplist(X,Y,Z,A,B)).
+swi_predicate_table(_,include(X,Y,Z),apply,include(X,Y,Z)).
+swi_predicate_table(_,exclude(X,Y,Z),apply,exclude(X,Y,Z)).
+swi_predicate_table(_,partition(X,Y,Z,A),apply,partition(X,Y,Z,A)).
+swi_predicate_table(_,partition(X,Y,Z,A,B),apply,partition(X,Y,Z,A,B)).
+% swi_predicate_table(_,set_test_options(X),plunit,set_test_options(X)).
+% swi_predicate_table(_,begin_tests(X),plunit,begin_tests(X)).
+% swi_predicate_table(_,begin_tests(X,Y),plunit,begin_tests(X,Y)).
+% swi_predicate_table(_,end_tests(X),plunit,end_tests(X)).
+% swi_predicate_table(_,run_tests,plunit,run_tests).
+% swi_predicate_table(_,run_tests(X),plunit,run_tests(X)).
+% swi_predicate_table(_,load_test_files(X),plunit,load_test_files(X)).
+% swi_predicate_table(_,running_tests,plunit,running_tests).
+% swi_predicate_table(_,test_report(X),plunit,test_report(X)).
 
 swi_mchk(X,Y) :- lists:memberchk(X,Y).
 
@@ -182,29 +203,12 @@ predmerge(<, P, H1, H2, T1, T2, [H1|R]) :-
 % maybe a good idea to eventually support this in YAP.
 % but for now just ignore it.
 %
-:- meta_predicate prolog:volatile(:).
-
-:- op(1150, fx, 'volatile').
-
-prolog:volatile(P) :- var(P),
-	throw(error(instantiation_error,volatile(P))).
-prolog:volatile(M:P) :-
-	do_volatile(P,M).
-prolog:volatile((G1,G2)) :-
-	prolog:volatile(G1),
-	prolog:volatile(G2).
-prolog:volatile(P) :-
-	prolog_load_context(module, M),
-	do_volatile(P,M).
-
 prolog:load_foreign_library(P,Command) :-
 	absolute_file_name(P,[file_type(executable),solutions(first),file_errors(fail)],Lib),
 	load_foreign_files([Lib],[],Command).
 
 prolog:load_foreign_library(P) :-
 	prolog:load_foreign_library(P,install).
-
-do_volatile(P,M) :- dynamic(M:P).
 
 :- use_module(library(lists)).
 
@@ -330,66 +334,6 @@ lists:intersection([X|T], L, Intersect) :-
 lists:intersection([_|T], L, R) :-
 	lists:intersection(T, L, R).
 
-
-% copied from SWI's boot/apply library
-:- module_transparent
-	mpl/2, 
-	mpl/3, 
-	mpl/4, 
-	mpl/5.
-
-mpl(Goal, List) :-
-	maplist:maplist(Goal, List).
-
-mpl(Goal, List1, List2) :-
-	maplist:maplist(Goal, List1, List2).
-
-mpl(Goal, List1, List2, List3) :-
-	maplist:maplist(Goal, List1, List2, List3).
-
-mpl(Goal, List1, List2, List3, List4) :-
-	maplist:maplist(Goal, List1, List2, List3, List4).
-
-:- module_transparent
-	prolog:maplist/2, 
-	prolog:maplist/3, 
-	prolog:maplist/4, 
-	prolog:maplist/5.
-
-
-%	maplist(:Goal, +List)
-%
-%	True if Goal can succesfully be applied on all elements of List.
-%	Arguments are reordered to gain performance as well as to make
-%	the predicate deterministic under normal circumstances.
-
-prolog:maplist(Goal, List) :-
-	mpl(Goal, List).
-
-%	maplist(:Goal, ?List1, ?List2)
-%
-%	True if Goal can succesfully be applied to all succesive pairs
-%	of elements of List1 and List2.
-
-prolog:maplist(Goal, List1, List2) :-
-	mpl(Goal, List1, List2).
-
-%	maplist(:Goal, ?List1, ?List2, ?List3)
-%
-%	True if Goal can succesfully be applied to all succesive triples
-%	of elements of List1..List3.
-
-prolog:maplist(Goal, List1, List2, List3) :-
-	mpl(Goal, List1, List2, List3).
-
-%	maplist(:Goal, ?List1, ?List2, ?List3, List4)
-%
-%	True if Goal  can  succesfully  be   applied  to  all  succesive
-%	quadruples of elements of List1..List4
-
-prolog:maplist(Goal, List1, List2, List3, List4) :-
-	mpl(Goal, List1, List2, List3, List4).
-
 prolog:compile_aux_clauses([]).
 prolog:compile_aux_clauses([(:- G)|Cls]) :-
 	prolog_load_context(module, M),
@@ -408,6 +352,7 @@ prolog:'$set_source_module'(Source0, SourceF) :-
 	prolog_load_context(module, Source0),
 	module(SourceF).
 
-prolog:'$declare_module'(_, _, _, _, _).
+prolog:'$declare_module'(Name, Context, _, _, _) :-
+	add_import_module(Name, Context, start).
 
 prolog:'$set_predicate_attribute'(_, _, _).

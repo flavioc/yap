@@ -66,10 +66,27 @@ setup_call_cleanup(Setup, Goal, Cleanup) :-
 
 setup_call_catcher_cleanup(Setup, Goal, Catcher, Cleanup) :-
 	yap_hacks:disable_interrupts,
-	'$do_setup'(Setup),
-	catch('$safe_call_cleanup'(Goal,Cleanup,Catcher,Exception),
-	      Exception,
-	      '$cleanup_exception'(Exception,Catcher,Cleanup)).
+	'$check_goal_for_setup_call_cleanup'(Setup, setup_call_cleanup(Setup, Goal, Cleanup)),
+	catch('$do_setup'(Setup),Exception,'$handle_broken_setup'(Exception)),
+	'$check_goal_for_setup_call_cleanup'(Cleanup, setup_call_cleanup(Setup, Goal, Cleanup)),
+	'$safe_call_cleanup'(Goal,Cleanup,Catcher,Exception).
+
+% make sure we don't lose interrupts if we get exceptions
+% with setup.
+'$handle_broken_setup'(Setup) :-
+	yap_hacks:enable_interrupts,
+	throw(Exception).
+
+'$check_goal_for_setup_call_cleanup'(Goal, G) :-
+	strip_module(Goal, _, MG),
+	(
+	 var(MG)
+	->
+	 yap_hacks:enable_interrupts,
+	 '$do_error'(instantiation_error,G)
+	;
+	 true
+	).
 
 % this is simple, do nothing
 '$do_setup'(A:true) :- atom(A), !.
@@ -96,9 +113,9 @@ setup_call_catcher_cleanup(Setup, Goal, Catcher, Cleanup) :-
 
 '$safe_call_cleanup'(Goal, Cleanup, Catcher, Exception) :-
 	 yap_hacks:current_choice_point(MyCP1),
-	'$freeze_goal'(Catcher, '$clean_call'(Exception, Cleanup)),
-	yap_hacks:trail_suspension_marker(Catcher),
+	'$freeze_goal'(Catcher, '$clean_call'(Active, Cleanup)),
 	(
+	 yap_hacks:trail_suspension_marker(Catcher),
 	 yap_hacks:enable_interrupts,
 	 yap_hacks:current_choice_point(CP0),
 	 '$execute'(Goal),
@@ -123,9 +140,13 @@ setup_call_catcher_cleanup(Setup, Goal, Catcher, Cleanup) :-
 % The first argument is used by JumpEnv to verify if a throw
 % is going to be handled by the cleanup catcher. If it is so,
 % clean_call will not be called from JumpToEnv.
-'$clean_call'(_,Cleanup) :-
+'$clean_call'(_, Cleanup) :-
 	'$execute'(Cleanup), !.
-'$clean_call'(_,_).
+'$clean_call'(_, _).
+
+'$cc_check_throw' :-
+	nb_getval('$catch',Ball),
+	throw(Ball).	
 
 %%% The unknown predicate,
 %	informs about what the user wants to be done when
