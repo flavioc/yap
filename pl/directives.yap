@@ -183,6 +183,9 @@ yap_flag(fast,off) :- !, set_value('$fast',[]).
 % do or do not machine code
 yap_flag(argv,L) :- '$argv'(L).
 
+% do or do not machine code
+yap_flag(executable,L) :- '$executable'(L).
+
 % hide/unhide atoms
 yap_flag(hide,Atom) :- !, hide(Atom).
 yap_flag(unhide,Atom) :- !, unhide(Atom).
@@ -887,6 +890,7 @@ yap_flag(dialect,yap).
 		V = dollar_as_lower_case ;
 		V = double_quotes ;
 		V = encoding ;
+		V = executable ;
 %		V = fast  ;
 		V = fileerrors  ;
 		V = float_format ;
@@ -1092,14 +1096,14 @@ create_prolog_flag(Name, Value, Options) :-
 '$check_flag_options'(O, _, _, G) :-
 	var(O),
 	'$do_error'(instantiation_error,G).
-'$check_flag_options'([], term, read_write, _) :- !.
+'$check_flag_options'([], _, read_write, _) :- !.
 '$check_flag_options'([O1|Os], Domain, RW, G) :- !,
 	'$check_flag_optionsl'([O1|Os], Domain, RW, G).
 '$check_flag_options'(O, _, _, G) :-
 	'$do_error'(type_error(list),G).
 
 
-'$check_flag_optionsl'([], term, read_write, G).
+'$check_flag_optionsl'([], _, read_write, G).
 '$check_flag_optionsl'([V|Os], Domain, RW, G) :-
 	var(V),
 	'$do_error'(instantiation_error,G).
@@ -1156,6 +1160,9 @@ create_prolog_flag(Name, Value, Options) :-
 '$check_flag_value'(Value, _, G) :-
 	\+ ground(Value), !,
 	'$do_error'(instantiation_error,G).
+'$check_flag_value'(Value, Domain, G) :-
+	var(Domain), !,
+	'$flag_domain_from_value'(Value, Domain).
 '$check_flag_value'(_, term, _) :- !.
 '$check_flag_value'(Value, atom, _) :-
 	atom(Value), !.
@@ -1167,6 +1174,14 @@ create_prolog_flag(Name, Value, Options) :-
 '$check_flag_value'(false, boolean, _) :- !.
 '$check_flag_value'(Value, Domain, G) :-
 	'$do_error'(domain_error(Domain,Value),G).
+
+'$flag_domain_from_value'(true, boolean) :- !.
+'$flag_domain_from_value'(false, boolean) :- !.
+'$flag_domain_from_value'(Value, integer) :- integer(Value), !.
+'$flag_domain_from_value'(Value, float) :- float(Value), !.
+'$flag_domain_from_value'(Value, atom) :- atom(Value), !.
+'$flag_domain_from_value'(_, term).
+
 
 '$expects_dialect'(swi) :-
 	eraseall('$dialect'),
