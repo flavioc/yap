@@ -798,9 +798,11 @@ sg_fr_ptr subgoal_search(yamop *preg, CELL **Yaddr) {
   stack_terms_limit = (CELL *)TR;
   stack_terms_base = stack_terms = (CELL *)Yap_TrailTop;
   current_sg_node = TabEnt_subgoal_trie(tab_ent);
+
 #ifdef TABLE_LOCK_AT_ENTRY_LEVEL
   LOCK(TabEnt_lock(tab_ent));
 #endif /* TABLE_LOCK_LEVEL */
+
   for (i = 1; i <= arity; i++) {
 #ifdef GLOBAL_TRIE
     current_node = GLOBAL_root_gt;
@@ -810,66 +812,66 @@ sg_fr_ptr subgoal_search(yamop *preg, CELL **Yaddr) {
     do {
       Term t = STACK_POP_DOWN(stack_terms);
       if (IsVarTerm(t)) {
-	if (IsTableVarTerm(t)) {
-	  t = MakeTableVarTerm(VarIndexOfTerm(t));
+        if (IsTableVarTerm(t)) {
+          t = MakeTableVarTerm(VarIndexOfTerm(t));
           SUBGOAL_TOKEN_CHECK_INSERT(tab_ent, current_node, t);
-	} else {
-	  if (count_vars == MAX_TABLE_VARS)
-	    Yap_Error(INTERNAL_ERROR, TermNil, "MAX_TABLE_VARS exceeded (subgoal_search)");
-	  STACK_PUSH_UP(t, stack_vars);
-	  *((CELL *)t) = GLOBAL_table_var_enumerator(count_vars);
-	  t = MakeTableVarTerm(count_vars);
-	  count_vars++;
+        } else {
+          if (count_vars == MAX_TABLE_VARS)
+            Yap_Error(INTERNAL_ERROR, TermNil, "MAX_TABLE_VARS exceeded (subgoal_search)");
+          STACK_PUSH_UP(t, stack_vars);
+          *((CELL *)t) = GLOBAL_table_var_enumerator(count_vars);
+          t = MakeTableVarTerm(count_vars);
+          count_vars++;
           SUBGOAL_TOKEN_CHECK_INSERT(tab_ent, current_node, t);
-	}
+        }
       } else if (IsAtomOrIntTerm(t)) {
         SUBGOAL_TOKEN_CHECK_INSERT(tab_ent, current_node, t);
       } else if (IsPairTerm(t)) {
 #ifdef TRIE_COMPACT_PAIRS
-	CELL *aux = RepPair(t);
-	if (aux == PairTermMark) {
-	  t = STACK_POP_DOWN(stack_terms);
-	  if (IsPairTerm(t)) {
-	    aux = RepPair(t);
-	    t = Deref(*(aux + 1));
-	    if (t == TermNil) {
+        CELL *aux = RepPair(t);
+        if (aux == PairTermMark) {
+          t = STACK_POP_DOWN(stack_terms);
+          if (IsPairTerm(t)) {
+            aux = RepPair(t);
+            t = Deref(*(aux + 1));
+            if (t == TermNil) {
               SUBGOAL_TOKEN_CHECK_INSERT(tab_ent, current_node, CompactPairEndList);
-	    } else {
-	      /* STACK_CHECK_EXPAND(stack_terms, stack_terms_limit + 2, stack_terms_base); */
-	      /* STACK_CHECK_EXPAND is not necessary here because the situation of pushing **
-	      ** up 3 terms has already initially checked for the CompactPairInit term */
-	      STACK_PUSH_UP(t, stack_terms);
-	      STACK_PUSH_UP(AbsPair(PairTermMark), stack_terms);
-	    }
-	    STACK_PUSH_UP(Deref(*aux), stack_terms);
-	  } else {
+            } else {
+              /* STACK_CHECK_EXPAND(stack_terms, stack_terms_limit + 2, stack_terms_base); */
+              /* STACK_CHECK_EXPAND is not necessary here because the situation of pushing **
+               ** up 3 terms has already initially checked for the CompactPairInit term */
+              STACK_PUSH_UP(t, stack_terms);
+              STACK_PUSH_UP(AbsPair(PairTermMark), stack_terms);
+            }
+            STACK_PUSH_UP(Deref(*aux), stack_terms);
+          } else {
             SUBGOAL_TOKEN_CHECK_INSERT(tab_ent, current_node, CompactPairEndTerm);
-	    STACK_PUSH_UP(t, stack_terms);
-	  }
-	} else {
+            STACK_PUSH_UP(t, stack_terms);
+          }
+        } else {
           SUBGOAL_TOKEN_CHECK_INSERT(tab_ent, current_node, CompactPairInit);
-	  t = Deref(*(aux + 1));
-	  if (t == TermNil) {
+          t = Deref(*(aux + 1));
+          if (t == TermNil) {
             SUBGOAL_TOKEN_CHECK_INSERT(tab_ent, current_node, CompactPairEndList);
-	  } else {
-	    STACK_CHECK_EXPAND(stack_terms, stack_terms_limit + 2, stack_terms_base);
-	    STACK_PUSH_UP(t, stack_terms);
-	    STACK_PUSH_UP(AbsPair(PairTermMark), stack_terms);
-	  }
-	  STACK_PUSH_UP(Deref(*aux), stack_terms);
-	}
+          } else {
+            STACK_CHECK_EXPAND(stack_terms, stack_terms_limit + 2, stack_terms_base);
+            STACK_PUSH_UP(t, stack_terms);
+            STACK_PUSH_UP(AbsPair(PairTermMark), stack_terms);
+          }
+          STACK_PUSH_UP(Deref(*aux), stack_terms);
+        }
 #else
         SUBGOAL_TOKEN_CHECK_INSERT(tab_ent, current_node, AbsPair(NULL));
-	STACK_CHECK_EXPAND(stack_terms, stack_terms_limit + 1, stack_terms_base);
-	STACK_PUSH_UP(Deref(*(RepPair(t) + 1)), stack_terms);
-	STACK_PUSH_UP(Deref(*(RepPair(t))), stack_terms);
+	      STACK_CHECK_EXPAND(stack_terms, stack_terms_limit + 1, stack_terms_base);
+	      STACK_PUSH_UP(Deref(*(RepPair(t) + 1)), stack_terms);
+	      STACK_PUSH_UP(Deref(*(RepPair(t))), stack_terms);
 #endif /* TRIE_COMPACT_PAIRS */
       } else if (IsApplTerm(t)) {
-	Functor f = FunctorOfTerm(t);
+	      Functor f = FunctorOfTerm(t);
         SUBGOAL_TOKEN_CHECK_INSERT(tab_ent, current_node, AbsAppl((Term *)f));
-	if (f == FunctorDouble) {
-	  volatile Float dbl = FloatOfTerm(t);
-	  volatile Term *t_dbl = (Term *)((void *) &dbl);
+	      if (f == FunctorDouble) {
+	        volatile Float dbl = FloatOfTerm(t);
+	        volatile Term *t_dbl = (Term *)((void *) &dbl);
 #if SIZEOF_DOUBLE == 2 * SIZEOF_INT_P
           SUBGOAL_TOKEN_CHECK_INSERT(tab_ent, current_node, *(t_dbl + 1));
 #endif /* SIZEOF_DOUBLE x SIZEOF_INT_P */
@@ -877,34 +879,36 @@ sg_fr_ptr subgoal_search(yamop *preg, CELL **Yaddr) {
 #ifdef GLOBAL_TRIE
           SUBGOAL_TOKEN_CHECK_INSERT(tab_ent, current_node, AbsAppl((Term *)f));
 #endif /* GLOBAL_TRIE */
-	} else if (f == FunctorLongInt) {
-	  Int li = LongIntOfTerm(t);
+	      } else if (f == FunctorLongInt) {
+	        Int li = LongIntOfTerm(t);
           SUBGOAL_TOKEN_CHECK_INSERT(tab_ent, current_node, li);
 #ifdef GLOBAL_TRIE
           SUBGOAL_TOKEN_CHECK_INSERT(tab_ent, current_node, AbsAppl((Term *)f));
 #endif /* GLOBAL_TRIE */
-	} else if (f == FunctorDBRef) {
-	  Yap_Error(INTERNAL_ERROR, TermNil, "unsupported type tag (FunctorDBRef in subgoal_search)");
-	} else if (f == FunctorBigInt) {
-	  Yap_Error(INTERNAL_ERROR, TermNil, "unsupported type tag (FunctorBigInt in subgoal_search)");	  
-	} else {
+	      } else if (f == FunctorDBRef) {
+	        Yap_Error(INTERNAL_ERROR, TermNil, "unsupported type tag (FunctorDBRef in subgoal_search)");
+	      } else if (f == FunctorBigInt) {
+	        Yap_Error(INTERNAL_ERROR, TermNil, "unsupported type tag (FunctorBigInt in subgoal_search)");	  
+	      } else {
           STACK_CHECK_EXPAND(stack_terms, stack_terms_limit + ArityOfFunctor(f) - 1, stack_terms_base);
-	  for (j = ArityOfFunctor(f); j >= 1; j--)
-	    STACK_PUSH_UP(Deref(*(RepAppl(t) + j)), stack_terms);
-	}
+	        for (j = ArityOfFunctor(f); j >= 1; j--)
+	          STACK_PUSH_UP(Deref(*(RepAppl(t) + j)), stack_terms);
+	      }
       } else {
-	Yap_Error(INTERNAL_ERROR, TermNil, "unknown type tag (subgoal_search)");
+	      Yap_Error(INTERNAL_ERROR, TermNil, "unknown type tag (subgoal_search)");
       }
     } while (STACK_NOT_EMPTY(stack_terms, stack_terms_base));
 #ifdef GLOBAL_TRIE
-     current_sg_node = subgoal_trie_node_check_insert(tab_ent, current_sg_node, current_node);
+    current_sg_node = subgoal_trie_node_check_insert(tab_ent, current_sg_node, current_node);
 #endif /* GLOBAL_TRIE */
   }
+  
 #if defined(TABLE_LOCK_AT_NODE_LEVEL)
   LOCK(TrNode_lock(current_sg_node));
 #elif defined(TABLE_LOCK_AT_WRITE_LEVEL)
   LOCK_TABLE(current_sg_node);
 #endif /* TABLE_LOCK_LEVEL */
+
   if (TrNode_sg_fr(current_sg_node) == NULL) {
     /* new tabled subgoal */
     new_subgoal_frame(sg_fr, preg);
@@ -917,6 +921,8 @@ sg_fr_ptr subgoal_search(yamop *preg, CELL **Yaddr) {
     }
 #endif /* LIMIT_TABLING */
   }
+  
+  /* unlock table entry */
 #if defined(TABLE_LOCK_AT_ENTRY_LEVEL)
   UNLOCK(TabEnt_lock(tab_ent));
 #elif defined(TABLE_LOCK_AT_NODE_LEVEL)
@@ -934,6 +940,7 @@ sg_fr_ptr subgoal_search(yamop *preg, CELL **Yaddr) {
   }
 
   return sg_fr;
+  
 #ifndef GLOBAL_TRIE
 #undef current_sg_node
 #endif /* GLOBAL_TRIE */
