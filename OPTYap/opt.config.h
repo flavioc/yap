@@ -155,6 +155,10 @@
 ** ----------------------------------------------------------------- */
 #define TABLING_ANSWER_LIST 1
 
+/* ----------------------------------------------------------------- **
+**      use call-subsumption method for tabled evaluation            **
+** ----------------------------------------------------------------- */
+#define TABLING_CALL_SUBSUMPTION 1
 
 
 /* ---------------------------------------------------------------- **
@@ -208,6 +212,9 @@
 #if defined(GLOBAL_TRIE_FOR_CALLS_ANSWERS) || defined(GLOBAL_TRIE_FOR_TERMS) || defined(GLOBAL_TRIE_FOR_SUBTERMS)
 #define GLOBAL_TRIE
 #endif /* GLOBAL_TRIE_FOR_CALLS_ANSWERS || GLOBAL_TRIE_FOR_TERMS || GLOBAL_TRIE_FOR_SUBTERMS */
+#if defined(TABLING_CALL_SUBSUMPTION) || !defined(TABLING_ANSWER_LIST)
+#define TABLING_ANSWER_LIST
+#endif /* TABLING_CALL_SUBSUMPTION || !TABLING_ANSWER_LIST */
 #endif /* TABLING */
 
 #if defined(YAPOR) && defined(TABLING)
