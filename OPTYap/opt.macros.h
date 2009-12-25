@@ -118,8 +118,7 @@ extern int Yap_page_size;
         { int i, shmid;                                                                                 \
           pg_hd_ptr aux_pg_hd;                                                                          \
           if ((shmid = shmget(IPC_PRIVATE, SHMMAX, SHM_R|SHM_W)) == -1)                                 \
-            Yap_Error(FATAL_ERROR, TermNil, "shmget error (ALLOC_PAGE) shmid %d errno %s",              \
-              shmid, strerror(errno));                                                                  \
+            Yap_Error(FATAL_ERROR, TermNil, "shmget error (ALLOC_PAGE): %s", strerror(errno));          \
           if ((PG_HD = (pg_hd_ptr) shmat(shmid, NULL, 0)) == (void *) -1)                               \
             Yap_Error(FATAL_ERROR, TermNil, "shmat error (ALLOC_PAGE)");                                \
           if (shmctl(shmid, IPC_RMID, 0) != 0)                                                          \
@@ -237,8 +236,7 @@ extern int Yap_page_size;
           int i, shmid;                                                                                 \
           pg_hd_ptr pg_hd, aux_pg_hd;                                                                   \
           if ((shmid = shmget(IPC_PRIVATE, SHMMAX, SHM_R|SHM_W)) == -1)                                 \
-            Yap_Error(FATAL_ERROR, TermNil, "shmget error (ALLOC_PAGE) shmid %d errno %s",              \
-              shmid, strerror(errno));                                                                  \
+            Yap_Error(FATAL_ERROR, TermNil, "shmget error (ALLOC_PAGE): %s", strerror(errno));          \
           if ((pg_hd = (pg_hd_ptr) shmat(shmid, NULL, 0)) == (void *) -1)                               \
             Yap_Error(FATAL_ERROR, TermNil, "shmat error (ALLOC_PAGE)");                                \
           if (shmctl(shmid, IPC_RMID, 0) != 0)                                                          \
