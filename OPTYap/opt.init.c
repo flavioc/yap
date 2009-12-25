@@ -90,9 +90,9 @@ void Yap_init_global(int max_table_size, int n_workers, int sch_loop, int delay_
   INIT_PAGES(GLOBAL_PAGES_gt_node, struct global_trie_node);
   INIT_PAGES(GLOBAL_PAGES_gt_hash, struct global_trie_hash);
 #endif /* GLOBAL_TRIE */
-#ifdef TABLING_ANSWER_LIST
+#ifdef TABLING_ANSWER_LIST_SCHEME
   INIT_PAGES(GLOBAL_PAGES_ans_list, struct answer_list);
-#endif /* TABLING_ANSWER_LIST */
+#endif /* TABLING_ANSWER_LIST_SCHEME */
   INIT_PAGES(GLOBAL_PAGES_tab_ent, struct table_entry);
   INIT_PAGES(GLOBAL_PAGES_sg_fr, struct subgoal_frame);
   INIT_PAGES(GLOBAL_PAGES_sg_node, struct subgoal_trie_node);

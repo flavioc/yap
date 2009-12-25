@@ -33,9 +33,9 @@ STD_PROTO(static inline void free_answer_trie_hash_chain, (ans_hash_ptr));
 STD_PROTO(static inline choiceptr freeze_current_cp, (void));
 STD_PROTO(static inline void resume_frozen_cp, (choiceptr));
 
-#ifdef TABLING_ANSWER_LIST
+#ifdef TABLING_ANSWER_LIST_SCHEME
 STD_PROTO(static inline void free_answer_list, (ans_list_ptr));
-#endif
+#endif /* TABLING_ANSWER_LIST_SCHEME */
 
 #ifdef YAPOR
 STD_PROTO(static inline void pruning_over_tabling_data_structures, (void));
@@ -319,13 +319,13 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
       
 #define SgFr_has_no_answers(SG_FR)  SgFr_first_answer(SG_FR) == NULL
 
-#ifdef TABLING_ANSWER_LIST
+#ifdef TABLING_ANSWER_LIST_SCHEME
 #define free_answer_continuation(CONT) free_answer_list(CONT)
 #define alloc_answer_continuation(CONT) ALLOC_ANSWER_LIST(CONT)
-#else
+#elif TABLING_ANSWER_CHILD_SCHEME
 #define free_answer_continuation(CONT)
 #define alloc_answer_continuation(CONT)
-#endif
+#endif /* TABLING_ANSWER_CHILD_SCHEME */
 
 #define new_dependency_frame(DEP_FR, DEP_ON_STACK, TOP_OR_FR, LEADER_CP, CONS_CP, SG_FR, NEXT)         \
         ALLOC_DEPENDENCY_FRAME(DEP_FR);                                                                \
@@ -650,7 +650,7 @@ void restore_bindings(tr_fr_ptr unbind_tr, tr_fr_ptr rebind_tr) {
   return;
 }
 
-#ifdef TABLING_ANSWER_LIST
+#ifdef TABLING_ANSWER_LIST_SCHEME
 static inline
 void free_answer_list(ans_list_ptr list) {
   ans_list_ptr next;
@@ -661,7 +661,7 @@ void free_answer_list(ans_list_ptr list) {
     list = next;
   }
 }
-#endif
+#endif /* TABLING_ANSWER_LIST_SCHEME */
 
 static inline
 void abolish_incomplete_subgoals(choiceptr prune_cp) {

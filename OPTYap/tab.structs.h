@@ -184,7 +184,7 @@ typedef struct answer_trie_hash {
 **      Struct answer_list        **
 ** ------------------------------ */
 
-#ifdef TABLING_ANSWER_LIST
+#ifdef TABLING_ANSWER_LIST_SCHEME
 typedef struct answer_list {
   struct answer_trie_node *answer;
   struct answer_list *next;
@@ -197,13 +197,13 @@ typedef ans_list_ptr continuation_ptr;
 #define ContPtr_next(X)   AnsList_next(X)
 #define ContPtr_answer(X) AnsList_answer(X)
 
-#else
+#elif TABLING_ANSWER_CHILD_SCHEME
 
 typedef ans_node_ptr continuation_ptr;
 #define ContPtr_next(X)   TrNode_child(X)
 #define ContPtr_answer(X) (X)
 
-#endif /* TABLING_ANSWER_LIST */
+#endif /* TABLING_ANSWER_CHILD_SCHEME */
 
 
 /* ------------------------------ **

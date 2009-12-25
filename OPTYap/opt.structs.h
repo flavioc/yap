@@ -91,9 +91,9 @@ struct global_pages {
   struct pages subgoal_trie_hash_pages;
   struct pages answer_trie_hash_pages;
   struct pages dependency_frame_pages;
-#ifdef TABLING_ANSWER_LIST
+#ifdef TABLING_ANSWER_LIST_SCHEME
   struct pages answer_list_pages;
-#endif /* TABLING_ANSWER_LIST */
+#endif /* TABLING_ANSWER_LIST_SCHEME */
 #endif /* TABLING */
 #if defined(YAPOR) && defined(TABLING)
   struct pages suspension_frame_pages;
