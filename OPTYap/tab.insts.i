@@ -314,10 +314,10 @@
 
     subs_ptr = (CELL *) (LOAD_CP(B) + 1);
     
-    next = ContPtr_get_next(LOAD_CP(B)->cp_last_answer);
+    next = continuation_get_next(LOAD_CP(B)->cp_last_answer);
     ans_node = continuation_get_answer(next);
     
-    if(ContPtr_get_next(next)) {
+    if(continuation_has_next(next)) {
       restore_loader_node(next);
     } else {
       pop_loader_node();
@@ -339,7 +339,7 @@
     continuation_ptr next_cont;
 
     sg_fr = GEN_CP(B)->cp_sg_fr;
-    next_cont = ContPtr_get_next(SgFr_try_answer(sg_fr));
+    next_cont = continuation_get_next(SgFr_try_answer(sg_fr));
     
     if(next_cont) {
       CELL *subs_ptr = (CELL *) (GEN_CP(B) + 1) + SgFr_arity(sg_fr);
@@ -496,7 +496,7 @@
           
           UNLOCK(SgFr_lock(sg_fr));
           
-          if(ContPtr_get_next(cont)) {
+          if(continuation_has_next(cont)) {
             store_loader_node(tab_ent, cont);
           }
 
@@ -616,7 +616,7 @@
           
 	        UNLOCK(SgFr_lock(sg_fr));
 	  
-	        if(ContPtr_get_next(cont))
+	        if(continuation_has_next(cont))
             store_loader_node(tab_ent, cont);
             
           PREG = (yamop *) CPREG;
@@ -734,7 +734,7 @@
           
 	        UNLOCK(SgFr_lock(sg_fr));
 	        
-	        if(ContPtr_get_next(cont))
+	        if(continuation_has_next(cont))
             store_loader_node(tab_ent, cont);
             
           PREG = (yamop *) CPREG;
@@ -1035,7 +1035,7 @@
         do {
           if(!IS_ANSWER_LEAF_NODE(continuation_get_answer(aux)))
             TABLING_ERROR_MESSAGE("! IS_ANSWER_LEAF_NODE(continuation_get_answer(aux)) (table_new_answer)");
-        } while((aux = ContPtr_get_next(aux)));
+        } while((aux = continuation_get_next(aux)));
       }
 #endif /* TABLING_ERRORS */
       UNLOCK(SgFr_lock(sg_fr));
@@ -1121,7 +1121,7 @@
     
     ans_node_ptr ans_node;
     continuation_ptr last = DepFr_last_answer(dep_fr);
-    continuation_ptr next = ContPtr_get_next(last);
+    continuation_ptr next = continuation_get_next(last);
     
     if(next) {
       /* unconsumed answer */
@@ -1182,7 +1182,7 @@
         
         ans_node = NULL;
         last = DepFr_last_answer(dep_fr);
-        next = ContPtr_get_next(last);
+        next = continuation_get_next(last);
         
         if(next) {
           /* dependency frame with unconsumed answers */
@@ -1460,7 +1460,7 @@
       
       ans_node = NULL;
       last = DepFr_last_answer(dep_fr);
-      next = ContPtr_get_next(last);
+      next = continuation_get_next(last);
       
       if(next) {
         /* dependency frame with unconsumed answers */
@@ -1657,7 +1657,7 @@
         LOCK(DepFr_lock(LOCAL_top_dep_fr));
         
         last = DepFr_last_answer(LOCAL_top_dep_fr);
-        next = ContPtr_get_next(last);
+        next = continuation_get_next(last);
         
         if(next) {
           /* unconsumed answer */
@@ -1758,7 +1758,7 @@
           if (IsMode_LoadAnswers(TabEnt_mode(tab_ent))) {
             /* load answers from the trie */
             continuation_ptr cont = SgFr_first_answer(sg_fr);
-            continuation_ptr next = ContPtr_get_next(cont);
+            continuation_ptr next = continuation_get_next(cont);
             
             ans_node = continuation_get_answer(cont);
             

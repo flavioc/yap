@@ -39,7 +39,8 @@ STD_PROTO(static inline void free_answer_list, (ans_list_ptr));
 #elif TABLING_ANSWER_BLOCKS_SCHEME
 STD_PROTO(static inline void free_answer_block, (ans_block_ptr));
 STD_PROTO(static inline void push_new_answer_block, (ans_node_ptr, continuation_ptr*, continuation_ptr*));
-STD_PROTO(static inline continuation_ptr ContPtr_get_next, (continuation_ptr));
+STD_PROTO(static inline continuation_ptr continuation_get_next, (continuation_ptr));
+STD_PROTO(static inline int continuation_has_next, (continuation_ptr));
 STD_PROTO(static inline void join_answers_subgoal_frame, (sg_fr_ptr, continuation_ptr, continuation_ptr));
 #endif /* TABLING_ANSWER_BLOCKS_SCHEME */
 
@@ -329,7 +330,8 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
 
 #define free_answer_continuation(CONT)  free_answer_list(CONT)
 #define continuation_get_answer(X)      AnsList_answer(X)
-#define ContPtr_get_next(X)             AnsList_next(X)
+#define continuation_get_next(X)        AnsList_next(X)
+#define continuation_has_next(X)        continuation_get_next(X)
 
 #define push_new_answer_set(ANS, FIRST, LAST) {   \
       continuation_ptr next;                      \
@@ -357,7 +359,8 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
 #elif TABLING_ANSWER_CHILD_SCHEME
 
 #define continuation_get_answer(X)  X
-#define ContPtr_get_next(X)         TrNode_child(X)
+#define continuation_get_next(X)    TrNode_child(X)
+#define continuation_has_next(X)    continuation_get_next(X)
 
 #define free_answer_continuation(CONT)
 
@@ -403,14 +406,13 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
 #endif /* TABLING_ANSWER_BLOCKS_SCHEME */
 
 #define base_new_dependency_frame(DEP_FR, DEP_ON_STACK, TOP_OR_FR, LEADER_CP, CONS_CP, SG_FR, NEXT) \
-printf("new dependency frame %x\n", SG_FR); \
     ALLOC_DEPENDENCY_FRAME(DEP_FR);                                                                 \
     INIT_LOCK(DepFr_lock(DEP_FR));                                                                  \
     DepFr_init_yapor_fields(DEP_FR, DEP_ON_STACK, TOP_OR_FR);                                       \
     DepFr_backchain_cp(DEP_FR) = NULL;                                                              \
     DepFr_leader_cp(DEP_FR) = NORM_CP(LEADER_CP);                                                   \
     DepFr_cons_cp(DEP_FR) = NORM_CP(CONS_CP);                                                       \
-    DepFr_next(DEP_FR) = NEXT; \
+    DepFr_next(DEP_FR) = NEXT;                                                                      \
     DepFr_last_answer(DEP_FR) = NULL;
     
 #define new_dependency_frame(DEP_FR, DEP_ON_STACK, TOP_OR_FR, LEADER_CP, CONS_CP, SG_FR, NEXT)         \
@@ -778,7 +780,7 @@ void push_new_answer_block(ans_node_ptr ans_node, continuation_ptr* first_ptr, c
 }
 
 static inline
-continuation_ptr ContPtr_get_next(continuation_ptr cont)
+continuation_ptr continuation_get_next(continuation_ptr cont)
 {
   if(IS_TABLING_BLOCK_LINK(cont))
     return SgFr_first_answer((sg_fr_ptr)UNTAG_TABLING_BLOCK_LINK(cont));
@@ -787,12 +789,20 @@ continuation_ptr ContPtr_get_next(continuation_ptr cont)
   
   if(*next == NULL)
     return NULL;
-  
-  printf("Getting next!\n");
+
   if(IS_TABLING_BLOCK_LINK(*next))
     return (continuation_ptr)UNTAG_TABLING_BLOCK_LINK(*next);
   else
     return next;
+}
+
+static inline
+int continuation_has_next(continuation_ptr cont)
+{
+  if(IS_TABLING_BLOCK_LINK(cont))
+    return (int)SgFr_first_answer((sg_fr_ptr)UNTAG_TABLING_BLOCK_LINK(cont));
+
+  return *(++cont) != NULL;
 }
 
 static inline
@@ -1043,7 +1053,7 @@ susp_fr_ptr suspension_frame_to_resume(or_fr_ptr susp_or_fr) {
   while (susp_fr) {
     dep_fr = SuspFr_top_dep_fr(susp_fr);
     do {
-      if (ContPtr_get_next(DepFr_last_answer(dep_fr))) {
+      if (continuation_has_next(DepFr_last_answer(dep_fr))) {
         /* unconsumed answers in susp_fr */
         *susp_ptr = SuspFr_next(susp_fr);
         return susp_fr;
