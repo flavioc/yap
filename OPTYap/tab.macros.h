@@ -40,6 +40,7 @@ STD_PROTO(static inline void free_answer_list, (ans_list_ptr));
 STD_PROTO(static inline void free_answer_block, (ans_block_ptr));
 STD_PROTO(static inline void push_new_answer_block, (ans_node_ptr, continuation_ptr*, continuation_ptr*));
 STD_PROTO(static inline continuation_ptr ContPtr_get_next, (continuation_ptr));
+STD_PROTO(static inline void join_answers_subgoal_frame, (sg_fr_ptr, continuation_ptr, continuation_ptr));
 #endif /* TABLING_ANSWER_BLOCKS_SCHEME */
 
 #ifdef YAPOR
@@ -327,21 +328,27 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
 #ifdef TABLING_ANSWER_LIST_SCHEME
 
 #define free_answer_continuation(CONT) free_answer_list(CONT)
-#define alloc_answer_continuation(CONT) ALLOC_ANSWER_LIST(CONT)
 #define ContPtr_get_answer(X) AnsList_answer(X)
 #define ContPtr_get_next(X) AnsList_next(X)
 
-#define push_new_answer_set(ANS, SG_FR) { \
+#define push_new_answer_set(ANS, FIRST, LAST) { \
       continuation_ptr next; \
       ALLOC_ANSWER_LIST(next); \
-      AnsList_answer(SG_FR) = ANS; \
-      AnsList_next(SG_FR) = NULL; \
-      if(SgFr_first_answer(SG_FR) == NULL) \
-        SgFr_first_answer(SG_FR) = next; \
+      AnsList_answer(next) = ANS; \
+      AnsList_next(next) = NULL; \
+      if(FIRST == NULL) \
+        FIRST = next; \
       else \
-        AnsList_next(SgFr_last_answer(SG_FR)) = next; \
-      SgFr_last_answer(SG_FR) = next; \
+        AnsList_next(LAST) = next; \
+      LAST = next; \
     }
+
+#define join_answers_subgoal_frame(SG_FR, FIRST, LAST) \
+    if(SgFr_has_no_answers(SG_FR)) \
+      SgFr_first_answer(SG_FR) = FIRST; \
+    else \
+      AnsList_next(SgFr_last_answer(SG_FR)) = FIRST; \
+    SgFr_last_answer(SG_FR) = LAST;
     
 #define CONSUMER_DEFAULT_LAST_ANSWER(SG_FR, DEP_FR) ((unsigned long int) (SG_FR) +                                     \
                                                      (unsigned long int) (&SgFr_first_answer((sg_fr_ptr)DEP_FR)) -     \
@@ -352,16 +359,22 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
 #define ContPtr_get_answer(X) X
 #define ContPtr_get_next(X) TrNode_child(X)
 
-#define free_answer_continuation(SG_FR)
-#define alloc_answer_continuation(CONT)
+#define free_answer_continuation(CONT)
 
-#define push_new_answer_set(ANS, SG_FR) \
+#define push_new_answer_set(ANS, FIRST, LAST) \
     TrNode_child(ANS) = NULL; XXX\
-    if(SgFr_first_answer(SG_FR) == NULL) \
-      SgFr_first_answer(SG_FR) = ANS; \
+    if(FIRST == NULL) \
+      FIRST = ANS; \
     else \
-      TrNode_child(SgFr_last_answer(SG_FR)) = ANS; \
-    SgFr_last_answer(SG_FR) = ANS;
+      TrNode_child(LAST) = ANS; \
+    LAST = ANS;
+
+#define join_answers_subgoal_frame(SG_FR, FIRST, LAST) \
+  if(SgFr_has_no_answers(SG_FR)) \
+    SgFr_first_answer(SG_FR) = FIRST; \
+  else \
+    TrNode_child(SgFr_last_answer(SG_FR)) = FIRST; \
+  SgFr_last_answer(SG_FR) = LAST;
     
 #define CONSUMER_DEFAULT_LAST_ANSWER(SG_FR, DEP_FR) ((unsigned long int) (SG_FR) +                                     \
                                                      (unsigned long int) (&SgFr_first_answer((sg_fr_ptr)DEP_FR)) -     \
@@ -383,7 +396,7 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
   memset(BLOCK, 0, sizeof(struct answer_block));                      \
   AnsBlock_next(BLOCK) = (ans_block_ptr)TABLING_ANSWER_BLOCKS_MASK;
 
-#define push_new_answer_set(ANS, SG_FR) push_new_answer_block(ANS, &SgFr_first_answer(SG_FR), &SgFr_last_answer(SG_FR))
+#define push_new_answer_set(ANS, FIRST, LAST) push_new_answer_block(ANS, &(FIRST), &(LAST))
 
 #define CONSUMER_DEFAULT_LAST_ANSWER(SG_FR, DEP_FR) TAG_TABLING_BLOCK_LINK(SG_FR)
 
@@ -782,6 +795,23 @@ continuation_ptr ContPtr_get_next(continuation_ptr cont)
     return next;
 }
 
+static inline
+void join_answers_subgoal_frame(sg_fr_ptr sg_fr, continuation_ptr first, continuation_ptr last)
+{
+  if(SgFr_has_no_answers(sg_fr)) {
+    SgFr_first_answer(sg_fr) = first;
+    SgFr_last_answer(sg_fr) = last;
+  } else {
+    while(first != last+1) {
+      push_new_answer_block(*first, &SgFr_first_answer(sg_fr), &SgFr_last_answer(sg_fr));
+      
+      ++first;
+      
+      if(IS_TABLING_BLOCK_LINK(*first)) // jump to next
+        first = (continuation_ptr)UNTAG_TABLING_BLOCK_LINK(*first);
+    }
+  }
+}
 #endif /* TABLING_ANSWER_BLOCKS_SCHEME */
 
 static inline
@@ -1149,12 +1179,12 @@ static inline
 void CUT_validate_tg_answers(tg_sol_fr_ptr valid_solutions) {
   tg_ans_fr_ptr valid_answers, free_answer;
   tg_sol_fr_ptr ltt_valid_solutions, free_solution;
-  continuation_ptr first_cont, last_cont, next_cont;
+  continuation_ptr first_cont, last_cont;
   sg_fr_ptr sg_fr;
   int slots;
   ans_node_ptr ans_node;
   
-  first_cont = last_cont = next_cont = NULL;
+  first_cont = last_cont = NULL;
 
   while (valid_solutions) {
     first_answer = last_answer = NULL;
@@ -1183,15 +1213,7 @@ void CUT_validate_tg_answers(tg_sol_fr_ptr valid_solutions) {
             /// XXX TODO
             TAG_AS_ANSWER_LEAF_NODE(ans_node);
             
-            alloc_answer_continuation(next_cont);
-            ContPtr_answer(next_cont) = ans_node;
-            
-            if(first_cont)
-              ContPtr_next(last_cont) = next_cont;
-            else
-              first_cont = next_cont;
-            
-            last_cont = next_cont;
+            push_new_answer_set(ans_node, first_cont, last_cont);
 	        }
 #if defined(TABLE_LOCK_AT_ENTRY_LEVEL)
           UNLOCK(SgFr_lock(sg_fr));
@@ -1211,16 +1233,9 @@ void CUT_validate_tg_answers(tg_sol_fr_ptr valid_solutions) {
     } while (ltt_valid_solutions);
     
     if(first_cont) {
-      ContPtr_next(last_cont) = NULL;
-      
       LOCK(SgFr_lock(sg_fr));
       
-      if(SgFr_has_no_answers(sg_fr))
-        SgFr_first_answer(sg_fr) = first_cont;
-      else
-        ContPtr_next(SgFr_last_answer(sg_fr)) = first_cont;
-      
-      SgFr_last_answer(sg_fr) = last_cont;
+      join_answers_subgoal_frame(sg_fr, first_cont, last_cont);
       
       UNLOCK(SgFr_lock(sg_fr));
     }

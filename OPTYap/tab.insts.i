@@ -1025,7 +1025,7 @@
       LOCK(SgFr_lock(sg_fr));
 #endif /* TABLE_LOCK_LEVEL */
 
-      push_new_answer_set(ans_node, sg_fr);
+      push_new_answer_set(ans_node, SgFr_first_answer(sg_fr), SgFr_last_answer(sg_fr));
 
 #ifdef TABLING_ERRORS
       if(SgFr_first_answer(sg_fr)) {
