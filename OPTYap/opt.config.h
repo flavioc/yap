@@ -154,7 +154,8 @@
 **      answer set organization scheme (mandatory, define one)       **
 ** ----------------------------------------------------------------- */
 /* #define TABLING_ANSWER_LIST_SCHEME 1 */
-#define TABLING_ANSWER_CHILD_SCHEME 1
+/*#define TABLING_ANSWER_CHILD_SCHEME 1 */
+#define TABLING_ANSWER_BLOCKS_SCHEME 1
 
 
 
@@ -209,12 +210,18 @@
 #if defined(GLOBAL_TRIE_FOR_CALLS_ANSWERS) || defined(GLOBAL_TRIE_FOR_TERMS) || defined(GLOBAL_TRIE_FOR_SUBTERMS)
 #define GLOBAL_TRIE
 #endif /* GLOBAL_TRIE_FOR_CALLS_ANSWERS || GLOBAL_TRIE_FOR_TERMS || GLOBAL_TRIE_FOR_SUBTERMS */
-#if !defined(TABLING_ANSWER_LIST_SCHEME) && !defined(TABLING_ANSWER_CHILD_SCHEME)
+#if !defined(TABLING_ANSWER_LIST_SCHEME) && !defined(TABLING_ANSWER_CHILD_SCHEME) && !defined(TABLING_ANSWER_BLOCKS_SCHEME)
 #error Define an answer set organization scheme
-#endif /* !TABLING_ANSWER_LIST_SCHEME && !TABLING_ANSWER_CHILD_SCHEME */
-#if defined(TABLING_ANSWER_LIST_SCHEME) && defined(TABLING_ANSWER_CHILD_SCHEME)
+#endif /* !TABLING_ANSWER_LIST_SCHEME && !TABLING_ANSWER_CHILD_SCHEME && !TABLING_ANSWER_BLOCKS_SCHEME */
+#if defined(TABLING_ANSWER_LIST_SCHEME) && (defined(TABLING_ANSWER_CHILD_SCHEME) || defined(TABLING_ANSWER_BLOCKS_SCHEME))
 #error Do not define multiple answer set organization schemes
-#endif /* TABLING_ANSWER_LIST_SCHEME && TABLING_ANSWER_CHILD_SCHEME */
+#endif /* TABLING_ANSWER_LIST_SCHEME && (TABLING_ANSWER_CHILD_SCHEME || TABLING_ANSWER_BLOCKS_SCHEME) */
+#if defined(TABLING_ANSWER_CHILD_SCHEME) && (defined(TABLING_ANSWER_LIST_SCHEME) || defined(TABLING_ANSWER_BLOCKS_SCHEME))
+#error Do not define multiple answer set organization schemes
+#endif /* TABLING_ANSWER_CHILD_SCHEME && (TABLING_ANSWER_LIST_SCHEME || TABLING_ANSWER_BLOCKS_SCHEME) */
+#if defined(TABLING_ANSWER_BLOCKS_SCHEME) && (defined(TABLING_ANSWER_CHILD_SCHEME) || defined(TABLING_ANSWER_LIST_SCHEME))
+#error Do not define multiple answer set organization schemes
+#endif /* TABLING_ANSWER_BLOCKS_SCHEME && (TABLING_ANSWER_CHILD_SCHEME || TABLING_ANSWER_LIST_SCHEME) */
 #endif /* TABLING */
 
 #if defined(YAPOR) && defined(TABLING)

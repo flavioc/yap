@@ -92,7 +92,9 @@ void Yap_init_global(int max_table_size, int n_workers, int sch_loop, int delay_
 #endif /* GLOBAL_TRIE */
 #ifdef TABLING_ANSWER_LIST_SCHEME
   INIT_PAGES(GLOBAL_PAGES_ans_list, struct answer_list);
-#endif /* TABLING_ANSWER_LIST_SCHEME */
+#elif TABLING_ANSWER_BLOCKS_SCHEME
+  INIT_PAGES(GLOBAL_PAGES_ans_block, struct answer_block);
+#endif /* TABLING_ANSWER_BLOCKS_SCHEME */
   INIT_PAGES(GLOBAL_PAGES_tab_ent, struct table_entry);
   INIT_PAGES(GLOBAL_PAGES_sg_fr, struct subgoal_frame);
   INIT_PAGES(GLOBAL_PAGES_sg_node, struct subgoal_trie_node);
@@ -235,7 +237,7 @@ void make_root_frames(void) {
 #ifdef TABLING
   /* root dependency frame */
   if (!GLOBAL_root_dep_fr)
-    new_dependency_frame(GLOBAL_root_dep_fr, FALSE, NULL, NULL, NULL, NULL, NULL);
+    base_new_dependency_frame(GLOBAL_root_dep_fr, FALSE, NULL, NULL, NULL, NULL, NULL);
 #endif /* TABLING */
 }
 

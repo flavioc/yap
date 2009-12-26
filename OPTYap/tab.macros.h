@@ -14,6 +14,7 @@
 ** ------------------ */
 
 #include <stdlib.h>
+#include <string.h>
 #include "opt.mavar.h"
 
 
@@ -35,7 +36,11 @@ STD_PROTO(static inline void resume_frozen_cp, (choiceptr));
 
 #ifdef TABLING_ANSWER_LIST_SCHEME
 STD_PROTO(static inline void free_answer_list, (ans_list_ptr));
-#endif /* TABLING_ANSWER_LIST_SCHEME */
+#elif TABLING_ANSWER_BLOCKS_SCHEME
+STD_PROTO(static inline void free_answer_block, (ans_block_ptr));
+STD_PROTO(static inline void push_new_answer_block, (ans_node_ptr, continuation_ptr*, continuation_ptr*));
+STD_PROTO(static inline continuation_ptr ContPtr_get_next, (continuation_ptr));
+#endif /* TABLING_ANSWER_BLOCKS_SCHEME */
 
 #ifdef YAPOR
 STD_PROTO(static inline void pruning_over_tabling_data_structures, (void));
@@ -311,34 +316,93 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
 
 #define SgFr_has_real_answers(SG_FR)                                      \
   (SgFr_first_answer(SG_FR) &&                                            \
-    ContPtr_answer(SgFr_first_answer(SG_FR)) != SgFr_answer_trie(SG_FR))
+    ContPtr_get_answer(SgFr_first_answer(SG_FR)) != SgFr_answer_trie(SG_FR))
 
 #define SgFr_has_yes_answer(SG_FR)                                        \
     (SgFr_first_answer(SG_FR) &&                                          \
-      ContPtr_answer(SgFr_first_answer(SG_FR)) == SgFr_answer_trie(SG_FR))
+      ContPtr_get_answer(SgFr_first_answer(SG_FR)) == SgFr_answer_trie(SG_FR))
       
 #define SgFr_has_no_answers(SG_FR)  SgFr_first_answer(SG_FR) == NULL
 
 #ifdef TABLING_ANSWER_LIST_SCHEME
+
 #define free_answer_continuation(CONT) free_answer_list(CONT)
 #define alloc_answer_continuation(CONT) ALLOC_ANSWER_LIST(CONT)
+#define ContPtr_get_answer(X) AnsList_answer(X)
+#define ContPtr_get_next(X) AnsList_next(X)
+
+#define push_new_answer_set(ANS, SG_FR) { \
+      continuation_ptr next; \
+      ALLOC_ANSWER_LIST(next); \
+      AnsList_answer(SG_FR) = ANS; \
+      AnsList_next(SG_FR) = NULL; \
+      if(SgFr_first_answer(SG_FR) == NULL) \
+        SgFr_first_answer(SG_FR) = next; \
+      else \
+        AnsList_next(SgFr_last_answer(SG_FR)) = next; \
+      SgFr_last_answer(SG_FR) = next; \
+    }
+    
+#define CONSUMER_DEFAULT_LAST_ANSWER(SG_FR, DEP_FR) ((unsigned long int) (SG_FR) +                                     \
+                                                     (unsigned long int) (&SgFr_first_answer((sg_fr_ptr)DEP_FR)) -     \
+                                                     (unsigned long int) (&AnsList_next((ans_list_ptr)DEP_FR)))
+
 #elif TABLING_ANSWER_CHILD_SCHEME
-#define free_answer_continuation(CONT)
+
+#define ContPtr_get_answer(X) X
+#define ContPtr_get_next(X) TrNode_child(X)
+
+#define free_answer_continuation(SG_FR)
 #define alloc_answer_continuation(CONT)
-#endif /* TABLING_ANSWER_CHILD_SCHEME */
 
+#define push_new_answer_set(ANS, SG_FR) \
+    TrNode_child(ANS) = NULL; XXX\
+    if(SgFr_first_answer(SG_FR) == NULL) \
+      SgFr_first_answer(SG_FR) = ANS; \
+    else \
+      TrNode_child(SgFr_last_answer(SG_FR)) = ANS; \
+    SgFr_last_answer(SG_FR) = ANS;
+    
+#define CONSUMER_DEFAULT_LAST_ANSWER(SG_FR, DEP_FR) ((unsigned long int) (SG_FR) +                                     \
+                                                     (unsigned long int) (&SgFr_first_answer((sg_fr_ptr)DEP_FR)) -     \
+                                                     (unsigned long int) (&TrNode_child((ans_node_ptr)DEP_FR)))
+
+#elif TABLING_ANSWER_BLOCKS_SCHEME
+
+#define TABLING_ANSWER_BLOCKS_MASK 0x01
+#define IS_TABLING_BLOCK_LINK(PTR) ((unsigned long int)(PTR) & TABLING_ANSWER_BLOCKS_SCHEME)
+#define UNTAG_TABLING_BLOCK_LINK(PTR) ((unsigned long int)(PTR) ^ TABLING_ANSWER_BLOCKS_SCHEME)
+#define TAG_TABLING_BLOCK_LINK(PTR) ((unsigned long int)(PTR) | TABLING_ANSWER_BLOCKS_SCHEME)
+
+#define free_answer_continuation(CONT) free_answer_block((ans_block_ptr)(CONT))
+
+#define ContPtr_get_answer(X) (*(X))
+
+#define INIT_ANSWER_BLOCK(BLOCK)                                      \
+  ALLOC_ANSWER_BLOCK(BLOCK);                                          \
+  memset(BLOCK, 0, sizeof(struct answer_block));                      \
+  AnsBlock_next(BLOCK) = (ans_block_ptr)TABLING_ANSWER_BLOCKS_MASK;
+
+#define push_new_answer_set(ANS, SG_FR) push_new_answer_block(ANS, &SgFr_first_answer(SG_FR), &SgFr_last_answer(SG_FR))
+
+#define CONSUMER_DEFAULT_LAST_ANSWER(SG_FR, DEP_FR) TAG_TABLING_BLOCK_LINK(SG_FR)
+
+#endif /* TABLING_ANSWER_BLOCKS_SCHEME */
+
+#define base_new_dependency_frame(DEP_FR, DEP_ON_STACK, TOP_OR_FR, LEADER_CP, CONS_CP, SG_FR, NEXT) \
+printf("new dependency frame %x\n", SG_FR); \
+    ALLOC_DEPENDENCY_FRAME(DEP_FR);                                                                 \
+    INIT_LOCK(DepFr_lock(DEP_FR));                                                                  \
+    DepFr_init_yapor_fields(DEP_FR, DEP_ON_STACK, TOP_OR_FR);                                       \
+    DepFr_backchain_cp(DEP_FR) = NULL;                                                              \
+    DepFr_leader_cp(DEP_FR) = NORM_CP(LEADER_CP);                                                   \
+    DepFr_cons_cp(DEP_FR) = NORM_CP(CONS_CP);                                                       \
+    DepFr_next(DEP_FR) = NEXT; \
+    DepFr_last_answer(DEP_FR) = NULL;
+    
 #define new_dependency_frame(DEP_FR, DEP_ON_STACK, TOP_OR_FR, LEADER_CP, CONS_CP, SG_FR, NEXT)         \
-        ALLOC_DEPENDENCY_FRAME(DEP_FR);                                                                \
-        INIT_LOCK(DepFr_lock(DEP_FR));                                                                 \
-        DepFr_init_yapor_fields(DEP_FR, DEP_ON_STACK, TOP_OR_FR);                                      \
-        DepFr_backchain_cp(DEP_FR) = NULL;                                                             \
-        DepFr_leader_cp(DEP_FR) = NORM_CP(LEADER_CP);                                                  \
-        DepFr_cons_cp(DEP_FR) = NORM_CP(CONS_CP);                                                      \
-        DepFr_next(DEP_FR) = NEXT;                                                                     \
-        DepFr_last_answer(DEP_FR) = (continuation_ptr)((unsigned long int) (SG_FR) +                   \
-                                    (unsigned long int) (&SgFr_first_answer((sg_fr_ptr)DEP_FR)) -      \
-                                    (unsigned long int) (&ContPtr_next((continuation_ptr)DEP_FR)))
-
+        base_new_dependency_frame(DEP_FR, DEP_ON_STACK, TOP_OR_FR, LEADER_CP, CONS_CP, SG_FR, NEXT)    \
+        DepFr_last_answer(DEP_FR) = (continuation_ptr)CONSUMER_DEFAULT_LAST_ANSWER(SG_FR, DEP_FR);
 
 #define new_table_entry(TAB_ENT, PRED_ENTRY, ATOM, ARITY)       \
         { register sg_node_ptr sg_node;                         \
@@ -661,7 +725,64 @@ void free_answer_list(ans_list_ptr list) {
     list = next;
   }
 }
-#endif /* TABLING_ANSWER_LIST_SCHEME */
+#elif TABLING_ANSWER_BLOCKS_SCHEME
+static inline
+void free_answer_block(ans_block_ptr block) {
+  ans_block_ptr next;
+  
+  while(block) {
+    next = AnsBlock_next(block);
+    
+    FREE_ANSWER_BLOCK(block);
+    
+    block = (ans_block_ptr)UNTAG_TABLING_BLOCK_LINK(next);
+  }
+}
+
+static inline
+void push_new_answer_block(ans_node_ptr ans_node, continuation_ptr* first_ptr, continuation_ptr* last_ptr)
+{
+  if(*first_ptr == NULL) {
+    ans_block_ptr new_block;
+    INIT_ANSWER_BLOCK(new_block);
+    continuation_ptr cont = (continuation_ptr)new_block;
+    *cont = ans_node;
+    *last_ptr = *first_ptr = cont;
+    *last_ptr = cont;
+  } else {
+    continuation_ptr next = ++(*last_ptr);
+
+    if(IS_TABLING_BLOCK_LINK(*next)) {
+      ans_block_ptr new_block;
+      INIT_ANSWER_BLOCK(new_block);
+      *next = (ans_node_ptr)TAG_TABLING_BLOCK_LINK(new_block);
+      next = (continuation_ptr)new_block;
+    }
+
+    *next = ans_node;
+    *last_ptr = next;
+  }
+}
+
+static inline
+continuation_ptr ContPtr_get_next(continuation_ptr cont)
+{
+  if(IS_TABLING_BLOCK_LINK(cont))
+    return SgFr_first_answer((sg_fr_ptr)UNTAG_TABLING_BLOCK_LINK(cont));
+  
+  continuation_ptr next = ++cont;
+  
+  if(*next == NULL)
+    return NULL;
+  
+  printf("Getting next!\n");
+  if(IS_TABLING_BLOCK_LINK(*next))
+    return (continuation_ptr)UNTAG_TABLING_BLOCK_LINK(*next);
+  else
+    return next;
+}
+
+#endif /* TABLING_ANSWER_BLOCKS_SCHEME */
 
 static inline
 void abolish_incomplete_subgoals(choiceptr prune_cp) {
@@ -892,7 +1013,7 @@ susp_fr_ptr suspension_frame_to_resume(or_fr_ptr susp_or_fr) {
   while (susp_fr) {
     dep_fr = SuspFr_top_dep_fr(susp_fr);
     do {
-      if (ContPtr_next(DepFr_last_answer(dep_fr))) {
+      if (ContPtr_get_next(DepFr_last_answer(dep_fr))) {
         /* unconsumed answers in susp_fr */
         *susp_ptr = SuspFr_next(susp_fr);
         return susp_fr;
@@ -1059,6 +1180,7 @@ void CUT_validate_tg_answers(tg_sol_fr_ptr valid_solutions) {
           LOCK_TABLE(ans_node);
 #endif /* TABLE_LOCK_LEVEL */
           if (! IS_ANSWER_LEAF_NODE(ans_node)) {
+            /// XXX TODO
             TAG_AS_ANSWER_LEAF_NODE(ans_node);
             
             alloc_answer_continuation(next_cont);

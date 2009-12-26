@@ -194,16 +194,26 @@ typedef struct answer_list {
 #define AnsList_next(X)         ((X)->next)
 
 typedef ans_list_ptr continuation_ptr;
-#define ContPtr_next(X)   AnsList_next(X)
-#define ContPtr_answer(X) AnsList_answer(X)
 
 #elif TABLING_ANSWER_CHILD_SCHEME
 
 typedef ans_node_ptr continuation_ptr;
-#define ContPtr_next(X)   TrNode_child(X)
-#define ContPtr_answer(X) (X)
 
-#endif /* TABLING_ANSWER_CHILD_SCHEME */
+#elif TABLING_ANSWER_BLOCKS_SCHEME
+
+#define TABLING_ANSWER_BLOCKS_SIZE 2
+
+typedef struct answer_block {
+  struct answer_trie_node *blocks[TABLING_ANSWER_BLOCKS_SIZE];
+  struct answer_block *next;
+} *ans_block_ptr;
+
+typedef ans_node_ptr* continuation_ptr;
+
+#define AnsBlock_blocks(X) ((X)->blocks)
+#define AnsBlock_next(X)   ((X)->next)
+
+#endif /* TABLING_ANSWER_BLOCKS_SCHEME */
 
 
 /* ------------------------------ **
