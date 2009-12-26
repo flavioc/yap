@@ -315,7 +315,7 @@
     subs_ptr = (CELL *) (LOAD_CP(B) + 1);
     
     next = ContPtr_get_next(LOAD_CP(B)->cp_last_answer);
-    ans_node = ContPtr_get_answer(next);
+    ans_node = continuation_get_answer(next);
     
     if(ContPtr_get_next(next)) {
       restore_loader_node(next);
@@ -344,7 +344,7 @@
     if(next_cont) {
       CELL *subs_ptr = (CELL *) (GEN_CP(B) + 1) + SgFr_arity(sg_fr);
 
-      ans_node = ContPtr_get_answer(next_cont);
+      ans_node = continuation_get_answer(next_cont);
       H = HBREG = PROTECT_FROZEN_H(B);
       restore_yaam_reg_cpdepth(B);
       CPREG = B->cp_cp;
@@ -426,7 +426,7 @@
       /* subgoal incomplete --> start by loading the answers already found */
       
       continuation_ptr cont = SgFr_first_answer(sg_fr);
-      ans_node_ptr ans_node = ContPtr_get_answer(cont);
+      ans_node_ptr ans_node = continuation_get_answer(cont);
       
       CELL *subs_ptr = YENV;
       init_subgoal_frame(sg_fr);
@@ -492,7 +492,7 @@
         if (IsMode_LoadAnswers(TabEnt_mode(tab_ent))) {
           /* load answers from the trie */
           continuation_ptr cont = SgFr_first_answer(sg_fr);
-          ans_node_ptr ans_node = ContPtr_get_answer(cont);
+          ans_node_ptr ans_node = continuation_get_answer(cont);
           
           UNLOCK(SgFr_lock(sg_fr));
           
@@ -547,7 +547,7 @@
     } else if (SgFr_state(sg_fr) == incomplete) {
       /* subgoal incomplete --> start by loading the answers already found */
       continuation_ptr cont = SgFr_first_answer(sg_fr);
-      ans_node_ptr ans_node = ContPtr_get_answer(cont);
+      ans_node_ptr ans_node = continuation_get_answer(cont);
       
       CELL *subs_ptr = YENV;
       init_subgoal_frame(sg_fr);
@@ -612,7 +612,7 @@
 	      if (IsMode_LoadAnswers(TabEnt_mode(tab_ent))) {
           /* load answers from the trie */
           continuation_ptr cont = SgFr_first_answer(sg_fr);
-          ans_node_ptr ans_node = ContPtr_get_answer(cont);
+          ans_node_ptr ans_node = continuation_get_answer(cont);
           
 	        UNLOCK(SgFr_lock(sg_fr));
 	  
@@ -666,7 +666,7 @@
     } else if (SgFr_state(sg_fr) == incomplete) {
       /* subgoal incomplete --> start by loading the answers already found */
       continuation_ptr cont = SgFr_first_answer(sg_fr);
-      ans_node_ptr ans_node = ContPtr_get_answer(cont);
+      ans_node_ptr ans_node = continuation_get_answer(cont);
 
       CELL *subs_ptr = YENV;
       init_subgoal_frame(sg_fr);
@@ -730,7 +730,7 @@
 	      if (IsMode_LoadAnswers(TabEnt_mode(tab_ent))) {
           /* load answers from the trie */
           continuation_ptr cont = SgFr_first_answer(sg_fr);
-          ans_node_ptr ans_node = ContPtr_get_answer(cont);
+          ans_node_ptr ans_node = continuation_get_answer(cont);
           
 	        UNLOCK(SgFr_lock(sg_fr));
 	        
@@ -1033,8 +1033,8 @@
         continuation_ptr aux = SgFr_first_answer(sg_fr);
           
         do {
-          if(!IS_ANSWER_LEAF_NODE(ContPtr_get_answer(aux)))
-            TABLING_ERROR_MESSAGE("! IS_ANSWER_LEAF_NODE(ContPtr_get_answer(aux)) (table_new_answer)");
+          if(!IS_ANSWER_LEAF_NODE(continuation_get_answer(aux)))
+            TABLING_ERROR_MESSAGE("! IS_ANSWER_LEAF_NODE(continuation_get_answer(aux)) (table_new_answer)");
         } while((aux = ContPtr_get_next(aux)));
       }
 #endif /* TABLING_ERRORS */
@@ -1125,7 +1125,7 @@
     
     if(next) {
       /* unconsumed answer */
-      ans_node = ContPtr_get_answer(next);
+      ans_node = continuation_get_answer(next);
       DepFr_last_answer(dep_fr) = next;
       UNLOCK(DepFr_lock(dep_fr));
       consume_answer_and_procceed(dep_fr, ans_node);
@@ -1186,7 +1186,7 @@
         
         if(next) {
           /* dependency frame with unconsumed answers */
-          ans_node = ContPtr_get_answer(next);
+          ans_node = continuation_get_answer(next);
           DepFr_last_answer(dep_fr) = next;
         }
 
@@ -1464,7 +1464,7 @@
       
       if(next) {
         /* dependency frame with unconsumed answers */
-        ans_node = ContPtr_get_answer(next);
+        ans_node = continuation_get_answer(next);
         DepFr_last_answer(dep_fr) = next;
       }
       
@@ -1663,7 +1663,7 @@
           /* unconsumed answer */
           UNLOCK_OR_FRAME(LOCAL_top_or_fr);
           
-          ans_node = ContPtr_get_answer(next);
+          ans_node = continuation_get_answer(next);
           DepFr_last_answer(LOCAL_top_dep_fr) = next;
           UNLOCK(DepFr_lock(LOCAL_top_dep_fr));
           consume_answer_and_procceed(LOCAL_top_dep_fr, ans_node);
@@ -1760,7 +1760,7 @@
             continuation_ptr cont = SgFr_first_answer(sg_fr);
             continuation_ptr next = ContPtr_get_next(cont);
             
-            ans_node = ContPtr_get_answer(cont);
+            ans_node = continuation_get_answer(cont);
             
             if(next)
               store_loader_node(tab_ent, cont);

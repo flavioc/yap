@@ -317,19 +317,19 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
 
 #define SgFr_has_real_answers(SG_FR)                                      \
   (SgFr_first_answer(SG_FR) &&                                            \
-    ContPtr_get_answer(SgFr_first_answer(SG_FR)) != SgFr_answer_trie(SG_FR))
+    continuation_get_answer(SgFr_first_answer(SG_FR)) != SgFr_answer_trie(SG_FR))
 
 #define SgFr_has_yes_answer(SG_FR)                                        \
     (SgFr_first_answer(SG_FR) &&                                          \
-      ContPtr_get_answer(SgFr_first_answer(SG_FR)) == SgFr_answer_trie(SG_FR))
+      continuation_get_answer(SgFr_first_answer(SG_FR)) == SgFr_answer_trie(SG_FR))
       
 #define SgFr_has_no_answers(SG_FR)  SgFr_first_answer(SG_FR) == NULL
 
 #ifdef TABLING_ANSWER_LIST_SCHEME
 
-#define free_answer_continuation(CONT) free_answer_list(CONT)
-#define ContPtr_get_answer(X) AnsList_answer(X)
-#define ContPtr_get_next(X) AnsList_next(X)
+#define free_answer_continuation(CONT)  free_answer_list(CONT)
+#define continuation_get_answer(X)      AnsList_answer(X)
+#define ContPtr_get_next(X)             AnsList_next(X)
 
 #define push_new_answer_set(ANS, FIRST, LAST) {   \
       continuation_ptr next;                      \
@@ -356,8 +356,8 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
 
 #elif TABLING_ANSWER_CHILD_SCHEME
 
-#define ContPtr_get_answer(X) X
-#define ContPtr_get_next(X) TrNode_child(X)
+#define continuation_get_answer(X)  X
+#define ContPtr_get_next(X)         TrNode_child(X)
 
 #define free_answer_continuation(CONT)
 
@@ -382,14 +382,14 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
 
 #elif TABLING_ANSWER_BLOCKS_SCHEME
 
-#define TABLING_ANSWER_BLOCKS_MASK 0x01
-#define IS_TABLING_BLOCK_LINK(PTR) ((unsigned long int)(PTR) & TABLING_ANSWER_BLOCKS_SCHEME)
-#define UNTAG_TABLING_BLOCK_LINK(PTR) ((unsigned long int)(PTR) ^ TABLING_ANSWER_BLOCKS_SCHEME)
-#define TAG_TABLING_BLOCK_LINK(PTR) ((unsigned long int)(PTR) | TABLING_ANSWER_BLOCKS_SCHEME)
+#define TABLING_ANSWER_BLOCKS_MASK      0x01
+#define IS_TABLING_BLOCK_LINK(PTR)      ((unsigned long int)(PTR) & TABLING_ANSWER_BLOCKS_SCHEME)
+#define UNTAG_TABLING_BLOCK_LINK(PTR)   ((unsigned long int)(PTR) ^ TABLING_ANSWER_BLOCKS_SCHEME)
+#define TAG_TABLING_BLOCK_LINK(PTR)     ((unsigned long int)(PTR) | TABLING_ANSWER_BLOCKS_SCHEME)
 
-#define free_answer_continuation(CONT) free_answer_block((ans_block_ptr)(CONT))
+#define free_answer_continuation(CONT)  free_answer_block((ans_block_ptr)(CONT))
 
-#define ContPtr_get_answer(X) (*(X))
+#define continuation_get_answer(X)      (*(X))
 
 #define INIT_ANSWER_BLOCK(BLOCK)                                      \
   ALLOC_ANSWER_BLOCK(BLOCK);                                          \
