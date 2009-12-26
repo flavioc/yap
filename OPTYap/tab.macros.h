@@ -331,23 +331,23 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
 #define ContPtr_get_answer(X) AnsList_answer(X)
 #define ContPtr_get_next(X) AnsList_next(X)
 
-#define push_new_answer_set(ANS, FIRST, LAST) { \
-      continuation_ptr next; \
-      ALLOC_ANSWER_LIST(next); \
-      AnsList_answer(next) = ANS; \
-      AnsList_next(next) = NULL; \
-      if(FIRST == NULL) \
-        FIRST = next; \
-      else \
-        AnsList_next(LAST) = next; \
-      LAST = next; \
+#define push_new_answer_set(ANS, FIRST, LAST) {   \
+      continuation_ptr next;                      \
+      ALLOC_ANSWER_LIST(next);                    \
+      AnsList_answer(next) = ANS;                 \
+      AnsList_next(next) = NULL;                  \
+      if(FIRST == NULL)                           \
+        FIRST = next;                             \
+      else                                        \
+        AnsList_next(LAST) = next;                \
+      LAST = next;                                \
     }
 
-#define join_answers_subgoal_frame(SG_FR, FIRST, LAST) \
-    if(SgFr_has_no_answers(SG_FR)) \
-      SgFr_first_answer(SG_FR) = FIRST; \
-    else \
-      AnsList_next(SgFr_last_answer(SG_FR)) = FIRST; \
+#define join_answers_subgoal_frame(SG_FR, FIRST, LAST)  \
+    if(SgFr_has_no_answers(SG_FR))                      \
+      SgFr_first_answer(SG_FR) = FIRST;                 \
+    else                                                \
+      AnsList_next(SgFr_last_answer(SG_FR)) = FIRST;    \
     SgFr_last_answer(SG_FR) = LAST;
     
 #define CONSUMER_DEFAULT_LAST_ANSWER(SG_FR, DEP_FR) ((unsigned long int) (SG_FR) +                                     \
@@ -362,18 +362,18 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
 #define free_answer_continuation(CONT)
 
 #define push_new_answer_set(ANS, FIRST, LAST) \
-    TrNode_child(ANS) = NULL; XXX\
-    if(FIRST == NULL) \
-      FIRST = ANS; \
-    else \
-      TrNode_child(LAST) = ANS; \
+    TrNode_child(ANS) = NULL; XXX             \
+    if(FIRST == NULL)                         \
+      FIRST = ANS;                            \
+    else                                      \
+      TrNode_child(LAST) = ANS;               \
     LAST = ANS;
 
-#define join_answers_subgoal_frame(SG_FR, FIRST, LAST) \
-  if(SgFr_has_no_answers(SG_FR)) \
-    SgFr_first_answer(SG_FR) = FIRST; \
-  else \
-    TrNode_child(SgFr_last_answer(SG_FR)) = FIRST; \
+#define join_answers_subgoal_frame(SG_FR, FIRST, LAST)  \
+  if(SgFr_has_no_answers(SG_FR))                        \
+    SgFr_first_answer(SG_FR) = FIRST;                   \
+  else                                                  \
+    TrNode_child(SgFr_last_answer(SG_FR)) = FIRST;      \
   SgFr_last_answer(SG_FR) = LAST;
     
 #define CONSUMER_DEFAULT_LAST_ANSWER(SG_FR, DEP_FR) ((unsigned long int) (SG_FR) +                                     \
