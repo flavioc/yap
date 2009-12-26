@@ -201,8 +201,6 @@ typedef ans_node_ptr continuation_ptr;
 
 #elif TABLING_ANSWER_BLOCKS_SCHEME
 
-#define TABLING_ANSWER_BLOCKS_SIZE 2
-
 typedef struct answer_block {
   struct answer_trie_node *blocks[TABLING_ANSWER_BLOCKS_SIZE];
   struct answer_block *next;

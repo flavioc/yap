@@ -365,7 +365,6 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
 #define free_answer_continuation(CONT)
 
 #define push_new_answer_set(ANS, FIRST, LAST) \
-    TrNode_child(ANS) = NULL; XXX             \
     if(FIRST == NULL)                         \
       FIRST = ANS;                            \
     else                                      \
@@ -823,14 +822,21 @@ void join_answers_subgoal_frame(sg_fr_ptr sg_fr, continuation_ptr first, continu
     SgFr_first_answer(sg_fr) = first;
     SgFr_last_answer(sg_fr) = last;
   } else {
-    while(first != last+1) {
-      push_new_answer_block(*first, &SgFr_first_answer(sg_fr), &SgFr_last_answer(sg_fr));
+    continuation_ptr ptr = first;
+    
+    while(TRUE) {
+      push_new_answer_block(*ptr, &SgFr_first_answer(sg_fr), &SgFr_last_answer(sg_fr));
       
-      ++first;
+      if(ptr == last)
+        break;
+        
+      ++ptr;
       
-      if(IS_TABLING_BLOCK_LINK(*first)) // jump to next
-        first = (continuation_ptr)UNTAG_TABLING_BLOCK_LINK(*first);
+      if(IS_TABLING_BLOCK_LINK(*ptr)) // jump to next block
+        ptr = (continuation_ptr)UNTAG_TABLING_BLOCK_LINK(*ptr);
     }
+    
+    free_answer_block((ans_block_ptr)first);
   }
 }
 #endif /* TABLING_ANSWER_BLOCKS_SCHEME */
@@ -1231,7 +1237,6 @@ void CUT_validate_tg_answers(tg_sol_fr_ptr valid_solutions) {
           LOCK_TABLE(ans_node);
 #endif /* TABLE_LOCK_LEVEL */
           if (! IS_ANSWER_LEAF_NODE(ans_node)) {
-            /// XXX TODO
             TAG_AS_ANSWER_LEAF_NODE(ans_node);
             
             push_new_answer_set(ans_node, first_cont, last_cont);

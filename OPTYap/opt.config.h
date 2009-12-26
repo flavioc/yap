@@ -154,9 +154,13 @@
 **      answer set organization scheme (mandatory, define one)       **
 ** ----------------------------------------------------------------- */
 /* #define TABLING_ANSWER_LIST_SCHEME 1 */
-/*#define TABLING_ANSWER_CHILD_SCHEME 1 */
+/* #define TABLING_ANSWER_CHILD_SCHEME 1 */
 #define TABLING_ANSWER_BLOCKS_SCHEME 1
 
+/* -------------------------------------------------------- **
+**    number of blocks for TABLING_ANSWER_BLOCKS_SCHEME     **
+** -------------------------------------------------------- */
+#define TABLING_ANSWER_BLOCKS_SIZE 20
 
 
 /* ---------------------------------------------------------------- **
