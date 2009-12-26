@@ -237,7 +237,7 @@ void make_root_frames(void) {
 #ifdef TABLING
   /* root dependency frame */
   if (!GLOBAL_root_dep_fr)
-    base_new_dependency_frame(GLOBAL_root_dep_fr, FALSE, NULL, NULL, NULL, NULL, NULL);
+    new_root_dependency_frame(GLOBAL_root_dep_fr);
 #endif /* TABLING */
 }
 

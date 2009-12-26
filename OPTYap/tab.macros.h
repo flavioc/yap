@@ -405,19 +405,30 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
 
 #endif /* TABLING_ANSWER_BLOCKS_SCHEME */
 
-#define base_new_dependency_frame(DEP_FR, DEP_ON_STACK, TOP_OR_FR, LEADER_CP, CONS_CP, SG_FR, NEXT) \
-    ALLOC_DEPENDENCY_FRAME(DEP_FR);                                                                 \
-    INIT_LOCK(DepFr_lock(DEP_FR));                                                                  \
+#define INIT_DEPENDENCY_FRAME(DEP_FR) { \
+    ALLOC_DEPENDENCY_FRAME(DEP_FR);     \
+    INIT_LOCK(DepFr_lock(DEP_FR));      \
+  }
+
+#define new_root_dependency_frame(DEP_FR) {         \
+    INIT_DEPENDENCY_FRAME(DEP_FR);                  \
+    DepFr_init_yapor_fields(DEP_FR, FALSE, NULL);   \
+    DepFr_backchain_cp(DEP_FR) = NULL;              \
+    DepFr_leader_cp(DEP_FR) = NORM_CP(NULL);        \
+    DepFr_cons_cp(DEP_FR) = NORM_CP(NULL);          \
+    DepFr_next(DEP_FR) = NULL;                      \
+    DepFr_last_answer(DEP_FR) = NULL;               \
+  }
+  
+#define new_dependency_frame(DEP_FR, DEP_ON_STACK, TOP_OR_FR, LEADER_CP, CONS_CP, SG_FR, NEXT) {    \
+    INIT_DEPENDENCY_FRAME(DEP_FR);                                                                  \
     DepFr_init_yapor_fields(DEP_FR, DEP_ON_STACK, TOP_OR_FR);                                       \
     DepFr_backchain_cp(DEP_FR) = NULL;                                                              \
     DepFr_leader_cp(DEP_FR) = NORM_CP(LEADER_CP);                                                   \
     DepFr_cons_cp(DEP_FR) = NORM_CP(CONS_CP);                                                       \
     DepFr_next(DEP_FR) = NEXT;                                                                      \
-    DepFr_last_answer(DEP_FR) = NULL;
-    
-#define new_dependency_frame(DEP_FR, DEP_ON_STACK, TOP_OR_FR, LEADER_CP, CONS_CP, SG_FR, NEXT)         \
-        base_new_dependency_frame(DEP_FR, DEP_ON_STACK, TOP_OR_FR, LEADER_CP, CONS_CP, SG_FR, NEXT)    \
-        DepFr_last_answer(DEP_FR) = (continuation_ptr)CONSUMER_DEFAULT_LAST_ANSWER(SG_FR, DEP_FR);
+    DepFr_last_answer(DEP_FR) = (continuation_ptr)CONSUMER_DEFAULT_LAST_ANSWER(SG_FR, DEP_FR);      \
+  }
 
 #define new_table_entry(TAB_ENT, PRED_ENTRY, ATOM, ARITY)       \
         { register sg_node_ptr sg_node;                         \
