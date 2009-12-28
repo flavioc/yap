@@ -791,6 +791,10 @@ sg_fr_ptr subgoal_search(yamop *preg, CELL **Yaddr) {
 #define current_sg_node current_node
 #endif /* GLOBAL_TRIE */
 
+#ifdef TABLING_CALL_SUBSUMPTION
+  subsumptive_search(preg, Yaddr);
+#endif
+
   arity = preg->u.Otapl.s;
   tab_ent = preg->u.Otapl.te;
   count_vars = 0;
