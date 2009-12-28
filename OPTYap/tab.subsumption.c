@@ -23,6 +23,7 @@
 #include "YapHeap.h"
 #include "yapio.h"
 #include "tab.macros.h"
+#include "tab.stack.h"
 
 #if 0
 #define SUBSUMPTION_CPSTACK_SIZE 1024
@@ -99,12 +100,22 @@ CellTag cell_tag(Term t)
   return TAG_UNKNOWN;
 }
 
+static int stack_terms_init = FALSE;
+static DynamicStack stack_terms;
+
 void subsumptive_search(yamop *preg, CELL **Yaddr)
 {
   int i, j, count_vars, arity;
-  CELL *stack_vars, *stack_terms_limit, *stack_terms_base, *stack_terms;
+  CELL *stack_vars;
   tab_ent_ptr tab_ent;
   sg_node_ptr current_sg_node;
+  
+  if(!stack_terms_init) {
+    DynStk_Init(&stack_terms, 2048, Term, "stack_terms");
+    stack_terms_init = TRUE;
+  }
+  
+  DynStk_ResetTOS(stack_terms);
   
   printf("subsumptive_search(preg, Yaddr)\n");
   
@@ -112,18 +123,20 @@ void subsumptive_search(yamop *preg, CELL **Yaddr)
   tab_ent = preg->u.Otapl.te;
   count_vars = 0;
   stack_vars = *Yaddr;
-  stack_terms_limit = (CELL *)TR;
-  stack_terms_base = stack_terms = (CELL *)Yap_TrailTop;
   current_sg_node = TabEnt_subgoal_trie(tab_ent);
   
+  Term* frame;
   for (i = arity; i > 0; --i) {
-    STACK_CHECK_EXPAND(stack_terms, stack_terms_limit, stack_terms_base);
-    STACK_PUSH_UP(Deref(XREGS[i]), stack_terms);
+    DynStk_Push(stack_terms, frame);
+    *(Term*)frame = Deref(XREGS[i]);
   } 
   
+  Term t;
+  
   do {
-    Term t = STACK_POP_DOWN(stack_terms);
-      
+    DynStk_Pop(stack_terms, frame);
+    
+    t = *frame;
     switch(cell_tag(t)) {
       case TAG_REF:
         printf("VAR ");
@@ -138,7 +151,7 @@ void subsumptive_search(yamop *preg, CELL **Yaddr)
         printf("Appl ");
         break;
     }
-  } while (STACK_NOT_EMPTY(stack_terms, stack_terms_base));
+  } while (!DynStk_IsEmpty(stack_terms));
 
   printf("\n");
 }
