@@ -194,7 +194,7 @@ C_SOURCES= \
 	$(srcdir)/OPTYap/or.cowengine.c $(srcdir)/OPTYap/or.sbaengine.c \
 	$(srcdir)/OPTYap/or.scheduler.c $(srcdir)/OPTYap/or.cut.c \
 	$(srcdir)/OPTYap/tab.tries.c $(srcdir)/OPTYap/tab.suspend.c \
-	$(srcdir)/OPTYap/tab.subsumption.c \
+	$(srcdir)/OPTYap/tab.stack.c $(srcdir)/OPTYap/tab.subsumption.c \
 	$(srcdir)/library/mpi/mpi.c $(srcdir)/library/mpi/mpe.c \
 	$(srcdir)/library/lammpi/yap_mpi.c $(srcdir)/library/lammpi/hash.c \
 	$(srcdir)/library/lammpi/prologterms2c.c  \
@@ -268,7 +268,7 @@ C_INTERFACE_OBJECTS = \
 OR_OBJECTS = \
 	opt.memory.o opt.misc.o opt.init.o opt.preds.o   \
 	or.engine.o or.cowengine.o or.sbaengine.o or.scheduler.o or.cut.o      \
-	tab.tries.o tab.suspend.o tab.subsumption.o
+	tab.tries.o tab.stack.o tab.suspend.o tab.subsumption.o
 
 BEAM_OBJECTS = \
 	eamamasm.o eam_showcode.o eamindex.o eam_am.o
@@ -417,6 +417,10 @@ tab.subsumption.o: $(srcdir)/OPTYap/tab.subsumption.c \
 	$(srcdir)/H/yapio.h \
 	$(srcdir)/OPTYap/opt.config.h
 	$(CC) -c $(CFLAGS) $(srcdir)/OPTYap/tab.subsumption.c -o $@
+
+tab.stack.o: $(srcdir)/OPTYap/tab.stack.c \
+	$(srcdir)/OPTYap/tab.stack.h
+	$(CC) -c $(CFLAGS) $(srcdir)/OPTYap/tab.stack.c -o $@
 
 tab.suspend.o: $(srcdir)/OPTYap/tab.suspend.c \
 	$(srcdir)/OPTYap/tab.macros.h \
