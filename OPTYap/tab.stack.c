@@ -59,7 +59,7 @@ void dynamic_stack_expand(DynamicStack *ds, int num_frames)
   total_bytes = new_size * DynStk_FrameSize(*ds);
   new_base = realloc(DynStk_Base(*ds), total_bytes);
   // XXX
-  DynStk_Top(*ds) = new_base + DynStk_Bytes(*ds);
+  DynStk_Top(*ds) = new_base + DynStk_CurBytes(*ds);
   DynStk_Base(*ds) = new_base;
   DynStk_Ceiling(*ds) = new_base + total_bytes;
   DynStk_CurSize(*ds) = new_size;
