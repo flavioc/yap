@@ -40,4 +40,29 @@ void dynamic_stack_init(DynamicStack *ds, size_t stack_size, size_t frame_size, 
   DynStk_Name(*ds) = name;
 }
 
+void dynamic_stack_expand(DynamicStack *ds, int num_frames)
+{
+  size_t new_size, total_bytes;
+  char *new_base;
+  
+  if(num_frames < 1)
+    return;
+  
+  if(DynStk_CurSize(*ds) > 0)
+    new_size = 2 * DynStk_CurSize(*ds);
+  else
+    new_size = DynStk_InitSize(*ds);
+  
+  if(new_size < DynStk_CurSize(*ds) + num_frames)
+    new_size = new_size + num_frames;
+  
+  total_bytes = new_size * DynStk_FrameSize(*ds);
+  new_base = realloc(DynStk_Base(*ds), total_bytes);
+  // XXX
+  DynStk_Top(*ds) = new_base + DynStk_Bytes(*ds);
+  DynStk_Base(*ds) = new_base;
+  DynStk_Ceiling(*ds) = new_base + total_bytes;
+  DynStk_CurSize(*ds) = new_size;
+}
+
 #endif /* TABLING_CALL_SUBSUMPTION */

@@ -11,7 +11,7 @@
 #ifndef TAB_STACK_H
 #define TAB_STACK_H
 
-#if TABLING_CALL_SUBSUMPTION
+#ifdef TABLING_CALL_SUBSUMPTION
 
 // emu/dynamic_stack.h
 typedef struct {
@@ -36,8 +36,11 @@ typedef struct {
 #define DynStk_CurSize(DS)    ((DS).size.stackcur)
 #define DynStk_Name(DS)       ((DS).name)
 
+#define DynStk_Bytes(DS)  \
+  ((char *)DynStk_Top(DS) - (char *)DynStk_Base(DS))
+
 #define DynStk_NumFrames(DS)  \
-  (((char *)DynStk_Top(DS) - (char *)DynStk_Base(DS)) / DynStk_FrameSize(DS))
+  (DynStk_Bytes(DS) / DynStk_FrameSize(DS))
 
 /* Top-of-Stack manipulations */
 #define DynStk_NextFrame(DS)  \
@@ -48,6 +51,7 @@ typedef struct {
 /* stack maintenance */
 extern void dynamic_stack_print(DynamicStack);
 extern void dynamic_stack_init(DynamicStack *, size_t, size_t, char*);
+extern void dynamic_stack_expand(DynamicStack *, int);
 
 #define DynStk_Init(DS, NUM_ELEM, FRAME_TYPE, DESC) \
   dynamic_stack_init(DS, NUM_ELEM, sizeof(FRAME_TYPE), DESC)
@@ -60,9 +64,23 @@ extern void dynamic_stack_init(DynamicStack *, size_t, size_t, char*);
     if(DynStk_IsFull(DS)) \
       Yap_Error(FATAL_ERROR, TermNil, "dynamic stack %s full", DynStk_Name(DS))
 
+#define DynStk_WillOverflow(DS, NFrames)  \
+      ((char *)DynStk_Top(DS) + NFrames * DynStk_FrameSize(DS)  \
+        > (char *)DynStk_Ceiling(DS))
+        
+#define DynStk_ExpandIfFull(DS) { \
+    if(DynStk_IsFull(DS)) \
+      dynamic_stack_expand(&(DS), 1); \
+    }
+    
+#define DynStk_ExpandIfOverflow(DS, N) { \
+  if(DynStk_WillOverflow(DS, N)) \
+    dynamic_stack_expand(&(DS), N); \
+  }
+
 /* stack operations with error checking */
 #define DynStk_Push(DS, Frame) { \
-      DynStk_ErrorIfFull(DS); \
+      DynStk_ExpandIfFull(DS); \
       DynStk_BlindPush(DS, Frame); \
     }
 
