@@ -25,6 +25,10 @@
 #endif	/* YAPOR */
 #ifdef TABLING
 #include "tab.macros.h"
+#ifdef TABLING_CALL_SUBSUMPTION
+#include "tab.utils.h"
+DynamicStack tstTermStack; /* term stack for subsumption */
+#endif
 #endif /* TABLING */
 #if defined(TABLING) || !defined(ACOW)
 #ifndef TABLING
@@ -58,8 +62,6 @@ ma_h_inner_struct *Yap_ma_h_top;
 #else
 #define INIT_PAGES(PG, STR_TYPE)  Pg_str_in_use(PG) = 0
 #endif /* SHM_MEMORY_ALLOC_SCHEME */
-
-
 
 /* -------------------------- **
 **      Global functions      **
@@ -199,6 +201,9 @@ void Yap_init_local(void) {
   LOCAL_top_cp_on_stack = B_BASE; /* ??? */
   LOCAL_top_susp_or_fr = GLOBAL_root_or_fr;
 #endif /* YAPOR */
+#ifdef TABLING_CALL_SUBSUMPTION
+  DynStk_Init(&tstTermStack, TST_TERMSTACK_INITSIZE, CPtr, "tstTermStack");
+#endif /* TABLING_CALL_SUBSUMPTION */
 #endif /* TABLING */
   return;
 }
