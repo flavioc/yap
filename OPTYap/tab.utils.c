@@ -7,3 +7,10 @@
   File:        tab.utils.h
                                                                      
 **********************************************************************/
+
+#include "Yap.h"
+#include "tab.utils.h"
+
+#ifdef TABLING_CALL_SUBSUMPTION
+
+#endif /* TABLING_CALL_SUBSUMPTION */
