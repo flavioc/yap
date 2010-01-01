@@ -114,6 +114,7 @@ void subsumptive_search(yamop *preg, CELL **Yaddr)
         break;
       case TAG_STRUCT:
         printf("Appl ");
+        TermStack_PushFunctorArgs(t);
         break;
       default:
         break;

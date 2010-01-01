@@ -38,6 +38,12 @@ extern DynamicStack tstTermStack;
     *nextFrame = Term;  \
   }
   
+#define TermStack_BlindPush(Term) { \
+    CPtr nextFrame; \
+    DynStk_BlindPush(tstTermStack, nextFrame);  \
+    *nextFrame = Term;  \
+  }
+  
 #define TermStack_Pop(Term) { \
     CPtr curFrame;  \
     DynStk_BlindPop(tstTermStack, curFrame); \
@@ -53,6 +59,57 @@ extern DynamicStack tstTermStack;
 #define TermStack_NOOP /* nothing to push when constants match */
 
 #define TermStack_PushFunctorArgs(CS_Cell)
+  TermStack_PushLowToHighVector(clref_val(CS_Cell) + 1, \
+    get_cell_arity(CS_Cell));
+  
+// TermStack_PushListArgs XXX
+
+/*
+ * The following macros enable the movement of an argument vector to
+ * the TermStack.  Two versions are supplied depending on whether the
+ * vector is arranged from high-to-low memory, such as an answer
+ * template, or from low-to-high memory, such as the arguments of a
+ * compound heap term.  The vector pointer is assumed to reference the
+ * first element of the vector.
+ */
+ 
+#define TermStack_PushLowToHighVector(pVectorLow, Magnitude)  { \
+  int i, numElements;  \
+  CPtr pElement;   \
+  numElements = Magnitude; \
+  pElement = pVectorLow + numElements; \
+  DynStk_ExpandIfOverflow(tstTermStack, numElements);  \
+  for(i = 0; i < numElements; ++i) { \
+    pElement--; \
+    TermStack_BlindPush(get_term_deref(pElement)); \
+  } \
+}
+
+#define TermStack_PushHighToLowVector(pVectorHigh, Magnitude) { \
+  int i, numElements; \
+    CPtr pElement;  \
+    numElements = Magnitude;  \
+    pElement = pVectorHigh - numElements; \
+    DynStk_ExpandIfOverflow(tstTermStack, numElements); \
+    for(i = 0; i < numElements; ++i)  { \
+      pElement++; \
+      TermStack_BlindPush(get_term_deref(pElement)); \
+    } \
+}
+
+/*
+ * This macro copies an array of terms onto the TermStack, checking for
+ * overflow only once at the beginning, rather than with each push.  The
+ * elements to be pushed are assumed to exist in array elements
+ * 0..(NumElements-1).
+ */
+ 
+#define TermStack_PushArray(Array, NumElements) { \
+  counter i;  \
+  DynStk_ExpandIfOverflow(tstTermStack, NumElements); \
+  for(i = 0; i < numElements; ++i)  \
+    TermStack_BlindPush(Array[i]);  \
+}
 
 #endif /* TABLING_CALL_SUBSUMPTION */
 

@@ -16,6 +16,13 @@
 #ifdef TABLING_CALL_SUBSUMPTION
 
 typedef Term *CPtr;
+typedef unsigned long int counter;
+typedef Functor Psc;
+
+#define get_cell_arity(CS_Cell) ArityOfFunctor(FunctorOfTerm(CS_Cell))
+#define get_arity(FUNCTOR)  ArityOfFunctor(FunctorOfTerm(FUNCTOR))
+#define clref_val(REF)  RepAppl(REF)
+#define get_term_deref(REF) Deref(*(REF))
 
 #endif /* TABLING_CALL_SUBSUMPTION */
 
