@@ -16,6 +16,7 @@
 #ifdef TABLING_CALL_SUBSUMPTION
 
 typedef Term *CPtr;
+typedef CPtr Cell;
 typedef unsigned long int counter;
 typedef Functor Psc;
 
