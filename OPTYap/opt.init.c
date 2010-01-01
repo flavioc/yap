@@ -28,6 +28,7 @@
 #ifdef TABLING_CALL_SUBSUMPTION
 #include "tab.utils.h"
 DynamicStack tstTermStack; /* term stack for subsumption */
+DynamicStack tstTermStackLog; /* term log stack for subsumption */
 #endif
 #endif /* TABLING */
 #if defined(TABLING) || !defined(ACOW)
@@ -203,6 +204,7 @@ void Yap_init_local(void) {
 #endif /* YAPOR */
 #ifdef TABLING_CALL_SUBSUMPTION
   DynStk_Init(&tstTermStack, TST_TERMSTACK_INITSIZE, CPtr, "tstTermStack");
+  DynStk_Init(&tstTermStackLog, TST_TERMSTACKLOG_INITSIZE, tstLogFrame, "tstTermStackLog");
 #endif /* TABLING_CALL_SUBSUMPTION */
 #endif /* TABLING */
   return;

@@ -112,6 +112,63 @@ extern DynamicStack tstTermStack;
     TermStack_BlindPush(Array[i]);  \
 }
 
+/* ------------------------------------------------------------------------- */
+
+/*
+ *  tstTermStackLog
+ *  ---------------
+ *  For noting the changes made to the tstTermStack during processing
+ *  where backtracking is required.  Only the changes necessary to
+ *  transform the tstTermStack from its current state to a prior state
+ *  are logged.  Therefore, we only need record values popped from the
+ *  tstTermStack.
+ *
+ *  Each frame of the log consists of the index of a tstTermStack
+ *  frame and the value that was stored there.  tstTermStack values
+ *  are reinstated as a side effect of a tstTermStackLog_Pop.
+ */
+ 
+typedef struct {
+  int index;
+  Cell value;
+} tstLogFrame;
+
+typedef tstLogFrame *pLogFrame;
+
+#define LogFrame_Index(Frame) ((Frame)->index)
+#define LogFrame_Value(Frame) ((Frame)->value)
+
+extern DynamicStack tstTermStackLog;
+
+#define TST_TERMSTACKLOG_INITSIZE 20
+
+#define TermStackLog_Top ((pLogFrame)DynStk_Top(tstTermStackLog))
+#define TermStackLog_Base ((pLogFrame)DynStk_Base(tstTermStackLog))
+#define TermStackLog_ResetTOS DynStk_ResetTOS(tstTermStackLog)
+
+#define TermStackLog_PushFrame {  \
+    pLogFrame curFrame; \
+    DynStk_Push(tstTermStackLog, nextFrame);  \
+    LogFrame_Index(nextFrame) = TermStack_Top - TermStack_Base; \
+    LogFrame_Value(nextFrame) = *(TermStack_Top); \
+}
+
+#define TermStack_PopAndReset { \
+    pLogFrame curFrame; \
+    DynStk_BlindPop(tstTermStackLog, curFrame); \
+    TermStack_Base[LogFrame_Index(curFrame)] = LogFrame_Value(curFrame);  \
+}
+
+/*
+ * Reset the TermStack elements down to and including the Index-th
+ * entry in the Log.
+ */
+#define TermStackLog_Unwind(Index)  { \
+    pLogFrame unwindBase = TermStackLog_Base + Index;  \
+    while(TermStackLog_Top > unwindBase)  \
+      TermStackLog_PopAndReset; \
+}
+
 #endif /* TABLING_CALL_SUBSUMPTION */
 
 #endif
