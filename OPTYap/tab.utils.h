@@ -169,6 +169,47 @@ extern DynamicStack tstTermStackLog;
       TermStackLog_PopAndReset; \
 }
 
+/* ------------------------------------------------------------------------- */
+
+/*
+ *  tstTrail
+ *  ---------
+ *  For recording bindings made during processing.  This Trail performs
+ *  simple WAM trailing -- it saves address locations only.
+ */
+ 
+extern DynamicStack tstTrail;
+ 
+#define TST_TRAIL_INITSIZE  20
+
+#define Trail_Top           ((CPtr *)DynStk_Top(tstTrail))
+#define Trail_Base          ((CPtr *)DynStk_Base(tstTrail))
+#define Trail_NumBindings   DynStk_NumFrames(tstTrail)
+#define Trail_ResetTOS      DynStk_ResetTOS(tstTrail)
+
+#define Trail_Push(Addr) {  \
+    CPtr *nextFrame;  \
+    DynStk_Push(tstTrail, nextFrame); \
+    *nextFrame = (CPtr)(Addr);  \
+}
+
+#define Trail_PopAndReset { \
+    CPtr *curFrame; \
+    DynStk_BlindPop(tstTrail, curFrame);  \
+    bld_free(*curFrame);  \
+}
+
+#define Trail_Unwind_All  Trail_Unwind(0)
+
+/*
+ * Untrail down to and including the Index-th element.
+ */
+#define Trail_Unwind(Index) { \
+   CPtr *unwindBase = Trail_Base + Index; \
+   while(Trail_Top > unwindBase)  \
+    Trail_PopAndReset; \
+}
+
 #endif /* TABLING_CALL_SUBSUMPTION */
 
 #endif
