@@ -58,10 +58,11 @@ extern DynamicStack tstTermStack;
   
 #define TermStack_NOOP /* nothing to push when constants match */
 
-#define TermStack_PushFunctorArgs(CS_Cell)
+
+#define TermStack_PushFunctorArgs(CS_Cell)  \
   TermStack_PushLowToHighVector(clref_val(CS_Cell) + 1, \
-    get_cell_arity(CS_Cell));
-  
+    get_cell_arity(CS_Cell))
+
 // TermStack_PushListArgs XXX
 
 /*
@@ -86,7 +87,7 @@ extern DynamicStack tstTermStack;
 }
 
 #define TermStack_PushHighToLowVector(pVectorHigh, Magnitude) { \
-  int i, numElements; \
+    int i, numElements; \
     CPtr pElement;  \
     numElements = Magnitude;  \
     pElement = pVectorHigh - numElements; \
@@ -103,7 +104,7 @@ extern DynamicStack tstTermStack;
  * elements to be pushed are assumed to exist in array elements
  * 0..(NumElements-1).
  */
- 
+
 #define TermStack_PushArray(Array, NumElements) { \
   counter i;  \
   DynStk_ExpandIfOverflow(tstTermStack, NumElements); \
