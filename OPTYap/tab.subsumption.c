@@ -78,7 +78,7 @@ CellTag cell_tag(Term t)
 
 void subsumptive_search(yamop *preg, CELL **Yaddr)
 {
-  int i, count_vars, arity;
+  int count_vars, arity;
   CELL *stack_vars;
   tab_ent_ptr tab_ent;
   sg_node_ptr current_sg_node;
@@ -93,9 +93,7 @@ void subsumptive_search(yamop *preg, CELL **Yaddr)
   stack_vars = *Yaddr;
   current_sg_node = TabEnt_subgoal_trie(tab_ent);
   
-  for (i = arity; i > 0; --i) {
-    TermStack_Push(Deref(XREGS[i]));
-  } 
+  TermStack_PushLowToHighVector(XREGS + 1, arity);
   
   Term t;
   
