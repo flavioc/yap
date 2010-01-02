@@ -65,7 +65,8 @@ typedef Functor Psc;
 
 #define StandardizeVariable(DerefedVar, Index)  \
     (*((CELL *)DerefedVar) = GLOBAL_table_var_enumerator(Index))
-#define EncodeTrieVar(INDEX)  MakeTableVarTerm(INDEX)
+#define EncodeTrieVar(INDEX)      MakeTableVarTerm(INDEX)
+#define EncodeTrieFunctor(TERM)   AbsAppl((Term *)FunctorOfTerm(TERM))
 
 #endif /* TABLING_CALL_SUBSUMPTION */
 
