@@ -61,7 +61,7 @@ extern DynamicStack tstTermStack;
 
 #define TermStack_PushFunctorArgs(CS_Cell)  \
   TermStack_PushLowToHighVector(clref_val(CS_Cell) + 1, \
-    get_cell_arity(CS_Cell))
+    get_arity((Psc)*clref_val(CS_Cell)))
 
 // TermStack_PushListArgs XXX
 
@@ -82,7 +82,7 @@ extern DynamicStack tstTermStack;
   DynStk_ExpandIfOverflow(tstTermStack, numElements);  \
   for(i = 0; i < numElements; ++i) { \
     pElement--; \
-    TermStack_BlindPush(get_term_deref(pElement)); \
+    TermStack_BlindPush(*pElement); \
   } \
 }
 
@@ -94,7 +94,7 @@ extern DynamicStack tstTermStack;
     DynStk_ExpandIfOverflow(tstTermStack, numElements); \
     for(i = 0; i < numElements; ++i)  { \
       pElement++; \
-      TermStack_BlindPush(get_term_deref(pElement)); \
+      TermStack_BlindPush(*pElement); \
     } \
 }
 
@@ -147,7 +147,7 @@ extern DynamicStack tstTermStackLog;
 #define TermStackLog_ResetTOS DynStk_ResetTOS(tstTermStackLog)
 
 #define TermStackLog_PushFrame {  \
-    pLogFrame curFrame; \
+    pLogFrame nextFrame; \
     DynStk_Push(tstTermStackLog, nextFrame);  \
     LogFrame_Index(nextFrame) = TermStack_Top - TermStack_Base; \
     LogFrame_Value(nextFrame) = *(TermStack_Top); \
@@ -209,6 +209,51 @@ extern DynamicStack tstTrail;
    while(Trail_Top > unwindBase)  \
     Trail_PopAndReset; \
 }
+
+/* --------------------------------------------- */
+
+/* emu/tries.h */
+typedef enum Trie_Path_Type {
+  NO_PATH, VARIANT_PATH, SUBSUMPTIVE_PATH
+} TriePathType;
+
+typedef struct {
+  BTNptr alt_node;
+  BTNptr var_chain;
+  int termstk_top_index;
+  int log_top_index;
+  int trail_top_index;
+} tstCallChoicePointFrame;
+  
+typedef tstCallChoicePointFrame *pCPFrame;
+
+#define CALL_CPSTACK_SIZE 1024
+
+struct tstCCPStack_t {
+  pCPFrame top;
+  pCPFrame ceiling;
+  tstCallChoicePointFrame base[CALL_CPSTACK_SIZE];
+};
+
+extern struct tstCCPStack_t tstCCPStack;
+
+extern Cell TrieVarBindings[MAX_TABLE_VARS];
+
+typedef enum {
+  TAG_ATOM,
+  TAG_INT,
+  TAG_LONG_INT,
+  TAG_BIG_INT,
+  TAG_FLOAT,
+  TAG_STRUCT,
+  TAG_LIST,
+  TAG_REF,
+  TAG_DB_REF,
+  TAG_UNKNOWN
+} CellTag;
+
+CellTag cell_tag(Term t);
+xsbBool are_identical_terms(Cell term1, Cell term2);
 
 #endif /* TABLING_CALL_SUBSUMPTION */
 

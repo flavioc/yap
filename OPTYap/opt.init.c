@@ -30,6 +30,8 @@
 DynamicStack tstTermStack; /* term stack for subsumption */
 DynamicStack tstTermStackLog; /* term log stack for subsumption */
 DynamicStack tstTrail; /* trail stack for subsumption */
+struct tstCCPStack_t tstCCPStack; /* frame stack for subsumption */
+Cell TrieVarBindings[MAX_TABLE_VARS];
 #endif
 #endif /* TABLING */
 #if defined(TABLING) || !defined(ACOW)
@@ -207,6 +209,14 @@ void Yap_init_local(void) {
   DynStk_Init(&tstTermStack, TST_TERMSTACK_INITSIZE, CPtr, "tstTermStack");
   DynStk_Init(&tstTermStackLog, TST_TERMSTACKLOG_INITSIZE, tstLogFrame, "tstTermStackLog");
   DynStk_Init(&tstTrail, TST_TRAIL_INITSIZE, CPtr, "TST Trail");
+  
+  tstCCPStack.ceiling = tstCCPStack.base + CALL_CPSTACK_SIZE;
+  /* initSubsumptiveLookup */
+  
+  /* set entries to unbound */
+  int i;
+  for (i = 0; i < MAX_TABLE_VARS; i++)
+    TrieVarBindings[i] = (Cell)(TrieVarBindings + i);
 #endif /* TABLING_CALL_SUBSUMPTION */
 #endif /* TABLING */
   return;
