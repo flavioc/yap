@@ -66,6 +66,18 @@ typedef enum Search_Strategy_Mode {
 }
 
 /*
+ *  Resume the state of a saved point of choice.
+ */
+#define CPStack_PopFrame(CurNode, VarChain) { \
+   tstCCPStack.top--; \
+   CurNode = CPF_AlternateNode; \
+   VarChain = CPF_VariableChain;  \
+   TermStackLog_Unwind(CPF_TermStackLogTopIndex); \
+   TermStack_SetTOS(CPF_TermStackTopIndex); \
+   Trail_Unwind(CPF_TrailTopIndex); \
+}
+
+/*
  * This assumes that the state of the search is being saved when its
  * ONLY modification since the last successful match is the pop of the
  * failed-to-match subterm off of the TermStack (and a note in the
@@ -88,6 +100,23 @@ static xsbBool save_variant_continuation(CTXTdeclc BTNptr last_node_match) {
 #define TrieVar_BindToSubterm(TrieVarNum, Subterm)  \
     TrieVarBindings[TrieVarNum] = Subterm; \
     Trail_Push(&TrieVarBindings[TrieVarNum])
+
+/*
+ *  Given a TrieVar number and a marked PrologVar (bound to a
+ *  VarEnumerator cell), bind the TrieVar to the variable subterm
+ *  represented by the marked PrologVar, and trail the TrieVar.
+ */
+#define TrieVar_BindToMarkedPrologVar(TrieVarNum, PrologVarMarker)  \
+  TrieVarBindings[TrieVarNum] = \
+    TrieVarBindings[PrologVar_Index(PrologVarMarker)];  \
+  Trail_Push(&TrieVarBindings[TrieVarNum])
+  
+/*
+ *  Given an address into VarEnumerator, determine its index in this array.
+ *  (This index will also correspond to the first trie variable that bound
+ *   itself to it.)
+ */
+#define PrologVar_Index(VarEnumAddr)  IndexOfStdVar(VarEnumAddr)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
@@ -129,6 +158,34 @@ static xsbBool save_variant_continuation(CTXTdeclc BTNptr last_node_match) {
  
 #define Create_ChoicePoint(AlternateBTN, VariableChain) \
   CPStack_PushFrame(AlternateBTN, VariableChain)
+  
+/*
+ * Resuming a point of choice additionally involves indicating to the
+ * search algorithm what sort of pairings should be sought.
+ */
+#define BacktrackSearch { \
+    CPStack_PopFrame(pCurrentBTN, variableChain);  \
+    search_mode = MATCH_WITH_TRIEVAR; \
+ }
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+/*
+ *  Given an unmarked, dereferenced Prolog variable and a TrieVar number,
+ *  mark the variable with this number by setting it to point to the
+ *  Index-th cell of the VarEnumerator array, and trail the variable.
+ */
+#define PrologVar_MarkIt(DerefedVar, Index) \
+  StandardizeVariable(DerefedVar, Index);  \
+  Trail_Push((CPtr)DerefedVar)
+
+/*
+ *  Given a dereferenced Prolog variable, determine whether it has already
+ *  been marked, i.e. seen during prior processing and hence bound to a
+ *  VarEnumerator cell.
+ */
+#define PrologVar_IsMarked(pDerefedPrologVar) \
+    IsStandardizedVariable(pDerefedPrologVar)
 
 /*
  *  When first stepping onto a particular trie level, we may find
@@ -285,6 +342,8 @@ static xsbBool save_variant_continuation(CTXTdeclc BTNptr last_node_match) {
     search_mode = MATCH_SYMBOL_EXACTLY;         \
     goto While_TermStack_NotEmpty
 
+static int AnsVarCtr;
+    
 static
 void *iter_sub_trie_lookup(CTXTdeclc void *trieNode, TriePathType *pathType)
 {
@@ -338,9 +397,175 @@ While_TermStack_NotEmpty:
       	 */
         NonVarSearchChain_UnboundTrieVar(subterm, variableChain);
         break;
+      case XSB_STRUCT:
+        if(search_mode == MATCH_SYMBOL_EXACTLY) {
+          symbol = EncodeTrieFunctor(subterm);
+          Set_Matching_and_TrieVar_Chains(symbol, pCurrentBTN, variableChain);
+          NonVarSearchChain_ExactMatch(symbol, pCurrentBTN, variableChain,
+            TermStack_PushFunctorArgs(subterm))
+          /*
+  	       *  We've failed to find an exact match of the functor's name in
+  	       *  a node of the trie, so now we consider bound trievars whose
+  	       *  bindings exactly match the subterm.
+  	       */
+          pCurrentBTN = variableChain;
+          SetNoVariant(pParentBTN); 
+        }
+        NonVarSearchChain_BoundTrievar(subterm, pCurrentBTN, variableChain);
+        /*
+  	     *  We've failed to find an exact match of the function expression
+  	     *  with a binding of a trievar.  Our last alternative is to bind
+  	     *  an unbound trievar to this subterm.
+  	     */
+        NonVarSearchChain_UnboundTrieVar(subterm, variableChain);
+        break;
+      case XSB_REF:
+      //case XSB_REF1:
+        /*
+         *  A never-before-seen variable in the call must always match a
+         *  free variable in the trie.  We can determine this by checking
+         *  for a "first occurrence" tag in the trievar encoding.  Let Num
+         *  be the index of this trievar variable.  Then we bind
+         *  TrieVarBindings[Num] to 'subterm', the address of the deref'ed
+         *  unbound call variable.  We also bind the call variable to
+         *  VarEnumerator[Num] so that we can recognize that the call
+         *  variable has already been seen.
+         *
+         *  When such a call variable is re-encountered, we know which
+         *  trievar was the first to bind itself to this call variable: we
+         *  used its index in marking the call variable when we bound it
+         *  to VarEnumerator[Num].  This tagging scheme allows us to match
+         *  additional unbound trie variables to it.  Recall that the
+         *  TrieVarBindings array should contain *real* subterms, and not
+         *  the callvar tags that we've constructed (the pointers into the
+         *  VarEnumerator array).  So we must reconstruct a
+         *  previously-seen variable's *real* address in order to bind a
+         *  new trievar to it.  We can do this by computing the index of
+         *  the trievar that first bound itself to it, and look in that
+         *  cell of the TrieVarBindings array to get the call variable's
+         *  *real* address.
+         *
+         *  Notice that this allows us to match variants.  For if we have
+         *  a variant up to the point where we encounter a marked callvar,
+         *  there can be at most one trievar which exactly matches it.  An
+         *  unbound callvar, then, matches exactly only with an unbound
+         *  trievar.  Therefore, only when a previously seen callvar must
+         *  be paired with an unbound trievar to continue the search
+         *  operation do we say that no variant exists.  (Just as is the
+         *  case for other call subterm types, the lack of an exact match
+         *  and its subsequent pairing with an unbound trievar destroys
+         *  the possibility of a variant.)
+         */
+        if(search_mode == MATCH_SYMBOL_EXACTLY) {
+          if(IsNonNULL(pCurrentBTN) && IsHashHeader(pCurrentBTN))
+            pCurrentBTN = variableChain =
+              BTHT_BucketArray((BTHTptr)pCurrentBTN)[TRIEVAR_BUCKET];
+          else
+            variableChain = pCurrentBTN;
+          
+          if(!PrologVar_IsMarked(subterm)) {
+            AnsVarCtr++;
+            /*
+      	     *  The subterm is a call variable that has not yet been seen
+      	     *  (and hence is not tagged).  Therefore, it can only be paired
+      	     *  with an unbound trievar, and there can only be one of these
+      	     *  in a chain.  If we find it, apply the unification, mark the
+      	     *  callvar, trail them both, and continue.  Otherwise, fail.
+      	     *  Note we don't need to lay a CPF since this is the only
+      	     *  possible pairing that could result.
+      	     */
+      	  
+      	   while(IsNonNULL(pCurrentBTN)) {
+      	     if(IsTrieVar(BTN_Symbol(pCurrentBTN)) &&
+      	        IsNewTrieVar(BTN_Symbol(pCurrentBTN))) {
+                trievar_index = DecodeTrieVar(BTN_Symbol(pCurrentBTN));
+                TrieVar_BindToSubterm(trievar_index, subterm);
+                PrologVar_MarkIt(subterm, trievar_index);
+                Descend_In_Trie_and_Continue(pCurrentBTN);  
+      	      }
+              pCurrentBTN = BTN_Sibling(pCurrentBTN);
+      	  }
+          SetNoVariant(pParentBTN);
+          break; /* no pairing, so backtrack */
+        }
+      }
+      /*
+       *  We could be in a forward or backward execution mode.  In either
+       *  case, the call variable has been seen before, and we first look
+       *  to pair this occurrence of the callvar with a trievar that was
+       *  previously bound to this particular callvar.  Note that there
+       *  could be several such trievars.  Once we have exhausted this
+       *  possibility, either immediately or through backtracking, we then
+       *  allow the binding of an unbound trievar to this callvar.
+       */
+       while(IsNonNULL(pCurrentBTN)) {
+         if(IsTrieVar(BTN_Symbol(pCurrentBTN)) &&
+           !IsNewTrieVar(BTN_Symbol(pCurrentBTN))) {
+            trievar_index = DecodeTrieVar(BTN_Symbol(pCurrentBTN));
+            if(are_identical_terms(TrieVarBindings[trievar_index],
+                subterm)) {
+              Create_ChoicePoint(BTN_Sibling(pCurrentBTN), variableChain);
+              Descend_In_Trie_and_Continue(pCurrentBTN);    
+            }
+         }
+         pCurrentBTN = BTN_Sibling(pCurrentBTN);
+       }
+       /*
+        *  We may have arrived here under several circumstances, but notice
+        *  that the path we are on cannot be a variant one.  In case the
+        *  possibility of a variant entry being present was still viable up
+        *  to now, we save state info in case we need to create a variant
+        *  entry later.  We now go to our last alternative, that of
+        *  checking for an unbound trievar to pair with the marked callvar.
+        *  If one is found, we trail the trievar, create the binding, and
+        *  continue.  No CPF need be created since there can be at most one
+        *  new trievar below any given node.
+        */
+       SetNoVariant(pParentBTN);
+       
+       while(IsNonNULL(variableChain)) {
+         if(IsTrieVar(BTN_Symbol(variableChain)) &&
+           IsNewTrieVar(BTN_Symbol(variableChain))) {
+           trievar_index = DecodeTrieVar(BTN_Symbol(variableChain));
+           TrieVar_BindToMarkedPrologVar(trievar_index, subterm);
+           Descend_In_Trie_and_Continue(variableChain);  
+         }
+         variableChain = BTN_Sibling(variableChain);
+       }
+       break;
+    /* lists and others XXX */
+    default:
+      TrieError_UnknownSubtermTag(subterm);
+      break;
+    } /* END switch(cell_tag(subterm)) */
+    
+    /*
+     *  We've reached a dead-end since we were unable to match the
+     *  current subterm to a trie node.  Therefore, we backtrack to
+     *  continue the search, or, if there are no more choice point
+     *  frames -- in which case the trie has been completely searched --
+     *  we return and indicate that no subsuming path was found.
+     */
+    if(!CPStack_IsEmpty)
+      BacktrackSearch
+    else {
+      *pathType = NO_PATH;
+      return NULL;
     }
-  }
+  } /* END while(!TermStack_IsEmpty) */
   
+  /*
+   *  The TermStack is empty, so we've reached a leaf node representing
+   *  term(s) which subsumes the given term(s).  Return this leaf and an
+   *  indication as to whether this path is a variant of or properly
+   *  subsumes the given term(s).
+   */
+  if(variant_path)
+    *pathType = VARIANT_PATH;
+  else
+    *pathType = SUBSUMPTIVE_PATH;
+  
+  return pParentBTN;
 }
 
 void subsumptive_search(yamop *preg, CELL **Yaddr)
@@ -353,6 +578,7 @@ void subsumptive_search(yamop *preg, CELL **Yaddr)
   
   printf("subsumptive_search(preg, Yaddr)\n");
   
+  AnsVarCtr = 0; /// XXX
   arity = preg->u.Otapl.s;
   tab_ent = preg->u.Otapl.te;
   btRoot = TabEnt_subgoal_trie(tab_ent);

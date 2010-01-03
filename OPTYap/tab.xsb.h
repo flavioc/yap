@@ -34,11 +34,13 @@ typedef Functor Psc;
 #define YES TRUE
 #define NO  FALSE
 
-#define XSB_STRING TAG_ATOM
-#define XSB_INT TAG_INT
-#define XSB_FLOAT TAG_FLOAT
-#define XSB_STRUCT TAG_STRUCT
-#define XSB_LIST TAG_LIST
+#define XSB_STRING  TAG_ATOM
+#define XSB_INT     TAG_INT
+#define XSB_FLOAT   TAG_FLOAT
+#define XSB_STRUCT  TAG_STRUCT
+#define XSB_LIST    TAG_LIST
+#define XSB_REF     TAG_REF
+#define XSB_REF1    XSB_REF
 
 #define EncodeTrieConstant(Cell_Const) ((Cell)Cell_Const)
 
@@ -65,8 +67,12 @@ typedef Functor Psc;
 
 #define StandardizeVariable(DerefedVar, Index)  \
     (*((CELL *)DerefedVar) = GLOBAL_table_var_enumerator(Index))
+#define IsStandardizedVariable(DerefVar)  IsTableVarTerm(DerefVar)
 #define EncodeTrieVar(INDEX)      MakeTableVarTerm(INDEX)
 #define EncodeTrieFunctor(TERM)   AbsAppl((Term *)FunctorOfTerm(TERM))
+#define IndexOfStdVar(VAR_ENUM_ADDR)  VarIndexOfTerm(VAR_ENUM_ADDR)
+
+#define xsb_abort(MSG, ...) Yap_Error(PURE_ABORT, TermNil, MSG, __VA_ARGS__)
 
 #endif /* TABLING_CALL_SUBSUMPTION */
 

@@ -153,7 +153,7 @@ extern DynamicStack tstTermStackLog;
     LogFrame_Value(nextFrame) = *(TermStack_Top); \
 }
 
-#define TermStack_PopAndReset { \
+#define TermStackLog_PopAndReset { \
     pLogFrame curFrame; \
     DynStk_BlindPop(tstTermStackLog, curFrame); \
     TermStack_Base[LogFrame_Index(curFrame)] = LogFrame_Value(curFrame);  \
@@ -254,6 +254,12 @@ typedef enum {
 
 CellTag cell_tag(Term t);
 xsbBool are_identical_terms(Cell term1, Cell term2);
+
+#define TrieError_UnknownSubtermTagMsg				\
+   "Trie Subterm-to-Symbol Conversion\nUnknown subterm type (%d)"
+   
+#define TrieError_UnknownSubtermTag(Subterm)			\
+   xsb_abort(TrieError_UnknownSubtermTagMsg, cell_tag(Subterm))
 
 #endif /* TABLING_CALL_SUBSUMPTION */
 
