@@ -26,7 +26,11 @@ typedef Functor Psc;
 #define get_arity(FUNCTOR)  ArityOfFunctor(FUNCTOR)
 #define clref_val(REF)  RepAppl(REF)
 #define clrefp_val(REF) RepPair(REF)
-#define bld_free(addr) RESET_VARIABLE(addr) /*cell(addr) = (Cell)(addr) CPtr => XSB_FREE cell ??? */
+#define bld_free(ADDR) { \
+  *((CELL *)ADDR) = (CELL)(ADDR); \
+  printf("Restored Var is %x content is %x\n", ADDR, *((CELL *)ADDR)); \
+}
+//RESET_VARIABLE(addr) /*cell(addr) = (Cell)(addr) CPtr => XSB_FREE cell ??? */
 
 #define IsNonNULL(ptr)   ( (ptr) != NULL )
 #define CTXTdeclc
@@ -44,7 +48,7 @@ typedef Functor Psc;
 
 #define EncodeTrieConstant(Cell_Const) ((Cell)Cell_Const)
 
-#define XSB_Deref(X) Deref(X)
+#define XSB_Deref(X) ((X) = Deref(X))
 
 #define SubsumptiveTrieLookupError(MSG) \
   Yap_Error(FATAL_ERROR, TermNil, MSG);
@@ -61,13 +65,13 @@ typedef Functor Psc;
 #define TrieHash(SYMBOL, SEED)  HASH_ENTRY(SYMBOL, SEED)
 #define TRIEVAR_BUCKET          0 /* ??? */
 
-#define IsTrieVar(SYMBOL)       IsVarTerm(SYMBOL)
-#define IsNewTrieVar(SYMBOL)    (!IsTableVarTerm(SYMBOL))
-#define DecodeTrieVar(VAR)      VarIndexOfTerm(VAR)
+#define IsTrieVar(SYMBOL)       (IsVarTerm(SYMBOL))
+#define IsNewTrieVar(SYMBOL)    (IsNewTableVarTerm(SYMBOL))
+#define DecodeTrieVar(VAR)      VarIndexOfTableTerm(VAR)
 
 #define StandardizeVariable(DerefedVar, Index)  \
     (*((CELL *)DerefedVar) = GLOBAL_table_var_enumerator(Index))
-#define IsStandardizedVariable(DerefVar)  IsTableVarTerm(DerefVar)
+#define IsStandardizedVariable(DerefVar)  (IsTableVarTerm(DerefVar))
 #define EncodeTrieVar(INDEX)      MakeTableVarTerm(INDEX)
 #define EncodeTrieFunctor(TERM)   AbsAppl((Term *)FunctorOfTerm(TERM))
 #define IndexOfStdVar(VAR_ENUM_ADDR)  VarIndexOfTerm(VAR_ENUM_ADDR)
