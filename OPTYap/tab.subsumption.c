@@ -89,7 +89,7 @@ typedef enum Search_Strategy_Mode {
 
 static xsbBool save_variant_continuation(CTXTdeclc BTNptr last_node_match) {
   // FIXME
-  return FALSE;
+  return TRUE;
 }
 
 /*
@@ -176,7 +176,10 @@ static xsbBool save_variant_continuation(CTXTdeclc BTNptr last_node_match) {
  *  Index-th cell of the VarEnumerator array, and trail the variable.
  */
 #define PrologVar_MarkIt(DerefedVar, Index) \
+ printf("Marked a new variable: %d\n", Index);  \
+ printf("Var is %x content is %x\n", DerefedVar, *((CELL *)DerefedVar)); \
   StandardizeVariable(DerefedVar, Index);  \
+  printf("Saved %x\n", (CPtr)DerefedVar); \
   Trail_Push((CPtr)DerefedVar)
 
 /*
@@ -184,8 +187,7 @@ static xsbBool save_variant_continuation(CTXTdeclc BTNptr last_node_match) {
  *  been marked, i.e. seen during prior processing and hence bound to a
  *  VarEnumerator cell.
  */
-#define PrologVar_IsMarked(pDerefedPrologVar) \
-    IsStandardizedVariable(pDerefedPrologVar)
+#define PrologVar_IsMarked(pDerefedPrologVar) IsStandardizedVariable(pDerefedPrologVar)
 
 /*
  *  When first stepping onto a particular trie level, we may find
@@ -456,7 +458,9 @@ While_TermStack_NotEmpty:
          *  and its subsequent pairing with an unbound trievar destroys
          *  the possibility of a variant.)
          */
+         printf("Subterm is a variable!\n");
         if(search_mode == MATCH_SYMBOL_EXACTLY) {
+          printf("Match exactly!\n");
           if(IsNonNULL(pCurrentBTN) && IsHashHeader(pCurrentBTN))
             pCurrentBTN = variableChain =
               BTHT_BucketArray((BTHTptr)pCurrentBTN)[TRIEVAR_BUCKET];
@@ -464,6 +468,7 @@ While_TermStack_NotEmpty:
             variableChain = pCurrentBTN;
           
           if(!PrologVar_IsMarked(subterm)) {
+            printf("Variable is not marked!\n");
             AnsVarCtr++;
             /*
       	     *  The subterm is a call variable that has not yet been seen
@@ -576,8 +581,6 @@ void subsumptive_search(yamop *preg, CELL **Yaddr)
   BTNptr btn;
   TriePathType path_type;
   
-  printf("subsumptive_search(preg, Yaddr)\n");
-  
   AnsVarCtr = 0; /// XXX
   arity = preg->u.Otapl.s;
   tab_ent = preg->u.Otapl.te;
@@ -590,6 +593,14 @@ void subsumptive_search(yamop *preg, CELL **Yaddr)
   TermStack_PushLowToHighVector(XREGS + 1, arity);
   
   btn = iter_sub_trie_lookup(CTXTc btRoot, &path_type);
+
+  if(btn == NULL) {
+    printf("No subsumption call!\n");
+  } else {
+    printf("Subsumption call found!\n");
+  }
+  
+  Trail_Unwind_All;
 }
 
 #endif /* TABLING && TABLING_CALL_SUBSUMPTION */
