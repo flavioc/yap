@@ -824,7 +824,7 @@ sg_fr_ptr subgoal_search(yamop *preg, CELL **Yaddr) {
             Yap_Error(INTERNAL_ERROR, TermNil, "MAX_TABLE_VARS exceeded (subgoal_search)");
           STACK_PUSH_UP(t, stack_vars);
           *((CELL *)t) = GLOBAL_table_var_enumerator(count_vars);
-          t = MakeTableVarTerm(count_vars);
+          t = MakeNewTableVarTerm(count_vars); /* new variable */
           count_vars++;
           SUBGOAL_TOKEN_CHECK_INSERT(tab_ent, current_node, t);
         }

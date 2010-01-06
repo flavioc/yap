@@ -153,8 +153,14 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
 
 /* LowTagBits is 3 for 32 bit-machines and 7 for 64 bit-machines */
 #define NumberOfLowTagBits         (LowTagBits == 3 ? 2 : 3)
-#define MakeTableVarTerm(INDEX)    (INDEX << NumberOfLowTagBits)
-#define VarIndexOfTableTerm(TERM)  (((unsigned int) TERM) >> NumberOfLowTagBits)
+
+#define NEW_TRIEVAR_TAG     0x100000
+#define TRIEVAR_INDEX_MASK  0xfffff
+
+#define MakeTableVarTerm(INDEX)     (INDEX << NumberOfLowTagBits)
+#define MakeNewTableVarTerm(INDEX)  (MakeTableVarTerm(INDEX) | NEW_TRIEVAR_TAG)
+#define IsNewTableVarTerm(TERM)	    (TERM & NEW_TRIEVAR_TAG)
+#define VarIndexOfTableTerm(TERM)   (((unsigned int) TERM & TRIEVAR_INDEX_MASK) >> NumberOfLowTagBits)
 #define VarIndexOfTerm(TERM)                                               \
         ((((CELL) TERM) - GLOBAL_table_var_enumerator(0)) / sizeof(CELL))
 #define IsTableVarTerm(TERM)                                               \
