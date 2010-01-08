@@ -24,6 +24,7 @@ typedef sg_hash_ptr BTHTptr;
 typedef Functor Psc;
 
 #define get_arity(FUNCTOR)  ArityOfFunctor(FUNCTOR)
+#define get_name(FUNCTOR)   AtomName(NameOfFunctor(FUNCTOR))
 #define clref_val(REF)  RepAppl(REF)
 #define clrefp_val(REF) RepPair(REF)
 #define bld_free(ADDR) { \
@@ -33,6 +34,7 @@ typedef Functor Psc;
 //RESET_VARIABLE(addr) /*cell(addr) = (Cell)(addr) CPtr => XSB_FREE cell ??? */
 
 #define IsNonNULL(ptr)   ( (ptr) != NULL )
+#define IsNULL(ptr) ((ptr) == NULL)
 #define CTXTdeclc
 #define CTXTc
 #define YES TRUE
@@ -45,6 +47,7 @@ typedef Functor Psc;
 #define XSB_LIST    TAG_LIST
 #define XSB_REF     TAG_REF
 #define XSB_REF1    XSB_REF
+#define XSB_TrieVar TAG_TrieVar
 
 #define EncodeTrieConstant(Cell_Const) ((Cell)Cell_Const)
 
@@ -58,6 +61,7 @@ typedef Functor Psc;
 #define BTN_Child(NODE)         TrNode_child(NODE)
 #define BTN_Symbol(NODE)        TrNode_entry(NODE)
 #define BTN_Sibling(NODE)       TrNode_next(NODE)
+#define BTN_Parent(NODE)        TrNode_parent(NODE)
 
 #define IsHashHeader(NODE)      IS_SUBGOAL_TRIE_HASH(NODE)
 #define BTHT_BucketArray(HASH)  Hash_buckets(HASH)
@@ -75,8 +79,23 @@ typedef Functor Psc;
 #define EncodeTrieVar(INDEX)      MakeTableVarTerm(INDEX)
 #define EncodeTrieFunctor(TERM)   AbsAppl((Term *)FunctorOfTerm(TERM))
 #define IndexOfStdVar(VAR_ENUM_ADDR)  VarIndexOfTerm(VAR_ENUM_ADDR)
+#define IsTrieRoot(NODE)   (TrNode_parent(NODE) == NULL)
+#define IsLeafNode(NODE)   (TrNode_child(NODE) == NULL) /// XXX
+#define IsEscapeNode(NODE)  (FALSE) // XXX
+#define ESCAPE_NODE_SYMBOL    (long)0xFFFFFFF // XXX
+#define IsTrieFunctor(SYMBOL) (cell_tag(SYMBOL) == TAG_STRUCT)
 
 #define xsb_abort(MSG, ...) Yap_Error(PURE_ABORT, TermNil, MSG, __VA_ARGS__)
+
+#ifdef BITS64
+#define IntegerFormatString	"%ld"
+#else
+#define IntegerFormatString	"%d"
+#endif
+
+#define int_val(SYMBOL) IntOfTerm(SYMBOL)
+#define string_val(SYMBOL)  AtomName(AtomOfTerm(SYMBOL))
+#define DecodeTrieFunctor(SYMBOL) ((Functor) RepAppl(SYMBOL))
 
 #endif /* TABLING_CALL_SUBSUMPTION */
 
