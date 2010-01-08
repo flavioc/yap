@@ -172,6 +172,56 @@ extern DynamicStack tstTermStackLog;
 /* ------------------------------------------------------------------------- */
 
 /*
+ *  tstSymbolStack
+ *  ---------------
+ *  For constructing terms from the symbols stored along a path in the trie.
+ */
+
+extern DynamicStack tstSymbolStack;
+
+#define TST_SYMBOLSTACK_INITSIZE 25
+
+#define SymbolStack_Top   ((CPtr)DynStk_Top(tstSymbolStack))
+#define SymbolStack_Base  ((CPtr)DynStk_Base(tstSymbolStack))
+#define SymbolStack_NumSymbols  (SymbolStack_Top - SymbolStack_Base)
+#define SymbolStack_ResetTOS    DynStk_ResetTOS(tstSymbolStack)
+#define SymbolStack_IsEmpty   DynStk_IsEmpty(tstSymbolStack)
+
+#define SymbolStack_Push(Symbol)  { \
+    CPtr nextFrame; \
+    DynStk_Push(tstSymbolStack, nextFrame);  \
+    *nextFrame = Symbol;  \
+}
+
+#define SymbolStack_Pop(Symbol)   {   \
+    CPtr curFrame;  \
+    DynStk_BlindPop(tstSymbolStack, curFrame);  \
+    Symbol = *curFrame; \
+}
+
+#define SymbolStack_Peek(Symbol) {  \
+    CPtr curFrame;  \
+    DynStk_BlindPeek(tstSymbolStack, curFrame); \
+    Symbol = *curFrame; \
+}
+
+#define SymbolStack_PushPathRoot(Leaf, Root) {  \
+    BTNptr btn = (BTNptr)Leaf;  \
+    while(!IsTrieRoot(btn)) { \
+      SymbolStack_Push(BTN_Symbol(btn));  \
+      btn = BTN_Parent(btn);  \
+    } \
+    Root = (void*)btn;  \
+}
+
+#define SymbolStack_PushPath(Leaf) {  \
+    BTNptr root;  \
+    SymbolStack_PushPathRoot(Leaf, root); \
+}
+
+/* ------------------------------------------------------------------------- */
+
+/*
  *  tstTrail
  *  ---------
  *  For recording bindings made during processing.  This Trail performs
@@ -195,6 +245,7 @@ extern DynamicStack tstTrail;
 
 #define Trail_PopAndReset { \
     CPtr *curFrame; \
+      printf("Back trail\n"); \
     DynStk_BlindPop(tstTrail, curFrame);  \
     bld_free(*curFrame);  \
 }
@@ -249,11 +300,13 @@ typedef enum {
   TAG_LIST,
   TAG_REF,
   TAG_DB_REF,
+  TAG_TrieVar,
   TAG_UNKNOWN
 } CellTag;
 
 CellTag cell_tag(Term t);
 xsbBool are_identical_terms(Cell term1, Cell term2);
+void printTriePath(CTXTdeclc FILE *fp, BTNptr pLeaf, xsbBool printLeafAddr);
 
 #define TrieError_UnknownSubtermTagMsg				\
    "Trie Subterm-to-Symbol Conversion\nUnknown subterm type (%d)"

@@ -30,6 +30,7 @@
 DynamicStack tstTermStack; /* term stack for subsumption */
 DynamicStack tstTermStackLog; /* term log stack for subsumption */
 DynamicStack tstTrail; /* trail stack for subsumption */
+DynamicStack tstSymbolStack; /* symbol stack for subsumption */
 struct tstCCPStack_t tstCCPStack; /* frame stack for subsumption */
 Cell TrieVarBindings[MAX_TABLE_VARS];
 #endif
@@ -208,7 +209,8 @@ void Yap_init_local(void) {
 #ifdef TABLING_CALL_SUBSUMPTION
   DynStk_Init(&tstTermStack, TST_TERMSTACK_INITSIZE, CPtr, "tstTermStack");
   DynStk_Init(&tstTermStackLog, TST_TERMSTACKLOG_INITSIZE, tstLogFrame, "tstTermStackLog");
-  DynStk_Init(&tstTrail, TST_TRAIL_INITSIZE, CPtr, "TST Trail");
+  DynStk_Init(&tstTrail, TST_TRAIL_INITSIZE, CPtr, "tstTrail");
+  DynStk_Init(&tstSymbolStack, TST_SYMBOLSTACK_INITSIZE, Cell, "tstSymbolStack");
   
   tstCCPStack.ceiling = tstCCPStack.base + CALL_CPSTACK_SIZE;
   /* initSubsumptiveLookup */
