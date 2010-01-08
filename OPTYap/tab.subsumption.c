@@ -597,6 +597,8 @@ void subsumptive_search(yamop *preg, CELL **Yaddr)
   if(btn == NULL) {
     printf("No subsumption call!\n");
   } else {
+    printf("Btn: %d %x\n", TrNode_child(btn) == NULL, btn);
+    printTriePath(stdout, btn, FALSE);
     printf("Subsumption call found!\n");
   }
   
