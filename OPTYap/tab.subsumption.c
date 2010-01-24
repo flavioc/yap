@@ -77,6 +77,25 @@ typedef enum Search_Strategy_Mode {
    Trail_Unwind(CPF_TrailTopIndex); \
 }
 
+/* -------------------------------------------- */
+
+#define ContStack_ExpandOnOverflow(Stack, StackSize, NeededSize) {  \
+    \
+  size_t new_size; /* in number of stack elements */  \
+  void *p;      \
+    \
+  if(StackSize < NeededSize)  { \
+    new_size = 2 * StackSize; \
+    if(new_size < NeededSize) \
+      new_size = new_size + NeededSize; \
+    p = realloc(Stack, (new_size * sizeof(Stack[0])));  \
+    if(IsNULL(p)) \
+      return FALSE; \
+    Stack = p;  \
+    StackSize = new_size; \
+  } \
+}
+
 /*
  * This assumes that the state of the search is being saved when its
  * ONLY modification since the last successful match is the pop of the
@@ -88,7 +107,47 @@ typedef enum Search_Strategy_Mode {
  */
 
 static xsbBool save_variant_continuation(CTXTdeclc BTNptr last_node_match) {
-  // FIXME
+  int i;
+  CPtr termptr, *binding;
+  
+  variant_cont.last_node_matched = last_node_match;
+  
+  /*
+   * Include the subterm that couldn't be matched.
+   */
+  ContStack_ExpandOnOverflow(variant_cont.subterms.stack.ptr,
+            variant_cont.subterms.stack.size,
+            TermStack_NumTerms + 1);
+  
+  for(termptr = TermStack_Base, i = 0;
+  termptr <= TermStack_Top;
+  termptr++, i++)
+    variant_cont.subterms.stack.ptr[i] = *termptr;
+  variant_cont.subterms.num = i;
+  printf("Got %d subterms to finish\n", (int)variant_cont.subterms.num);
+  
+  ContStack_ExpandOnOverflow(variant_cont.bindings.stack.ptr,
+      variant_cont.bindings.stack.size,
+      Trail_NumBindings);
+      
+  for(binding = Trail_Base, i = 0; binding < Trail_Top; binding++) {
+    termptr = *binding;
+    /*
+     * Take only those bindings made to the call variables.
+     * (Finding the value through a single deref is only possible if the
+     *  original subterm was deref'ed before trailing.  Currently, this is
+     *  the case, with trailing of unmarked callvars occuring in only one
+     *  place in the code.)
+     */
+    if(!IsUnboundTrieVar(termptr)) {
+      variant_cont.bindings.stack.ptr[i].var = termptr;
+      variant_cont.bindings.stack.ptr[i].value = *termptr;
+      i++;
+    }
+  }
+  variant_cont.bindings.num = i;
+  
+  printf("Got %d var bindings\n", (int)i);
   return TRUE;
 }
 
@@ -176,10 +235,7 @@ static xsbBool save_variant_continuation(CTXTdeclc BTNptr last_node_match) {
  *  Index-th cell of the VarEnumerator array, and trail the variable.
  */
 #define PrologVar_MarkIt(DerefedVar, Index) \
- printf("Marked a new variable: %d\n", Index);  \
- printf("Var is %x content is %x\n", DerefedVar, *((CELL *)DerefedVar)); \
   StandardizeVariable(DerefedVar, Index);  \
-  printf("Saved %x\n", (CPtr)DerefedVar); \
   Trail_Push((CPtr)DerefedVar)
 
 /*
