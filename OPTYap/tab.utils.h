@@ -288,6 +288,30 @@ struct tstCCPStack_t {
 
 extern struct tstCCPStack_t tstCCPStack;
 
+/* -------------------------------- */
+/* emu/tries.h */
+
+struct VariantContinuation {
+  BTNptr last_node_matched;
+  struct subterms_desc {
+    counter num; /* number of subterms in the stack */
+    struct termstack_desc {
+      size_t size; /* number of elements in the stack */
+      Cell *ptr; /* dynamic memory allocated for the stack */
+    } stack;
+  } subterms;
+  struct bindings_desc {
+    counter num; /* number of bindings */
+    struct trail_desc {
+      size_t size; /* number of elements in the trail */
+      struct frame {
+        CPtr var;
+        Cell value;
+      } *ptr; /* dynamic memory allocated for the trail */
+    } stack;
+  } bindings;
+};
+
 extern Cell TrieVarBindings[MAX_TABLE_VARS];
 
 typedef enum {
