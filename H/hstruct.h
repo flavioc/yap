@@ -45,10 +45,6 @@
 #define WL	wl
 #endif
 #endif
-#ifdef THREADS
-  lockvar  thread_handles_lock;
-  struct thandle  thread_handle[MAX_THREADS];
-#endif
 
   UInt  hole_size;
   struct malloc_state  *av_;
@@ -277,7 +273,6 @@
   int  allow_global_expansion;
   int  allow_trail_expansion;
   UInt  size_of_overflow;
-  struct hold_entry  *global_hold_entry;
 
   UInt  agc_last_call;
 
@@ -329,3 +324,8 @@
   ADDR  foreign_code_base;
   ADDR  foreign_code_top;
   ADDR  foreign_code_max;
+
+#ifdef THREADS
+  lockvar  thread_handles_lock;
+  struct thandle  thread_handle[MAX_THREADS];
+#endif 

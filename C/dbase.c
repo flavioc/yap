@@ -1900,7 +1900,7 @@ record_lu_at(int position, LogUpdClause *ocl, Term t)
     UNLOCK(pe->PELock);
     return NULL;
   }
-  if(pe->cs.p_code.NOfClauses > 1)
+  if(pe->cs.p_code.NOfClauses > 1) 
     Yap_RemoveIndexation(pe);
   if (position == MkFirst) {
     /* add before current clause */
@@ -1926,6 +1926,10 @@ record_lu_at(int position, LogUpdClause *ocl, Term t)
     ocl->ClNext = cl;
   }
   pe->cs.p_code.NOfClauses++;
+  if (pe->cs.p_code.NOfClauses > 1) {
+    pe->OpcodeOfPred = INDEX_OPCODE;
+    pe->CodeOfPred = (yamop *)(&(pe->OpcodeOfPred)); 
+  }
   UNLOCK(pe->PELock);
   return cl;
 }
@@ -2648,7 +2652,6 @@ new_lu_int_key(Int key)
   p->ArityOfPE = 3;
   p->OpcodeOfPred = Yap_opcode(_op_fail);
   p->cs.p_code.TrueCodeOfPred = p->CodeOfPred = FAILCODE;
-  WRITE_UNLOCK(ae->ARWLock);
   INT_LU_KEYS[hash_key] = p0;
   return p;
 }

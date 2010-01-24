@@ -45,10 +45,6 @@
 #define WL	wl
 #endif
 #endif
-#ifdef THREADS
-#define ThreadHandlesLock Yap_heap_regs->thread_handles_lock
-#define ThreadHandle Yap_heap_regs->thread_handle
-#endif
 
 #define Yap_HoleSize Yap_heap_regs->hole_size
 #define Yap_av Yap_heap_regs->av_
@@ -277,7 +273,6 @@
 #define Yap_AllowGlobalExpansion Yap_heap_regs->allow_global_expansion
 #define Yap_AllowTrailExpansion Yap_heap_regs->allow_trail_expansion
 #define SizeOfOverflow Yap_heap_regs->size_of_overflow
-#define GlobalHoldEntry Yap_heap_regs->global_hold_entry
 
 #define AGcLastCall Yap_heap_regs->agc_last_call
 
@@ -329,3 +324,8 @@
 #define ForeignCodeBase Yap_heap_regs->foreign_code_base
 #define ForeignCodeTop Yap_heap_regs->foreign_code_top
 #define ForeignCodeMax Yap_heap_regs->foreign_code_max
+
+#ifdef THREADS
+#define ThreadHandlesLock Yap_heap_regs->thread_handles_lock
+#define ThreadHandle Yap_heap_regs->thread_handle
+#endif 

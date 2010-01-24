@@ -46,6 +46,7 @@ static qg_ans_fr_ptr actual_answer;
 **      Local functions declaration      **
 ** ------------------------------------- */
 
+static Int p_yapor_threads(void);
 #ifdef YAPOR
 static realtime current_time(void);
 static Int p_yapor_on(void);
@@ -60,6 +61,7 @@ static int parallel_new_answer_putchar(int sno, int ch);
 static void show_answers(void);
 static void answer_to_stdout(char *answer);
 static Int p_or_statistics(void);
+static Int p_worker(void);
 #endif /* YAPOR */
 
 #ifdef TABLING
@@ -80,7 +82,7 @@ static Int p_tabling_statistics(void);
 #endif /* TABLING */
 
 #if defined(YAPOR) && defined(TABLING)
-static int p_opt_statistics(void);
+static Int p_opt_statistics(void);
 #endif /* YAPOR && TABLING */
 
 #if defined(YAPOR_ERRORS) || defined(TABLING_ERRORS)
@@ -124,6 +126,8 @@ static void shm_suspension_frames(long *pages_in_use, long *bytes_in_use);
 
 void Yap_init_optyap_preds(void) {
 #ifdef YAPOR
+  Yap_InitCPred("$yapor_threads", 1, p_yapor_threads, SafePredFlag|SyncPredFlag|HiddenPredFlag);
+  Yap_InitCPred("$worker", 0, p_worker, SafePredFlag|SyncPredFlag|HiddenPredFlag);
   Yap_InitCPred("$yapor_on", 0, p_yapor_on, SafePredFlag|SyncPredFlag|HiddenPredFlag);
   Yap_InitCPred("$start_yapor", 0, p_start_yapor, SafePredFlag|SyncPredFlag|HiddenPredFlag);
   Yap_InitCPred("$sequential", 1, p_sequential, SafePredFlag|SyncPredFlag|HiddenPredFlag);
@@ -173,6 +177,16 @@ void finish_yapor(void) {
 **      Local functions      **
 ** ------------------------- */
 
+static
+Int p_yapor_threads(void) {
+#if defined(YAPOR) && defined(THREADS)
+  return Yap_unify(MkIntegerTerm(number_workers),ARG1);
+#else
+  return FALSE;
+#endif
+}
+
+
 #ifdef YAPOR
 static
 realtime current_time(void) {
@@ -192,7 +206,6 @@ static
 Int p_yapor_on(void) {
   return (PARALLEL_EXECUTION_MODE);
 }
-
 
 static
 Int p_start_yapor(void) {
@@ -214,6 +227,12 @@ Int p_start_yapor(void) {
   return (TRUE);
 }
 
+static
+Int p_worker(void) {
+  CurrentModule = USER_MODULE;
+  P = GETWORK_FIRST_TIME;
+  return TRUE;
+}
 
 static
 Int p_sequential(void) {
@@ -853,7 +872,7 @@ Int p_tabling_statistics(void) {
 
 #if defined(YAPOR) && defined(TABLING)
 static
-int p_opt_statistics(void) {
+Int p_opt_statistics(void) {
 #ifdef SHM_MEMORY_ALLOC_SCHEME
   long pages_in_use = 0, bytes_in_use = 0;
 

@@ -18,8 +18,13 @@ extern "C" {
 #endif
 
 //=== includes ===============================================================
-#include "config.h"
-#include	<YapInterface.h>
+#ifdef          _YAP_NOT_INSTALLED_
+#include	"config.h"
+#include	"YapInterface.h"
+#else
+#include	<Yap/config.h>
+#include	<Yap/YapInterface.h>
+#endif
 #include	<stdarg.h>
 #include	<stdlib.h>
 #include        <stddef.h>
@@ -328,6 +333,7 @@ extern X_API module_t PL_new_module(atom_t);
 extern X_API int PL_get_name_arity(term_t, atom_t *, int *);
 extern X_API int PL_get_nil(term_t);
 extern X_API int PL_get_pointer(term_t, void **);
+extern X_API int PL_get_intptr(term_t, intptr_t *);
 extern X_API int PL_get_string(term_t, char **, int *);
 extern X_API int PL_get_tail(term_t, term_t);
 /* end PL_get_* functions  =============================*/
@@ -341,22 +347,22 @@ extern X_API atom_t PL_functor_name(functor_t);
 extern X_API int PL_functor_arity(functor_t);
 /* end PL_new_* functions =============================*/
 /* begin PL_put_* functions =============================*/
-extern X_API void PL_cons_functor(term_t, functor_t,...);
-extern X_API void PL_cons_functor_v(term_t, functor_t,term_t);
-extern X_API void PL_cons_list(term_t, term_t, term_t);
-extern X_API void PL_put_atom(term_t, atom_t);
-extern X_API void PL_put_atom_chars(term_t, const char *);
-extern X_API void PL_put_float(term_t, double);
-extern X_API void PL_put_functor(term_t, functor_t t);
-extern X_API void PL_put_int64(term_t, int64_t);
-extern X_API void PL_put_integer(term_t, long);
-extern X_API void PL_put_list(term_t);
-extern X_API void PL_put_list_chars(term_t, const char *);
+extern X_API int PL_cons_functor(term_t, functor_t,...);
+extern X_API int PL_cons_functor_v(term_t, functor_t,term_t);
+extern X_API int PL_cons_list(term_t, term_t, term_t);
+extern X_API int PL_put_atom(term_t, atom_t);
+extern X_API int PL_put_atom_chars(term_t, const char *);
+extern X_API int PL_put_float(term_t, double);
+extern X_API int PL_put_functor(term_t, functor_t t);
+extern X_API int PL_put_int64(term_t, int64_t);
+extern X_API int PL_put_integer(term_t, long);
+extern X_API int PL_put_list(term_t);
+extern X_API int PL_put_list_chars(term_t, const char *);
 extern X_API void PL_put_nil(term_t);
-extern X_API void PL_put_pointer(term_t, void *);
-extern X_API void PL_put_string_chars(term_t, const char *);
-extern X_API void PL_put_term(term_t, term_t);
-extern X_API void PL_put_variable(term_t);
+extern X_API int PL_put_pointer(term_t, void *);
+extern X_API int PL_put_string_chars(term_t, const char *);
+extern X_API int PL_put_term(term_t, term_t);
+extern X_API int PL_put_variable(term_t);
 extern X_API  int PL_compare(term_t, term_t);
 /* end PL_put_* functions =============================*/
 /* begin PL_unify_* functions =============================*/
@@ -477,6 +483,32 @@ void swi_install(void);
 
 X_API int PL_error(const char *pred, int arity, const char *msg, int id, ...);
 X_API int PL_warning(const char *msg, ...);
+
+
+		/********************************
+		* NON-DETERMINISTIC CALL/RETURN *
+		*********************************/
+
+/*  Note 1: Non-deterministic foreign functions may also use the deterministic
+    return methods PL_succeed and PL_fail.
+
+    Note 2: The argument to PL_retry is a sizeof(ptr)-2 bits signed
+    integer (use type intptr_t).
+*/
+
+#define PL_FIRST_CALL		(0)
+#define PL_CUTTED		(1)
+#define PL_REDO			(2)
+
+#define PL_retry(n)		return _PL_retry(n)
+#define PL_retry_address(a)	return _PL_retry_address(a)
+
+PL_EXPORT(foreign_t)	_PL_retry(intptr_t);
+PL_EXPORT(foreign_t)	_PL_retry_address(void *);
+PL_EXPORT(int)	 	PL_foreign_control(control_t);
+PL_EXPORT(intptr_t)	PL_foreign_context(control_t);
+PL_EXPORT(void *)	PL_foreign_context_address(control_t);
+
 
 
 #ifdef __cplusplus
