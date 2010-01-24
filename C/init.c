@@ -1139,6 +1139,7 @@ InitThreadHandles(void)
   Yap_heap_regs->thread_handle[0].handle = pthread_self();
   pthread_mutex_init(&ThreadHandle[0].tlock, NULL);
   pthread_mutex_init(&ThreadHandle[0].tlock_status, NULL);
+  Yap_heap_regs->thread_handle[0].tdetach = MkAtomTerm(AtomFalse);
 }
 #endif
 
@@ -1177,6 +1178,7 @@ InitCodes(void)
 	Yap_heap_regs->wl[i].consultlow + Yap_heap_regs->wl[i].consultcapacity;
       Yap_heap_regs->wl[i].Gc_timestamp = 0;
     }
+    Yap_heap_regs->wl[i].ball_term = NULL;
   }
 #else
   Yap_heap_regs->wl.dynamic_arrays = NULL;
@@ -1199,8 +1201,8 @@ InitCodes(void)
   Yap_heap_regs->wl.consultcapacity = InitialConsultCapacity;
   Yap_heap_regs->wl.consultbase = Yap_heap_regs->wl.consultsp =
     Yap_heap_regs->wl.consultlow + Yap_heap_regs->wl.consultcapacity;
-#endif /* YAPOR */
   Yap_heap_regs->wl.ball_term = NULL;
+#endif /* YAPOR */
 
   /* make sure no one else can use these two atoms */
   CurrentModule = 0;
@@ -1213,8 +1215,8 @@ InitCodes(void)
     modp->PredFlags |= MetaPredFlag;
   }
 #ifdef YAPOR
-  Yap_heap_regs->getwork_code.u.Otapl.p = RepPredProp(PredPropByAtom(AtomGetwork, PROLOG_MODULE));
-  Yap_heap_regs->getwork_seq_code.u.Otapl.p = RepPredProp(PredPropByAtom(AtomGetworkSeq, PROLOG_MODULE));
+  Yap_heap_regs->getwork_code->u.Otapl.p = RepPredProp(PredPropByAtom(AtomGetwork, PROLOG_MODULE));
+  Yap_heap_regs->getwork_seq_code->u.Otapl.p = RepPredProp(PredPropByAtom(AtomGetworkSeq, PROLOG_MODULE));
 #endif /* YAPOR */
 
 }
@@ -1272,7 +1274,7 @@ Yap_InitWorkspace(UInt Heap, UInt Stack, UInt Trail, UInt Atts, UInt max_table_s
     Atts = 2048*sizeof(CELL);
   else
     Atts = AdjustPageSize(Atts * K);
-#ifdef YAPOR
+#if defined(YAPOR) && !defined(THREADS)
   worker_id = 0;
   if (n_workers > MAX_WORKERS)
     Yap_Error(INTERNAL_ERROR, TermNil, "excessive number of workers (Yap_InitWorkspace)");
@@ -1286,7 +1288,7 @@ Yap_InitWorkspace(UInt Heap, UInt Stack, UInt Trail, UInt Atts, UInt max_table_s
   map_memory(Heap, Stack+Atts, Trail, n_workers);
 #else
   Yap_InitMemory (Trail, Heap, Stack+Atts);
-#endif /* YAPOR */
+#endif /* YAPOR && !THREADS */
 #if defined(YAPOR) || defined(TABLING)
   Yap_init_global(max_table_size, n_workers, sch_loop, delay_load);
 #endif /* YAPOR || TABLING */
@@ -1326,7 +1328,7 @@ Yap_InitWorkspace(UInt Heap, UInt Stack, UInt Trail, UInt Atts, UInt max_table_s
 void
 Yap_exit (int value)
 {
-#if defined(YAPOR)
+#if defined(YAPOR) && !defined(THREADS)
   unmap_memory();
 #endif /* YAPOR */
 

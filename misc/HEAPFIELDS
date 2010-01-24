@@ -46,10 +46,6 @@ worker_local	wl			WorkerLocak			void void
 #define WL	wl
 #endif
 #endif
-#ifdef THREADS
-lockvar		thread_handles_lock	ThreadHandlesLock	MkLock
-struct thandle	thread_handle[MAX_THREADS] ThreadHandle		InitThreadHandles() void
-#endif
 
 /* memory management */
 UInt		hole_size		Yap_HoleSize		void void
@@ -311,7 +307,6 @@ int		allow_local_expansion	Yap_AllowLocalExpansion =TRUE void
 int		allow_global_expansion	Yap_AllowGlobalExpansion =TRUE void 
 int		allow_trail_expansion	Yap_AllowTrailExpansion =TRUE void 
 UInt		size_of_overflow	SizeOfOverflow		=0 void
-struct hold_entry *global_hold_entry	GlobalHoldEntry		=Yap_InitAtomHold() HoldEntryAdjust
 /* amount of space recovered in all garbage collections */
 UInt		agc_last_call		AGcLastCall		=0 void
 /* amount of space recovered in all garbage collections */
@@ -377,3 +372,9 @@ void		*foreign_code_loaded	ForeignCodeLoaded	=NULL RestoreForeignCode()
 ADDR		foreign_code_base	ForeignCodeBase		=NULL void
 ADDR		foreign_code_top	ForeignCodeTop		=NULL void
 ADDR		foreign_code_max	ForeignCodeMax		=NULL void
+
+/* Threads Array */
+#ifdef THREADS
+lockvar		thread_handles_lock	ThreadHandlesLock	MkLock
+struct thandle	thread_handle[MAX_THREADS] ThreadHandle		InitThreadHandles() void
+#endif 

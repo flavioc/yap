@@ -162,6 +162,9 @@ setup_engine(int myworker_id)
   CurrentModule = ThreadHandle[myworker_id].cmod;
   Yap_InitTime();
   Yap_InitYaamRegs();
+#ifdef YAPOR
+  Yap_init_local();
+#endif
   Yap_ReleasePreAllocCodeSpace(Yap_PreAllocCodeSpace());
   /* I exist */
   NOfThreadsCreated++;
@@ -711,7 +714,8 @@ p_thread_atexit(void)
 {				/* '$thread_signal'(+P)	 */
   Term t;
 
-  if (ThreadHandle[worker_id].texit->Entry == MkAtomTerm(AtomTrue)) {
+  if (!ThreadHandle[worker_id].texit ||
+      ThreadHandle[worker_id].texit->Entry == MkAtomTerm(AtomTrue)) {
     return FALSE;
   }
   do {

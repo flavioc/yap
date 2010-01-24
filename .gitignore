@@ -36,3 +36,4 @@ packages/cplint/Makefile
 packages/sgml/Makefile
 startup.yss
 yap
+parms.h

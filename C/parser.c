@@ -676,8 +676,8 @@ ParseTerm(int prio, JMPBUFF *FailBuff)
 	curprio = 1000;
 	continue;
       } else if (Unsigned(Yap_tokptr->TokInfo) == '|' &&
-		 IsInfixOp(AtomVBar, &opprio, &oplprio, &oprprio)
-		 && opprio <= prio && oplprio >= curprio) {
+                IsInfixOp(AtomVBar, &opprio, &oplprio, &oprprio)
+                && opprio <= prio && oplprio >= curprio) {
 	Volatile Term args[2];
 	NextToken;
 	args[0] = t;

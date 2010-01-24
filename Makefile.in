@@ -49,7 +49,7 @@ DOCSDIR=$(SHAREDIR)/docs/yap
 #
 # check also optimisation options in INSTALL file.
 #
-YAP_EXTRAS=@YAP_EXTRAS@
+YAP_EXTRAS=-DCUT_C=1 @YAP_EXTRAS@
 
 YAPSTARTUP=startup.yss
 
@@ -70,7 +70,7 @@ C_PARSER_FLAGS= @C_PARSER_FLAGS@ $(YAP_EXTRAS) $(DEFS) $(CPPFLAGS)
 ARCH=@ARCH@
 AWK=@AWK@
 CPP=@CPP@
-DEFS=@DEFS@
+DEFS=@DEFS@ -D_YAP_NOT_INSTALLED_=1
 LIBS=@LIBS@
 LDFLAGS=@LDFLAGS@
 LN_S=@LN_S@
@@ -192,6 +192,7 @@ C_SOURCES= \
         $(srcdir)/OPTYap/opt.init.c \
 	$(srcdir)/OPTYap/opt.preds.c $(srcdir)/OPTYap/or.engine.c \
 	$(srcdir)/OPTYap/or.cowengine.c $(srcdir)/OPTYap/or.sbaengine.c \
+	$(srcdir)/OPTYap/or.threadengine.c \
 	$(srcdir)/OPTYap/or.scheduler.c $(srcdir)/OPTYap/or.cut.c \
 	$(srcdir)/OPTYap/tab.tries.c $(srcdir)/OPTYap/tab.suspend.c \
 	$(srcdir)/OPTYap/tab.stack.c $(srcdir)/OPTYap/tab.subsumption.c \
@@ -200,6 +201,7 @@ C_SOURCES= \
 	$(srcdir)/library/lammpi/yap_mpi.c $(srcdir)/library/lammpi/hash.c \
 	$(srcdir)/library/lammpi/prologterms2c.c  \
 	$(srcdir)/C/cut_c.c \
+	$(srcdir)/library/yap2swi/yap2swi.c \
 	$(srcdir)/MYDDAS/myddas_mysql.c \
 	$(srcdir)/MYDDAS/myddas_odbc.c \
 	$(srcdir)/MYDDAS/myddas_util.c \
@@ -268,7 +270,8 @@ C_INTERFACE_OBJECTS = \
 
 OR_OBJECTS = \
 	opt.memory.o opt.misc.o opt.init.o opt.preds.o   \
-	or.engine.o or.cowengine.o or.sbaengine.o or.scheduler.o or.cut.o      \
+	or.engine.o or.cowengine.o or.sbaengine.o \
+	or.threadengine.o or.scheduler.o or.cut.o      \
 	tab.tries.o tab.stack.o tab.utils.o tab.suspend.o tab.subsumption.o
 
 BEAM_OBJECTS = \
@@ -398,6 +401,9 @@ or.cowengine.o: $(srcdir)/OPTYap/or.cowengine.c $(srcdir)/OPTYap/opt.config.h
 or.sbaengine.o: $(srcdir)/OPTYap/or.sbaengine.c $(srcdir)/OPTYap/opt.config.h
 	$(CC) -c $(CFLAGS) $(srcdir)/OPTYap/or.sbaengine.c -o $@
 
+or.threadengine.o: $(srcdir)/OPTYap/or.threadengine.c
+	$(CC) -c $(CFLAGS) $(srcdir)/OPTYap/or.threadengine.c -o $@
+
 or.scheduler.o: $(srcdir)/OPTYap/or.scheduler.c $(srcdir)/OPTYap/opt.config.h
 	$(CC) -c $(CFLAGS) $(srcdir)/OPTYap/or.scheduler.c -o $@
 
@@ -525,7 +531,7 @@ all: startup.yss
 	@INSTALL_DLLS@ (cd library/matrix; $(MAKE))
 	@INSTALL_DLLS@ (cd packages/sgml; $(MAKE))
 	@INSTALL_DLLS@ (cd packages/plunit; $(MAKE))
-	@INSTALL_DLLS@ (cd packages/swi-minisat2/C; $(MAKE))
+	@USE_MINISAT@ (cd packages/swi-minisat2/C; $(MAKE))
 	@INSTALL_MATLAB@ (cd library/matlab; $(MAKE))
 	@ENABLE_JPL@ @INSTALL_DLLS@ (cd packages/jpl; $(MAKE))
 	@ENABLE_CPLINT@ (cd cplint; $(MAKE))
@@ -562,7 +568,7 @@ install_unix: startup.yss libYap.a
 	@INSTALL_DLLS@ (cd packages/PLStream; $(MAKE) install)
 	@INSTALL_DLLS@ (cd packages/plunit; $(MAKE) install)
 	@INSTALL_DLLS@ (cd packages/sgml; $(MAKE) install)
-	@INSTALL_DLLS@ (cd packages/swi-minisat2/C; $(MAKE) install)
+	@USE_MINISAT@ (cd packages/swi-minisat2/C; $(MAKE) install)
 	@INSTALL_DLLS@ (cd library/random; $(MAKE) install)
 	@INSTALL_DLLS@ (cd library/regex; $(MAKE) install)
 	@INSTALL_DLLS@ (cd library/rltree; $(MAKE) install)
@@ -601,7 +607,7 @@ install_win32: startup.yss
 	(cd packages/PLStream; $(MAKE) install)
 	(cd packages/plunit; $(MAKE) install)
 	(cd packages/sgml; $(MAKE) install)
-	(cd packages/swi-minisat2/C; $(MAKE) install)
+	@USE_MINISAT@ (cd packages/swi-minisat2/C; $(MAKE) install)
 	(cd library/random; $(MAKE) install)
 	(cd library/matrix; $(MAKE) install)
 	(cd library/regex; $(MAKE) install)
@@ -658,6 +664,7 @@ clean: clean_docs
 	@INSTALL_DLLS@ (cd library/rltree; $(MAKE) clean)
 	@INSTALL_DLLS@ (cd library/tries; $(MAKE) clean)
 	@INSTALL_DLLS@ (cd library/lammpi; $(MAKE) clean)
+	@USE_MINISAT@ (cd packages/swi-minisat2; $(MAKE) clean)
 	@INSTALL_MATLAB@ (cd library/matlab; $(MAKE) clean)
 	@ENABLE_JPL@ @INSTALL_DLLS@ (cd packages/jpl; $(MAKE) clean)
 	@ENABLE_CPLINT@ (cd packages/cplint; $(MAKE) clean)

@@ -54,7 +54,7 @@
 ** ---------------------------- */
 
 typedef struct table_entry {
-#ifdef YAPOR
+#if defined(YAPOR) || defined(THREADS)
   lockvar lock;
 #endif /* YAPOR */
   struct pred_entry *pred_entry;
@@ -211,8 +211,10 @@ typedef ans_node_ptr continuation_ptr;
 ** ------------------------------ */
 
 typedef struct subgoal_frame {
-#ifdef YAPOR
+#if defined(YAPOR) || defined(THREADS)
   lockvar lock;
+#endif
+#ifdef YAPOR
   int generator_worker;
   struct or_frame *top_or_frame_on_generator_branch;
 #endif /* YAPOR */
@@ -290,8 +292,10 @@ typedef struct subgoal_frame {
 ** --------------------------------- */
 
 typedef struct dependency_frame {
-#ifdef YAPOR
+#if defined(YAPOR) || defined(THREADS)
   lockvar lock;
+#endif
+#ifdef YAPOR
   int leader_dependency_is_on_stack;
   struct or_frame *top_or_frame;
 #ifdef TIMESTAMP_CHECK

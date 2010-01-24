@@ -45,10 +45,6 @@
 #define WL	wl
 #endif
 #endif
-#ifdef THREADS
-  INIT_LOCK(Yap_heap_regs->thread_handles_lock);
-  InitThreadHandles();
-#endif
 
 
 
@@ -277,7 +273,6 @@
   Yap_heap_regs->allow_global_expansion = TRUE;
   Yap_heap_regs->allow_trail_expansion = TRUE;
   Yap_heap_regs->size_of_overflow = 0;
-  Yap_heap_regs->global_hold_entry = Yap_InitAtomHold();
 
   Yap_heap_regs->agc_last_call = 0;
 
@@ -329,3 +324,8 @@
   Yap_heap_regs->foreign_code_base = NULL;
   Yap_heap_regs->foreign_code_top = NULL;
   Yap_heap_regs->foreign_code_max = NULL;
+
+#ifdef THREADS
+  INIT_LOCK(Yap_heap_regs->thread_handles_lock);
+  InitThreadHandles();
+#endif 

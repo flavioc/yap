@@ -1903,6 +1903,23 @@ other procedures.
 The compiler will execute goals @var{G} after consulting the current
 file.
 
+@item initialization(+@var{Goal},+@var{When})
+@findex initialization/2 (directive)
+@snindex initialization/2 (directive)
+@cnindex initialization/2 (directive)
+Similar to @code{initialization/1}, but allows for specifying when
+@var{Goal} is executed while loading the program-text:
+
+@table @code
+@item now
+    Execute @var{Goal} immediately. 
+@item after_load
+    Execute @var{Goal} after loading program-text. This is the same as initialization/1. 
+@item restore
+    Do not execute @var{Goal} while loading the program, but only when
+    restoring a state (not implemented yet). 
+@end table
+
 @item library_directory(+@var{D})
 @findex library_directory/1
 @snindex library_directory/1
@@ -4695,6 +4712,10 @@ If @code{true}, output terms of the form
 letters. The default value is @code{false}.
 
 @item portrayed(+@var{Bool})
+If @code{true}, use @t{portray/1} to portray bound terms. The default
+value is @code{false}.
+
+@item portray(+@var{Bool})
 If @code{true}, use @t{portray/1} to portray bound terms. The default
 value is @code{false}.
 
@@ -14917,14 +14938,16 @@ YAP, in the initialization routine, with a call to
 where @var{name} is the name of the predicate, @var{fn} is the C function
 implementing the predicate and @var{arity} is its arity.
 
-@findex YAP_UserBackCPredicate (C-Interface function)
+@findex YAP_UserBackCPredicate (C-Interface function, deprecated)
+@findex YAP_UserBackCutCPredicate (C-Interface function)
 @findex YAP_PRESERVE_DATA (C-Interface function)
 @findex YAP_PRESERVED_DATA (C-Interface function)
 @findex YAP_cutsucceed (C-Interface function)
 @findex YAP_cutfail (C-Interface function)
-For the second kind of predicates we need two C functions. The first one
-which is called when the predicate is first activated, and the second one
-to be called on backtracking to provide (possibly) other solutions. Note
+For the second kind of predicates we need three C functions. The first one
+ is called when the predicate is first activated; the second one
+is called on backtracking to provide (possibly) other solutions; the
+ last one is called on pruning. Note
 also that we normally also need to preserve some information to find out
 the next solution.
 
@@ -15046,25 +15069,26 @@ Backtrackable predicates should be declared to YAP, in a way
 similar to what happened with deterministic ones, but using instead a
 call to
 @example
-      void YAP_UserBackCPredicate(char *@var{name},
-                 int *@var{init}(), int *@var{cont}(),
+      void YAP_UserBackCutCPredicate(char *@var{name},
+                 int *@var{init}(), int *@var{cont}(), int *@var{cut}(),
                  unsigned long int @var{arity}, unsigned int @var{sizeof});
 @end example
 @noindent
-where @var{name} is a string with the name of the predicate, @var{init} and
-@var{cont} are the C functions used to start and continue the execution of
-the predicate, @var{arity} is the predicate arity, and @var{sizeof} is
-the size of the data to be preserved in the stack. In this example, we
-would have something like
+where @var{name} is a string with the name of the predicate, @var{init},
+@var{cont}, @var{cut} are the C functions used to start, continue and
+when pruning the execution of the predicate, @var{arity} is the
+predicate arity, and @var{sizeof} is the size of the data to be
+preserved in the stack. In this example, we would have something like
 
 @example
 void
 init_n100(void)
 @{
-  YAP_UserBackCPredicate("n100", start_n100, continue_n100, 1, 1);
+  YAP_UserBackCutCPredicate("n100", start_n100, continue_n100, NULL, 1, 1);
 @}
 @end example
-
+Notice that we do not actually need to do anything on receiving a cut in
+this case.
 
 @node Loading Objects, Save&Rest, Writing C, C-Interface
 @section Loading Object Files

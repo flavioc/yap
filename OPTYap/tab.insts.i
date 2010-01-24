@@ -306,9 +306,14 @@
 
 #ifdef YAPOR
     if (SCH_top_shared_cp(B)) {
+#if 0
       PROBLEM: cp_last_answer field is local to the cp!
                -> we need a shared data structure to avoid redundant computations!
       UNLOCK_OR_FRAME(LOCAL_top_or_fr);
+#else
+      fprintf(stderr,"PROBLEM: cp_last_answer field is local to the cp!\n");
+      exit(1);
+#endif
     }
 #endif /* YAPOR */
 
@@ -453,7 +458,7 @@
       if (PARALLEL_EXECUTION_MODE) {
 	choiceptr aux_cp;
 	aux_cp = B;
-	while (YOUNGER_CP(aux_cp, LOCAL_top_cp_on_stack))
+	while (YOUNGER_CP(aux_cp, Get_LOCAL_top_cp_on_stack()))
 	  aux_cp = aux_cp->cp_b;
 	if (aux_cp->cp_or_fr != DepFr_top_or_fr(LOCAL_top_dep_fr))
 	  OPTYAP_ERROR_MESSAGE("Error on DepFr_top_or_fr (table_try_single)");
@@ -572,15 +577,15 @@
       store_consumer_node(tab_ent, sg_fr, leader_cp, leader_dep_on_stack);
 #ifdef OPTYAP_ERRORS
       if (PARALLEL_EXECUTION_MODE) {
-	      choiceptr aux_cp;
-	      aux_cp = B;
-	      while (YOUNGER_CP(aux_cp, LOCAL_top_cp_on_stack))
-	        aux_cp = aux_cp->cp_b;
-	      if (aux_cp->cp_or_fr != DepFr_top_or_fr(LOCAL_top_dep_fr))
-	        OPTYAP_ERROR_MESSAGE("Error on DepFr_top_or_fr (table_try_me)");
-	      aux_cp = B;
-	      while (YOUNGER_CP(aux_cp, DepFr_leader_cp(LOCAL_top_dep_fr)))
-	        aux_cp = aux_cp->cp_b;
+        choiceptr aux_cp;
+        aux_cp = B;
+        while (YOUNGER_CP(aux_cp, Get_LOCAL_top_cp_on_stack()))
+          aux_cp = aux_cp->cp_b;
+        if (aux_cp->cp_or_fr != DepFr_top_or_fr(LOCAL_top_dep_fr))
+          OPTYAP_ERROR_MESSAGE("Error on DepFr_top_or_fr (table_try_me)");
+        aux_cp = B;
+        while (YOUNGER_CP(aux_cp, DepFr_leader_cp(LOCAL_top_dep_fr)))
+          aux_cp = aux_cp->cp_b;
 	      if (aux_cp != DepFr_leader_cp(LOCAL_top_dep_fr))
 	        OPTYAP_ERROR_MESSAGE("Error on DepFr_leader_cp (table_try_me)");
       }
@@ -690,6 +695,7 @@
       store_consumer_node(tab_ent, sg_fr, leader_cp, leader_dep_on_stack);
 #ifdef OPTYAP_ERRORS
       if (PARALLEL_EXECUTION_MODE) {
+<<<<<<< HEAD
         choiceptr aux_cp;
         aux_cp = B;
         while (YOUNGER_CP(aux_cp, LOCAL_top_cp_on_stack))
@@ -701,6 +707,19 @@
           aux_cp = aux_cp->cp_b;
         if (aux_cp != DepFr_leader_cp(LOCAL_top_dep_fr))
           OPTYAP_ERROR_MESSAGE("Error on DepFr_leader_cp (table_try)");
+=======
+	choiceptr aux_cp;
+	aux_cp = B;
+	while (YOUNGER_CP(aux_cp, Get_LOCAL_top_cp_on_stack()))
+	  aux_cp = aux_cp->cp_b;
+	if (aux_cp->cp_or_fr != DepFr_top_or_fr(LOCAL_top_dep_fr))
+	  OPTYAP_ERROR_MESSAGE("Error on DepFr_top_or_fr (table_try)");
+	aux_cp = B;
+	while (YOUNGER_CP(aux_cp, DepFr_leader_cp(LOCAL_top_dep_fr)))
+	  aux_cp = aux_cp->cp_b;
+	if (aux_cp != DepFr_leader_cp(LOCAL_top_dep_fr))
+	  OPTYAP_ERROR_MESSAGE("Error on DepFr_leader_cp (table_try)");
+>>>>>>> master
       }
 #endif /* OPTYAP_ERRORS */
       goto answer_resolution;
@@ -910,7 +929,7 @@
             for (i = 0; i < number_workers; i++) {
               if (BITMAP_member(members, i) && 
                   BRANCH_LTT(i, depth) > ltt && 
-                  EQUAL_OR_YOUNGER_CP(LOCAL_top_cp, REMOTE_pruning_scope(i))) {
+                  EQUAL_OR_YOUNGER_CP(Get_LOCAL_top_cp(), REMOTE_pruning_scope(i))) {
                 leftmost_or_fr = LOCAL_top_or_fr;
   pending_table_new_answer:
 #if defined(TABLE_LOCK_AT_ENTRY_LEVEL)
@@ -956,7 +975,7 @@
               for (i = 0; i < number_workers; i++) {
                 if (BITMAP_member(members, i) &&
                     BRANCH_LTT(i, depth) > ltt &&
-                    EQUAL_OR_YOUNGER_CP(OrFr_node(leftmost_or_fr), REMOTE_pruning_scope(i)))
+                    EQUAL_OR_YOUNGER_CP(GetOrFr_node(leftmost_or_fr), REMOTE_pruning_scope(i)))
                   goto pending_table_new_answer;
 	      }
               BITMAP_minus(prune_members, members);
@@ -971,7 +990,7 @@
                 for (i = 0; i < number_workers; i++) {
                   if (BITMAP_member(members, i) &&
                       BRANCH_LTT(i, depth) > ltt &&
-                      EQUAL_OR_YOUNGER_CP(OrFr_node(leftmost_or_fr), REMOTE_pruning_scope(i))) {
+                      EQUAL_OR_YOUNGER_CP(GetOrFr_node(leftmost_or_fr), REMOTE_pruning_scope(i))) {
                     /* update nearest leftnode data */
                     or_fr = LOCAL_top_or_fr;
                     nearest_or_fr = OrFr_nearest_leftnode(or_fr);
@@ -1216,9 +1235,9 @@
           end_or_fr = DepFr_top_or_fr(dep_fr);
           if (start_or_fr != end_or_fr) {
             LOCAL_top_or_fr = end_or_fr;
-            LOCAL_top_cp = OrFr_node(end_or_fr);
+            Set_LOCAL_top_cp(GetOrFr_node(end_or_fr));
             do {
-              while (YOUNGER_CP(OrFr_node(start_or_fr), OrFr_node(end_or_fr))) {
+              while (YOUNGER_CP(GetOrFr_node(start_or_fr), GetOrFr_node(end_or_fr))) {
                 LOCK_OR_FRAME(start_or_fr);
                 BITMAP_delete(OrFr_members(start_or_fr), worker_id);
                 if (BITMAP_empty(OrFr_members(start_or_fr))) {
@@ -1250,7 +1269,7 @@
 #endif /* TABLING_INNER_CUTS */
                 start_or_fr = OrFr_next(start_or_fr);
   	      }
-              while (YOUNGER_CP(OrFr_node(end_or_fr), OrFr_node(start_or_fr))) {
+              while (YOUNGER_CP(GetOrFr_node(end_or_fr), GetOrFr_node(start_or_fr))) {
                 LOCK_OR_FRAME(end_or_fr);
                 BITMAP_insert(OrFr_members(end_or_fr), worker_id);
                 BRANCH(worker_id, OrFr_depth(end_or_fr)) = 1;
@@ -1264,17 +1283,17 @@
 #endif /* YAPOR */
 #ifdef OPTYAP_ERRORS
           if (PARALLEL_EXECUTION_MODE) {
-            if (YOUNGER_CP(LOCAL_top_cp, LOCAL_top_cp_on_stack)) {
-              OPTYAP_ERROR_MESSAGE("YOUNGER_CP(LOCAL_top_cp, LOCAL_top_cp_on_stack) (answer_resolution)");
+            if (YOUNGER_CP(Get_LOCAL_top_cp(), Get_LOCAL_top_cp_on_stack())) {
+              OPTYAP_ERROR_MESSAGE("YOUNGER_CP(Get_LOCAL_top_cp(), LOCAL_top_cp_on_stack) (answer_resolution)");
     	    } else {
               choiceptr aux_cp;
               aux_cp = chain_cp;
-              while (aux_cp != LOCAL_top_cp) {
-                if (YOUNGER_CP(LOCAL_top_cp, aux_cp)) {
+              while (aux_cp != Get_LOCAL_top_cp()) {
+                if (YOUNGER_CP(Get_LOCAL_top_cp(), aux_cp)) {
                   OPTYAP_ERROR_MESSAGE("LOCAL_top_cp not in branch (answer_resolution)");
                   break;
                 }
-                if (EQUAL_OR_YOUNGER_CP(LOCAL_top_cp_on_stack, aux_cp)) {
+                if (EQUAL_OR_YOUNGER_CP(Get_LOCAL_top_cp_on_stack(), aux_cp)) {
                   OPTYAP_ERROR_MESSAGE("shared frozen segments in branch (answer_resolution)");
                   break;
                 }
@@ -1305,12 +1324,12 @@
       /* no dependency frames with unconsumed answers found */
 #ifdef YAPOR
       /* update shared nodes */
-      if (EQUAL_OR_YOUNGER_CP(LOCAL_top_cp_on_stack, chain_cp)) {
+      if (EQUAL_OR_YOUNGER_CP(Get_LOCAL_top_cp_on_stack(), chain_cp)) {
         end_or_fr = chain_cp->cp_or_fr;
         start_or_fr = LOCAL_top_or_fr;
         if (start_or_fr != end_or_fr) {
           LOCAL_top_or_fr = end_or_fr;
-          LOCAL_top_cp = OrFr_node(end_or_fr);
+          Set_LOCAL_top_cp(GetOrFr_node(end_or_fr));
           while (start_or_fr != end_or_fr) {
             LOCK_OR_FRAME(start_or_fr);
             BITMAP_delete(OrFr_members(start_or_fr), worker_id);
@@ -1350,17 +1369,17 @@
 #endif /* YAPOR */
 #ifdef OPTYAP_ERRORS
       if (PARALLEL_EXECUTION_MODE) {
-        if (YOUNGER_CP(LOCAL_top_cp, LOCAL_top_cp_on_stack)) {
-          OPTYAP_ERROR_MESSAGE("YOUNGER_CP(LOCAL_top_cp, LOCAL_top_cp_on_stack) (answer_resolution)");
+        if (YOUNGER_CP(Get_LOCAL_top_cp(), Get_LOCAL_top_cp_on_stack())) {
+          OPTYAP_ERROR_MESSAGE("YOUNGER_CP(Get_LOCAL_top_cp(), Get_LOCAL_top_cp_on_stack()) (answer_resolution)");
 	} else {
           choiceptr aux_cp;
           aux_cp = chain_cp;
-          while (aux_cp != LOCAL_top_cp) {
-            if (YOUNGER_CP(LOCAL_top_cp, aux_cp)) {
+          while (aux_cp != Get_LOCAL_top_cp()) {
+            if (YOUNGER_CP(Get_LOCAL_top_cp(), aux_cp)) {
               OPTYAP_ERROR_MESSAGE("LOCAL_top_cp not in branch (answer_resolution)");
               break;
             }
-            if (EQUAL_OR_YOUNGER_CP(LOCAL_top_cp_on_stack, aux_cp)) {
+            if (EQUAL_OR_YOUNGER_CP(Get_LOCAL_top_cp_on_stack(), aux_cp)) {
               OPTYAP_ERROR_MESSAGE("shared frozen segments in branch (answer_resolution)");
               break;
             }
@@ -1496,12 +1515,12 @@
 
 #ifdef OPTYAP_ERRORS
         if (PARALLEL_EXECUTION_MODE) {
-          if (YOUNGER_CP(LOCAL_top_cp, LOCAL_top_cp_on_stack)) {
+          if (YOUNGER_CP(Get_LOCAL_top_cp(), Get_LOCAL_top_cp_on_stack())) {
             OPTYAP_ERROR_MESSAGE("YOUNGER_CP(LOCAL_top_cp, LOCAL_top_cp_on_stack) (completion)");
           } else {
             choiceptr aux_cp;
             aux_cp = DepFr_cons_cp(dep_fr);
-            while (YOUNGER_CP(aux_cp, LOCAL_top_cp_on_stack))
+            while (YOUNGER_CP(aux_cp, Get_LOCAL_top_cp_on_stack()))
               aux_cp = aux_cp->cp_b;
             if (aux_cp->cp_or_fr != DepFr_top_or_fr(dep_fr))
               OPTYAP_ERROR_MESSAGE("Error on DepFr_top_or_fr (completion)");
@@ -1510,7 +1529,7 @@
 #endif /* OPTYAP_ERRORS */
 #ifdef YAPOR
         /* update shared nodes */
-        if (YOUNGER_CP(LOCAL_top_cp_on_stack, LOCAL_top_cp)) {
+        if (YOUNGER_CP(Get_LOCAL_top_cp_on_stack(), Get_LOCAL_top_cp())) {
           or_fr_ptr or_frame = DepFr_top_or_fr(dep_fr);
           while (or_frame != LOCAL_top_or_fr) {
             LOCK_OR_FRAME(or_frame);
@@ -1520,22 +1539,22 @@
             or_frame = OrFr_next(or_frame);
           }
           LOCAL_top_or_fr = DepFr_top_or_fr(dep_fr);
-          LOCAL_top_cp = OrFr_node(LOCAL_top_or_fr);
+          Set_LOCAL_top_cp(GetOrFr_node(LOCAL_top_or_fr));
         }
 #endif /* YAPOR */
 #ifdef OPTYAP_ERRORS
         if (PARALLEL_EXECUTION_MODE) {
-          if (YOUNGER_CP(LOCAL_top_cp, LOCAL_top_cp_on_stack)) {
+          if (YOUNGER_CP(Get_LOCAL_top_cp(), Get_LOCAL_top_cp_on_stack())) {
             OPTYAP_ERROR_MESSAGE("YOUNGER_CP(LOCAL_top_cp, LOCAL_top_cp_on_stack) (completion)");
           } else {
             choiceptr aux_cp;
             aux_cp = DepFr_cons_cp(dep_fr);
-            while (aux_cp != LOCAL_top_cp) {
-              if (YOUNGER_CP(LOCAL_top_cp, aux_cp)) {
+            while (aux_cp != Get_LOCAL_top_cp()) {
+              if (YOUNGER_CP(Get_LOCAL_top_cp(), aux_cp)) {
                 OPTYAP_ERROR_MESSAGE("LOCAL_top_cp not in branch (completion)");
                 break;
               }
-              if (EQUAL_OR_YOUNGER_CP(LOCAL_top_cp_on_stack, aux_cp)) {
+              if (EQUAL_OR_YOUNGER_CP(Get_LOCAL_top_cp_on_stack(), aux_cp)) {
                 OPTYAP_ERROR_MESSAGE("shared frozen segments in branch (completion)");
                 break;
               }
@@ -1581,7 +1600,7 @@
         if (YOUNGER_CP(B_FZ, B)) {
           suspend_branch();
           /* check for suspension frames to be resumed */
-          while (YOUNGER_CP(OrFr_node(LOCAL_top_susp_or_fr), LOCAL_top_cp)) {
+          while (YOUNGER_CP(GetOrFr_node(LOCAL_top_susp_or_fr), Get_LOCAL_top_cp())) {
             or_fr_ptr susp_or_fr;
             susp_fr_ptr resume_fr;
             susp_or_fr = LOCAL_top_susp_or_fr;
@@ -1597,9 +1616,9 @@
                 OrFr_nearest_suspnode(susp_or_fr) = susp_or_fr;
               }
               UNLOCK_OR_FRAME(susp_or_fr);
-              rebind_variables(OrFr_node(susp_or_fr)->cp_tr, B->cp_tr);
+              rebind_variables(GetOrFr_node(susp_or_fr)->cp_tr, B->cp_tr);
               resume_suspension_frame(resume_fr, susp_or_fr);
-              B = LOCAL_top_cp;
+              B = Get_LOCAL_top_cp();
               SET_BB(B_FZ);
               TR = TR_FZ;
               TRAIL_LINK(B->cp_tr);
@@ -1615,7 +1634,7 @@
         if (frame_with_suspensions_not_collected(LOCAL_top_or_fr))
           collect_suspension_frames(LOCAL_top_or_fr);
         /* check for suspension frames to be resumed */
-        while (EQUAL_OR_YOUNGER_CP(OrFr_node(LOCAL_top_susp_or_fr), LOCAL_top_cp)) {
+        while (EQUAL_OR_YOUNGER_CP(GetOrFr_node(LOCAL_top_susp_or_fr), Get_LOCAL_top_cp())) {
           or_fr_ptr susp_or_fr;
           susp_fr_ptr resume_fr;
           susp_or_fr = LOCAL_top_susp_or_fr;
@@ -1632,9 +1651,9 @@
             if (YOUNGER_CP(B_FZ, B)) {
               suspend_branch();
             }
-            rebind_variables(OrFr_node(susp_or_fr)->cp_tr, B->cp_tr);
+            rebind_variables(GetOrFr_node(susp_or_fr)->cp_tr, B->cp_tr);
             resume_suspension_frame(resume_fr, susp_or_fr);
-            B = LOCAL_top_cp;
+            B = Get_LOCAL_top_cp();
             SET_BB(B_FZ);
             TR = TR_FZ;
             TRAIL_LINK(B->cp_tr);
@@ -1685,12 +1704,12 @@
         UNLOCK(DepFr_lock(LOCAL_top_dep_fr));
         if (OrFr_owners(LOCAL_top_or_fr) > 1) {
           /* more owners -> move up one node */
-          LOCAL_top_cp_on_stack = OrFr_node(OrFr_next_on_stack(LOCAL_top_or_fr));
+          Set_LOCAL_top_cp_on_stack( GetOrFr_node(OrFr_next_on_stack(LOCAL_top_or_fr)) );
           BITMAP_delete(OrFr_members(LOCAL_top_or_fr), worker_id);
           OrFr_owners(LOCAL_top_or_fr)--;
           LOCAL_top_dep_fr = DepFr_next(LOCAL_top_dep_fr);
           UNLOCK_OR_FRAME(LOCAL_top_or_fr);
-          if (LOCAL_top_sg_fr && LOCAL_top_cp == SgFr_gen_cp(LOCAL_top_sg_fr)) {
+          if (LOCAL_top_sg_fr && Get_LOCAL_top_cp() == SgFr_gen_cp(LOCAL_top_sg_fr)) {
             LOCAL_top_sg_fr = SgFr_next(LOCAL_top_sg_fr);
           }
           SCH_update_local_or_tops();
