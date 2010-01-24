@@ -813,9 +813,10 @@ sg_fr_ptr subgoal_search(yamop *preg, CELL **Yaddr) {
 #ifdef GLOBAL_TRIE
     current_node = GLOBAL_root_gt;
 #endif /* GLOBAL_TRIE */
-    TermStack_Push(Deref(XREGS[i]));
+    TermStack_Push(XREGS[i]);
     do {
       TermStack_Pop(t);
+      t = Deref(t);
       
       if (IsVarTerm(t)) {
         if (IsTableVarTerm(t)) {
@@ -837,36 +838,38 @@ sg_fr_ptr subgoal_search(yamop *preg, CELL **Yaddr) {
         CELL *aux = RepPair(t);
         if (aux == PairTermMark) {
           TermStack_Pop(t);
-          if (IsPairTerm(t)) {
-            aux = RepPair(t);
-            t = Deref(*(aux + 1));
-            if (t == TermNil) {
+          Term dt = Deref(t);
+          
+          if (IsPairTerm(dt)) {
+            aux = RepPair(dt);
+            t = *(aux + 1);
+            if (Deref(t) == TermNil) {
               SUBGOAL_TOKEN_CHECK_INSERT(tab_ent, current_node, CompactPairEndList);
             } else {
               TermStack_Push(t);
               TermStack_Push(AbsPair(PairTermMark));
             }
-            TermStack_Push(Deref(*aux));
+            TermStack_Push(*aux);
           } else {
             SUBGOAL_TOKEN_CHECK_INSERT(tab_ent, current_node, CompactPairEndTerm);
             TermStack_Push(t);
           }
         } else {
           SUBGOAL_TOKEN_CHECK_INSERT(tab_ent, current_node, CompactPairInit);
-          t = Deref(*(aux + 1));
-          if (t == TermNil) {
+          t = *(aux + 1);
+          if (Deref(t) == TermNil) {
             SUBGOAL_TOKEN_CHECK_INSERT(tab_ent, current_node, CompactPairEndList);
           } else {
             TermStack_Push(t);
             TermStack_Push(AbsPair(PairTermMark));
           }
-          TermStack_Push(Deref(*aux));
+          TermStack_Push(*aux);
         }
 #else
         SUBGOAL_TOKEN_CHECK_INSERT(tab_ent, current_node, AbsPair(NULL));
         
-        TermStack_Push(Deref(*(RepPair(t) + 1)));
-        TermStack_Push(Deref(*(RepPair(t))));
+        TermStack_Push(*(RepPair(t) + 1));
+        TermStack_Push(*(RepPair(t)));
 #endif /* TRIE_COMPACT_PAIRS */
       } else if (IsApplTerm(t)) {
 	      Functor f = FunctorOfTerm(t);
@@ -893,7 +896,7 @@ sg_fr_ptr subgoal_search(yamop *preg, CELL **Yaddr) {
 	        Yap_Error(INTERNAL_ERROR, TermNil, "unsupported type tag (FunctorBigInt in subgoal_search)");	  
 	      } else {
 	        for (j = ArityOfFunctor(f); j >= 1; j--)
-            TermStack_Push(Deref(*(RepAppl(t) + j)));
+            TermStack_Push(*(RepAppl(t) + j));
 	      }
       } else {
 	      Yap_Error(INTERNAL_ERROR, TermNil, "unknown type tag (subgoal_search)");
