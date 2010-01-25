@@ -110,6 +110,7 @@ static xsbBool save_variant_continuation(CTXTdeclc BTNptr last_node_match) {
   int i;
   CPtr termptr, *binding;
   
+  //printf("Saving variant continuation...\n");
   variant_cont.last_node_matched = last_node_match;
   
   /*
@@ -124,7 +125,7 @@ static xsbBool save_variant_continuation(CTXTdeclc BTNptr last_node_match) {
   termptr++, i++)
     variant_cont.subterms.stack.ptr[i] = *termptr;
   variant_cont.subterms.num = i;
-  printf("Got %d subterms to finish\n", (int)variant_cont.subterms.num);
+  //printf("Got %d subterms to finish\n", (int)variant_cont.subterms.num);
   
   ContStack_ExpandOnOverflow(variant_cont.bindings.stack.ptr,
       variant_cont.bindings.stack.size,
@@ -147,7 +148,7 @@ static xsbBool save_variant_continuation(CTXTdeclc BTNptr last_node_match) {
   }
   variant_cont.bindings.num = i;
   
-  printf("Got %d var bindings\n", (int)i);
+  //printf("Got %d var bindings\n", (int)i);
   return TRUE;
 }
 
@@ -514,9 +515,8 @@ While_TermStack_NotEmpty:
          *  and its subsequent pairing with an unbound trievar destroys
          *  the possibility of a variant.)
          */
-         printf("Subterm is a variable!\n");
         if(search_mode == MATCH_SYMBOL_EXACTLY) {
-          printf("Match exactly!\n");
+          
           if(IsNonNULL(pCurrentBTN) && IsHashHeader(pCurrentBTN))
             pCurrentBTN = variableChain =
               BTHT_BucketArray((BTHTptr)pCurrentBTN)[TRIEVAR_BUCKET];
@@ -524,7 +524,6 @@ While_TermStack_NotEmpty:
             variableChain = pCurrentBTN;
           
           if(!PrologVar_IsMarked(subterm)) {
-            printf("Variable is not marked!\n");
             AnsVarCtr++;
             /*
       	     *  The subterm is a call variable that has not yet been seen
@@ -625,17 +624,18 @@ While_TermStack_NotEmpty:
     *pathType = VARIANT_PATH;
   else
     *pathType = SUBSUMPTIVE_PATH;
+    
+  //printf("currentBTN: %x parentBTN %x\n", pCurrentBTN, pParentBTN);
   
   return pParentBTN;
 }
 
-void subsumptive_search(yamop *preg, CELL **Yaddr)
+sg_node_ptr subsumptive_search(yamop *preg, CELL **Yaddr, TriePathType* path_type)
 {
   int arity;
   tab_ent_ptr tab_ent;
   BTNptr btRoot;
   BTNptr btn;
-  TriePathType path_type;
   
   AnsVarCtr = 0; /// XXX
   arity = preg->u.Otapl.s;
@@ -648,17 +648,17 @@ void subsumptive_search(yamop *preg, CELL **Yaddr)
   Trail_ResetTOS;
   TermStack_PushLowToHighVector(XREGS + 1, arity);
   
-  btn = iter_sub_trie_lookup(CTXTc btRoot, &path_type);
+  btn = iter_sub_trie_lookup(CTXTc btRoot, path_type);
 
   if(btn == NULL) {
-    printf("No subsumption call!\n");
+    //printf("No subsumption call!\n");
   } else {
-    printf("Btn: %d %x\n", TrNode_child(btn) == NULL, btn);
-    printTriePath(stdout, btn, FALSE);
-    printf("Subsumption call found!\n");
+    //printf("Btn: %d %x\n", TrNode_child(btn) == NULL, btn);
+    //printTriePath(stdout, btn, FALSE);
+    //printf("Subsumption call found!\n");
   }
   
-  Trail_Unwind_All;
+  return btn;
 }
 
 #endif /* TABLING && TABLING_CALL_SUBSUMPTION */

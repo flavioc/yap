@@ -774,151 +774,60 @@ ans_node_ptr answer_trie_node_check_insert(sg_fr_ptr sg_fr, ans_node_ptr parent_
 #endif /* TABLE_LOCK_LEVEL */
 
 
-
-/* -------------------------- **
-**      Global functions      **
-** -------------------------- */
-
-sg_fr_ptr subgoal_search(yamop *preg, CELL **Yaddr) {
-  int i, j, count_vars, arity;
-  CELL *stack_vars;
-  tab_ent_ptr tab_ent;
-  sg_fr_ptr sg_fr;
-  Term t;
-#ifdef GLOBAL_TRIE
-  gt_node_ptr current_node;
-  sg_node_ptr current_sg_node;
-#else
-  sg_node_ptr current_node;
-#define current_sg_node current_node
-#endif /* GLOBAL_TRIE */
-
-#ifdef TABLING_CALL_SUBSUMPTION
-  subsumptive_search(preg, Yaddr);
-#endif
-
-  arity = preg->u.Otapl.s;
-  tab_ent = preg->u.Otapl.te;
-  count_vars = 0;
-  stack_vars = *Yaddr;
-  current_sg_node = TabEnt_subgoal_trie(tab_ent);
+static inline
+void construct_variant_answer_template(CELL **Yaddr) {
+  CPtr *binding;
+  CELL *Yaddr0 = *Yaddr;
+  int i;
   
-  TermStack_ResetTOS;
+  for(i = 0, binding = Trail_Base; binding < Trail_Top; binding++, i++) {
+    *--Yaddr0 = *binding;
+  }
+  *--Yaddr0 = i;
+  
+  *Yaddr = Yaddr0++; 
+}
 
-#ifdef TABLE_LOCK_AT_ENTRY_LEVEL
-  LOCK(TabEnt_lock(tab_ent));
-#endif /* TABLE_LOCK_LEVEL */
-
-  for (i = 1; i <= arity; i++) {
-#ifdef GLOBAL_TRIE
-    current_node = GLOBAL_root_gt;
-#endif /* GLOBAL_TRIE */
-    TermStack_Push(XREGS[i]);
-    do {
-      TermStack_Pop(t);
-      t = Deref(t);
-      
-      if (IsVarTerm(t)) {
-        if (IsTableVarTerm(t)) {
-          t = MakeTableVarTerm(VarIndexOfTerm(t));
-          SUBGOAL_TOKEN_CHECK_INSERT(tab_ent, current_node, t);
-        } else {
-          if (count_vars == MAX_TABLE_VARS)
-            Yap_Error(INTERNAL_ERROR, TermNil, "MAX_TABLE_VARS exceeded (subgoal_search)");
-          STACK_PUSH_UP(t, stack_vars);
-          *((CELL *)t) = GLOBAL_table_var_enumerator(count_vars);
-          t = MakeNewTableVarTerm(count_vars); /* new variable */
-          count_vars++;
-          SUBGOAL_TOKEN_CHECK_INSERT(tab_ent, current_node, t);
-        }
-      } else if (IsAtomOrIntTerm(t)) {
-        SUBGOAL_TOKEN_CHECK_INSERT(tab_ent, current_node, t);
-      } else if (IsPairTerm(t)) {
-#ifdef TRIE_COMPACT_PAIRS
-        CELL *aux = RepPair(t);
-        if (aux == PairTermMark) {
-          TermStack_Pop(t);
-          Term dt = Deref(t);
-          
-          if (IsPairTerm(dt)) {
-            aux = RepPair(dt);
-            t = *(aux + 1);
-            if (Deref(t) == TermNil) {
-              SUBGOAL_TOKEN_CHECK_INSERT(tab_ent, current_node, CompactPairEndList);
-            } else {
-              TermStack_Push(t);
-              TermStack_Push(AbsPair(PairTermMark));
-            }
-            TermStack_Push(*aux);
-          } else {
-            SUBGOAL_TOKEN_CHECK_INSERT(tab_ent, current_node, CompactPairEndTerm);
-            TermStack_Push(t);
-          }
-        } else {
-          SUBGOAL_TOKEN_CHECK_INSERT(tab_ent, current_node, CompactPairInit);
-          t = *(aux + 1);
-          if (Deref(t) == TermNil) {
-            SUBGOAL_TOKEN_CHECK_INSERT(tab_ent, current_node, CompactPairEndList);
-          } else {
-            TermStack_Push(t);
-            TermStack_Push(AbsPair(PairTermMark));
-          }
-          TermStack_Push(*aux);
-        }
-#else
-        SUBGOAL_TOKEN_CHECK_INSERT(tab_ent, current_node, AbsPair(NULL));
-        
-        TermStack_Push(*(RepPair(t) + 1));
-        TermStack_Push(*(RepPair(t)));
-#endif /* TRIE_COMPACT_PAIRS */
-      } else if (IsApplTerm(t)) {
-	      Functor f = FunctorOfTerm(t);
-        SUBGOAL_TOKEN_CHECK_INSERT(tab_ent, current_node, AbsAppl((Term *)f));
-	      if (f == FunctorDouble) {
-	        volatile Float dbl = FloatOfTerm(t);
-	        volatile Term *t_dbl = (Term *)((void *) &dbl);
-#if SIZEOF_DOUBLE == 2 * SIZEOF_INT_P
-          SUBGOAL_TOKEN_CHECK_INSERT(tab_ent, current_node, *(t_dbl + 1));
-#endif /* SIZEOF_DOUBLE x SIZEOF_INT_P */
-          SUBGOAL_TOKEN_CHECK_INSERT(tab_ent, current_node, *t_dbl);
-#ifdef GLOBAL_TRIE
-          SUBGOAL_TOKEN_CHECK_INSERT(tab_ent, current_node, AbsAppl((Term *)f));
-#endif /* GLOBAL_TRIE */
-	      } else if (f == FunctorLongInt) {
-	        Int li = LongIntOfTerm(t);
-          SUBGOAL_TOKEN_CHECK_INSERT(tab_ent, current_node, li);
-#ifdef GLOBAL_TRIE
-          SUBGOAL_TOKEN_CHECK_INSERT(tab_ent, current_node, AbsAppl((Term *)f));
-#endif /* GLOBAL_TRIE */
-	      } else if (f == FunctorDBRef) {
-	        Yap_Error(INTERNAL_ERROR, TermNil, "unsupported type tag (FunctorDBRef in subgoal_search)");
-	      } else if (f == FunctorBigInt) {
-	        Yap_Error(INTERNAL_ERROR, TermNil, "unsupported type tag (FunctorBigInt in subgoal_search)");	  
-	      } else {
-	        for (j = ArityOfFunctor(f); j >= 1; j--)
-            TermStack_Push(*(RepAppl(t) + j));
-	      }
-      } else {
-	      Yap_Error(INTERNAL_ERROR, TermNil, "unknown type tag (subgoal_search)");
-      }
-    } while (!TermStack_IsEmpty);
-#ifdef GLOBAL_TRIE
-    current_sg_node = subgoal_trie_node_check_insert(tab_ent, current_sg_node, current_node);
-#endif /* GLOBAL_TRIE */
+static inline
+void construct_variant_answer_template_from_sub(CELL **Yaddr) {
+  CPtr *binding, termptr;
+  int i;
+  CELL *Yaddr0 = *Yaddr;
+  
+  for(i = 0, binding = Trail_Base; binding < Trail_Top; binding++) {
+    termptr = *binding;
+    
+    if(!IsUnboundTrieVar(termptr)) {
+      //printf("New variable!\n");
+      *--Yaddr0 = termptr;
+      ++i;
+    }
   }
   
+  *--Yaddr0 = i;
+  *Yaddr = Yaddr0++;
+}
+
+static inline
+sg_fr_ptr
+get_subgoal_frame_from_node(sg_node_ptr current_node, tab_ent_ptr tab_ent, yamop *preg)
+{
+  sg_fr_ptr sg_fr;
+  
 #if defined(TABLE_LOCK_AT_NODE_LEVEL)
-  LOCK(TrNode_lock(current_sg_node));
+  LOCK(TrNode_lock(current_node));
 #elif defined(TABLE_LOCK_AT_WRITE_LEVEL)
-  LOCK_TABLE(current_sg_node);
+  LOCK_TABLE(current_node);
 #endif /* TABLE_LOCK_LEVEL */
 
-  if (TrNode_sg_fr(current_sg_node) == NULL) {
+  if (TrNode_sg_fr(current_node) == NULL) {
     /* new tabled subgoal */
     new_subgoal_frame(sg_fr, preg);
-    TrNode_sg_fr(current_sg_node) = (sg_node_ptr) sg_fr;
+    TrNode_sg_fr(current_node) = (sg_node_ptr) sg_fr;
+    //printf("New subgoal frame... %x at node %x\n", sg_fr, current_node);
   } else {
-    sg_fr = (sg_fr_ptr) TrNode_sg_fr(current_sg_node);
+    sg_fr = (sg_fr_ptr) TrNode_sg_fr(current_node);
+    //printf("Node already present... %x\n", sg_fr);
 #ifdef LIMIT_TABLING
     if (SgFr_state(sg_fr) <= ready) {  /* incomplete or ready */
       remove_from_global_sg_fr_list(sg_fr);
@@ -930,24 +839,165 @@ sg_fr_ptr subgoal_search(yamop *preg, CELL **Yaddr) {
 #if defined(TABLE_LOCK_AT_ENTRY_LEVEL)
   UNLOCK(TabEnt_lock(tab_ent));
 #elif defined(TABLE_LOCK_AT_NODE_LEVEL)
-  UNLOCK(TrNode_lock(current_sg_node));
+  UNLOCK(TrNode_lock(current_node));
 #elif defined(TABLE_LOCK_AT_WRITE_LEVEL)
-  UNLOCK_TABLE(current_sg_node);
+  UNLOCK_TABLE(current_node);
 #endif /* TABLE_LOCK_LEVEL */
 
-  STACK_PUSH_UP(count_vars, stack_vars);
-  *Yaddr = stack_vars++;
-  /* reset variables */
-  while (count_vars--) {
-    Term t = STACK_POP_DOWN(stack_vars);
-    RESET_VARIABLE(t);
+  return sg_fr;
+}
+
+
+/* -------------------------- **
+**      Global functions      **
+** -------------------------- */
+
+sg_fr_ptr subgoal_search(yamop *preg, CELL **Yaddr) {
+  int i, j, count_vars, arity;
+  tab_ent_ptr tab_ent;
+  sg_fr_ptr sg_fr;
+  Term t;
+  sg_node_ptr current_node;
+  TriePathType path_type;
+  
+#ifdef TABLE_LOCK_AT_ENTRY_LEVEL
+  LOCK(TabEnt_lock(tab_ent));
+#endif /* TABLE_LOCK_LEVEL */
+
+  arity = preg->u.Otapl.s;
+  tab_ent = preg->u.Otapl.te;
+  count_vars = 0;
+
+  sg_node_ptr sub_node = subsumptive_search(preg, Yaddr, &path_type);
+  
+  //printf("Path type: %d\n", path_type);
+
+  if(path_type == VARIANT_PATH) {
+    //printf("subgoal node: %x\n", sub_node);
+    sg_fr = get_subgoal_frame_from_node(sub_node, tab_ent, preg);
+    construct_variant_answer_template_from_sub(Yaddr);
+    Trail_Unwind_All;
+    return sg_fr;
   }
+  
+  Trail_Unwind_All;
+  
+  /* restore variant continuation */
+  
+  TermStack_ResetTOS;
+  TermStack_PushArray(variant_cont.subterms.stack.ptr,
+    variant_cont.subterms.num);
+    
+  //printf("Restored %d terms\n", (int)variant_cont.subterms.num);
+  
+  Trail_ResetTOS;
+  for(i = 0; i < (int) variant_cont.bindings.num; i++) {
+    //printf("Restored one var\n");
+    Trail_Push(variant_cont.bindings.stack.ptr[i].var);
+    ++count_vars;
+    bld_ref(variant_cont.bindings.stack.ptr[i].var,
+      variant_cont.bindings.stack.ptr[i].value);
+  }
+  
+  current_node = variant_cont.last_node_matched;
+
+  //printf("Current node: %x\n", current_node);
+  /*
+  current_node = TabEnt_subgoal_trie(tab_ent);
+  TermStack_ResetTOS;
+  TermStack_PushLowToHighVector(XREGS + 1, arity);*/
+
+  while(!TermStack_IsEmpty) {
+    TermStack_Pop(t);
+    t = Deref(t);
+
+    if (IsVarTerm(t)) {
+      if (IsTableVarTerm(t)) {
+        t = MakeTableVarTerm(VarIndexOfTerm(t));
+        SUBGOAL_TOKEN_CHECK_INSERT(tab_ent, current_node, t);
+      } else {
+        if (count_vars == MAX_TABLE_VARS)
+          Yap_Error(INTERNAL_ERROR, TermNil, "MAX_TABLE_VARS exceeded (subgoal_search)");
+        Trail_Push(t);
+        *((CELL *)t) = GLOBAL_table_var_enumerator(count_vars);
+        t = MakeNewTableVarTerm(count_vars); /* new variable */
+        count_vars++;
+        SUBGOAL_TOKEN_CHECK_INSERT(tab_ent, current_node, t);
+      }
+    } else if (IsAtomOrIntTerm(t)) {
+      SUBGOAL_TOKEN_CHECK_INSERT(tab_ent, current_node, t);
+    } else if (IsPairTerm(t)) {
+#ifdef TRIE_COMPACT_PAIRS
+      CELL *aux = RepPair(t);
+      if (aux == PairTermMark) {
+        TermStack_Pop(t);
+        Term dt = Deref(t);
+
+        if (IsPairTerm(dt)) {
+          aux = RepPair(dt);
+          t = *(aux + 1);
+          if (Deref(t) == TermNil) {
+            SUBGOAL_TOKEN_CHECK_INSERT(tab_ent, current_node, CompactPairEndList);
+          } else {
+            TermStack_Push(t);
+            TermStack_Push(AbsPair(PairTermMark));
+          }
+          TermStack_Push(*aux);
+        } else {
+          SUBGOAL_TOKEN_CHECK_INSERT(tab_ent, current_node, CompactPairEndTerm);
+          TermStack_Push(t);
+        }
+      } else {
+        SUBGOAL_TOKEN_CHECK_INSERT(tab_ent, current_node, CompactPairInit);
+        t = *(aux + 1);
+        if (Deref(t) == TermNil) {
+          SUBGOAL_TOKEN_CHECK_INSERT(tab_ent, current_node, CompactPairEndList);
+        } else {
+          TermStack_Push(t);
+          TermStack_Push(AbsPair(PairTermMark));
+        }
+        TermStack_Push(*aux);
+      }
+#else
+      SUBGOAL_TOKEN_CHECK_INSERT(tab_ent, current_node, AbsPair(NULL));
+
+      TermStack_Push(*(RepPair(t) + 1));
+      TermStack_Push(*(RepPair(t)));
+#endif /* TRIE_COMPACT_PAIRS */
+    } else if (IsApplTerm(t)) {
+      Functor f = FunctorOfTerm(t);
+      SUBGOAL_TOKEN_CHECK_INSERT(tab_ent, current_node, AbsAppl((Term *)f));
+      if (f == FunctorDouble) {
+        volatile Float dbl = FloatOfTerm(t);
+        volatile Term *t_dbl = (Term *)((void *) &dbl);
+#if SIZEOF_DOUBLE == 2 * SIZEOF_INT_P
+        SUBGOAL_TOKEN_CHECK_INSERT(tab_ent, current_node, *(t_dbl + 1));
+#endif /* SIZEOF_DOUBLE x SIZEOF_INT_P */
+        SUBGOAL_TOKEN_CHECK_INSERT(tab_ent, current_node, *t_dbl);
+      } else if (f == FunctorLongInt) {
+        Int li = LongIntOfTerm(t);
+        SUBGOAL_TOKEN_CHECK_INSERT(tab_ent, current_node, li);
+      } else if (f == FunctorDBRef) {
+        Yap_Error(INTERNAL_ERROR, TermNil, "unsupported type tag (FunctorDBRef in subgoal_search)");
+      } else if (f == FunctorBigInt) {
+        Yap_Error(INTERNAL_ERROR, TermNil, "unsupported type tag (FunctorBigInt in subgoal_search)");	  
+      } else {
+        for (j = ArityOfFunctor(f); j >= 1; j--)
+          TermStack_Push(*(RepAppl(t) + j));
+      }
+    } else {
+      Yap_Error(INTERNAL_ERROR, TermNil, "unknown type tag (subgoal_search)");
+    }
+    
+    //printf("while Current node: %x\n", current_node);
+  }
+  
+  sg_fr = get_subgoal_frame_from_node(current_node, tab_ent, preg);
+  construct_variant_answer_template(Yaddr);
+  
+  Trail_Unwind_All;
 
   return sg_fr;
-  
-#ifndef GLOBAL_TRIE
-#undef current_sg_node
-#endif /* GLOBAL_TRIE */
 }
 
 

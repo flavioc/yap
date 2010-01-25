@@ -108,7 +108,7 @@ extern DynamicStack tstTermStack;
 #define TermStack_PushArray(Array, NumElements) { \
   counter i;  \
   DynStk_ExpandIfOverflow(tstTermStack, NumElements); \
-  for(i = 0; i < numElements; ++i)  \
+  for(i = 0; i < NumElements; ++i)  \
     TermStack_BlindPush(Array[i]);  \
 }
 
@@ -245,7 +245,6 @@ extern DynamicStack tstTrail;
 
 #define Trail_PopAndReset { \
     CPtr *curFrame; \
-      printf("Back trail\n"); \
     DynStk_BlindPop(tstTrail, curFrame);  \
     bld_free(*curFrame);  \
 }
@@ -312,7 +311,14 @@ struct VariantContinuation {
   } bindings;
 };
 
+extern struct VariantContinuation variant_cont;
+
 extern Cell TrieVarBindings[MAX_TABLE_VARS];
+
+/* emu/trie_internals.h */
+#define IsUnboundTrieVar(dFreeVar)    \
+  ( ((CPtr)(dFreeVar) >= TrieVarBindings) &&  \
+    ((CPtr)(dFreeVar) <= (TrieVarBindings + MAX_TABLE_VARS - 1))  )
 
 typedef enum {
   TAG_ATOM,

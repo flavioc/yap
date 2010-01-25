@@ -25,13 +25,10 @@ typedef Functor Psc;
 
 #define get_arity(FUNCTOR)  ArityOfFunctor(FUNCTOR)
 #define get_name(FUNCTOR)   AtomName(NameOfFunctor(FUNCTOR))
-#define clref_val(REF)  RepAppl(REF)
-#define clrefp_val(REF) RepPair(REF)
-#define bld_free(ADDR) { \
-  *((CELL *)ADDR) = (CELL)(ADDR); \
-  printf("Restored Var is %x content is %x\n", ADDR, *((CELL *)ADDR)); \
-}
-//RESET_VARIABLE(addr) /*cell(addr) = (Cell)(addr) CPtr => XSB_FREE cell ??? */
+#define clref_val(REF)      RepAppl(REF)
+#define clrefp_val(REF)     RepPair(REF)
+#define bld_free(ADDR)      *((CELL *)ADDR) = (CELL)(ADDR)
+#define bld_ref(ADDR, VAL)  *((CELL *)ADDR) = (CELL)(VAL)
 
 #define IsNonNULL(ptr)   ( (ptr) != NULL )
 #define IsNULL(ptr) ((ptr) == NULL)
