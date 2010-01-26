@@ -872,7 +872,7 @@ sg_fr_ptr subgoal_search(yamop *preg, CELL **Yaddr) {
   
   //printf("Path type: %d\n", path_type);
 
-  if(path_type == VARIANT_PATH) {
+  if(sub_node != NULL && path_type == VARIANT_PATH) {
     //printf("subgoal node: %x\n", sub_node);
     sg_fr = get_subgoal_frame_from_node(sub_node, tab_ent, preg);
     construct_variant_answer_template_from_sub(Yaddr);
@@ -901,11 +901,13 @@ sg_fr_ptr subgoal_search(yamop *preg, CELL **Yaddr) {
   
   current_node = variant_cont.last_node_matched;
 
+#if 0
   //printf("Current node: %x\n", current_node);
-  /*
+  
   current_node = TabEnt_subgoal_trie(tab_ent);
   TermStack_ResetTOS;
-  TermStack_PushLowToHighVector(XREGS + 1, arity);*/
+  TermStack_PushLowToHighVector(XREGS + 1, arity);
+#endif
 
   while(!TermStack_IsEmpty) {
     TermStack_Pop(t);
@@ -991,6 +993,8 @@ sg_fr_ptr subgoal_search(yamop *preg, CELL **Yaddr) {
     
     //printf("while Current node: %x\n", current_node);
   }
+  
+  printSubgoalTriePath(stdout, current_node, tab_ent); printf("\n");
   
   sg_fr = get_subgoal_frame_from_node(current_node, tab_ent, preg);
   construct_variant_answer_template(Yaddr);

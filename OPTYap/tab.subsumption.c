@@ -654,8 +654,9 @@ sg_node_ptr subsumptive_search(yamop *preg, CELL **Yaddr, TriePathType* path_typ
     //printf("No subsumption call!\n");
   } else {
     //printf("Btn: %d %x\n", TrNode_child(btn) == NULL, btn);
-    //printTriePath(stdout, btn, FALSE);
-    //printf("Subsumption call found!\n");
+    printf("Subsumption call found: ");
+    printSubgoalTriePath(stdout, btn, tab_ent);
+    printf("\n");
   }
   
   return btn;
