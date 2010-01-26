@@ -109,6 +109,11 @@ extern void dynamic_stack_expand(DynamicStack *, int);
   Frame = DynStk_Top(DS); \
 }
 
+/* *NEW* */
+#define DynStk_BlindDrop(DS)  { \
+  DynStk_Top(DS) = DynStk_PrevFrame(DS);  \
+}
+
 #define DynStk_BlindPeek(DS, Frame) \
   Frame = DynStk_PrevFrame(DS)
 
