@@ -152,7 +152,7 @@ void printTrieSymbol(FILE* fp, Cell symbol) {
           break;
         }
       case XSB_LIST:
-        // TODO
+        fprintf(fp, "LIST");
         break;
       default:
         fprintf(fp, "Unknown symbol (tag = %ld)", cell_tag(symbol));
@@ -172,68 +172,95 @@ void symstkPrintNextTerm(CTXTdeclc FILE *fp, xsbBool list_recursion) {
   
   SymbolStack_Pop(symbol);
   
-  switch(TrieSymbolType(symbol)) {
-    case XSB_INT:
-      if(list_recursion)
-        fprintf(fp, "|" IntegerFormatString "]", int_val(symbol));
+  if(IsIntTerm(symbol)) {
+    if(list_recursion)
+      fprintf(fp, "|" IntegerFormatString "]", int_val(symbol));
+    else
+      fprintf(fp, IntegerFormatString, int_val(symbol));
+  } else if(IsVarTerm(symbol)) {
+    if(list_recursion)
+      fprintf(fp, "|V" IntegerFormatString "]", DecodeTrieVar(symbol));
+    else
+      fprintf(fp, "V" IntegerFormatString, DecodeTrieVar(symbol));
+  } else if(IsAtomTerm(symbol)) {
+    char *string = string_val(symbol);
+    
+    if(list_recursion) {
+      if(symbol == TermNil)
+        fprintf(fp, "]");
       else
-        fprintf(fp, IntegerFormatString, int_val(symbol));
-      break;
-    case XSB_FLOAT:
-      // XXX
-      break;
-    case XSB_STRING:
-      {
-        char *string = string_val(symbol);
-        
-        if(list_recursion) {
-          if(symbol == TermNil) /// XXX Diferente!
-            fprintf(fp, "]");
-          else
-            fprintf(fp, "|%s]", string);
-        }
-        else
-          fprintf(fp, "%s", string);
-      }
-      break;
-    case XSB_TrieVar:
+        fprintf(fp, "|%s]", string);
+    }
+    else
+      fprintf(fp, "%s", string);
+  } else if(IsApplTerm(symbol)) {
+    Functor f = (Functor) RepAppl(symbol);
+    
+    if(f == FunctorDouble) {
+      // TODO FLOAT
+    } else if(f == FunctorLongInt) {
+      // TODO LONG INT
+    } else {
+      int i;
+      
       if(list_recursion)
-        fprintf(fp, "|V" IntegerFormatString "]", DecodeTrieVar(symbol));
-      else
-        fprintf(fp, "V" IntegerFormatString, DecodeTrieVar(symbol));
-      break;
-    case XSB_STRUCT:
-      {
-        Psc psc;
-        
-        int i;
-        
-        /// Boxed float XXX
-        if(list_recursion)
-          fprintf(fp, "|");
-        psc = DecodeTrieFunctor(symbol);
-        
-        fprintf(fp, "%s(", get_name(psc));
-        for(i = 1; i < (int)get_arity(psc); i++) {
-          symstkPrintNextTerm(CTXTc fp, FALSE);
-          fprintf(fp, ",");
-        }
+        fprintf(fp, "|");
+      
+      fprintf(fp, "%s(", get_name(f));
+      for(i = 1; i < (int)get_arity(f); i++) {
         symstkPrintNextTerm(CTXTc fp, FALSE);
-        fprintf(fp, ")");
-        if(list_recursion)
-          fprintf(fp, "]");
+        fprintf(fp, ",");
       }
-      break;
-    case XSB_LIST:
-    ///XXX
-    break;
-    default:
-      fprintf(fp, "<unknown symbol>");
-      break;
+      symstkPrintNextTerm(CTXTc fp, FALSE);
+      fprintf(fp, ")");
+      if(list_recursion)
+        fprintf(fp, "]");
+    }
+  } else if(IsPairTerm(symbol)) {
+#ifdef TRIE_COMPACT_PAIRS
+    if(symbol == CompactPairInit) {
+      int cnt;
+      
+      fprintf(fp, "[");
+      
+      for(cnt = 0; ; ++cnt) {
+        SymbolStack_Peek(symbol);
+        
+        if(symbol == CompactPairEndList) {
+          SymbolStack_BlindDrop;
+          if(cnt)
+            fprintf(fp, ",");
+          symstkPrintNextTerm(CTXTc fp, FALSE);
+          fprintf(fp, "]");
+          break;
+        } else if(symbol == CompactPairEndTerm) {
+          SymbolStack_BlindDrop;
+          if(cnt)
+            fprintf(fp, "|");
+          symstkPrintNextTerm(CTXTc fp, FALSE);
+          fprintf(fp, "]");
+          break;
+        }
+        
+        if(cnt)
+          fprintf(fp, ",");
+        
+        symstkPrintNextTerm(CTXTc fp, FALSE);
+      }
+    }
+#else
+    if(list_recursion)
+      fprintf(fp, ",");
+    else
+      fprintf(fp, "[");
+  
+    symstkPrintNextTerm(CTXTc fp, FALSE);
+    symstkPrintNextTerm(CTXTc fp, TRUE);
+#endif
   }
 }
 
-void printTriePath(CTXTdeclc FILE *fp, BTNptr pLeaf, xsbBool printLeafAddr)
+void printSubgoalTriePath(CTXTdeclc FILE *fp, BTNptr pLeaf, tab_ent_ptr tab_entry)
 {
   BTNptr pRoot;
   
@@ -242,43 +269,17 @@ void printTriePath(CTXTdeclc FILE *fp, BTNptr pLeaf, xsbBool printLeafAddr)
     return;
   }
   
-  /*if(!IsLeafNode(pLeaf)) { // XXX
-    fprintf(fp, "printTriePath() called with non-Leaf node!\n");
-    printTrieNode(fp, pLeaf);
-    return;
-  }*/
-  
-  if(printLeafAddr)
-    fprintf(fp, "Leaf %p: ", pLeaf);
-  
-  if(IsEscapeNode(pLeaf)) {
-    pRoot = BTN_Parent(pLeaf);
-    if(IsNonNULL(pRoot))
-      printTrieSymbol(fp, BTN_Symbol(pRoot));
-    else
-      fprintf(fp, "ESCAPE node");
-    return;
-  }
-  
   SymbolStack_ResetTOS;
   SymbolStack_PushPathRoot(pLeaf, pRoot);
-  //printf("Num symbols: %d", SymbolStack_NumSymbols);
   
-  if(IsTrieFunctor(BTN_Symbol(pRoot))) {
-    //printf("Is trieFunctor!!\n");
-    SymbolStack_Push(BTN_Symbol(pRoot));
+  fprintf(fp, "%s", string_val(TabEnt_atom(tab_entry)));
+  fprintf(fp, "(");
+  symstkPrintNextTerm(CTXTc fp, FALSE);
+  while(!SymbolStack_IsEmpty) {
+    fprintf(fp, ",");
     symstkPrintNextTerm(CTXTc fp, FALSE);
   }
-  else {
-    //printTrieSymbol(fp, BTN_Symbol(pRoot));
-    fprintf(fp, "(");
-    symstkPrintNextTerm(CTXTc fp, FALSE);
-    while(!SymbolStack_IsEmpty) {
-      fprintf(fp, ",");
-      symstkPrintNextTerm(CTXTc fp, FALSE);
-    }
-    fprintf(fp, ")");
-  }
+  fprintf(fp, ")");
 }
 
 #endif /* TABLING_CALL_SUBSUMPTION */

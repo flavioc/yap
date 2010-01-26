@@ -186,6 +186,7 @@ extern DynamicStack tstSymbolStack;
 #define SymbolStack_NumSymbols  (SymbolStack_Top - SymbolStack_Base)
 #define SymbolStack_ResetTOS    DynStk_ResetTOS(tstSymbolStack)
 #define SymbolStack_IsEmpty   DynStk_IsEmpty(tstSymbolStack)
+#define SymbolStack_BlindDrop DynStk_BlindDrop(tstSymbolStack) /* NEW */
 
 #define SymbolStack_Push(Symbol)  { \
     CPtr nextFrame; \
@@ -336,7 +337,7 @@ typedef enum {
 
 CellTag cell_tag(Term t);
 xsbBool are_identical_terms(Cell term1, Cell term2);
-void printTriePath(CTXTdeclc FILE *fp, BTNptr pLeaf, xsbBool printLeafAddr);
+void printSubgoalTriePath(CTXTdeclc FILE *fp, BTNptr pLeaf, tab_ent_ptr tab_entry);
 
 #define TrieError_UnknownSubtermTagMsg				\
    "Trie Subterm-to-Symbol Conversion\nUnknown subterm type (%d)"
