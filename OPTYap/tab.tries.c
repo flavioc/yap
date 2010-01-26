@@ -882,6 +882,7 @@ sg_fr_ptr subgoal_search(yamop *preg, CELL **Yaddr) {
   
   Trail_Unwind_All;
   
+#if 1
   /* restore variant continuation */
   
   TermStack_ResetTOS;
@@ -900,7 +901,7 @@ sg_fr_ptr subgoal_search(yamop *preg, CELL **Yaddr) {
   }
   
   current_node = variant_cont.last_node_matched;
-
+#endif
 #if 0
   //printf("Current node: %x\n", current_node);
   
@@ -2089,11 +2090,7 @@ void traverse_trie_node(Term t, char *str, int *str_index_ptr, int *arity, int *
     mode = TRAVERSE_MODE_NORMAL;
   } else if (mode == TRAVERSE_MODE_LONG) {
     Int li = (Int) t;
-#if SHORT_INTS
-    str_index += sprintf(& str[str_index], "%ld", li);
-#else
-    str_index += sprintf(& str[str_index], "%d", li);
-#endif /* SHORT_INTS */
+    str_index += sprintf(& str[str_index], LongIntFormatString, li);
     while (arity[0]) {
       if (arity[arity[0]] > 0) {
 	arity[arity[0]]--;
@@ -2158,11 +2155,7 @@ void traverse_trie_node(Term t, char *str, int *str_index_ptr, int *arity, int *
       }
     }
   } else if (IsIntTerm(t)) {
-#if SHORT_INTS
-    str_index += sprintf(& str[str_index], "%ld", IntOfTerm(t));
-#else
-    str_index += sprintf(& str[str_index], "%d", IntOfTerm(t));
-#endif /* SHORT_INTS */
+    str_index += sprintf(& str[str_index], LongIntFormatString, IntOfTerm(t));
     while (arity[0]) {
       if (arity[arity[0]] > 0) {
 	arity[arity[0]]--;

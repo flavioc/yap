@@ -90,6 +90,12 @@ typedef Functor Psc;
 #define IntegerFormatString	"%d"
 #endif
 
+#if SHORT_INTS
+#define LongIntFormatString "%ld"
+#else
+#define LongIntFormatString "%d"
+#endif
+
 #define int_val(SYMBOL) IntOfTerm(SYMBOL)
 #define string_val(SYMBOL)  AtomName(AtomOfTerm(SYMBOL))
 #define DecodeTrieFunctor(SYMBOL) ((Functor) RepAppl(SYMBOL))

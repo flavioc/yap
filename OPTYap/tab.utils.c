@@ -213,9 +213,9 @@ void symstkPrintNextTerm(CTXTdeclc FILE *fp, xsbBool list_recursion) {
       Int li;
       SymbolStack_Pop(li);
       if(list_recursion)
-        fprintf(fp, "|%ld]", li);
+        fprintf(fp, "|" LongIntFormatString "]", li);
       else
-        fprintf(fp, "%ld", li);
+        fprintf(fp, LongIntFormatString, li);
     } else {
       int i;
       
@@ -273,6 +273,11 @@ void symstkPrintNextTerm(CTXTdeclc FILE *fp, xsbBool list_recursion) {
     symstkPrintNextTerm(CTXTc fp, FALSE);
     symstkPrintNextTerm(CTXTc fp, TRUE);
 #endif
+  } else {
+    if(list_recursion)
+      fprintf(fp, "uknown_symbol]");
+    else
+      fprintf(fp, "unknown_symbol");
   }
 }
 
