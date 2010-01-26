@@ -197,7 +197,18 @@ void symstkPrintNextTerm(CTXTdeclc FILE *fp, xsbBool list_recursion) {
     Functor f = (Functor) RepAppl(symbol);
     
     if(f == FunctorDouble) {
-      // TODO FLOAT
+      volatile Float dbl;
+      volatile Term *t_dbl = (Term *)((void *) &dbl);
+      
+#if SIZEOF_DOUBLE == 2 * SIZEOF_INT_P
+      SymbolStack_Pop(*(t_dbl + 1));
+#endif /* SIZEOF_DOUBLE x SIZEOF_INT_P */
+      SymbolStack_Pop(*t_dbl);
+      
+      if(list_recursion)
+        fprintf(fp, "|%f]", dbl);
+      else
+        fprintf(fp, "%f", dbl);
     } else if(f == FunctorLongInt) {
       // TODO LONG INT
     } else {
