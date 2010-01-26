@@ -210,7 +210,12 @@ void symstkPrintNextTerm(CTXTdeclc FILE *fp, xsbBool list_recursion) {
       else
         fprintf(fp, "%f", dbl);
     } else if(f == FunctorLongInt) {
-      // TODO LONG INT
+      Int li;
+      SymbolStack_Pop(li);
+      if(list_recursion)
+        fprintf(fp, "|%ld]", li);
+      else
+        fprintf(fp, "%ld", li);
     } else {
       int i;
       
