@@ -47,6 +47,9 @@ typedef Functor Psc;
 #define XSB_TrieVar TAG_TrieVar
 
 #define EncodeTrieConstant(Cell_Const) ((Cell)Cell_Const)
+#define EncodeTrieVar(INDEX)      MakeTableVarTerm(INDEX)
+#define EncodeTrieFunctor(TERM)   AbsAppl((Term *)FunctorOfTerm(TERM))
+#define EncodeTrieList(TERM)  AbsPair(NULL)
 
 #define XSB_Deref(X) ((X) = Deref(X))
 
@@ -73,8 +76,7 @@ typedef Functor Psc;
 #define StandardizeVariable(DerefedVar, Index)  \
     (*((CELL *)DerefedVar) = GLOBAL_table_var_enumerator(Index))
 #define IsStandardizedVariable(DerefVar)  (IsTableVarTerm(DerefVar))
-#define EncodeTrieVar(INDEX)      MakeTableVarTerm(INDEX)
-#define EncodeTrieFunctor(TERM)   AbsAppl((Term *)FunctorOfTerm(TERM))
+
 #define IndexOfStdVar(VAR_ENUM_ADDR)  VarIndexOfTerm(VAR_ENUM_ADDR)
 #define IsTrieRoot(NODE)   (TrNode_parent(NODE) == NULL)
 #define IsLeafNode(NODE)   (TrNode_child(NODE) == NULL) /// XXX
