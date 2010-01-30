@@ -63,7 +63,12 @@ extern DynamicStack tstTermStack;
   TermStack_PushLowToHighVector(clref_val(CS_Cell) + 1, \
     get_arity((Psc)*clref_val(CS_Cell)))
 
-// TermStack_PushListArgs XXX
+#define TermStack_PushListArgs(LIST_Cell) { \
+  CPtr pListHeadCell = clrefp_val(LIST_Cell);  \
+  DynStk_ExpandIfOverflow(tstTermStack, 2); \
+  TermStack_BlindPush(*(pListHeadCell + 1));  \
+  TermStack_BlindPush(*(pListHeadCell));  \
+}
 
 /*
  * The following macros enable the movement of an argument vector to
