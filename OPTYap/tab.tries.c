@@ -860,6 +860,8 @@ sg_fr_ptr subgoal_search(yamop *preg, CELL **Yaddr) {
   sg_node_ptr current_node;
   TriePathType path_type;
   
+  printf("subgoal_search\n");
+  
 #ifdef TABLE_LOCK_AT_ENTRY_LEVEL
   LOCK(TabEnt_lock(tab_ent));
 #endif /* TABLE_LOCK_LEVEL */

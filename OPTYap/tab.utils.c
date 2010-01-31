@@ -116,8 +116,24 @@ begin_are_identical_terms:
       goto begin_are_identical_terms;
     } else return FALSE;
   }
+#ifdef SUBSUMPTION_YAP
+  else if(cell_tag(term1) == TAG_LONG_INT) {
+    printf("identical long int\n");
+    Int v1 = LongIntOfTerm(term1);
+    Int v2 = LongIntOfTerm(term2);
+    
+    return v1 == v2;
+  }
+  else if(cell_tag(term1) == TAG_FLOAT) {
+    printf("identical float term\n");
+    
+    Float dbl1 = FloatOfTerm(term1);
+    Float dbl2 = FloatOfTerm(term2);
+    
+    return dbl1 == dbl2;
+  }
+#endif /* SUBSUMPTION_YAP */
   else return FALSE;
-  // TODO: long int e double
 }
 
 static

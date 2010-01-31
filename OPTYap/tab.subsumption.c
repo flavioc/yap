@@ -385,6 +385,14 @@ static xsbBool save_variant_continuation(CTXTdeclc BTNptr last_node_match) {
       VarChain = BTN_Sibling(VarChain); \
     } \
 }
+
+/* --------------------------------------------------------------------- */
+#define Set_Hash_Match(Node, Symbol)  \
+  if(IsHashHeader(Node)) { \
+    BTHTptr pBTHT = (BTHTptr)Node;  \
+    BTNptr *buckets = BTHT_BucketArray(pBTHT);  \
+    Node = buckets[TrieHash(Symbol, BTHT_GetHashSeed(pBTHT))];  \
+  }
     
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
@@ -432,6 +440,69 @@ While_TermStack_NotEmpty:
     
     switch(cell_tag(subterm)) {
 #ifdef SUBSUMPTION_YAP
+      case TAG_FLOAT:
+        if(search_mode == MATCH_SYMBOL_EXACTLY) {
+          symbol = EncodeTrieFunctor(subterm);
+          Set_Matching_and_TrieVar_Chains(symbol, pCurrentBTN, variableChain);
+          
+          volatile Float dbl = FloatOfTerm(subterm);
+          volatile Term *t_dbl = (Term *)((void *) &dbl);
+
+          /* if double is twice the size of int then it
+           * is spread across three trie nodes, thus we
+           * must match 3 nodes before trying to match
+           * variables
+           */
+#if SIZEOF_DOUBLE == 2 * SIZEOF_INT_P
+          Term match1 = *(t_dbl + 1);
+          Term match2 = *t_dbl;
+          
+          printf("match double 64 %lf\n", dbl);
+          
+          while(IsNonNULL(pCurrentBTN)) {
+            if(symbol == BTN_Symbol(pCurrentBTN)) {
+              BTNptr child1 = BTN_Child(pCurrentBTN);
+              
+              Set_Hash_Match(child1, match1);
+              
+              while(IsNonNULL(child1)) {
+                if(match1 == BTN_Symbol(child1)) {
+                  BTNptr child2 = BTN_Child(child1);
+                  
+                  Set_Hash_Match(child2, match2);
+                  NonVarSearchChain_ExactMatch(match2, child2, variableChain, TermStack_NOOP);
+                }
+                
+                child1 = BTN_Sibling(child1);
+              }
+            }
+            
+            pCurrentBTN = BTN_Sibling(pCurrentBTN);
+          }
+#else
+          Term match1 = *t_dbl;
+          printf("Double 32 %f\n", *t_dbl);
+          
+          while(IsNonNULL(pCurrentBTN)) {
+            if(symbol == BTN_Symbol(pCurrentBTN)) {
+              BTNptr child1 = BTN_Child(pCurrentBTN);
+              
+              Set_Hash_Match(child1, match);
+              
+              NonVarSearchChain_ExactMatch(match, child1, variableChain, TermStack_NOOP);
+            }
+            
+            pCurrentBTN = BTN_Sibling(pCurrentBTN);
+          }
+#endif /* SIZEOF_DOUBLE x SIZEOF_INT_P */
+          
+          /* failed to find a float */
+          pCurrentBTN = variableChain;
+          SetNoVariant(pParentBTN);
+        }
+        NonVarSearchChain_BoundTrievar(subterm, pCurrentBTN, variableChain);
+        NonVarSearchChain_UnboundTrieVar(subterm, variableChain);
+        break;
       case TAG_LONG_INT:
         if(search_mode == MATCH_SYMBOL_EXACTLY) {
           symbol = EncodeTrieFunctor(subterm);
@@ -439,19 +510,12 @@ While_TermStack_NotEmpty:
           
           Int li = LongIntOfTerm(subterm);
           
-          printf("Long int: %ld\n", li);
+          /* first match the functor node, then the long int itself */
           while(IsNonNULL(pCurrentBTN)) {
             if(symbol == BTN_Symbol(pCurrentBTN)) {
               BTNptr child = BTN_Child(pCurrentBTN);
               
-              if (IsHashHeader(child)) {
-                BTNptr *buckets;
-                BTHTptr pBTHT;
-                pBTHT = (BTHTptr)child;
-                buckets = BTHT_BucketArray(pBTHT);
-                child = buckets[TrieHash(li, BTHT_GetHashSeed(pBTHT))];
-              }
-              
+              Set_Hash_Match(child, li);
               NonVarSearchChain_ExactMatch(li, child, variableChain, TermStack_NOOP);
             }
             pCurrentBTN = BTN_Sibling(pCurrentBTN);
@@ -467,7 +531,9 @@ While_TermStack_NotEmpty:
 #endif /* SUBSUMPTION_YAP */
       case XSB_STRING:
       case XSB_INT:
+#ifdef SUBSUMPTION_XSB
       case XSB_FLOAT:
+#endif
         /*
          *  NOTE:  A Trie constant looks like a Heap constant.
          */

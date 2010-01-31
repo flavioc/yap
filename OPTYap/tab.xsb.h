@@ -25,6 +25,7 @@ typedef Functor Psc;
 
 #define get_arity(FUNCTOR)  ArityOfFunctor(FUNCTOR)
 #define get_name(FUNCTOR)   AtomName(NameOfFunctor(FUNCTOR))
+/* FunctorOfTerm(t) === *RepAppl (t) */
 #define clref_val(REF)      RepAppl(REF)
 #define clrefp_val(REF)     RepPair(REF)
 #define bld_free(ADDR)      *((CELL *)ADDR) = (CELL)(ADDR)
