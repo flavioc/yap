@@ -410,6 +410,7 @@ or.scheduler.o: $(srcdir)/OPTYap/or.scheduler.c $(srcdir)/OPTYap/opt.config.h
 tab.tries.o: $(srcdir)/OPTYap/tab.tries.c \
 	$(srcdir)/OPTYap/tab.macros.h \
 	$(srcdir)/OPTYap/tab.structs.h \
+	$(srcdir)/OPTYap/tab.subsumption.h \
 	$(srcdir)/H/Yatom.h \
 	$(srcdir)/H/YapHeap.h \
 	$(srcdir)/H/yapio.h \
@@ -417,6 +418,7 @@ tab.tries.o: $(srcdir)/OPTYap/tab.tries.c \
 	$(CC) -c $(CFLAGS) $(srcdir)/OPTYap/tab.tries.c -o $@
 
 tab.subsumption.o: $(srcdir)/OPTYap/tab.subsumption.c \
+	$(srcdir)/OPTYap/tab.subsumption.h \
 	$(srcdir)/OPTYap/tab.utils.h \
 	$(srcdir)/OPTYap/tab.utils.o \
 	$(srcdir)/OPTYap/tab.macros.h \

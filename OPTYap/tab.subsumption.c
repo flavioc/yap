@@ -26,6 +26,7 @@
 #include "tab.stack.h"
 #include "tab.xsb.h"
 #include "tab.utils.h"
+#include "tab.subsumption.h"
 
 typedef enum Search_Strategy_Mode {
   MATCH_SYMBOL_EXACTLY, MATCH_WITH_TRIEVAR
