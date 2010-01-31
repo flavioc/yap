@@ -428,7 +428,43 @@ While_TermStack_NotEmpty:
     TermStackLog_PushFrame;
     XSB_Deref(subterm);
     
+    printf("Cell tag: %d\n", cell_tag(subterm));
+    
     switch(cell_tag(subterm)) {
+#ifdef SUBSUMPTION_YAP
+      case TAG_LONG_INT:
+        if(search_mode == MATCH_SYMBOL_EXACTLY) {
+          symbol = EncodeTrieFunctor(subterm);
+          Set_Matching_and_TrieVar_Chains(symbol, pCurrentBTN, variableChain);
+          
+          Int li = LongIntOfTerm(subterm);
+          
+          printf("Long int: %ld\n", li);
+          while(IsNonNULL(pCurrentBTN)) {
+            if(symbol == BTN_Symbol(pCurrentBTN)) {
+              BTNptr child = BTN_Child(pCurrentBTN);
+              
+              if (IsHashHeader(child)) {
+                BTNptr *buckets;
+                BTHTptr pBTHT;
+                pBTHT = (BTHTptr)child;
+                buckets = BTHT_BucketArray(pBTHT);
+                child = buckets[TrieHash(li, BTHT_GetHashSeed(pBTHT))];
+              }
+              
+              NonVarSearchChain_ExactMatch(li, child, variableChain, TermStack_NOOP);
+            }
+            pCurrentBTN = BTN_Sibling(pCurrentBTN);
+          }
+          
+          /* failed to find a long int */
+          pCurrentBTN = variableChain;
+          SetNoVariant(pParentBTN);
+        }
+        NonVarSearchChain_BoundTrievar(subterm, pCurrentBTN, variableChain);
+        NonVarSearchChain_UnboundTrieVar(subterm, variableChain);
+      break;
+#endif /* SUBSUMPTION_YAP */
       case XSB_STRING:
       case XSB_INT:
       case XSB_FLOAT:
