@@ -24,6 +24,7 @@
 #include "yapio.h"
 #include "tab.macros.h"
 #include "tab.utils.h"
+#include "tab.subsumption.h"
 
 
 /* ------------------------------------- **
@@ -781,7 +782,7 @@ void construct_variant_answer_template(CELL **Yaddr) {
   int i;
   
   for(i = 0, binding = Trail_Base; binding < Trail_Top; binding++, i++) {
-    *--Yaddr0 = *binding;
+    *--Yaddr0 = (CELL)*binding;
   }
   *--Yaddr0 = i;
   
@@ -799,7 +800,7 @@ void construct_variant_answer_template_from_sub(CELL **Yaddr) {
     
     if(!IsUnboundTrieVar(termptr)) {
       //printf("New variable!\n");
-      *--Yaddr0 = termptr;
+      *--Yaddr0 = (CELL)termptr;
       ++i;
     }
   }
