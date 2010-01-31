@@ -102,6 +102,9 @@ typedef Functor Psc;
 #define string_val(SYMBOL)  AtomName(AtomOfTerm(SYMBOL))
 #define DecodeTrieFunctor(SYMBOL) ((Functor) RepAppl(SYMBOL))
 
+#define SUBSUMPTION_YAP 1
+/* #define SUBSUMPTION_XSB 1 */
+
 #endif /* TABLING_CALL_SUBSUMPTION */
 
 #endif
