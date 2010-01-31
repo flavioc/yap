@@ -99,6 +99,12 @@ typedef Functor Psc;
 #define LongIntFormatString "%d"
 #endif
 
+#if SIZEOF_DOUBLE == 2 * SIZEOF_INT_P
+#define FloatFormatString "%lf"
+#else
+#define FloatFormatString "%f"
+#endif
+
 #define int_val(SYMBOL) IntOfTerm(SYMBOL)
 #define string_val(SYMBOL)  AtomName(AtomOfTerm(SYMBOL))
 #define DecodeTrieFunctor(SYMBOL) ((Functor) RepAppl(SYMBOL))
