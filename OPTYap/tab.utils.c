@@ -182,7 +182,7 @@ static void printTrieSymbol(FILE* fp, Cell symbol)
 }
 
 static
-void symstkPrintNextTerm(CTXTdeclc FILE *fp, xsbBool list_recursion)
+void symstkPrintNextTrieTerm(CTXTdeclc FILE *fp, xsbBool list_recursion)
 {
   Cell symbol;
   
@@ -227,9 +227,10 @@ void symstkPrintNextTerm(CTXTdeclc FILE *fp, xsbBool list_recursion)
       SymbolStack_Pop(*t_dbl);
       
       if(list_recursion)
-        fprintf(fp, "|%f]", dbl);
+        fprintf(fp, "|" FloatFormatString "]", dbl);
       else
-        fprintf(fp, "%f", dbl);
+        fprintf(fp, FloatFormatString, dbl);
+        
     } else if(f == FunctorLongInt) {
       Int li;
       SymbolStack_Pop(li);
@@ -245,10 +246,10 @@ void symstkPrintNextTerm(CTXTdeclc FILE *fp, xsbBool list_recursion)
       
       fprintf(fp, "%s(", get_name(f));
       for(i = 1; i < (int)get_arity(f); i++) {
-        symstkPrintNextTerm(CTXTc fp, FALSE);
+        symstkPrintNextTrieTerm(CTXTc fp, FALSE);
         fprintf(fp, ",");
       }
-      symstkPrintNextTerm(CTXTc fp, FALSE);
+      symstkPrintNextTrieTerm(CTXTc fp, FALSE);
       fprintf(fp, ")");
       if(list_recursion)
         fprintf(fp, "]");
@@ -267,14 +268,14 @@ void symstkPrintNextTerm(CTXTdeclc FILE *fp, xsbBool list_recursion)
           SymbolStack_BlindDrop;
           if(cnt)
             fprintf(fp, ",");
-          symstkPrintNextTerm(CTXTc fp, FALSE);
+          symstkPrintNextTrieTerm(CTXTc fp, FALSE);
           fprintf(fp, "]");
           break;
         } else if(symbol == CompactPairEndTerm) {
           SymbolStack_BlindDrop;
           if(cnt)
             fprintf(fp, "|");
-          symstkPrintNextTerm(CTXTc fp, FALSE);
+          symstkPrintNextTrieTerm(CTXTc fp, FALSE);
           fprintf(fp, "]");
           break;
         }
@@ -282,7 +283,7 @@ void symstkPrintNextTerm(CTXTdeclc FILE *fp, xsbBool list_recursion)
         if(cnt)
           fprintf(fp, ",");
         
-        symstkPrintNextTerm(CTXTc fp, FALSE);
+        symstkPrintNextTrieTerm(CTXTc fp, FALSE);
       }
     }
 #else
@@ -291,8 +292,8 @@ void symstkPrintNextTerm(CTXTdeclc FILE *fp, xsbBool list_recursion)
     else
       fprintf(fp, "[");
   
-    symstkPrintNextTerm(CTXTc fp, FALSE);
-    symstkPrintNextTerm(CTXTc fp, TRUE);
+    symstkPrintNextTrieTerm(CTXTc fp, FALSE);
+    symstkPrintNextTrieTerm(CTXTc fp, TRUE);
 #endif
   } else {
     if(list_recursion)
@@ -316,10 +317,123 @@ void printSubgoalTriePath(CTXTdeclc FILE *fp, BTNptr pLeaf, tab_ent_ptr tab_entr
   
   fprintf(fp, "%s", string_val((Term)TabEnt_atom(tab_entry)));
   fprintf(fp, "(");
-  symstkPrintNextTerm(CTXTc fp, FALSE);
+  symstkPrintNextTrieTerm(CTXTc fp, FALSE);
   while(!SymbolStack_IsEmpty) {
     fprintf(fp, ",");
-    symstkPrintNextTerm(CTXTc fp, FALSE);
+    symstkPrintNextTrieTerm(CTXTc fp, FALSE);
+  }
+  fprintf(fp, ")");
+}
+
+static int variable_counter = 0;
+
+static void
+recursivePrintSubterm(FILE *fp, Term symbol, xsbBool list_recursion)
+{
+  XSB_Deref(symbol);
+  
+  if(IsIntTerm(symbol)) {
+    if(list_recursion)
+      fprintf(fp, "|" IntegerFormatString "]", int_val(symbol));
+    else
+      fprintf(fp, IntegerFormatString, int_val(symbol));
+  } else if(IsVarTerm(symbol)) {
+    if(list_recursion)
+      fprintf(fp, "|");
+    
+    int var_index;
+            
+    if(IsStandardizedVariable(symbol)) {
+      var_index = IndexOfStdVar(symbol);
+    } else {
+      Trail_Push(symbol);
+      StandardizeVariable(symbol, variable_counter);
+      var_index = variable_counter++;
+    }
+    
+    fprintf(fp, "V" IntegerFormatString, var_index);  
+    
+    if(list_recursion)
+      fprintf(fp, "]");
+  } else if(IsAtomTerm(symbol)) {
+    char *string = string_val(symbol);
+    
+    if(list_recursion) {
+      if(symbol == TermNil)
+        fprintf(fp, "]");
+      else
+        fprintf(fp, "|%s]", string);
+    }
+    else
+      fprintf(fp, "%s", string);
+  } else if(IsApplTerm(symbol)) {
+    Functor f = FunctorOfTerm(symbol);
+    
+    if(f == FunctorDouble) {
+      Float dbl = FloatOfTerm(symbol);
+      
+      if(list_recursion)
+        fprintf(fp, "|" FloatFormatString "]", dbl);
+      else
+        fprintf(fp, FloatFormatString, dbl);
+    } else if(f == FunctorLongInt) {
+      Int li = LongIntOfTerm(symbol);
+      
+      if(list_recursion)
+        fprintf(fp, "|" LongIntFormatString "]", li);
+      else
+        fprintf(fp, LongIntFormatString, li);
+    } else {
+      int i;
+      
+      if(list_recursion)
+        fprintf(fp, "|");
+      
+      fprintf(fp, "%s(", get_name(f));
+      
+      for(i = 1; i <= (int)get_arity(f); i++) {
+        if(i > 1)
+          fprintf(fp, ",");
+        recursivePrintSubterm(fp, *(RepAppl(symbol) + i), FALSE);
+      }
+      
+      fprintf(fp, ")");
+      
+      if(list_recursion)
+        fprintf(fp, "]");
+    }
+  } else if(IsPairTerm(symbol)) {
+    if(list_recursion)
+      fprintf(fp, ",");
+    else
+      fprintf(fp, "[");
+    
+    recursivePrintSubterm(fp, *(RepPair(symbol)), FALSE);
+    recursivePrintSubterm(fp, *(RepPair(symbol) + 1), TRUE);
+  }
+}
+
+void printSubterm(FILE *fp, Term term)
+{
+  Trail_ResetTOS;
+  variable_counter = 0;
+  recursivePrintSubterm(fp, term, FALSE);
+  Trail_Unwind_All;
+}
+
+void printCalledSubgoal(FILE *fp, yamop *preg)
+{
+  int i, arity = preg->u.Otapl.s;
+  tab_ent_ptr tab_ent = preg->u.Otapl.te;
+  
+  Trail_ResetTOS;
+  variable_counter = 0;
+  
+  fprintf(fp, "SUBGOAL: %s(", string_val((Term)TabEnt_atom(tab_ent)));
+  for(i = 1; i <= arity; ++i) {
+    if(i > 1)
+      fprintf(fp, ",");
+    recursivePrintSubterm(fp, XREGS[i], FALSE);
   }
   fprintf(fp, ")");
 }
