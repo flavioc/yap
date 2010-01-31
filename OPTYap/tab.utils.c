@@ -15,6 +15,8 @@
 
 #ifdef TABLING_CALL_SUBSUMPTION
 
+static void printTrieSymbol(FILE* fp, Cell symbol);
+
 CellTag cell_tag(Term t)
 {
   if(IsVarTerm(t))
@@ -75,6 +77,8 @@ CellTag TrieSymbolType(Term t)
     
     return TAG_STRUCT;
   }
+  
+  return TAG_UNKNOWN;
 }
 
 xsbBool are_identical_terms(Cell term1, Cell term2)
@@ -136,49 +140,50 @@ begin_are_identical_terms:
   else return FALSE;
 }
 
-static
-void printTrieNode(FILE *fp, BTNptr pTN) {
-  fprintf(fp, "Trie Node: Addr(%p)", pTN);
-  // XXX
+void printTrieNode(FILE *fp, BTNptr pTN)
+{
+  fprintf(fp, "Trie Node: Addr(%p) Symbol: ", pTN);
+  printTrieSymbol(fp, BTN_Symbol(pTN));
 }
 
-void printTrieSymbol(FILE* fp, Cell symbol) {
-  if(symbol == ESCAPE_NODE_SYMBOL)
-    fprintf(fp, "%lu [ESCAPE_NODE_SYMBOL]", ESCAPE_NODE_SYMBOL);
-  else {
-    switch(TrieSymbolType(symbol)) {
-      case XSB_INT:
-        fprintf(fp, IntegerFormatString, int_val(symbol));
+static void printTrieSymbol(FILE* fp, Cell symbol)
+{
+  switch(TrieSymbolType(symbol)) {
+    case XSB_INT:
+      fprintf(fp, IntegerFormatString, int_val(symbol));
+      break;
+    case XSB_FLOAT:
+      fprintf(fp, "float");
+      break;
+    case XSB_STRING:
+      fprintf(fp, "%s", string_val(symbol));
+      break;
+    case XSB_TrieVar:
+      fprintf(fp, "V" IntegerFormatString, DecodeTrieVar(symbol));
+      break;
+    case XSB_STRUCT:
+      {
+        Psc psc;
+
+        psc = DecodeTrieFunctor(symbol);
+        fprintf(fp, "%s/%d", get_name(psc), get_arity(psc));
         break;
-      case XSB_FLOAT:
-        /// XXXX
-        break;
-      case XSB_STRING:
-        fprintf(fp, "%s", string_val(symbol));
-        break;
-      case XSB_TrieVar:
-        fprintf(fp, "V" IntegerFormatString, DecodeTrieVar(symbol));
-        break;
-      case XSB_STRUCT:
-        {
-          Psc psc;
-          /// XXX Float??
-          psc = DecodeTrieFunctor(symbol);
-          fprintf(fp, "%s/%d", get_name(psc), get_arity(psc));
-          break;
-        }
-      case XSB_LIST:
-        fprintf(fp, "LIST");
-        break;
-      default:
-        fprintf(fp, "Unknown symbol (tag = %ld)", cell_tag(symbol));
-        break;
-    }
+      }
+    case XSB_LIST:
+      fprintf(fp, "LIST");
+      break;
+    case TAG_LONG_INT:
+      fprintf(fp, "LONG INT");
+      break;
+    default:
+      fprintf(fp, "Unknown symbol (tag = %d)", cell_tag(symbol));
+      break;
   }
 }
 
 static
-void symstkPrintNextTerm(CTXTdeclc FILE *fp, xsbBool list_recursion) {
+void symstkPrintNextTerm(CTXTdeclc FILE *fp, xsbBool list_recursion)
+{
   Cell symbol;
   
   if(SymbolStack_IsEmpty) {
@@ -309,7 +314,7 @@ void printSubgoalTriePath(CTXTdeclc FILE *fp, BTNptr pLeaf, tab_ent_ptr tab_entr
   SymbolStack_ResetTOS;
   SymbolStack_PushPathRoot(pLeaf, pRoot);
   
-  fprintf(fp, "%s", string_val(TabEnt_atom(tab_entry)));
+  fprintf(fp, "%s", string_val((Term)TabEnt_atom(tab_entry)));
   fprintf(fp, "(");
   symstkPrintNextTerm(CTXTc fp, FALSE);
   while(!SymbolStack_IsEmpty) {

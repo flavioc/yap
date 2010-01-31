@@ -343,6 +343,7 @@ typedef enum {
 CellTag cell_tag(Term t);
 xsbBool are_identical_terms(Cell term1, Cell term2);
 void printSubgoalTriePath(CTXTdeclc FILE *fp, BTNptr pLeaf, tab_ent_ptr tab_entry);
+void printTrieNode(FILE *fp, BTNptr pTN);
 
 #define TrieError_UnknownSubtermTagMsg				\
    "Trie Subterm-to-Symbol Conversion\nUnknown subterm type (%d)"
