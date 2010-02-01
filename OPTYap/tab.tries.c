@@ -823,7 +823,7 @@ get_subgoal_frame_from_node(sg_node_ptr current_node, tab_ent_ptr tab_ent, yamop
 
   if (TrNode_sg_fr(current_node) == NULL) {
     /* new tabled subgoal */
-    new_subgoal_frame(sg_fr, preg);
+    new_variant_subgoal_frame(sg_fr, preg);
     TrNode_sg_fr(current_node) = (sg_node_ptr) sg_fr;
     //printf("New subgoal frame... %x at node %x\n", sg_fr, current_node);
   } else {
