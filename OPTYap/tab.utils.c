@@ -436,6 +436,8 @@ void printCalledSubgoal(FILE *fp, yamop *preg)
     recursivePrintSubterm(fp, XREGS[i], FALSE);
   }
   fprintf(fp, ")");
+  
+  Trail_Unwind_All;
 }
 
 #endif /* TABLING_CALL_SUBSUMPTION */
