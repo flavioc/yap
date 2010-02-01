@@ -300,20 +300,28 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
         memcpy(SuspFr_global_start(SUSP_FR), SuspFr_global_reg(SUSP_FR), H_SIZE);  \
         memcpy(SuspFr_local_start(SUSP_FR), SuspFr_local_reg(SUSP_FR), B_SIZE);    \
         memcpy(SuspFr_trail_start(SUSP_FR), SuspFr_trail_reg(SUSP_FR), TR_SIZE)
-
-#define new_subgoal_frame(SG_FR, CODE)                          \
-      { register ans_node_ptr ans_node;                          \
-        new_root_answer_trie_node(ans_node);                     \
-        ALLOC_SUBGOAL_FRAME(SG_FR);                              \
-        INIT_LOCK(SgFr_lock(SG_FR));                             \
-        SgFr_code(SG_FR) = CODE;                                 \
-        SgFr_state(SG_FR) = ready;                               \
-        SgFr_hash_chain(SG_FR) = NULL;                           \
-        SgFr_answer_trie(SG_FR) = ans_node;                      \
-        SgFr_first_answer(SG_FR) = NULL;                         \
-        SgFr_last_answer(SG_FR) = NULL;                          \
-      }
-
+        
+#define new_basic_subgoal_frame(SG_FR, CODE, TYPE)                       \
+        { register ans_node_ptr ans_node;                          \
+          new_root_answer_trie_node(ans_node);                     \
+          ALLOC_SUBGOAL_FRAME(SG_FR);                              \
+          INIT_LOCK(SgFr_lock(SG_FR));                             \
+          SgFr_type(SG_FR) = TYPE;                                 \
+          SgFr_code(SG_FR) = CODE;                                 \
+          SgFr_state(SG_FR) = ready;                               \
+          SgFr_hash_chain(SG_FR) = NULL;                           \
+          SgFr_answer_trie(SG_FR) = ans_node;                      \
+          SgFr_first_answer(SG_FR) = NULL;                         \
+          SgFr_last_answer(SG_FR) = NULL;                          \
+        }                           
+        
+#define new_variant_subgoal_frame(SG_FR, CODE)  new_basic_subgoal_frame(SG_FR, CODE, VARIANT_PRODUCER_SFT)
+#define new_subsumptive_producer_subgoal_frame(SG_FR, CODE) new_basic_subgoal_frame(SG_FR, CODE, SUBSUMPTIVE_PRODUCER_SFT)
+#define new_subsumed_consumer_subgoal_frame(SG_FR, CODE, PRODUCER) {  \
+        new_basic_subgoal_frame(SG_FR, CODE, SUBSUMED_CONSUMER_SFT);  \
+        SgFr_timestamp(SG_FR) = 0;  \
+        SgFr_producer(SG_FR) = PRODUCER;  \
+    }  
 
 #define init_subgoal_frame(SG_FR)                                  \
         { SgFr_init_yapor_fields(SG_FR);                           \
