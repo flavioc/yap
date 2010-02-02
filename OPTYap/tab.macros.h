@@ -301,10 +301,10 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
         memcpy(SuspFr_local_start(SUSP_FR), SuspFr_local_reg(SUSP_FR), B_SIZE);    \
         memcpy(SuspFr_trail_start(SUSP_FR), SuspFr_trail_reg(SUSP_FR), TR_SIZE)
         
-#define new_basic_subgoal_frame(SG_FR, CODE, TYPE)                       \
+#define new_basic_subgoal_frame(SG_FR, CODE, TYPE, ALLOC_FN)       \
         { register ans_node_ptr ans_node;                          \
           new_root_answer_trie_node(ans_node);                     \
-          ALLOC_SUBGOAL_FRAME(SG_FR);                              \
+          ALLOC_FN(SG_FR);                                         \
           INIT_LOCK(SgFr_lock(SG_FR));                             \
           SgFr_type(SG_FR) = TYPE;                                 \
           SgFr_code(SG_FR) = CODE;                                 \
@@ -315,13 +315,27 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
           SgFr_last_answer(SG_FR) = NULL;                          \
         }                           
         
-#define new_variant_subgoal_frame(SG_FR, CODE)  new_basic_subgoal_frame(SG_FR, CODE, VARIANT_PRODUCER_SFT)
-#define new_subsumptive_producer_subgoal_frame(SG_FR, CODE) new_basic_subgoal_frame(SG_FR, CODE, SUBSUMPTIVE_PRODUCER_SFT)
+#define new_variant_subgoal_frame(SG_FR, CODE)  new_basic_subgoal_frame(SG_FR, CODE, VARIANT_PRODUCER_SFT, ALLOC_VARIANT_SUBGOAL_FRAME)
+#define new_subsumptive_producer_subgoal_frame(SG_FR, CODE) new_basic_subgoal_frame(SG_FR, CODE, SUBSUMPTIVE_PRODUCER_SFT, ALLOC_SUBPROD_SUBGOAL_FRAME)
 #define new_subsumed_consumer_subgoal_frame(SG_FR, CODE, PRODUCER) {  \
-        new_basic_subgoal_frame(SG_FR, CODE, SUBSUMED_CONSUMER_SFT);  \
+        new_basic_subgoal_frame(SG_FR, CODE, SUBSUMED_CONSUMER_SFT, ALLOC_SUBCONS_SUBGOAL_FRAME);  \
         SgFr_timestamp(SG_FR) = 0;  \
         SgFr_producer(SG_FR) = PRODUCER;  \
-    }  
+    }
+
+/* release subgoal frame based on its type */
+#define free_subgoal_frame(SG_FR) {       \
+    if(SgFr_is_variant(SG_FR))   {       \
+      FREE_VARIANT_SUBGOAL_FRAME(SG_FR);  \
+      printf("Free variant\n");  \
+    } else if(SgFr_is_sub_producer(SG_FR)) {  \
+      printf("Free sub producer\n");  \
+      FREE_SUBPROD_SUBGOAL_FRAME(SG_FR)  \
+    } else if(SgFr_is_sub_consumer(SG_FR)) {  \
+      FREE_SUBCONS_SUBGOAL_FRAME(SG_FR)  \
+      printf("Free sub consumer\n");  \
+    } \
+  }
 
 #define init_subgoal_frame(SG_FR)                                  \
         { SgFr_init_yapor_fields(SG_FR);                           \
@@ -459,15 +473,18 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
 
 
 #ifdef LIMIT_TABLING
-#define insert_into_global_sg_fr_list(SG_FR)                                 \
+
+#define insert_into_global_sg_fr_list(SG_FR)  {                              \
         SgFr_previous(SG_FR) = GLOBAL_last_sg_fr;                            \
         SgFr_next(SG_FR) = NULL;                                             \
         if (GLOBAL_first_sg_fr == NULL)                                      \
           GLOBAL_first_sg_fr = SG_FR;                                        \
         else                                                                 \
           SgFr_next(GLOBAL_last_sg_fr) = SG_FR;                              \
-        GLOBAL_last_sg_fr = SG_FR
-#define remove_from_global_sg_fr_list(SG_FR)                                 \
+        GLOBAL_last_sg_fr = SG_FR;                                           \
+    }
+    
+#define remove_from_global_sg_fr_list(SG_FR)  {                              \
         if (SgFr_previous(SG_FR)) {                                          \
           if ((SgFr_next(SgFr_previous(SG_FR)) = SgFr_next(SG_FR)) != NULL)  \
             SgFr_previous(SgFr_next(SG_FR)) = SgFr_previous(SG_FR);          \
@@ -478,9 +495,11 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
             SgFr_previous(SgFr_next(SG_FR)) = NULL;                          \
           else                                                               \
             GLOBAL_last_sg_fr = NULL;                                        \
-	}                                                                    \
+	      }                                                                    \
         if (GLOBAL_check_sg_fr == SG_FR)                                     \
-          GLOBAL_check_sg_fr = SgFr_previous(SG_FR)
+          GLOBAL_check_sg_fr = SgFr_previous(SG_FR);                         \
+    }
+    
 #else
 #define insert_into_global_sg_fr_list(SG_FR)
 #define remove_from_global_sg_fr_list(SG_FR)
