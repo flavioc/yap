@@ -3746,50 +3746,78 @@ p_set_yap_flags(void)
     if (value == 0) {  /* default */
       tab_ent_ptr tab_ent = GLOBAL_root_tab_ent;
       while(tab_ent) {
-	if (IsDefaultMode_Local(TabEnt_mode(tab_ent)))
-	  SetMode_Local(TabEnt_mode(tab_ent));
-	else
-	  SetMode_Batched(TabEnt_mode(tab_ent));
-	if (IsDefaultMode_LoadAnswers(TabEnt_mode(tab_ent)))
-	  SetMode_LoadAnswers(TabEnt_mode(tab_ent));
-	else
-	  SetMode_ExecAnswers(TabEnt_mode(tab_ent));
-	tab_ent = TabEnt_next(tab_ent);
+	      /* local / batched */
+	      if (IsDefaultMode_Local(TabEnt_mode(tab_ent)))
+	        SetMode_Local(TabEnt_mode(tab_ent));
+	      else
+	        SetMode_Batched(TabEnt_mode(tab_ent));
+	      
+	      /* load answers / exec answers */
+	      if (IsDefaultMode_LoadAnswers(TabEnt_mode(tab_ent)))
+	        SetMode_LoadAnswers(TabEnt_mode(tab_ent));
+	      else
+	        SetMode_ExecAnswers(TabEnt_mode(tab_ent));
+	        
+	      /* subsumptive / variant */
+	      if (IsDefaultMode_Subsumptive(TabEnt_mode(tab_ent)))
+          SetMode_Subsumptive(TabEnt_mode(tab_ent));
+        else
+          SetMode_Variant(TabEnt_mode(tab_ent));
+          
+	      tab_ent = TabEnt_next(tab_ent);
       }
       yap_flags[TABLING_MODE_FLAG] = 0;
     } else if (value == 1) {  /* batched */
       tab_ent_ptr tab_ent = GLOBAL_root_tab_ent;
       while(tab_ent) {
-	SetMode_Batched(TabEnt_mode(tab_ent));
-	tab_ent = TabEnt_next(tab_ent);
+	      SetMode_Batched(TabEnt_mode(tab_ent));
+	      tab_ent = TabEnt_next(tab_ent);
       }
       SetMode_Batched(yap_flags[TABLING_MODE_FLAG]);
       SetMode_SchedulingOn(yap_flags[TABLING_MODE_FLAG]);
     } else if (value == 2) {  /* local */
       tab_ent_ptr tab_ent = GLOBAL_root_tab_ent;
       while(tab_ent) {
-	SetMode_Local(TabEnt_mode(tab_ent));
-	tab_ent = TabEnt_next(tab_ent);
+	      SetMode_Local(TabEnt_mode(tab_ent));
+	      tab_ent = TabEnt_next(tab_ent);
       }
       SetMode_Local(yap_flags[TABLING_MODE_FLAG]);
       SetMode_SchedulingOn(yap_flags[TABLING_MODE_FLAG]);
     } else if (value == 3) {  /* exec_answers */
       tab_ent_ptr tab_ent = GLOBAL_root_tab_ent;
       while(tab_ent) {
-	SetMode_ExecAnswers(TabEnt_mode(tab_ent));
-	tab_ent = TabEnt_next(tab_ent);
+	      SetMode_ExecAnswers(TabEnt_mode(tab_ent));
+	      tab_ent = TabEnt_next(tab_ent);
       }
       SetMode_ExecAnswers(yap_flags[TABLING_MODE_FLAG]);
       SetMode_CompletedOn(yap_flags[TABLING_MODE_FLAG]);
     } else if (value == 4) {  /* load_answers */
       tab_ent_ptr tab_ent = GLOBAL_root_tab_ent;
       while(tab_ent) {
-	SetMode_LoadAnswers(TabEnt_mode(tab_ent));
-	tab_ent = TabEnt_next(tab_ent);
+	      SetMode_LoadAnswers(TabEnt_mode(tab_ent));
+	      tab_ent = TabEnt_next(tab_ent);
       }
       SetMode_LoadAnswers(yap_flags[TABLING_MODE_FLAG]);
       SetMode_CompletedOn(yap_flags[TABLING_MODE_FLAG]);
-    } 
+    } else if(value == 5) { /* variant */
+      printf("yap_flags variant\n");
+      tab_ent_ptr tab_ent = GLOBAL_root_tab_ent;
+      while(tab_ent) {
+        SetMode_Variant(TabEnt_mode(tab_ent));
+        tab_ent = TabEnt_next(tab_ent);
+      }
+      SetMode_Variant(yap_flags[TABLING_MODE_FLAG]);
+      SetMode_ChecksOn(yap_flags[TABLING_MODE_FLAG]);
+    } else if(value == 6) { /* subsumptive */
+      printf("yap_flags subsumptive\n");
+      tab_ent_ptr tab_ent = GLOBAL_root_tab_ent;
+      while(tab_ent) {
+        SetMode_Subsumptive(TabEnt_mode(tab_ent));
+        tab_ent = TabEnt_next(tab_ent);
+      }
+      SetMode_Subsumptive(yap_flags[TABLING_MODE_FLAG]);
+      SetMode_ChecksOn(yap_flags[TABLING_MODE_FLAG]);
+    }
     break;
 #endif /* TABLING */
   case VARS_CAN_HAVE_QUOTE_FLAG:
