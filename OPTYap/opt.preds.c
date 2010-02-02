@@ -102,7 +102,9 @@ static void shm_table_subgoal_answer_frames(long *pages_in_use, long *bytes_in_u
 #endif /* TABLING_INNER_CUTS */
 #ifdef TABLING
 static void shm_table_entries(long *pages_in_use, long *bytes_in_use);
-static void shm_subgoal_frames(long *pages_in_use, long *bytes_in_use);
+static void shm_variant_subgoal_frames(long *pages_in_use, long *bytes_in_use);
+static void shm_subprod_subgoal_frames(long *pages_in_use, long *bytes_in_use);
+static void shm_subcons_subgoal_frames(long *pages_in_use, long *bytes_in_use);
 static void shm_subgoal_trie_nodes(long *pages_in_use, long *bytes_in_use);
 static void shm_answer_trie_nodes(long *pages_in_use, long *bytes_in_use);
 static void shm_subgoal_trie_hashes(long *pages_in_use, long *bytes_in_use);
@@ -619,68 +621,112 @@ Int p_tabling_mode(void) {
 
   mod = Deref(ARG1);
   t = Deref(ARG2);
+  
+  /* get table entry */
   if (IsAtomTerm(t))
     tab_ent = RepPredProp(PredPropByAtom(AtomOfTerm(t), mod))->TableOfPred;
   else if (IsApplTerm(t))
     tab_ent = RepPredProp(PredPropByFunc(FunctorOfTerm(t), mod))->TableOfPred;
   else
     return (FALSE);
+    
   val = Deref(ARG3);
+  
+  /* get mode */
   if (IsVarTerm(val)) {
     Term mode;
     t = MkAtomTerm(AtomNil);
+    
     if (IsDefaultMode_LoadAnswers(TabEnt_mode(tab_ent)))
       mode = MkAtomTerm(Yap_LookupAtom("load_answers"));
     else
       mode = MkAtomTerm(Yap_LookupAtom("exec_answers"));
     t = MkPairTerm(mode, t);
+    
     if (IsDefaultMode_Local(TabEnt_mode(tab_ent)))
       mode = MkAtomTerm(Yap_LookupAtom("local"));
     else
       mode = MkAtomTerm(Yap_LookupAtom("batched"));
     t = MkPairTerm(mode, t);
+    
+    if (IsDefaultMode_Subsumptive(TabEnt_mode(tab_ent)))
+      mode = MkAtomTerm(Yap_LookupAtom("subsumptive"));
+    else
+      mode = MkAtomTerm(Yap_LookupAtom("variant"));
+    t = MkPairTerm(mode, t);
+    
     mode = MkAtomTerm(Yap_LookupAtom("default"));
     t = MkPairTerm(mode, t);
     t = MkPairTerm(t, MkAtomTerm(AtomNil));
+    
     if (IsMode_LoadAnswers(TabEnt_mode(tab_ent)))
       mode = MkAtomTerm(Yap_LookupAtom("load_answers"));
     else
       mode = MkAtomTerm(Yap_LookupAtom("exec_answers"));
     t = MkPairTerm(mode, t);
+    
     if (IsMode_Local(TabEnt_mode(tab_ent)))
       mode = MkAtomTerm(Yap_LookupAtom("local"));
     else
       mode = MkAtomTerm(Yap_LookupAtom("batched"));
     t = MkPairTerm(mode, t);
+    
+    if(IsMode_Subsumptive(TabEnt_mode(tab_ent)))
+      mode = MkAtomTerm(Yap_LookupAtom("subsumptive"));
+    else
+      mode = MkAtomTerm(Yap_LookupAtom("variant"));
+    t = MkPairTerm(mode, t);
+    
     Bind((CELL *)val, t);
     return(TRUE);
   }
+  
+  /* set mode */
   if (IsAtomTerm(val)) {
     char *str_val = RepAtom(AtomOfTerm(val))->StrOfAE;
+    
     if (strcmp(str_val,"batched") == 0) {
       SetDefaultMode_Batched(TabEnt_mode(tab_ent));
       if (IsMode_SchedulingOff(yap_flags[TABLING_MODE_FLAG]))
-	SetMode_Batched(TabEnt_mode(tab_ent));
+	      SetMode_Batched(TabEnt_mode(tab_ent));
       return(TRUE);
-    } 
+    }
+    
     if (strcmp(str_val,"local") == 0) {
       SetDefaultMode_Local(TabEnt_mode(tab_ent));
       if (IsMode_SchedulingOff(yap_flags[TABLING_MODE_FLAG]))
-	SetMode_Local(TabEnt_mode(tab_ent));
+	      SetMode_Local(TabEnt_mode(tab_ent));
       return(TRUE);
     }
+    
     if (strcmp(str_val,"exec_answers") == 0) {
       SetDefaultMode_ExecAnswers(TabEnt_mode(tab_ent));
       if (IsMode_CompletedOff(yap_flags[TABLING_MODE_FLAG]))
-	SetMode_ExecAnswers(TabEnt_mode(tab_ent));
+	      SetMode_ExecAnswers(TabEnt_mode(tab_ent));
       return(TRUE);
-    } 
+    }
+    
     if (strcmp(str_val,"load_answers") == 0) {
       SetDefaultMode_LoadAnswers(TabEnt_mode(tab_ent));
       if (IsMode_CompletedOff(yap_flags[TABLING_MODE_FLAG]))
-	SetMode_LoadAnswers(TabEnt_mode(tab_ent));
+	      SetMode_LoadAnswers(TabEnt_mode(tab_ent));
       return(TRUE);
     }
+    
+    if(strcmp(str_val,"variant") == 0) {
+      SetDefaultMode_Variant(TabEnt_mode(tab_ent));
+      if (IsMode_ChecksOff(yap_flags[TABLING_MODE_FLAG]))
+        SetMode_Variant(TabEnt_mode(tab_ent));
+      return(TRUE);
+    }
+    
+    if(strcmp(str_val,"subsumptive") == 0) {
+      SetDefaultMode_Subsumptive(TabEnt_mode(tab_ent));
+      if (IsMode_ChecksOff(yap_flags[TABLING_MODE_FLAG]))
+        SetMode_Subsumptive(TabEnt_mode(tab_ent));
+      return(TRUE);
+    }
+    
   }
   return (FALSE);
 }
@@ -824,7 +870,11 @@ Int p_tabling_statistics(void) {
   long pages_in_use = 0, bytes_in_use = 0;
 
   shm_table_entries(&pages_in_use, &bytes_in_use);
-  shm_subgoal_frames(&pages_in_use, &bytes_in_use);
+  
+  shm_variant_subgoal_frames(&pages_in_use, &bytes_in_use);
+  shm_subprod_subgoal_frames(&pages_in_use, &bytes_in_use);
+  shm_subcons_subgoal_frames(&pages_in_use, &bytes_in_use);
+  
   shm_subgoal_trie_nodes(&pages_in_use, &bytes_in_use);
   shm_answer_trie_nodes(&pages_in_use, &bytes_in_use);
 #ifdef GLOBAL_TRIE
@@ -840,30 +890,44 @@ Int p_tabling_statistics(void) {
 #else
   long bytes_in_use = 0;
 
-  fprintf(Yap_stdout, "  Table entries:                 %10ld structs in use\n", Pg_str_in_use(GLOBAL_PAGES_tab_ent));
+  fprintf(Yap_stdout, "  Table entries:                         %10ld structs in use\n", Pg_str_in_use(GLOBAL_PAGES_tab_ent));
   bytes_in_use += Pg_str_in_use(GLOBAL_PAGES_tab_ent) * sizeof(struct table_entry);
-  fprintf(Yap_stdout, "  Subgoal frames:                %10ld structs in use\n", Pg_str_in_use(GLOBAL_PAGES_sg_fr));
-  bytes_in_use += Pg_str_in_use(GLOBAL_PAGES_sg_fr) * sizeof(struct subgoal_frame);
-  fprintf(Yap_stdout, "  Subgoal trie nodes:            %10ld structs in use\n", Pg_str_in_use(GLOBAL_PAGES_sg_node));
+  
+  /* subgoal frame pages */
+  fprintf(Yap_stdout, "  Variant subgoal frames:                %10ld structs in use\n", Pg_str_in_use(GLOBAL_PAGES_variant_sg_fr));
+  bytes_in_use += Pg_str_in_use(GLOBAL_PAGES_variant_sg_fr) * sizeof(struct variant_subgoal_frame);
+  fprintf(Yap_stdout, "  Subsumptive producer subgoal frames:   %10ld structs in use\n", Pg_str_in_use(GLOBAL_PAGES_subprod_sg_fr));
+  bytes_in_use += Pg_str_in_use(GLOBAL_PAGES_subprod_sg_fr) * sizeof(struct subsumptive_producer_subgoal_frame);
+  fprintf(Yap_stdout, "  Subsumed consumer subgoal frames:      %10ld structs in use\n", Pg_str_in_use(GLOBAL_PAGES_subcons_sg_fr));
+  bytes_in_use += Pg_str_in_use(GLOBAL_PAGES_subcons_sg_fr) * sizeof(struct subsumed_consumer_subgoal_frame);
+  
+  fprintf(Yap_stdout, "  Subgoal trie nodes:                    %10ld structs in use\n", Pg_str_in_use(GLOBAL_PAGES_sg_node));
   bytes_in_use += Pg_str_in_use(GLOBAL_PAGES_sg_node) * sizeof(struct subgoal_trie_node);
-  fprintf(Yap_stdout, "  Answer trie nodes:             %10ld structs in use\n", Pg_str_in_use(GLOBAL_PAGES_ans_node));
+  
+  fprintf(Yap_stdout, "  Answer trie nodes:                     %10ld structs in use\n", Pg_str_in_use(GLOBAL_PAGES_ans_node));
   bytes_in_use += Pg_str_in_use(GLOBAL_PAGES_ans_node) * sizeof(struct answer_trie_node);
+
 #ifdef GLOBAL_TRIE
-  fprintf(Yap_stderr, "  Global trie nodes:             %10ld structs in use\n", Pg_str_in_use(GLOBAL_PAGES_gt_node));
+  fprintf(Yap_stderr, "  Global trie nodes:                     %10ld structs in use\n", Pg_str_in_use(GLOBAL_PAGES_gt_node));
   bytes_in_use += Pg_str_in_use(GLOBAL_PAGES_gt_node) * sizeof(struct global_trie_node);
 #endif /* GLOBAL_TRIE */
-  fprintf(Yap_stdout, "  Subgoal trie hashes:           %10ld structs in use\n", Pg_str_in_use(GLOBAL_PAGES_sg_hash));
+
+  fprintf(Yap_stdout, "  Subgoal trie hashes:                   %10ld structs in use\n", Pg_str_in_use(GLOBAL_PAGES_sg_hash));
   bytes_in_use += Pg_str_in_use(GLOBAL_PAGES_sg_hash) * sizeof(struct subgoal_trie_hash);
-  fprintf(Yap_stdout, "  Answer trie hashes:            %10ld structs in use\n", Pg_str_in_use(GLOBAL_PAGES_ans_hash));
+
+  fprintf(Yap_stdout, "  Answer trie hashes:                    %10ld structs in use\n", Pg_str_in_use(GLOBAL_PAGES_ans_hash));
   bytes_in_use += Pg_str_in_use(GLOBAL_PAGES_ans_hash) * sizeof(struct answer_trie_hash);
+
 #ifdef GLOBAL_TRIE
-  fprintf(Yap_stderr, "  Global trie hashes:            %10ld structs in use\n", Pg_str_in_use(GLOBAL_PAGES_gt_hash));
+  fprintf(Yap_stderr, "  Global trie hashes:                    %10ld structs in use\n", Pg_str_in_use(GLOBAL_PAGES_gt_hash));
   bytes_in_use += Pg_str_in_use(GLOBAL_PAGES_gt_hash) * sizeof(struct global_trie_hash);
 #endif /* GLOBAL_TRIE */
-  fprintf(Yap_stdout, "%s Dependency frames:             %10ld structs in use\n",
+
+  fprintf(Yap_stdout, "%s Dependency frames:                     %10ld structs in use\n",
           Pg_str_in_use(GLOBAL_PAGES_dep_fr) == 1 ? " ": "*", Pg_str_in_use(GLOBAL_PAGES_dep_fr));
   bytes_in_use += Pg_str_in_use(GLOBAL_PAGES_dep_fr) * sizeof(struct dependency_frame);
-  fprintf(Yap_stdout, "  Total memory in use:                    %10ld bytes\n", bytes_in_use);
+
+  fprintf(Yap_stdout, "  Total memory in use:                   %10ld bytes\n", bytes_in_use);
 #endif /* MEMORY_ALLOC_SCHEME */
   return (TRUE);
 }
@@ -884,7 +948,11 @@ Int p_opt_statistics(void) {
   shm_table_subgoal_answer_frames(&pages_in_use, &bytes_in_use);
 #endif /* TABLING_INNER_CUTS */
   shm_table_entries(&pages_in_use, &bytes_in_use);
-  shm_subgoal_frames(&pages_in_use, &bytes_in_use);
+  
+  shm_variant_subgoal_frames(&pages_in_use, &bytes_in_use);
+  shm_subprod_subgoal_frames(&pages_in_use, &bytes_in_use);
+  shm_subcons_subgoal_frames(&pages_in_use, &bytes_in_use);
+  
   shm_subgoal_trie_nodes(&pages_in_use, &bytes_in_use);
   shm_answer_trie_nodes(&pages_in_use, &bytes_in_use);
 #ifdef GLOBAL_TRIE
@@ -901,50 +969,70 @@ Int p_opt_statistics(void) {
 #else
   long bytes_in_use = 0;
 
-  fprintf(Yap_stdout, "%s Or-frames:                     %10ld structs in use\n", 
+  fprintf(Yap_stdout, "%s Or-frames:                            %10ld structs in use\n", 
           Pg_str_in_use(GLOBAL_PAGES_or_fr) == 1 ? " ": "*", Pg_str_in_use(GLOBAL_PAGES_or_fr));
   bytes_in_use += Pg_str_in_use(GLOBAL_PAGES_or_fr) * sizeof(struct or_frame);
-  fprintf(Yap_stdout, "%s Query goal solution frames:    %10ld structs in use\n",
+  
+  fprintf(Yap_stdout, "%s Query goal solution frames:           %10ld structs in use\n",
           Pg_str_in_use(GLOBAL_PAGES_qg_sol_fr) == 1 ? " ": "*", Pg_str_in_use(GLOBAL_PAGES_qg_sol_fr));
   bytes_in_use += Pg_str_in_use(GLOBAL_PAGES_qg_sol_fr) * sizeof(struct query_goal_solution_frame);
-  fprintf(Yap_stdout, "%s Query goal answer frames:      %10ld structs in use\n",
+  
+  fprintf(Yap_stdout, "%s Query goal answer frames:             %10ld structs in use\n",
           Pg_str_in_use(GLOBAL_PAGES_qg_ans_fr) == 1 ? " ": "*", Pg_str_in_use(GLOBAL_PAGES_qg_ans_fr));
   bytes_in_use += Pg_str_in_use(GLOBAL_PAGES_qg_ans_fr) * sizeof(struct query_goal_answer_frame);
+  
 #ifdef TABLING_INNER_CUTS
-  fprintf(Yap_stdout, "%s Table subgoal solution frames: %10ld structs in use\n",
+  fprintf(Yap_stdout, "%s Table subgoal solution frames:        %10ld structs in use\n",
           Pg_str_in_use(GLOBAL_PAGES_tg_sol_fr) == 0 ? " ": "*", Pg_str_in_use(GLOBAL_PAGES_tg_sol_fr));
   bytes_in_use += Pg_str_in_use(GLOBAL_PAGES_tg_sol_fr) * sizeof(struct table_subgoal_solution_frame);
-  fprintf(Yap_stdout, "%s Table subgoal answer frames:   %10ld structs in use\n",
+  
+  fprintf(Yap_stdout, "%s Table subgoal answer frames:          %10ld structs in use\n",
           Pg_str_in_use(GLOBAL_PAGES_tg_ans_fr) == 0 ? " ": "*", Pg_str_in_use(GLOBAL_PAGES_tg_ans_fr));
   bytes_in_use += Pg_str_in_use(GLOBAL_PAGES_tg_ans_fr) * sizeof(struct table_subgoal_answer_frame);
 #endif /* TABLING_INNER_CUTS */
-  fprintf(Yap_stdout, "  Table entries:                 %10ld structs in use\n", Pg_str_in_use(GLOBAL_PAGES_tab_ent));
+
+  fprintf(Yap_stdout, "  Table entries:                         %10ld structs in use\n", Pg_str_in_use(GLOBAL_PAGES_tab_ent));
   bytes_in_use += Pg_str_in_use(GLOBAL_PAGES_tab_ent) * sizeof(struct table_entry);
-  fprintf(Yap_stdout, "  Subgoal frames:                %10ld structs in use\n", Pg_str_in_use(GLOBAL_PAGES_sg_fr));
-  bytes_in_use += Pg_str_in_use(GLOBAL_PAGES_sg_fr) * sizeof(struct subgoal_frame);
-  fprintf(Yap_stdout, "  Subgoal trie nodes:            %10ld structs in use\n", Pg_str_in_use(GLOBAL_PAGES_sg_node));
+  
+  /* subgoal frame pages */
+  fprintf(Yap_stdout, "  Variant subgoal frames:                %10ld structs in use\n", Pg_str_in_use(GLOBAL_PAGES_variant_sg_fr));
+  bytes_in_use += Pg_str_in_use(GLOBAL_PAGES_variant_sg_fr) * sizeof(struct variant_subgoal_frame);
+  fprintf(Yap_stdout, "  Subsumptive producer subgoal frames:   %10ld structs in use\n", Pg_str_in_use(GLOBAL_PAGES_subsumptive_producer_sg_fr));
+  bytes_in_use += Pg_str_in_use(GLOBAL_PAGES_subsumptive_producer_sg_fr) * sizeof(struct subsumptive_producer_subgoal_frame);
+  fprintf(Yap_stdout, "  Subsumed consumer subgoal frames:      %10ld structs in use\n", Pg_str_in_use(GLOBAL_PAGES_subsumed_consumer_sg_fr));
+  bytes_in_use += Pg_str_in_use(GLOBAL_PAGES_subsumed_consumer_sg_fr) * sizeof(struct subsumed_consumer_subgoal_frame);
+  
+  fprintf(Yap_stdout, "  Subgoal trie nodes:                    %10ld structs in use\n", Pg_str_in_use(GLOBAL_PAGES_sg_node));
   bytes_in_use += Pg_str_in_use(GLOBAL_PAGES_sg_node) * sizeof(struct subgoal_trie_node);
-  fprintf(Yap_stdout, "  Answer trie nodes:             %10ld structs in use\n", Pg_str_in_use(GLOBAL_PAGES_ans_node));
+  
+  fprintf(Yap_stdout, "  Answer trie nodes:                     %10ld structs in use\n", Pg_str_in_use(GLOBAL_PAGES_ans_node));
   bytes_in_use += Pg_str_in_use(GLOBAL_PAGES_ans_node) * sizeof(struct answer_trie_node);
+  
 #ifdef GLOBAL_TRIE
-  fprintf(Yap_stderr, "  Global trie nodes:             %10ld structs in use\n", Pg_str_in_use(GLOBAL_PAGES_gt_node));
+  fprintf(Yap_stderr, "  Global trie nodes:                     %10ld structs in use\n", Pg_str_in_use(GLOBAL_PAGES_gt_node));
   bytes_in_use += Pg_str_in_use(GLOBAL_PAGES_gt_node) * sizeof(struct global_trie_node);
 #endif /* GLOBAL_TRIE */
-  fprintf(Yap_stdout, "  Subgoal trie hashes:           %10ld structs in use\n", Pg_str_in_use(GLOBAL_PAGES_sg_hash));
+
+  fprintf(Yap_stdout, "  Subgoal trie hashes:                   %10ld structs in use\n", Pg_str_in_use(GLOBAL_PAGES_sg_hash));
   bytes_in_use += Pg_str_in_use(GLOBAL_PAGES_sg_hash) * sizeof(struct subgoal_trie_hash);
-  fprintf(Yap_stdout, "  Answer trie hashes:            %10ld structs in use\n", Pg_str_in_use(GLOBAL_PAGES_ans_hash));
+  
+  fprintf(Yap_stdout, "  Answer trie hashes:                    %10ld structs in use\n", Pg_str_in_use(GLOBAL_PAGES_ans_hash));
   bytes_in_use += Pg_str_in_use(GLOBAL_PAGES_ans_hash) * sizeof(struct answer_trie_hash);
+  
 #ifdef GLOBAL_TRIE
-  fprintf(Yap_stderr, "  Global trie hashes:            %10ld structs in use\n", Pg_str_in_use(GLOBAL_PAGES_gt_hash));
+  fprintf(Yap_stderr, "  Global trie hashes:                    %10ld structs in use\n", Pg_str_in_use(GLOBAL_PAGES_gt_hash));
   bytes_in_use += Pg_str_in_use(GLOBAL_PAGES_gt_hash) * sizeof(struct global_trie_hash);
 #endif /* GLOBAL_TRIE */
-  fprintf(Yap_stdout, "%s Dependency frames:             %10ld structs in use\n",
+
+  fprintf(Yap_stdout, "%s Dependency frames:                    %10ld structs in use\n",
           Pg_str_in_use(GLOBAL_PAGES_dep_fr) == 1 ? " ": "*", Pg_str_in_use(GLOBAL_PAGES_dep_fr));
   bytes_in_use += Pg_str_in_use(GLOBAL_PAGES_dep_fr) * sizeof(struct dependency_frame);
-  fprintf(Yap_stdout, "%s Suspension frames:             %10ld structs in use\n",
+  
+  fprintf(Yap_stdout, "%s Suspension frames:                    %10ld structs in use\n",
           Pg_str_in_use(GLOBAL_PAGES_susp_fr) == 0 ? " ": "*", Pg_str_in_use(GLOBAL_PAGES_susp_fr));
   bytes_in_use += Pg_str_in_use(GLOBAL_PAGES_susp_fr) * sizeof(struct suspension_frame);
   fprintf(Yap_stdout, "  Total memory in use:                    %10ld bytes\n", bytes_in_use);
+  
 #endif /* MEMORY_ALLOC_SCHEME */
   return (TRUE);
 }
@@ -988,11 +1076,11 @@ void shm_pages(long pages_in_use, long bytes_in_use) {
     cont++;
     pg_hd = PgHd_next(pg_hd);
   }
-  fprintf(Yap_stdout, "%s Total memory in use:           %8ld pages          %10ld bytes\n",
+  fprintf(Yap_stdout, "%s Total memory in use:                  %8ld pages          %10ld bytes\n",
           Pg_str_in_use(GLOBAL_PAGES_void) == pages_in_use && 
           Pg_pg_alloc(GLOBAL_PAGES_void) - pages_in_use == cont ? " ": "*", 
           Pg_str_in_use(GLOBAL_PAGES_void), bytes_in_use);
-  fprintf(Yap_stdout, "  Total memory allocated:        %8ld pages          %10ld bytes\n",
+  fprintf(Yap_stdout, "  Total memory allocated:                %8ld pages          %10ld bytes\n",
           Pg_pg_alloc(GLOBAL_PAGES_void), Pg_pg_alloc(GLOBAL_PAGES_void) * Yap_page_size);
   return;
 }
@@ -1014,7 +1102,7 @@ void shm_or_frames(long *pages_in_use, long *bytes_in_use) {
     }
     pg_hd = PgHd_next(pg_hd);
   }
-  fprintf(Yap_stdout, "%s Or-frames:                     %8ld pages %10ld structs in use\n",
+  fprintf(Yap_stdout, "%s Or-frames:                            %8ld pages %10ld structs in use\n",
           Pg_str_free(GLOBAL_PAGES_or_fr) == cont &&
           Pg_str_in_use(GLOBAL_PAGES_or_fr) == 1 ? " ": "*",
           Pg_pg_alloc(GLOBAL_PAGES_or_fr), Pg_str_in_use(GLOBAL_PAGES_or_fr));
@@ -1039,7 +1127,7 @@ void shm_query_goal_solution_frames(long *pages_in_use, long *bytes_in_use) {
     }
     pg_hd = PgHd_next(pg_hd);
   }
-  fprintf(Yap_stdout, "%s Query goal solution frames:    %8ld pages %10ld structs in use\n",
+  fprintf(Yap_stdout, "%s Query goal solution frames:           %8ld pages %10ld structs in use\n",
           Pg_str_free(GLOBAL_PAGES_qg_sol_fr) == cont &&
           Pg_str_in_use(GLOBAL_PAGES_qg_sol_fr) == 0 ? " ": "*",
           Pg_pg_alloc(GLOBAL_PAGES_qg_sol_fr), Pg_str_in_use(GLOBAL_PAGES_qg_sol_fr));
@@ -1064,7 +1152,7 @@ void shm_query_goal_answer_frames(long *pages_in_use, long *bytes_in_use) {
     }
     pg_hd = PgHd_next(pg_hd);
   }
-  fprintf(Yap_stdout, "%s Query goal answer frames:      %8ld pages %10ld structs in use\n",
+  fprintf(Yap_stdout, "%s Query goal answer frames:             %8ld pages %10ld structs in use\n",
           Pg_str_free(GLOBAL_PAGES_qg_ans_fr) == cont &&
           Pg_str_in_use(GLOBAL_PAGES_qg_ans_fr) == 0 ? " ": "*",
           Pg_pg_alloc(GLOBAL_PAGES_qg_ans_fr), Pg_str_in_use(GLOBAL_PAGES_qg_ans_fr));
@@ -1091,7 +1179,7 @@ void shm_table_subgoal_solution_frames(long *pages_in_use, long *bytes_in_use) {
     }
     pg_hd = PgHd_next(pg_hd);
   }
-  fprintf(Yap_stdout, "%s Table subgoal solution frames: %8ld pages %10ld structs in use\n",
+  fprintf(Yap_stdout, "%s Table subgoal solution frames:        %8ld pages %10ld structs in use\n",
           Pg_str_free(GLOBAL_PAGES_tg_sol_fr) == cont &&
           Pg_str_in_use(GLOBAL_PAGES_tg_sol_fr) == 0 ? " ": "*",
           Pg_pg_alloc(GLOBAL_PAGES_tg_sol_fr), Pg_str_in_use(GLOBAL_PAGES_tg_sol_fr));
@@ -1116,7 +1204,7 @@ void shm_table_subgoal_answer_frames(long *pages_in_use, long *bytes_in_use) {
     }
     pg_hd = PgHd_next(pg_hd);
   }
-  fprintf(Yap_stdout, "%s Table subgoal answer frames:   %8ld pages %10ld structs in use\n",
+  fprintf(Yap_stdout, "%s Table subgoal answer frames:          %8ld pages %10ld structs in use\n",
           Pg_str_free(GLOBAL_PAGES_tg_ans_fr) == cont &&
           Pg_str_in_use(GLOBAL_PAGES_tg_ans_fr) == 0 ? " ": "*",
           Pg_pg_alloc(GLOBAL_PAGES_tg_ans_fr), Pg_str_in_use(GLOBAL_PAGES_tg_ans_fr));
@@ -1148,7 +1236,7 @@ void shm_table_entries(long *pages_in_use, long *bytes_in_use) {
     }
     pg_hd = PgHd_next(pg_hd);
   }
-  fprintf(Yap_stdout, "%s Table entries:                 %8ld pages %10ld structs in use\n",
+  fprintf(Yap_stdout, "%s Table entries:                        %8ld pages %10ld structs in use\n",
           Pg_str_free(GLOBAL_PAGES_tab_ent) + Pg_str_in_use(GLOBAL_PAGES_tab_ent) == cont ? " ": "*",
           Pg_pg_alloc(GLOBAL_PAGES_tab_ent), Pg_str_in_use(GLOBAL_PAGES_tab_ent));
   *pages_in_use += Pg_pg_alloc(GLOBAL_PAGES_tab_ent);
@@ -1158,7 +1246,7 @@ void shm_table_entries(long *pages_in_use, long *bytes_in_use) {
 
 
 static
-void shm_subgoal_frames(long *pages_in_use, long *bytes_in_use) {
+void shm_variant_subgoal_frames(long *pages_in_use, long *bytes_in_use) {
   long cont = 0;
   pg_hd_ptr pg_hd;
   sg_fr_ptr aux_ptr;
@@ -1170,7 +1258,7 @@ void shm_subgoal_frames(long *pages_in_use, long *bytes_in_use) {
     aux_ptr = SgFr_next(aux_ptr);
   }
 #endif /* LIMIT_TABLING */
-  pg_hd = Pg_free_pg(GLOBAL_PAGES_sg_fr);
+  pg_hd = Pg_free_pg(GLOBAL_PAGES_variant_sg_fr);
   while (pg_hd) {
     aux_ptr = PgHd_free_str(pg_hd);
     while (aux_ptr) {
@@ -1179,15 +1267,64 @@ void shm_subgoal_frames(long *pages_in_use, long *bytes_in_use) {
     }
     pg_hd = PgHd_next(pg_hd);
   }
-  fprintf(Yap_stdout, "%s Subgoal frames:                %8ld pages %10ld structs in use\n",
+  fprintf(Yap_stdout, "%s Variant subgoal frames:               %8ld pages %10ld structs in use\n",
 #ifdef LIMIT_TABLING
-          Pg_str_in_use(GLOBAL_PAGES_sg_fr) +
+          Pg_str_in_use(GLOBAL_PAGES_variant_sg_fr) +
 #endif /* LIMIT_TABLING */
-          Pg_str_free(GLOBAL_PAGES_sg_fr) == cont ? " ": "*",
-          Pg_pg_alloc(GLOBAL_PAGES_sg_fr), Pg_str_in_use(GLOBAL_PAGES_sg_fr));
-  *pages_in_use += Pg_pg_alloc(GLOBAL_PAGES_sg_fr);
-  *bytes_in_use += Pg_str_in_use(GLOBAL_PAGES_sg_fr) * sizeof(struct subgoal_frame);
+          Pg_str_free(GLOBAL_PAGES_variant_sg_fr) == cont ? " ": "*",
+          Pg_pg_alloc(GLOBAL_PAGES_variant_sg_fr), Pg_str_in_use(GLOBAL_PAGES_variant_sg_fr));
+  *pages_in_use += Pg_pg_alloc(GLOBAL_PAGES_variant_sg_fr);
+  *bytes_in_use += Pg_str_in_use(GLOBAL_PAGES_variant_sg_fr) * sizeof(struct variant_subgoal_frame);
   return;
+}
+
+static
+void shm_subprod_subgoal_frames(long *pages_in_use, long *bytes_in_use) {
+  long cont = 0;
+  pg_hd_ptr pg_hd;
+  subprod_fr_ptr aux_ptr;
+  
+  pg_hd = Pg_free_pg(GLOBAL_PAGES_subprod_sg_fr);
+  while (pg_hd) {
+    aux_ptr = PgHd_free_str(pg_hd);
+    while (aux_ptr) {
+      cont++;
+      aux_ptr = (subprod_fr_ptr)SgFr_next(aux_ptr);
+    }
+    pg_hd = PgHd_next(pg_hd);
+  }
+  
+  fprintf(Yap_stdout, "%s Subsumptive producer subgoal frames:  %8ld pages %10ld structs in use\n",
+        Pg_str_free(GLOBAL_PAGES_subprod_sg_fr) == cont ? " " : "*",
+        Pg_pg_alloc(GLOBAL_PAGES_subprod_sg_fr), Pg_str_in_use(GLOBAL_PAGES_subprod_sg_fr));
+  *pages_in_use += Pg_pg_alloc(GLOBAL_PAGES_subprod_sg_fr);
+  *bytes_in_use += Pg_str_in_use(GLOBAL_PAGES_subprod_sg_fr) * sizeof(struct subsumptive_producer_subgoal_frame); 
+  return;   
+}
+
+
+static
+void shm_subcons_subgoal_frames(long *pages_in_use, long *bytes_in_use) {
+  long cont = 0;
+  pg_hd_ptr pg_hd;
+  subcons_fr_ptr aux_ptr;
+  
+  pg_hd = Pg_free_pg(GLOBAL_PAGES_subcons_sg_fr);
+  while (pg_hd) {
+    aux_ptr = PgHd_free_str(pg_hd);
+    while (aux_ptr) {
+      cont++;
+      aux_ptr = (subcons_fr_ptr)SgFr_next(aux_ptr);
+    }
+    pg_hd = PgHd_next(pg_hd);
+  }
+  
+  fprintf(Yap_stdout, "%s Subsumed consumer subgoal frames:     %8ld pages %10ld structs in use\n",
+        Pg_str_free(GLOBAL_PAGES_subcons_sg_fr) == cont ? " " : "*",
+        Pg_pg_alloc(GLOBAL_PAGES_subcons_sg_fr), Pg_str_in_use(GLOBAL_PAGES_subcons_sg_fr));
+  *pages_in_use += Pg_pg_alloc(GLOBAL_PAGES_subcons_sg_fr);
+  *bytes_in_use += Pg_str_in_use(GLOBAL_PAGES_subprod_sg_fr) * sizeof(struct subsumed_consumer_subgoal_frame);   
+  return; 
 }
 
 
@@ -1206,7 +1343,7 @@ void shm_subgoal_trie_nodes(long *pages_in_use, long *bytes_in_use) {
     }
     pg_hd = PgHd_next(pg_hd);
   }
-  fprintf(Yap_stdout, "%s Subgoal trie nodes:            %8ld pages %10ld structs in use\n",
+  fprintf(Yap_stdout, "%s Subgoal trie nodes:                   %8ld pages %10ld structs in use\n",
           Pg_str_free(GLOBAL_PAGES_sg_node) == cont ? " ": "*",
           Pg_pg_alloc(GLOBAL_PAGES_sg_node), Pg_str_in_use(GLOBAL_PAGES_sg_node));
   *pages_in_use += Pg_pg_alloc(GLOBAL_PAGES_sg_node);
@@ -1230,7 +1367,7 @@ void shm_answer_trie_nodes(long *pages_in_use, long *bytes_in_use) {
     }
     pg_hd = PgHd_next(pg_hd);
   }
-  fprintf(Yap_stdout, "%s Answer trie nodes:             %8ld pages %10ld structs in use\n",
+  fprintf(Yap_stdout, "%s Answer trie nodes:                    %8ld pages %10ld structs in use\n",
           Pg_str_free(GLOBAL_PAGES_ans_node) == cont ? " ": "*",
           Pg_pg_alloc(GLOBAL_PAGES_ans_node), Pg_str_in_use(GLOBAL_PAGES_ans_node));
   *pages_in_use += Pg_pg_alloc(GLOBAL_PAGES_ans_node);
@@ -1254,7 +1391,7 @@ void shm_subgoal_trie_hashes(long *pages_in_use, long *bytes_in_use) {
     }
     pg_hd = PgHd_next(pg_hd);
   }
-  fprintf(Yap_stdout, "%s Subgoal trie hashes:           %8ld pages %10ld structs in use\n",
+  fprintf(Yap_stdout, "%s Subgoal trie hashes:                  %8ld pages %10ld structs in use\n",
           Pg_str_free(GLOBAL_PAGES_sg_hash) == cont ? " ": "*",
           Pg_pg_alloc(GLOBAL_PAGES_sg_hash), Pg_str_in_use(GLOBAL_PAGES_sg_hash));
   *pages_in_use += Pg_pg_alloc(GLOBAL_PAGES_sg_hash);
@@ -1278,7 +1415,7 @@ void shm_answer_trie_hashes(long *pages_in_use, long *bytes_in_use) {
     }
     pg_hd = PgHd_next(pg_hd);
   }
-  fprintf(Yap_stdout, "%s Answer trie hashes:            %8ld pages %10ld structs in use\n",
+  fprintf(Yap_stdout, "%s Answer trie hashes:                   %8ld pages %10ld structs in use\n",
           Pg_str_free(GLOBAL_PAGES_ans_hash) == cont ? " ": "*",
           Pg_pg_alloc(GLOBAL_PAGES_ans_hash), Pg_str_in_use(GLOBAL_PAGES_ans_hash));
   *pages_in_use += Pg_pg_alloc(GLOBAL_PAGES_ans_hash);
@@ -1302,7 +1439,7 @@ void shm_dependency_frames(long *pages_in_use, long *bytes_in_use) {
     }
     pg_hd = PgHd_next(pg_hd);
   }
-  fprintf(Yap_stdout, "%s Dependency frames:             %8ld pages %10ld structs in use\n",
+  fprintf(Yap_stdout, "%s Dependency frames:                    %8ld pages %10ld structs in use\n",
           Pg_str_free(GLOBAL_PAGES_dep_fr) == cont &&
           Pg_str_in_use(GLOBAL_PAGES_dep_fr) == 1 ? " ": "*", 
           Pg_pg_alloc(GLOBAL_PAGES_dep_fr), Pg_str_in_use(GLOBAL_PAGES_dep_fr));
@@ -1328,7 +1465,7 @@ void shm_global_trie_nodes(long *pages_in_use, long *bytes_in_use) {
     }
     pg_hd = PgHd_next(pg_hd);
   }
-  fprintf(Yap_stderr, "%s Global trie nodes:             %8ld pages %10ld structs in use\n",
+  fprintf(Yap_stderr, "%s Global trie nodes:                    %8ld pages %10ld structs in use\n",
           Pg_str_free(GLOBAL_PAGES_gt_node) == cont ? " ": "*",
           Pg_pg_alloc(GLOBAL_PAGES_gt_node), Pg_str_in_use(GLOBAL_PAGES_gt_node));
   *pages_in_use += Pg_pg_alloc(GLOBAL_PAGES_gt_node);
@@ -1352,7 +1489,7 @@ void shm_global_trie_hashes(long *pages_in_use, long *bytes_in_use) {
     }
     pg_hd = PgHd_next(pg_hd);
   }
-  fprintf(Yap_stderr, "%s Global trie hashes:            %8ld pages %10ld structs in use\n",
+  fprintf(Yap_stderr, "%s Global trie hashes:                   %8ld pages %10ld structs in use\n",
           Pg_str_free(GLOBAL_PAGES_gt_hash) == cont ? " ": "*",
           Pg_pg_alloc(GLOBAL_PAGES_gt_hash), Pg_str_in_use(GLOBAL_PAGES_gt_hash));
   *pages_in_use += Pg_pg_alloc(GLOBAL_PAGES_gt_hash);
@@ -1379,7 +1516,7 @@ void shm_suspension_frames(long *pages_in_use, long *bytes_in_use) {
     }
     pg_hd = PgHd_next(pg_hd);
   }
-  fprintf(Yap_stdout, "%s Suspension frames:             %8ld pages %10ld structs in use\n",
+  fprintf(Yap_stdout, "%s Suspension frames:                    %8ld pages %10ld structs in use\n",
           Pg_str_free(GLOBAL_PAGES_susp_fr) == cont &&
           Pg_str_in_use(GLOBAL_PAGES_susp_fr) == 0 ? " ": "*",  
           Pg_pg_alloc(GLOBAL_PAGES_susp_fr), Pg_str_in_use(GLOBAL_PAGES_susp_fr));
