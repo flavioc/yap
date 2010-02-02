@@ -133,7 +133,9 @@ tabling_mode(Pred,Options) :-
    '$set_tabling_mode'(Mod,PredFunctor,Option1),
    '$set_tabling_mode'(Mod,PredFunctor,Option2).
 '$set_tabling_mode'(Mod,PredFunctor,Option) :- 
-   (Option = batched ; Option = local ; Option = exec_answers ; Option = load_answers), !, 
+   (Option = batched ; Option = local ;
+    Option = exec_answers ; Option = load_answers ;
+    Option = variant ; Option = subsumptive), !, 
    '$c_tabling_mode'(Mod,PredFunctor,Option).
 '$set_tabling_mode'(Mod,PredFunctor,Options) :- 
    functor(PredFunctor,PredName,PredArity), 
