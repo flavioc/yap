@@ -11,42 +11,59 @@
 
 /* ---------------------------- **
 **      Tabling mode flags      **
+**  C/stdpreds.c                **
+** pl/directives.yap            **
+** pl/tabling.yap               **
+** OPTYap/opt.preds.c           **
 ** ---------------------------- */
 
 #define Mode_SchedulingOn       0x00000001L  /* yap_flags[TABLING_MODE_FLAG] */
 #define Mode_CompletedOn        0x00000002L  /* yap_flags[TABLING_MODE_FLAG] */
+#define Mode_ChecksOn           0x00000003L  /* yap_flags[TABLING_MODE_FLAG] */
 
 #define Mode_Local              0x10000000L  /* yap_flags[TABLING_MODE_FLAG] + struct table_entry */
 #define Mode_LoadAnswers        0x20000000L  /* yap_flags[TABLING_MODE_FLAG] + struct table_entry */
+#define Mode_Subsumptive        0x30000000L  /* yap_flags[TABLING_MODE_FLAG] + struct table_entry */
 
 #define DefaultMode_Local       0x00000001L  /* struct table_entry */
 #define DefaultMode_LoadAnswers 0x00000002L  /* struct table_entry */
+#define DefaultMode_Subsumptive 0x00000003L  /* struct table_entry */
 
 #define SetMode_SchedulingOn(X)        (X) |= Mode_SchedulingOn
 #define SetMode_CompletedOn(X)         (X) |= Mode_CompletedOn
+#define SetMode_ChecksOn(X)            (X) |= Mode_ChecksOn
 #define IsMode_SchedulingOn(X)         ((X) & Mode_SchedulingOn)
 #define IsMode_SchedulingOff(X)        (!IsMode_SchedulingOn(X))
 #define IsMode_CompletedOn(X)          ((X) & Mode_CompletedOn)
 #define IsMode_CompletedOff(X)         (!IsMode_CompletedOn(X))
+#define IsMode_ChecksOn(X)             ((X) & Mode_ChecksOn)
+#define IsMode_ChecksOff(X)            (!IsMode_ChecksOn(X))
 
 #define SetMode_Local(X)               (X) |= Mode_Local
 #define SetMode_Batched(X)             (X) &= ~Mode_Local
 #define SetMode_LoadAnswers(X)         (X) |= Mode_LoadAnswers
 #define SetMode_ExecAnswers(X)         (X) &= ~Mode_LoadAnswers
+#define SetMode_Subsumptive(X)         (X) |= Mode_Subsumptive
+#define SetMode_Variant(X)             (X) &= ~Mode_Subsumptive
 #define IsMode_Local(X)                ((X) & Mode_Local)
 #define IsMode_Batched(X)              (!IsMode_Local(X))
 #define IsMode_LoadAnswers(X)          ((X) & Mode_LoadAnswers)
 #define IsMode_ExecAnswers(X)          (!IsMode_LoadAnswers(X))
+#define IsMode_Subsumptive(X)          ((X) & Mode_Subsumptive)
+#define IsMode_Variant(X)              (!IsMode_Subsumptive(X))
 
 #define SetDefaultMode_Local(X)        (X) |= DefaultMode_Local
 #define SetDefaultMode_Batched(X)      (X) &= ~DefaultMode_Local
 #define SetDefaultMode_LoadAnswers(X)  (X) |= DefaultMode_LoadAnswers
 #define SetDefaultMode_ExecAnswers(X)  (X) &= ~DefaultMode_LoadAnswers
+#define SetDefaultMode_Subsumptive(X)  (X) |= DefaultMode_Subsumptive
+#define SetDefaultMode_Variant(X)      (X) &= ~DefaultMode_Subsumptive
 #define IsDefaultMode_Local(X)         ((X) & DefaultMode_Local)
 #define IsDefaultMode_Batched(X)       (!IsDefaultMode_Local(X))
 #define IsDefaultMode_LoadAnswers(X)   ((X) & DefaultMode_LoadAnswers)
 #define IsDefaultMode_ExecAnswers(X)   (!IsDefaultMode_LoadAnswers(X))
-
+#define IsDefaultMode_Subsumptive(X)   ((X) & DefaultMode_Subsumptive)
+#define IsDefaultMode_Variant(X)       (!IsDefaultMode_Subsumptive(X))
 
 
 /* ---------------------------- **
@@ -214,7 +231,7 @@ typedef ans_node_ptr continuation_ptr;
 /* ------------------------------- **
 **     Subgoal frames data         **
 ** ------------------------------- */
-typedef char subgoal_frame_type;
+typedef unsigned char subgoal_frame_type;
 
 enum SubgoalFrameType {
   VARIANT_PRODUCER_SFT        = 0x01,
@@ -260,26 +277,30 @@ typedef struct subgoal_frame {
   struct subgoal_frame *previous;
 #endif /* LIMIT_TABLING */
   struct subgoal_frame *next;
-} variant_subgoal_frame;
+} variant_sf;
 
-typedef variant_subgoal_frame *sg_fr_ptr;
+#define variant_subgoal_frame subgoal_frame
+typedef variant_sf *sg_fr_ptr;
+typedef sg_fr_ptr variant_sf_ptr;
 
-#define SgFr_type(X)           ((X)->type)
-#define SgFr_lock(X)           ((X)->lock)
-#define SgFr_gen_worker(X)     ((X)->generator_worker)
-#define SgFr_gen_top_or_fr(X)  ((X)->top_or_frame_on_generator_branch)
-#define SgFr_code(X)           ((X)->code_of_subgoal)
-#define SgFr_tab_ent(X)        (((X)->code_of_subgoal)->u.Otapl.te)
-#define SgFr_arity(X)          (((X)->code_of_subgoal)->u.Otapl.s)
-#define SgFr_state(X)          ((X)->state_flag)
-#define SgFr_gen_cp(X)         ((X)->generator_choice_point)
-#define SgFr_hash_chain(X)     ((X)->hash_chain)
-#define SgFr_answer_trie(X)    ((X)->answer_trie)
-#define SgFr_first_answer(X)   ((X)->first_answer)
-#define SgFr_last_answer(X)    ((X)->last_answer)
-#define SgFr_try_answer(X)     ((X)->try_answer)
-#define SgFr_previous(X)       ((X)->previous)
-#define SgFr_next(X)           ((X)->next)
+#define CAST_SF(X)             ((variant_sf_ptr)(X))
+
+#define SgFr_type(X)           (CAST_SF(X)->type)
+#define SgFr_lock(X)           (CAST_SF(X)->lock)
+#define SgFr_gen_worker(X)     (CAST_SF(X)->generator_worker)
+#define SgFr_gen_top_or_fr(X)  (CAST_SF(X)->top_or_frame_on_generator_branch)
+#define SgFr_code(X)           (CAST_SF(X)->code_of_subgoal)
+#define SgFr_tab_ent(X)        ((CAST_SF(X)->code_of_subgoal)->u.Otapl.te)
+#define SgFr_arity(X)          ((CAST_SF(X)->code_of_subgoal)->u.Otapl.s)
+#define SgFr_state(X)          (CAST_SF(X)->state_flag)
+#define SgFr_gen_cp(X)         (CAST_SF(X)->generator_choice_point)
+#define SgFr_hash_chain(X)     (CAST_SF(X)->hash_chain)
+#define SgFr_answer_trie(X)    (CAST_SF(X)->answer_trie)
+#define SgFr_first_answer(X)   (CAST_SF(X)->first_answer)
+#define SgFr_last_answer(X)    (CAST_SF(X)->last_answer)
+#define SgFr_try_answer(X)     (CAST_SF(X)->try_answer)
+#define SgFr_previous(X)       (CAST_SF(X)->previous)
+#define SgFr_next(X)           (CAST_SF(X)->next)
 
 /* ------------------------------------------------------------------------------------------- **
    SgFr_lock:          spin-lock to modify the frame fields.
@@ -306,18 +327,18 @@ typedef variant_subgoal_frame *sg_fr_ptr;
 ** ------------------------------------------------------------------------------------------- */
 
 typedef struct subsumptive_producer_subgoal_frame {
-  variant_subgoal_frame var_sf;
+  variant_sf var_sf;
 } subsumptive_producer_sf;
 
 typedef subsumptive_producer_sf *subprod_fr_ptr;
 
 typedef struct subsumed_consumer_subgoal_frame {
-  variant_subgoal_frame var_sf;
+  variant_sf var_sf;
   time_stamp ts;
   subprod_fr_ptr producer;
 } subsumptive_consumer_sf;
 
-typedef subsumptive_consumer_sf *subcons_fr_ptr;  
+typedef subsumptive_consumer_sf *subcons_fr_ptr;
 
 #define SgFr_timestamp(X)   ((subcons_fr_ptr)(X)->ts)
 #define SgFr_producer(X)    ((subcons_fr_ptr)(X)->producer)
