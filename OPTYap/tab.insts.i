@@ -416,11 +416,11 @@
       UNLOCK(SgFr_lock(sg_fr));
 #ifdef DETERMINISTIC_TABLING
       if (IsMode_Batched(TabEnt_mode(tab_ent))) {
-	store_deterministic_generator_node(tab_ent, sg_fr);
+	      store_deterministic_generator_node(tab_ent, sg_fr);
       } else
 #endif /* DETERMINISTIC_TABLING */
       {
-	store_generator_node(tab_ent, sg_fr, PREG->u.Otapl.s, COMPLETION);
+	      store_generator_node(tab_ent, sg_fr, PREG->u.Otapl.s, COMPLETION);
       }
       PREG = PREG->u.Otapl.d;  /* should work also with PREG = NEXTOP(PREG,Otapl); */
       PREFETCH_OP(PREG);
