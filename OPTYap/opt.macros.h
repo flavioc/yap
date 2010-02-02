@@ -17,7 +17,7 @@
 #include <sys/shm.h>
 #include <errno.h>
 
-#define SHMMAX 0x2000000  /* 32 Mbytes: works fine with linux */
+#define SHMMAX 0x2000000 /*   32 Mbytes: works fine with linux */
 /* #define SHMMAX  0x400000 - 4 Mbytes: shmget limit for Mac (?) */
 /* #define SHMMAX  0x800000 - 8 Mbytes: shmget limit for Solaris (?) */
 #endif /* SHM_MEMORY_ALLOC_SCHEME */
@@ -54,16 +54,23 @@ extern int Yap_page_size;
 #define UPDATE_STATS(STAT, VALUE)  STAT += VALUE
 
 #ifdef MALLOC_MEMORY_ALLOC_SCHEME  /* ---------------------------------------------------------------- */
-#define ALLOC_STRUCT(STR, STR_PAGES, STR_TYPE)                                                          \
+
+#define ALLOC_STRUCT(STR, STR_PAGES, STR_TYPE)  {                                                       \
         UPDATE_STATS(Pg_str_in_use(STR_PAGES), 1);                                                      \
         if ((STR = (STR_TYPE *)malloc(sizeof(STR_TYPE))) == NULL)                                       \
-          Yap_Error(FATAL_ERROR, TermNil, "malloc error (ALLOC_STRUCT)")
+          Yap_Error(FATAL_ERROR, TermNil, "malloc error (ALLOC_STRUCT)");                               \
+    }
+    
 #define ALLOC_NEXT_FREE_STRUCT(STR, STR_PAGES, STR_TYPE)                                                \
         ALLOC_STRUCT(STR, STR_PAGES, STR_TYPE)
-#define FREE_STRUCT(STR, STR_PAGES, STR_TYPE)                                                           \
+        
+#define FREE_STRUCT(STR, STR_PAGES, STR_TYPE) {                                                         \
         UPDATE_STATS(Pg_str_in_use(STR_PAGES), -1);                                                     \
-        free(STR)
+        free(STR)                                                                                       \
+    }
+    
 #elif YAP_MEMORY_ALLOC_SCHEME  /* -------------------------------------------------------------------- */
+
 #define ALLOC_STRUCT(STR, STR_PAGES, STR_TYPE)                                                          \
         { char *ptr = Yap_AllocCodeSpace(sizeof(STR_TYPE) + sizeof(CELL));                              \
           if (ptr) {                                                                                    \
@@ -83,8 +90,10 @@ extern int Yap_page_size;
           }                                                                                             \
           UPDATE_STATS(Pg_str_in_use(STR_PAGES), 1);                                                    \
         }
+        
 #define ALLOC_NEXT_FREE_STRUCT(STR, STR_PAGES, STR_TYPE)                                                \
         ALLOC_STRUCT(STR, STR_PAGES, STR_TYPE)
+        
 #define FREE_STRUCT(STR, STR_PAGES, STR_TYPE)                                                           \
         { char *ptr = (char *)(STR) - sizeof(CELL);                                                     \
           if (ptr[0] == 'y') {                                                                          \
@@ -93,7 +102,9 @@ extern int Yap_page_size;
             free(ptr);                                                                                  \
           UPDATE_STATS(Pg_str_in_use(STR_PAGES), -1);                                                   \
         }
+        
 #elif SHM_MEMORY_ALLOC_SCHEME  /* -------------------------------------------------------------------- */
+
 #ifdef LIMIT_TABLING
 #define INIT_PAGE(PG_HD, STR_PAGES, STR_TYPE)                                                           \
         { int i;                                                                                        \
@@ -193,7 +204,7 @@ extern int Yap_page_size;
           UNLOCK(Pg_lock(STR_PAGES));                                                                   \
 	}
 
-#define ALLOC_NEXT_FREE_STRUCT(STR, STR_PAGES, STR_TYPE)                                                \
+#define ALLOC_NEXT_FREE_STRUCT(STR, STR_PAGES, STR_TYPE)  {                                             \
         if ((STR = LOCAL_next_free_ans_node) == NULL) {                                                 \
           pg_hd_ptr pg_hd;                                                                              \
           LOCK(Pg_lock(STR_PAGES));                                                                     \
@@ -226,10 +237,11 @@ extern int Yap_page_size;
           UPDATE_STATS(Pg_str_in_use(STR_PAGES), -PgHd_str_in_use(pg_hd));                              \
           UPDATE_STATS(Pg_str_in_use(STR_PAGES), Pg_str_per_pg(STR_PAGES));                             \
           UNLOCK(Pg_lock(STR_PAGES));                                                                   \
-	}                                                                                               \
-        LOCAL_next_free_ans_node = STRUCT_NEXT(STR)
+	      }                                                                                               \
+        LOCAL_next_free_ans_node = STRUCT_NEXT(STR);                                                    \
+  }
 #else
-#define ALLOC_PAGE(PG_HD)                                                                               \
+#define ALLOC_PAGE(PG_HD) {                                                                             \
         LOCK(Pg_lock(GLOBAL_PAGES_void));                                                               \
         if (Pg_free_pg(GLOBAL_PAGES_void) == NULL) {                                                    \
           int i, shmid;                                                                                 \
@@ -252,7 +264,8 @@ extern int Yap_page_size;
         UPDATE_STATS(Pg_str_in_use(GLOBAL_PAGES_void), 1);                                              \
         PG_HD = Pg_free_pg(GLOBAL_PAGES_void);                                                          \
         Pg_free_pg(GLOBAL_PAGES_void) = PgHd_next(PG_HD);                                               \
-        UNLOCK(Pg_lock(GLOBAL_PAGES_void))
+        UNLOCK(Pg_lock(GLOBAL_PAGES_void));                                                             \
+    }
 
 #define ALLOC_STRUCT(STR, STR_PAGES, STR_TYPE)                                                          \
         { pg_hd_ptr pg_hd;                                                                              \
@@ -289,7 +302,7 @@ extern int Yap_page_size;
           }                                                                                             \
 	}
 
-#define ALLOC_NEXT_FREE_STRUCT(STR, STR_PAGES, STR_TYPE)                                                \
+#define ALLOC_NEXT_FREE_STRUCT(STR, STR_PAGES, STR_TYPE) {                                              \
         if ((STR = LOCAL_next_free_ans_node) == NULL) {                                                 \
           pg_hd_ptr pg_hd;                                                                              \
           LOCK(Pg_lock(STR_PAGES));                                                                     \
@@ -319,16 +332,18 @@ extern int Yap_page_size;
             STRUCT_NEXT(STR) = NULL;                                                                    \
             STR = (STR_TYPE *) (pg_hd + 1);                                                             \
           }                                                                                             \
-	}                                                                                               \
-        LOCAL_next_free_ans_node = STRUCT_NEXT(STR)
+	      }                                                                                               \
+        LOCAL_next_free_ans_node = STRUCT_NEXT(STR);                                                    \
+    }
 #endif /* LIMIT_TABLING */
 
-#define FREE_PAGE(PG_HD)                                                                                \
+#define FREE_PAGE(PG_HD) {                                                                              \
         LOCK(Pg_lock(GLOBAL_PAGES_void));                                                               \
         UPDATE_STATS(Pg_str_in_use(GLOBAL_PAGES_void), -1);                                             \
         PgHd_next(PG_HD) = Pg_free_pg(GLOBAL_PAGES_void);                                               \
         Pg_free_pg(GLOBAL_PAGES_void) = PG_HD;                                                          \
-        UNLOCK(Pg_lock(GLOBAL_PAGES_void))
+        UNLOCK(Pg_lock(GLOBAL_PAGES_void));                                                             \
+    }
 
 #define FREE_STRUCT(STR, STR_PAGES, STR_TYPE)                                                           \
         { pg_hd_ptr pg_hd;                                                                              \
@@ -340,13 +355,13 @@ extern int Yap_page_size;
             if (PgHd_previous(pg_hd)) {                                                                 \
               if ((PgHd_next(PgHd_previous(pg_hd)) = PgHd_next(pg_hd)) != NULL)                         \
                 PgHd_previous(PgHd_next(pg_hd)) = PgHd_previous(pg_hd);                                 \
-	    } else {                                                                                    \
+	          } else {                                                                                    \
               if ((Pg_free_pg(STR_PAGES) = PgHd_next(pg_hd)) != NULL)                                   \
                 PgHd_previous(PgHd_next(pg_hd)) = NULL;                                                 \
-	    }                                                                                           \
+	          }                                                                                           \
             UNLOCK(Pg_lock(STR_PAGES));                                                                 \
             FREE_PAGE(pg_hd);                                                                           \
-	  } else {                                                                                      \
+	        } else {                                                                                      \
             if ((STRUCT_NEXT(STR) = (STR_TYPE *) PgHd_free_str(pg_hd)) == NULL) {                       \
               PgHd_previous(pg_hd) = NULL;                                                              \
               if ((PgHd_next(pg_hd) = Pg_free_pg(STR_PAGES)) != NULL)                                   \
@@ -357,6 +372,7 @@ extern int Yap_page_size;
             UNLOCK(Pg_lock(STR_PAGES));                                                                 \
           }                                                                                             \
         }
+        
 #endif /* --------------------------- MEMORY_ALLOC_SCHEME -------------------------------------------- */
 
 
@@ -408,8 +424,20 @@ extern int Yap_page_size;
 #define ALLOC_SUBGOAL_TRIE_NODE(STR)   ALLOC_STRUCT(STR, GLOBAL_PAGES_sg_node, struct subgoal_trie_node)
 #define FREE_SUBGOAL_TRIE_NODE(STR)    FREE_STRUCT(STR, GLOBAL_PAGES_sg_node, struct subgoal_trie_node)
 
-#define ALLOC_SUBGOAL_FRAME(STR)       ALLOC_STRUCT(STR, GLOBAL_PAGES_sg_fr, struct subgoal_frame)
-#define FREE_SUBGOAL_FRAME(STR)        FREE_STRUCT(STR, GLOBAL_PAGES_sg_fr, struct subgoal_frame)
+
+/* --------------------- **
+** Subgoal frame pages   **
+** --------------------- */
+
+#define ALLOC_VARIANT_SUBGOAL_FRAME(STR)  ALLOC_STRUCT(STR, GLOBAL_PAGES_variant_sg_fr, struct variant_subgoal_frame)
+#define FREE_VARIANT_SUBGOAL_FRAME(STR)   FREE_STRUCT(STR, GLOBAL_PAGES_variant_sg_fr, struct variant_subgoal_frame)
+
+#define ALLOC_SUBPROD_SUBGOAL_FRAME(STR)  ALLOC_STRUCT(STR, GLOBAL_PAGES_subprod_sg_fr, struct subsumptive_producer_subgoal_frame)
+#define FREE_SUBPROD_SUBGOAL_FRAME(STR)   FREE_STRUCT(STR, GLOBAL_PAGES_subprod_sg_fr, struct subsumptive_producer_subgoal_frame)
+
+#define ALLOC_SUBCONS_SUBGOAL_FRAME(STR)  ALLOC_STRUCT(STR, GLOBAL_PAGES_subcons_sg_fr, struct subsumed_consumer_subgoal_frame)
+#define FREE_SUBCONS_SUBGOAL_FRAME(STR)   FREE_STRUCT(STR, GLOBAL_PAGES_subcons_sg_fr, struct subsumed_consumer_subgoal_frame)
+
 
 #ifdef YAPOR
 #define ALLOC_ANSWER_TRIE_NODE(STR)    ALLOC_NEXT_FREE_STRUCT(STR, GLOBAL_PAGES_ans_node, struct answer_trie_node)
