@@ -102,7 +102,9 @@ void Yap_init_global(int max_table_size, int n_workers, int sch_loop, int delay_
   INIT_PAGES(GLOBAL_PAGES_ans_list, struct answer_list);
 #endif /* TABLING_ANSWER_LIST */
   INIT_PAGES(GLOBAL_PAGES_tab_ent, struct table_entry);
-  INIT_PAGES(GLOBAL_PAGES_sg_fr, struct subgoal_frame);
+  INIT_PAGES(GLOBAL_PAGES_variant_sg_fr, struct variant_subgoal_frame);
+  INIT_PAGES(GLOBAL_PAGES_subprod_sg_fr, struct subsumed_consumer_subgoal_frame);
+  INIT_PAGES(GLOBAL_PAGES_subcons_sg_fr, struct subsumed_consumer_subgoal_frame);
   INIT_PAGES(GLOBAL_PAGES_sg_node, struct subgoal_trie_node);
   INIT_PAGES(GLOBAL_PAGES_ans_node, struct answer_trie_node);
   INIT_PAGES(GLOBAL_PAGES_sg_hash, struct subgoal_trie_hash);
