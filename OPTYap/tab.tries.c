@@ -1542,7 +1542,7 @@ void free_subgoal_trie_branch(sg_node_ptr current_node, int nodes_left, int node
 #ifdef LIMIT_TABLING
     remove_from_global_sg_fr_list(sg_fr);
 #endif /* LIMIT_TABLING */
-    FREE_SUBGOAL_FRAME(sg_fr);
+    free_subgoal_frame(sg_fr);
   }
 
   if (position == TRAVERSE_POSITION_FIRST) {
