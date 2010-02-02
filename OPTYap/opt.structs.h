@@ -99,15 +99,22 @@ struct global_pages {
   struct pages global_trie_hash_pages;
 #endif /* GLOBAL_TRIE */
   struct pages table_entry_pages;
-  struct pages subgoal_frame_pages;
+  
+  struct pages variant_subgoal_frame_pages;
+  struct pages subsumptive_producer_subgoal_frame_pages;
+  struct pages subsumed_consumer_subgoal_frame_pages;
+  
+#ifdef TABLING_ANSWER_LIST
+  struct pages answer_list_pages;
+#endif /* TABLING_ANSWER_LIST */
+  
   struct pages subgoal_trie_node_pages;
   struct pages answer_trie_node_pages;
   struct pages subgoal_trie_hash_pages;
   struct pages answer_trie_hash_pages;
+  
   struct pages dependency_frame_pages;
-#ifdef TABLING_ANSWER_LIST
-  struct pages answer_list_pages;
-#endif /* TABLING_ANSWER_LIST */
+
 #endif /* TABLING */
 #if defined(YAPOR) && defined(TABLING)
   struct pages suspension_frame_pages;
@@ -222,7 +229,9 @@ struct global_data{
 #define GLOBAL_PAGES_gt_node                    (GLOBAL.pages.global_trie_node_pages)
 #define GLOBAL_PAGES_gt_hash                    (GLOBAL.pages.global_trie_hash_pages)
 #define GLOBAL_PAGES_tab_ent                    (GLOBAL.pages.table_entry_pages)
-#define GLOBAL_PAGES_sg_fr                      (GLOBAL.pages.subgoal_frame_pages)
+#define GLOBAL_PAGES_variant_sg_fr              (GLOBAL.pages.variant_subgoal_frame_pages)
+#define GLOBAL_PAGES_subprod_sg_fr              (GLOBAL.pages.subsumptive_producer_subgoal_frame_pages)
+#define GLOBAL_PAGES_subcons_sg_fr              (GLOBAL.pages.subsumed_consumer_subgoal_frame_pages)
 #define GLOBAL_PAGES_sg_node                    (GLOBAL.pages.subgoal_trie_node_pages)
 #define GLOBAL_PAGES_ans_node                   (GLOBAL.pages.answer_trie_node_pages)
 #define GLOBAL_PAGES_sg_hash                    (GLOBAL.pages.subgoal_trie_hash_pages)
@@ -340,7 +349,7 @@ struct local_data{
 #ifdef TABLING
   /* local data related to tabling */
   struct answer_trie_node *next_free_answer_trie_node;
-  struct subgoal_frame *top_subgoal_frame;
+  struct subgoal_frame *top_subgoal_frame; /* MUST BE BASE XXXX */
   struct dependency_frame *top_dependency_frame;
 #ifdef TABLING_INNER_CUTS
   choiceptr bottom_pruning_scope;
