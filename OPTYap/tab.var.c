@@ -27,16 +27,16 @@
 #include "tab.var.h"
 #include "tab.tries.h"
 
-Cell* construct_variant_answer_template(Cell *var_vector) {
-  CPtr *binding;
+inline
+CPtr extract_template_from_insertion(CTXTdeclc CPtr ans_tmplt) {
   int i;
   
-  for(i = 0, binding = Trail_Base; binding < Trail_Top; binding++, i++) {
-    *--var_vector = (CELL)*binding;
-  }
-  *--var_vector = i;
-  
-  return var_vector;
+  i = 0;
+  while(i < (int)Trail_NumBindings)
+    *ans_tmplt-- = (Cell)Trail_Base[i++];
+  *ans_tmplt = makeint(i);
+  printf("TOTAL %d\n", i);
+  return ans_tmplt;
 }
 
 static inline
@@ -53,8 +53,7 @@ get_subgoal_frame_from_node(sg_node_ptr leaf_node, tab_ent_ptr tab_ent, yamop *c
 
   if (TrNode_sg_fr(leaf_node) == NULL) {
     /* new tabled subgoal */
-    new_variant_subgoal_frame(sg_fr, code);
-    TrNode_sg_fr(leaf_node) = (sg_node_ptr) sg_fr;
+    new_variant_subgoal_frame(sg_fr, code, leaf_node);
     //printf("New subgoal frame... %x at node %x\n", sg_fr, current_node);
     *new = TRUE;
   } else {
@@ -153,7 +152,7 @@ variant_call_search(TabledCallInfo *call_info, CallLookupResults *results) {
   CallResults_leaf(results) = variant_call_cont_insert(tab_ent, top_node, 0);
   
   /* build substitution factor */
-  CallResults_var_vector(results) = construct_variant_answer_template(CallInfo_var_vector(call_info));
+  CallResults_var_vector(results) = extract_template_from_insertion(CallInfo_var_vector(call_info));
   
   /* get or create a subgoal frame */
   CallResults_subgoal_frame(results) = get_subgoal_frame_from_node(CallResults_leaf(results), tab_ent,

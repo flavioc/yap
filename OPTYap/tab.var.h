@@ -19,7 +19,7 @@
 #include "tab.xsb.h"
 #include "tab.utils.h"
 
-Cell* construct_variant_answer_template(Cell *var_vector);
+inline CPtr extract_template_from_insertion(CTXTdeclc CPtr ans_tmplt);
 sg_node_ptr variant_call_cont_insert(tab_ent_ptr tab_ent, sg_node_ptr current_node, int count_vars);
 void variant_call_search(TabledCallInfo *call_info, CallLookupResults *results);
 
