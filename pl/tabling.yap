@@ -15,7 +15,8 @@
 *									 *
 *************************************************************************/
 
-:- meta_predicate table(:), is_tabled(:), tabling_mode(:), abolish_table(:), show_table(:), table_statistics(:).
+:- meta_predicate table(:), is_tabled(:), tabling_mode(:), abolish_table(:), show_table(:), table_statistics(:),
+                  use_variant_tabling(:), use_subsumptive_tabling(:).
 
 
 
@@ -90,6 +91,61 @@ is_tabled(Pred) :-
    '$do_error'(type_error(callable,Mod:Pred),is_tabled(Mod:Pred)).
 
 
+/************************
+* use_variant_tabling   *
+************************/
+
+use_variant_tabling(Pred) :-
+   '$current_module'(Mod),
+   '$do_use_variant_tabling'(Mod,Pred).
+
+'$do_use_variant_tabling'(Mod,Pred) :-
+   var(Pred), !,
+   '$do_error'(instantiation_error,use_variant_tabling(Mod:Pred)).
+'$do_use_variant_tabling'(_,Mod:Pred) :- !,
+   '$do_use_variant_tabling'(Mod,Pred).
+'$do_use_variant_tabling'(_,[]) :- !.
+'$do_use_variant_tabling'(Mod,[HPred|TPred]) :- !,
+   '$do_use_variant_tabling'(Mod,HPred),
+   '$do_use_variant_tabling'(Mod,TPred).
+'$do_use_variant_tabling'(Mod,(Pred1,Pred2)) :- !,
+   '$do_use_variant_tabling'(Mod,Pred1),
+   '$do_use_variant_tabling'(Mod,Pred2).
+'$do_use_variant_tabling'(Mod,PredName/PredArity) :-
+   atom(PredName),
+   integer(PredArity),
+   functor(PredFunctor,PredName,PredArity), !,
+   '$c_use_variant_tabling'(Mod,PredFunctor).
+'$do_use_variant_tabling'(Mod,Pred) :-
+   '$do_error'(type_error(callable,Mod:Pred),use_variant_tabling(Mod:Pred)).
+   
+/**************************
+* use_subsumptive_tabling *
+**************************/
+
+use_subsumptive_tabling(Pred) :-
+   '$current_module'(Mod),
+   '$do_use_subsumptive_tabling'(Mod,Pred).
+   
+'$do_use_subsumptive_tabling'(Mod,Pred) :-
+   var(Pred), !,
+   '$do_error'(instantiation_error,use_subsumptive_tabling(Mod:Pred)).
+'$do_use_subsumptive_tabling'(_,Mod:Pred) :- !,
+   '$do_use_subsumptive_tabling'(Mod,Pred).
+'$do_use_subsumptive_tabling'(_,[]) :- !.
+'$do_use_subsumptive_tabling'(Mod,[HPred|TPred]) :- !,
+   '$do_use_subsumptive_tabling'(Mod,HPred),
+   '$do_use_subsumptive_tabling'(Mod,TPred).
+'$do_use_subsumptive_tabling'(Mod, (Pred1, Pred2)) :- !,
+   '$do_use_subsumptive_tabling'(Mod,Pred1),
+   '$do_use_subsumptive_tabling'(Mod,Pred2).
+'$do_use_subsumptive_tabling'(Mod,PredName/PredArity) :-
+   atom(PredName),
+   integer(PredArity),
+   functor(PredFunctor,PredName,PredArity), !,
+   '$c_use_subsumptive_tabling'(Mod,PredFunctor).
+'$do_use_subsumptive_tabling'(Mod,Pred) :-
+   '$do_error'(type_error(callable,Mod:Pred),use_subsumptive_tabling(Mod:Pred)).
 
 /*************************
 *     tabling_mode/2     *
