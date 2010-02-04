@@ -84,6 +84,7 @@ typedef Functor Psc;
 #define IsEscapeNode(NODE)  (FALSE) // XXX
 #define ESCAPE_NODE_SYMBOL    (long)0xFFFFFFF // XXX
 #define IsTrieFunctor(SYMBOL) (cell_tag(SYMBOL) == TAG_STRUCT)
+#define IsTrieList(SYMBOL)  IsPairTerm(SYMBOL)
 
 #define xsb_abort(MSG, ...) Yap_Error(PURE_ABORT, TermNil, MSG, __VA_ARGS__)
 
@@ -111,6 +112,11 @@ typedef Functor Psc;
 
 #define SUBSUMPTION_YAP 1
 /* #define SUBSUMPTION_XSB 1 */
+
+#define makeint(I)  (I)
+#define SubProdSF subprod_fr_ptr
+
+#define subg_leaf_ptr(X)  SgFr_leaf(X)
 
 #endif /* TABLING_CALL_SUBSUMPTION */
 
