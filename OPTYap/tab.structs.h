@@ -9,6 +9,9 @@
                                                                      
 **********************************************************************/
 
+#ifndef TAB_STRUCTS_H
+#define TAB_STRUCTS_H
+
 /* ---------------------------- **
 **      Tabling mode flags      **
 **  C/stdpreds.c                **
@@ -99,7 +102,7 @@ typedef struct table_entry {
 **    Trie definitions       **
 ** ------------------------- */
 
-
+typedef unsigned long time_stamp;
 
 /* -------------------------------------------------------------------------- **
 **      Structs global_trie_node, subgoal_trie_node and answer_trie_node      **
@@ -154,30 +157,6 @@ typedef struct answer_trie_node {
 #define TrNode_child(X)        ((X)->child)
 #define TrNode_sg_fr(X)        ((X)->child)
 #define TrNode_next(X)         ((X)->next)
-
-/* ----------------------- **
-** Time stamped trie nodes **
-** ----------------------- */
-
-typedef unsigned long time_stamp;
-
-typedef struct time_stamped_trie_node {
-  struct answer_trie_node base; /* basic node info */
-  time_stamp ts; /* time stamp */
-} *tst_node_ptr;
-
-#define CAST_AN(X)            ((ans_node_ptr)X)
-
-#define TSTN_instr(X)       TrNode_instr(CAST_AN(X))
-#define TSTN_or_arg(X)      TrNode_or_arg(CAST_AN(X))
-#define TSTN_entry(X)       TrNode_entry(CAST_AN(X))
-#define TSTN_lock(X)        TrNode_lock(CAST_AN(X))
-#define TSTN_parent(X)      TrNode_parent(CAST_AN(X))
-#define TSTN_child(X)       TrNode_child(CAST_AN(X))
-#define TSTN_next(X)        TrNode_next(CAST_AN(X))
-#define TSTN_time_stamp(X)  ((X)->ts)
-
-#undef CAST_AN
 
 /* -------------------------------------------------------------------------- **
 **      Structs global_trie_hash, subgoal_trie_hash and answer_trie_hash      **
@@ -327,8 +306,6 @@ typedef sg_fr_ptr variant_sf_ptr;
 #define SgFr_previous(X)       (CAST_SF(X)->previous)
 #define SgFr_next(X)           (CAST_SF(X)->next)
 
-#undef CAST_SF
-
 /* ------------------------------------------------------------------------------------------- **
    SgFr_lock:          spin-lock to modify the frame fields.
    SgFr_gen_worker:    the id of the worker that had allocated the frame.
@@ -372,8 +349,6 @@ typedef subsumptive_consumer_sf *subcons_fr_ptr;
 
 #define SgFr_timestamp(X)   (CAST_SUBCONSSF(X)->ts)
 #define SgFr_producer(X)    (CAST_SUBCONSSF(X)->producer)
-
-#undef CAST_SUBCONSSF
 
 /* ------------------------------- **
 ** Subgoal frame types             **
@@ -541,3 +516,5 @@ struct loader_choicept {
   struct pred_entry *cp_pred_entry;
 #endif /* LOW_LEVEL_TRACER */
 };
+
+#endif
