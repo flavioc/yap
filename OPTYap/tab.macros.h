@@ -301,11 +301,13 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
         memcpy(SuspFr_local_start(SUSP_FR), SuspFr_local_reg(SUSP_FR), B_SIZE);    \
         memcpy(SuspFr_trail_start(SUSP_FR), SuspFr_trail_reg(SUSP_FR), TR_SIZE)
         
-#define new_basic_subgoal_frame(SG_FR, CODE, TYPE, ALLOC_FN)       \
+#define new_basic_subgoal_frame(SG_FR, CODE, LEAF, TYPE, ALLOC_FN) \
         { register ans_node_ptr ans_node;                          \
           new_root_answer_trie_node(ans_node);                     \
           ALLOC_FN(SG_FR);                                         \
           INIT_LOCK(SgFr_lock(SG_FR));                             \
+          SgFr_leaf(SG_FR) = LEAF;                                 \
+          TrNode_sg_fr(LEAF) = (sg_node_ptr)SG_FR;                 \
           SgFr_type(SG_FR) = TYPE;                                 \
           SgFr_code(SG_FR) = CODE;                                 \
           SgFr_state(SG_FR) = ready;                               \
@@ -315,10 +317,10 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
           SgFr_last_answer(SG_FR) = NULL;                          \
         }                           
         
-#define new_variant_subgoal_frame(SG_FR, CODE)  new_basic_subgoal_frame(SG_FR, CODE, VARIANT_PRODUCER_SFT, ALLOC_VARIANT_SUBGOAL_FRAME)
-#define new_subsumptive_producer_subgoal_frame(SG_FR, CODE) new_basic_subgoal_frame(SG_FR, CODE, SUBSUMPTIVE_PRODUCER_SFT, ALLOC_SUBPROD_SUBGOAL_FRAME)
-#define new_subsumed_consumer_subgoal_frame(SG_FR, CODE, PRODUCER) {  \
-        new_basic_subgoal_frame(SG_FR, CODE, SUBSUMED_CONSUMER_SFT, ALLOC_SUBCONS_SUBGOAL_FRAME);  \
+#define new_variant_subgoal_frame(SG_FR, CODE, LEAF)  new_basic_subgoal_frame(SG_FR, CODE, LEAF, VARIANT_PRODUCER_SFT, ALLOC_VARIANT_SUBGOAL_FRAME)
+#define new_subsumptive_producer_subgoal_frame(SG_FR, CODE, LEAF) new_basic_subgoal_frame(SG_FR, CODE, LEAF, SUBSUMPTIVE_PRODUCER_SFT, ALLOC_SUBPROD_SUBGOAL_FRAME)
+#define new_subsumed_consumer_subgoal_frame(SG_FR, CODE, LEAF, PRODUCER) {  \
+        new_basic_subgoal_frame(SG_FR, CODE, LEAF, SUBSUMED_CONSUMER_SFT, ALLOC_SUBCONS_SUBGOAL_FRAME);  \
         SgFr_timestamp(SG_FR) = 0;  \
         SgFr_producer(SG_FR) = PRODUCER;  \
     }

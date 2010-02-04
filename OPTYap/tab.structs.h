@@ -265,6 +265,7 @@ typedef struct subgoal_frame {
     compiled_in_use = 6   /* LIMIT_TABLING */
   } state_flag;  /* do not change order !!! */
   choiceptr generator_choice_point;
+  sg_node_ptr leaf_ptr;
   struct answer_trie_hash *hash_chain;
   struct answer_trie_node *answer_trie;
   
@@ -296,6 +297,7 @@ typedef sg_fr_ptr variant_sf_ptr;
 #define SgFr_arity(X)          ((CAST_SF(X)->code_of_subgoal)->u.Otapl.s)
 #define SgFr_state(X)          (CAST_SF(X)->state_flag)
 #define SgFr_gen_cp(X)         (CAST_SF(X)->generator_choice_point)
+#define SgFr_leaf(X)           (CAST_SF(X)->leaf_ptr)
 #define SgFr_hash_chain(X)     (CAST_SF(X)->hash_chain)
 #define SgFr_answer_trie(X)    (CAST_SF(X)->answer_trie)
 #define SgFr_first_answer(X)   (CAST_SF(X)->first_answer)
@@ -317,6 +319,7 @@ typedef sg_fr_ptr variant_sf_ptr;
    SgFr_state:         a flag that indicates the subgoal state.
    SgFr_gen_cp:        a pointer to the correspondent generator choice point.
    SgFr_hash_chain:    a pointer to the first answer_trie_hash struct for the subgoal in hand.
+   SgFr_leaf:          a pointer to the leaf in the call trie.
    SgFr_answer_trie:   a pointer to the top answer trie node.
                        It is used to check for/insert new answers.
    SgFr_first_answer:  a pointer to the bottom answer trie node of the first available answer.
@@ -449,16 +452,15 @@ typedef struct suspension_frame {
 ** about call                       **
 ** -------------------------------- */
 typedef struct Tabled_Call_Info_Record {
-  tab_ent_ptr tab_ent;
-  int arity;
   yamop *code;
   CELL *var_vector; /* location to store the call var vector */
 } TabledCallInfo;
 
-#define CallInfo_table_entry(X)	((X)->tab_ent)
-#define CallInfo_arity(X)       ((X)->arity)
-#define CallInfo_var_vector(X)  ((X)->var_vector)
-#define CallInfo_code(X)        ((X)->code)
+#define CallInfo_table_entry(CALL)	((CALL)->code->u.Otapl.te)
+#define CallInfo_arity(CALL)        ((CALL)->code->u.Otapl.s)
+#define CallInfo_var_vector(CALL)   ((CALL)->var_vector)
+#define CallInfo_code(CALL)         ((CALL)->code)
+#define CallInfo_arguments(CALL)    (XREGS + 1)
 
 typedef struct Call_Check_Insert_Results {
   CELL *var_vector;         /* pointer to the vector of call variables */
