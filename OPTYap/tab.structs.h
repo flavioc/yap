@@ -19,15 +19,15 @@
 
 #define Mode_SchedulingOn       0x00000001L  /* yap_flags[TABLING_MODE_FLAG] */
 #define Mode_CompletedOn        0x00000002L  /* yap_flags[TABLING_MODE_FLAG] */
-#define Mode_ChecksOn           0x00000003L  /* yap_flags[TABLING_MODE_FLAG] */
+#define Mode_ChecksOn           0x00000004L  /* yap_flags[TABLING_MODE_FLAG] */
 
 #define Mode_Local              0x10000000L  /* yap_flags[TABLING_MODE_FLAG] + struct table_entry */
 #define Mode_LoadAnswers        0x20000000L  /* yap_flags[TABLING_MODE_FLAG] + struct table_entry */
-#define Mode_Subsumptive        0x30000000L  /* yap_flags[TABLING_MODE_FLAG] + struct table_entry */
+#define Mode_Subsumptive        0x40000000L  /* yap_flags[TABLING_MODE_FLAG] + struct table_entry */
 
 #define DefaultMode_Local       0x00000001L  /* struct table_entry */
 #define DefaultMode_LoadAnswers 0x00000002L  /* struct table_entry */
-#define DefaultMode_Subsumptive 0x00000003L  /* struct table_entry */
+#define DefaultMode_Subsumptive 0x00000004L  /* struct table_entry */
 
 #define SetMode_SchedulingOn(X)        (X) |= Mode_SchedulingOn
 #define SetMode_CompletedOn(X)         (X) |= Mode_CompletedOn
@@ -83,14 +83,16 @@ typedef struct table_entry {
   struct table_entry *next;
 } *tab_ent_ptr;
 
-#define TabEnt_lock(X)          ((X)->lock)
-#define TabEnt_pe(X)            ((X)->pred_entry)
-#define TabEnt_atom(X)          ((X)->pred_atom)
-#define TabEnt_arity(X)         ((X)->pred_arity)
-#define TabEnt_mode(X)          ((X)->mode_flags)
-#define TabEnt_subgoal_trie(X)  ((X)->subgoal_trie)
-#define TabEnt_hash_chain(X)    ((X)->hash_chain)
-#define TabEnt_next(X)          ((X)->next)
+#define TabEnt_lock(X)            ((X)->lock)
+#define TabEnt_pe(X)              ((X)->pred_entry)
+#define TabEnt_atom(X)            ((X)->pred_atom)
+#define TabEnt_arity(X)           ((X)->pred_arity)
+#define TabEnt_mode(X)            ((X)->mode_flags)
+#define TabEnt_subgoal_trie(X)    ((X)->subgoal_trie)
+#define TabEnt_hash_chain(X)      ((X)->hash_chain)
+#define TabEnt_next(X)            ((X)->next)
+#define TabEnt_is_variant(X)      (IsMode_Variant(TabEnt_mode(X)))
+#define TabEnt_is_subsumptive(X)  (IsMode_Subsumptive(TabEnt_mode(X)))
 
 
 /* ------------------------- **
@@ -340,8 +342,10 @@ typedef struct subsumed_consumer_subgoal_frame {
 
 typedef subsumptive_consumer_sf *subcons_fr_ptr;
 
-#define SgFr_timestamp(X)   ((subcons_fr_ptr)(X)->ts)
-#define SgFr_producer(X)    ((subcons_fr_ptr)(X)->producer)
+#define CAST_SUBCONSSF(X)   ((subcons_fr_ptr)(X))
+
+#define SgFr_timestamp(X)   (CAST_SUBCONSSF(X)->ts)
+#define SgFr_producer(X)    (CAST_SUBCONSSF(X)->producer)
 
 /* ------------------------------- **
 ** Subgoal frame types             **
@@ -439,6 +443,37 @@ typedef struct suspension_frame {
 #define SuspFr_trail_size(X)          ((X)->trail_block.block_size)
 #define SuspFr_next(X)                ((X)->next)
 
+
+/* -------------------------------- **
+** Structure to pass information    **
+** about call                       **
+** -------------------------------- */
+typedef struct Tabled_Call_Info_Record {
+  tab_ent_ptr tab_ent;
+  int arity;
+  yamop *code;
+  CELL *var_vector; /* location to store the call var vector */
+} TabledCallInfo;
+
+#define CallInfo_table_entry(X)	((X)->tab_ent)
+#define CallInfo_arity(X)       ((X)->arity)
+#define CallInfo_var_vector(X)  ((X)->var_vector)
+#define CallInfo_code(X)        ((X)->code)
+
+typedef struct Call_Check_Insert_Results {
+  CELL *var_vector;         /* pointer to the vector of call variables */
+  sg_fr_ptr subgoal_frame;
+  sg_fr_ptr subsumer;
+  int variant_found;
+  sg_node_ptr leaf;
+} CallLookupResults;
+
+
+#define CallResults_var_vector(X)     ((X)->var_vector)
+#define CallResults_subsumer(X)       ((X)->subsumer)
+#define CallResults_subgoal_frame(X)  ((X)->subgoal_frame)
+#define CallResults_variant_found(X)  ((X)->variant_found)
+#define CallResults_leaf(X)           ((X)->leaf)
 
 
 /* ------------------------------- **
