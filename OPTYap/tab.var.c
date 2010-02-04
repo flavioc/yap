@@ -161,5 +161,83 @@ variant_call_search(TabledCallInfo *call_info, CallLookupResults *results) {
   Trail_Unwind_All;
 }
 
+ans_node_ptr variant_answer_search(sg_fr_ptr sg_fr, CELL *subs_ptr) {
+  int i, j, count_vars, subs_arity;
+  CELL *stack_vars, *stack_terms_base, *stack_terms;
+  ans_node_ptr current_node;
+
+  count_vars = 0;
+  subs_arity = *subs_ptr;
+  stack_vars = (CELL *)TR;
+  stack_terms_base = stack_terms = (CELL *)Yap_TrailTop;
+  current_node = SgFr_answer_trie(sg_fr);
+  
+  for (i = subs_arity; i >= 1; i--) {
+    STACK_CHECK_EXPAND(stack_terms, stack_vars, stack_terms_base);
+    STACK_PUSH_UP(Deref(*(subs_ptr + i)), stack_terms);
+    do {
+      Term t = STACK_POP_DOWN(stack_terms);
+      if (IsVarTerm(t)) {
+	      t = Deref(t);
+	      if (IsTableVarTerm(t)) {
+	        t = MakeTableVarTerm(VarIndexOfTerm(t));
+          ANSWER_TOKEN_CHECK_INSERT(sg_fr, current_node, t, _trie_retry_val);
+	      } else {
+	        if (count_vars == MAX_TABLE_VARS)
+	          Yap_Error(INTERNAL_ERROR, TermNil, "MAX_TABLE_VARS exceeded (answer_search)");
+	        STACK_PUSH_DOWN(t, stack_vars);
+	        *((CELL *)t) = GLOBAL_table_var_enumerator(count_vars);
+	        t = MakeTableVarTerm(count_vars);
+	        count_vars++;
+          ANSWER_TOKEN_CHECK_INSERT(sg_fr, current_node, t, _trie_retry_var);
+	      }
+      } else if (IsAtomOrIntTerm(t)) {
+        ANSWER_TOKEN_CHECK_INSERT(sg_fr, current_node, t, _trie_retry_atom);
+      } else if (IsPairTerm(t)) {
+        ANSWER_TOKEN_CHECK_INSERT(sg_fr, current_node, AbsPair(NULL), _trie_retry_pair);
+	      STACK_CHECK_EXPAND(stack_terms, stack_vars + 1, stack_terms_base);
+	      STACK_PUSH_UP(Deref(*(RepPair(t) + 1)), stack_terms);
+	      STACK_PUSH_UP(Deref(*(RepPair(t))), stack_terms);
+      } else if (IsApplTerm(t)) {
+	      Functor f = FunctorOfTerm(t);
+	      if (f == FunctorDouble) {
+	        volatile Float dbl = FloatOfTerm(t);
+	        volatile Term *t_dbl = (Term *)((void *) &dbl);
+          ANSWER_TOKEN_CHECK_INSERT(sg_fr, current_node, AbsAppl((Term *)f), _trie_retry_null);
+#if SIZEOF_DOUBLE == 2 * SIZEOF_INT_P
+          ANSWER_TOKEN_CHECK_INSERT(sg_fr, current_node, *(t_dbl + 1), _trie_retry_extension);
+#endif /* SIZEOF_DOUBLE x SIZEOF_INT_P */
+          ANSWER_TOKEN_CHECK_INSERT(sg_fr, current_node, *t_dbl, _trie_retry_extension);
+          ANSWER_TOKEN_CHECK_INSERT(sg_fr, current_node, AbsAppl((Term *)f), _trie_retry_float);
+	      } else if (f == FunctorLongInt) {
+	        Int li = LongIntOfTerm (t);
+          ANSWER_TOKEN_CHECK_INSERT(sg_fr, current_node, AbsAppl((Term *)f), _trie_retry_null);
+          ANSWER_TOKEN_CHECK_INSERT(sg_fr, current_node, li, _trie_retry_extension);
+          ANSWER_TOKEN_CHECK_INSERT(sg_fr, current_node, AbsAppl((Term *)f), _trie_retry_long);
+	      } else if (f == FunctorDBRef) {
+	        Yap_Error(INTERNAL_ERROR, TermNil, "unsupported type tag (FunctorDBRef in answer_search)");
+	      } else if (f == FunctorBigInt) {
+	        Yap_Error(INTERNAL_ERROR, TermNil, "unsupported type tag (FunctorBigInt in answer_search)");
+	      } else {
+          ANSWER_TOKEN_CHECK_INSERT(sg_fr, current_node, AbsAppl((Term *)f), _trie_retry_struct);
+          STACK_CHECK_EXPAND(stack_terms, stack_vars + ArityOfFunctor(f) - 1, stack_terms_base);
+	        for (j = ArityOfFunctor(f); j >= 1; j--)
+	          STACK_PUSH_UP(Deref(*(RepAppl(t) + j)), stack_terms);
+	      }
+      } else {
+	      Yap_Error(INTERNAL_ERROR, TermNil, "unknown type tag (answer_search)");
+      }
+    } while (STACK_NOT_EMPTY(stack_terms, stack_terms_base));
+  }
+
+  /* reset variables */
+  while (count_vars--) {
+    Term t = STACK_POP_UP(stack_vars);
+    RESET_VARIABLE(t);
+  }
+
+  return current_node;
+}
+
 
 #endif /* TABLING */

@@ -763,7 +763,7 @@ While_TermStack_NotEmpty:
   return pParentBTN;
 }
 
-static void*
+static sg_node_ptr
 stl_restore_variant_cont(CTXTdecl) {
   int i;
   
@@ -988,6 +988,10 @@ void subsumptive_call_search(TabledCallInfo *call_info, CallLookupResults *resul
       Trail_Unwind_All;
     }
   }
+}
+
+ans_node_ptr subsumptive_answer_search(sg_fr_ptr sg_fr, CELL *subs_ptr) {
+  return variant_answer_search(sg_fr, subs_ptr);
 }
 
 #endif /* TABLING && TABLING_CALL_SUBSUMPTION */
