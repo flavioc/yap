@@ -68,6 +68,11 @@ static Int p_worker(void);
 static Int p_freeze(void);
 static Int p_wake(void);
 static Int p_table(void);
+
+/* XSB compat */
+static Int p_use_variant_tabling(void);
+static Int p_use_subsumptive_tabling(void);
+
 static Int p_tabling_mode(void);
 static Int p_abolish_table(void);
 static Int p_abolish_all_tables(void);
@@ -101,6 +106,9 @@ static void shm_table_subgoal_solution_frames(long *pages_in_use, long *bytes_in
 static void shm_table_subgoal_answer_frames(long *pages_in_use, long *bytes_in_use);
 #endif /* TABLING_INNER_CUTS */
 #ifdef TABLING
+static void tab_entry_set_variant_mode(tab_ent_ptr tab_ent);
+static void tab_entry_set_subsumptive_mode(tab_ent_ptr tab_ent);
+static tab_ent_ptr get_pred_table_entry(Term mod, Term t);
 static void shm_table_entries(long *pages_in_use, long *bytes_in_use);
 static void shm_variant_subgoal_frames(long *pages_in_use, long *bytes_in_use);
 static void shm_subprod_subgoal_frames(long *pages_in_use, long *bytes_in_use);
@@ -145,6 +153,8 @@ void Yap_init_optyap_preds(void) {
   Yap_InitCPred("wake_choice_point", 1, p_wake, SafePredFlag|SyncPredFlag);
   Yap_InitCPred("$c_table", 2, p_table, SafePredFlag|SyncPredFlag|HiddenPredFlag);
   Yap_InitCPred("$c_tabling_mode", 3, p_tabling_mode, SafePredFlag|SyncPredFlag|HiddenPredFlag);
+  Yap_InitCPred("$c_use_variant_tabling", 2, p_use_variant_tabling, SafePredFlag|SyncPredFlag|HiddenPredFlag);
+  Yap_InitCPred("$c_use_subsumptive_tabling", 2, p_use_subsumptive_tabling, SafePredFlag|SyncPredFlag|HiddenPredFlag);
   Yap_InitCPred("$c_abolish_table", 2, p_abolish_table, SafePredFlag|SyncPredFlag|HiddenPredFlag);
   Yap_InitCPred("abolish_all_tables", 0, p_abolish_all_tables, SafePredFlag|SyncPredFlag);
   Yap_InitCPred("show_tabled_predicates", 0, p_show_tabled_predicates, SafePredFlag|SyncPredFlag);
@@ -613,21 +623,63 @@ Int p_table(void) {
   return (TRUE);
 }
 
+/* from a mod term and a term get the table entry, or NULL if not found */
+static tab_ent_ptr
+get_pred_table_entry(Term mod, Term t) {
+  if (IsAtomTerm(t))
+    return (RepPredProp(PredPropByAtom(AtomOfTerm(t), mod))->TableOfPred);
+  else if(IsApplTerm(t))
+    return (RepPredProp(PredPropByFunc(FunctorOfTerm(t), mod))->TableOfPred);
+  else
+    return (NULL);
+}
+
+static inline
+void tab_entry_set_variant_mode(tab_ent_ptr tab_ent) {
+  SetDefaultMode_Variant(TabEnt_mode(tab_ent));
+  if (IsMode_ChecksOff(yap_flags[TABLING_MODE_FLAG]))
+    SetMode_Variant(TabEnt_mode(tab_ent));
+}
+
+static inline
+void tab_entry_set_subsumptive_mode(tab_ent_ptr tab_ent) {
+  SetDefaultMode_Subsumptive(TabEnt_mode(tab_ent));
+  if (IsMode_ChecksOff(yap_flags[TABLING_MODE_FLAG]))
+    SetMode_Subsumptive(TabEnt_mode(tab_ent));
+}
+
+static
+Int p_use_variant_tabling(void) {
+  tab_ent_ptr tab_ent = get_pred_table_entry(Deref(ARG1), Deref(ARG2));
+  
+  if(tab_ent) {
+    printf("Set var tabling\n");
+    tab_entry_set_variant_mode(tab_ent);
+    return (TRUE);
+  } else
+    return (FALSE);
+}
+
+static
+Int p_use_subsumptive_tabling(void) {
+  tab_ent_ptr tab_ent = get_pred_table_entry(Deref(ARG1), Deref(ARG2));
+  
+  if(tab_ent) {
+    printf("Set sub tabling\n");
+    tab_entry_set_subsumptive_mode(tab_ent);
+    return (TRUE);
+  } else
+    return (FALSE);
+}
 
 static
 Int p_tabling_mode(void) {
-  Term mod, t, val;
+  Term val;
   tab_ent_ptr tab_ent;
-
-  mod = Deref(ARG1);
-  t = Deref(ARG2);
   
   /* get table entry */
-  if (IsAtomTerm(t))
-    tab_ent = RepPredProp(PredPropByAtom(AtomOfTerm(t), mod))->TableOfPred;
-  else if (IsApplTerm(t))
-    tab_ent = RepPredProp(PredPropByFunc(FunctorOfTerm(t), mod))->TableOfPred;
-  else
+  tab_ent = get_pred_table_entry(Deref(ARG1), Deref(ARG2));
+  if(!tab_ent)
     return (FALSE);
     
   val = Deref(ARG3);
@@ -635,20 +687,23 @@ Int p_tabling_mode(void) {
   /* get mode */
   if (IsVarTerm(val)) {
     Term mode;
-    t = MkAtomTerm(AtomNil);
+    Term t = MkAtomTerm(AtomNil);
     
+    /* load / exec answers */
     if (IsDefaultMode_LoadAnswers(TabEnt_mode(tab_ent)))
       mode = MkAtomTerm(Yap_LookupAtom("load_answers"));
     else
       mode = MkAtomTerm(Yap_LookupAtom("exec_answers"));
     t = MkPairTerm(mode, t);
     
+    /* local / batched */
     if (IsDefaultMode_Local(TabEnt_mode(tab_ent)))
       mode = MkAtomTerm(Yap_LookupAtom("local"));
     else
       mode = MkAtomTerm(Yap_LookupAtom("batched"));
     t = MkPairTerm(mode, t);
     
+    /* subsumptive / variant */
     if (IsDefaultMode_Subsumptive(TabEnt_mode(tab_ent)))
       mode = MkAtomTerm(Yap_LookupAtom("subsumptive"));
     else
@@ -659,18 +714,21 @@ Int p_tabling_mode(void) {
     t = MkPairTerm(mode, t);
     t = MkPairTerm(t, MkAtomTerm(AtomNil));
     
+    /* load / exec answers */
     if (IsMode_LoadAnswers(TabEnt_mode(tab_ent)))
       mode = MkAtomTerm(Yap_LookupAtom("load_answers"));
     else
       mode = MkAtomTerm(Yap_LookupAtom("exec_answers"));
     t = MkPairTerm(mode, t);
     
+    /* local / batched */
     if (IsMode_Local(TabEnt_mode(tab_ent)))
       mode = MkAtomTerm(Yap_LookupAtom("local"));
     else
       mode = MkAtomTerm(Yap_LookupAtom("batched"));
     t = MkPairTerm(mode, t);
     
+    /* subsumptive / variant */
     if(IsMode_Subsumptive(TabEnt_mode(tab_ent)))
       mode = MkAtomTerm(Yap_LookupAtom("subsumptive"));
     else
@@ -714,16 +772,13 @@ Int p_tabling_mode(void) {
     }
     
     if(strcmp(str_val,"variant") == 0) {
-      SetDefaultMode_Variant(TabEnt_mode(tab_ent));
-      if (IsMode_ChecksOff(yap_flags[TABLING_MODE_FLAG]))
-        SetMode_Variant(TabEnt_mode(tab_ent));
+      tab_entry_set_variant_mode(tab_ent);
       return(TRUE);
     }
     
+    
     if(strcmp(str_val,"subsumptive") == 0) {
-      SetDefaultMode_Subsumptive(TabEnt_mode(tab_ent));
-      if (IsMode_ChecksOff(yap_flags[TABLING_MODE_FLAG]))
-        SetMode_Subsumptive(TabEnt_mode(tab_ent));
+      tab_entry_set_subsumptive_mode(tab_ent);
       return(TRUE);
     }
     
@@ -734,19 +789,14 @@ Int p_tabling_mode(void) {
 
 static
 Int p_abolish_table(void) {
-  Term mod, t;
   tab_ent_ptr tab_ent;
   sg_hash_ptr hash;
   sg_node_ptr sg_node;
 
-  mod = Deref(ARG1);
-  t = Deref(ARG2);
-  if (IsAtomTerm(t))
-    tab_ent = RepPredProp(PredPropByAtom(AtomOfTerm(t), mod))->TableOfPred;
-  else if (IsApplTerm(t))
-    tab_ent = RepPredProp(PredPropByFunc(FunctorOfTerm(t), mod))->TableOfPred;
-  else
+  tab_ent = get_pred_table_entry(Deref(ARG1), Deref(ARG2));
+  if(!tab_ent)
     return (FALSE);
+  
   hash = TabEnt_hash_chain(tab_ent);
   TabEnt_hash_chain(tab_ent) = NULL;
   free_subgoal_trie_hash_chain(hash);
@@ -808,17 +858,12 @@ Int p_show_tabled_predicates(void) {
 
 static
 Int p_show_table(void) {
-  Term mod, t;
   tab_ent_ptr tab_ent;
 
-  mod = Deref(ARG1);
-  t = Deref(ARG2);
-  if (IsAtomTerm(t))
-    tab_ent = RepPredProp(PredPropByAtom(AtomOfTerm(t), mod))->TableOfPred;
-  else if (IsApplTerm(t))
-    tab_ent = RepPredProp(PredPropByFunc(FunctorOfTerm(t), mod))->TableOfPred;
-  else
+  tab_ent = get_pred_table_entry(Deref(ARG1), Deref(ARG2));
+  if(!tab_ent)
     return (FALSE);
+  
   show_table(tab_ent, SHOW_MODE_STRUCTURE);
   return (TRUE);
 }
@@ -848,17 +893,12 @@ Int p_show_global_trie(void) {
 
 static
 Int p_table_statistics(void) {
-  Term mod, t;
   tab_ent_ptr tab_ent;
 
-  mod = Deref(ARG1);
-  t = Deref(ARG2);
-  if (IsAtomTerm(t))
-    tab_ent = RepPredProp(PredPropByAtom(AtomOfTerm(t), mod))->TableOfPred;
-  else if (IsApplTerm(t))
-    tab_ent = RepPredProp(PredPropByFunc(FunctorOfTerm(t), mod))->TableOfPred;
-  else
+  tab_ent = get_pred_table_entry(Deref(ARG1), Deref(ARG2));
+  if(!tab_ent)
     return (FALSE);
+    
   show_table(tab_ent, SHOW_MODE_STATISTICS);
   return (TRUE);
 }
