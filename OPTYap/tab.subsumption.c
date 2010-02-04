@@ -27,6 +27,7 @@
 #include "tab.xsb.h"
 #include "tab.utils.h"
 #include "tab.subsumption.h"
+#include "tab.var.h"
 
 typedef enum Search_Strategy_Mode {
   MATCH_SYMBOL_EXACTLY, MATCH_WITH_TRIEVAR
@@ -762,17 +763,105 @@ While_TermStack_NotEmpty:
   return pParentBTN;
 }
 
-sg_node_ptr subsumptive_search(yamop *preg, CELL **Yaddr, TriePathType* path_type)
+static void*
+stl_restore_variant_cont(CTXTdecl) {
+  int i;
+  
+  TermStack_ResetTOS;
+  TermStack_PushArray(variant_cont.subterms.stack.ptr,
+    variant_cont.subterms.num);
+  
+  Trail_ResetTOS;
+  for(i = 0; i < (int)variant_cont.bindings.num; ++i) {
+    Trail_Push(variant_cont.bindings.stack.ptr[i].var);
+    bld_ref(variant_cont.bindings.stack.ptr[i].var,
+      variant_cont.bindings.stack.ptr[i].value);
+  }
+  
+  return (variant_cont.last_node_matched);
+}
+
+static sg_fr_ptr
+create_new_consumer_subgoal(sg_node_ptr leaf_node, subprod_fr_ptr subsumer, tab_ent_ptr tab_ent, yamop *code) {
+  subcons_fr_ptr sg_fr;
+  
+#if defined(TABLE_LOCK_AT_NODE_LEVEL)
+  LOCK(TrNode_lock(leaf_node));
+#elif defined(TABLE_LOCK_AT_WRITE_LEVEL)
+  LOCK_TABLE(leaf_node);
+#endif /* TABLE_LOCK_LEVEL */
+
+  new_subsumed_consumer_subgoal_frame(sg_fr, code, subsumer);
+  TrNode_sg_fr(leaf_node) = (sg_node_ptr)sg_fr;
+  
+    /* unlock table entry */
+#if defined(TABLE_LOCK_AT_ENTRY_LEVEL)
+  UNLOCK(TabEnt_lock(tab_ent));
+#elif defined(TABLE_LOCK_AT_NODE_LEVEL)
+  UNLOCK(TrNode_lock(current_node));
+#elif defined(TABLE_LOCK_AT_WRITE_LEVEL)
+  UNLOCK_TABLE(current_node);
+#endif /* TABLE_LOCK_LEVEL */
+
+  return (sg_fr_ptr)sg_fr;
+}
+
+static sg_fr_ptr
+create_new_producer_subgoal(sg_node_ptr leaf_node, tab_ent_ptr tab_ent, yamop *code)
 {
-  int arity;
-  tab_ent_ptr tab_ent;
-  BTNptr btRoot;
+  subprod_fr_ptr sg_fr;
+  
+#if defined(TABLE_LOCK_AT_NODE_LEVEL)
+  LOCK(TrNode_lock(leaf_node));
+#elif defined(TABLE_LOCK_AT_WRITE_LEVEL)
+  LOCK_TABLE(leaf_node);
+#endif /* TABLE_LOCK_LEVEL */
+  
+  new_subsumptive_producer_subgoal_frame(sg_fr, code);
+  TrNode_sg_fr(leaf_node) = (sg_node_ptr)sg_fr;
+
+  /* unlock table entry */
+#if defined(TABLE_LOCK_AT_ENTRY_LEVEL)
+  UNLOCK(TabEnt_lock(tab_ent));
+#elif defined(TABLE_LOCK_AT_NODE_LEVEL)
+  UNLOCK(TrNode_lock(current_node));
+#elif defined(TABLE_LOCK_AT_WRITE_LEVEL)
+  UNLOCK_TABLE(current_node);
+#endif /* TABLE_LOCK_LEVEL */
+  
+  return (sg_fr_ptr)sg_fr;
+}
+
+static inline
+CELL* construct_variant_answer_template_from_sub(CELL *var_vector) {
+  CPtr *binding, termptr;
+  int i;
+  
+  for(i = 0, binding = Trail_Base; binding < Trail_Top; binding++) {
+    termptr = *binding;
+    
+    if(!IsUnboundTrieVar(termptr)) {
+      //printf("New variable!\n");
+      *--var_vector = (CELL)termptr;
+      ++i;
+    }
+  }
+  
+  *--var_vector = i;
+  
+  return var_vector;
+}
+
+void subsumptive_call_search(TabledCallInfo *call_info, CallLookupResults *results)
+{
+  int arity = CallInfo_arity(call_info);
+  tab_ent_ptr tab_ent = CallInfo_table_entry(call_info);
+  BTNptr btRoot = TabEnt_subgoal_trie(tab_ent);
+  CPtr answer_template = CallInfo_var_vector(call_info);
   BTNptr btn;
+  TriePathType path_type;
   
   AnsVarCtr = 0; /// XXX
-  arity = preg->u.Otapl.s;
-  tab_ent = preg->u.Otapl.te;
-  btRoot = TabEnt_subgoal_trie(tab_ent);
   
   /* emu/sub_tables_xsb_i.h */
   TermStack_ResetTOS;
@@ -780,18 +869,57 @@ sg_node_ptr subsumptive_search(yamop *preg, CELL **Yaddr, TriePathType* path_typ
   Trail_ResetTOS;
   TermStack_PushLowToHighVector(XREGS + 1, arity);
   
-  btn = iter_sub_trie_lookup(CTXTc btRoot, path_type);
-
-  if(btn == NULL) {
-    //printf("No subsumption call!\n");
-  } else {
+  btn = iter_sub_trie_lookup(CTXTc btRoot, &path_type);
+  
+  if(btn) {
     //printf("Btn: %d %x\n", TrNode_child(btn) == NULL, btn);
     printf("Subsumption call found: ");
     printSubgoalTriePath(stdout, btn, tab_ent);
     printf("\n");
   }
   
-  return btn;
+  if(path_type == NO_PATH) { /* new producer */
+    printf("No path found... new producer\n");
+    Trail_Unwind_All;
+    CallResults_subsumer(results) = NULL;
+    CallResults_variant_found(results) = NO;
+    CallResults_leaf(results) = variant_call_cont_insert(tab_ent, stl_restore_variant_cont(),
+      variant_cont.bindings.num);
+    CallResults_var_vector(results) = construct_variant_answer_template(answer_template);
+    CallResults_subgoal_frame(results) = create_new_producer_subgoal(CallResults_leaf(results),
+      tab_ent, CallInfo_code(call_info));
+    Trail_Unwind_All;
+  } else { /* new consumer */
+    CallResults_variant_found(results) = (path_type == VARIANT_PATH);
+    sg_fr_ptr sg_fr = (sg_fr_ptr)TrNode_sg_fr(btn);
+    
+    if(SgFr_is_sub_producer(sg_fr)) {
+      /* consume from sg_fr */
+      CallResults_subsumer(results) = sg_fr;
+    } else {
+      sg_fr_ptr super_sg_fr = (sg_fr_ptr)SgFr_producer(sg_fr);
+      CallResults_subsumer(results) = super_sg_fr;
+    }
+    
+    if(path_type == VARIANT_PATH) {
+      printf("Found variant!\n");
+      // construct template
+      CallResults_subgoal_frame(results) = sg_fr;
+      CallResults_leaf(results) = btn;
+      CallResults_var_vector(results) = construct_variant_answer_template_from_sub(answer_template);
+      Trail_Unwind_All;
+    } else {
+      Trail_Unwind_All;
+      printf("Found subsumptive subgoal\n");
+      
+      // insert variant path and build template
+      CallResults_leaf(results) = variant_call_cont_insert(tab_ent, stl_restore_variant_cont(), variant_cont.bindings.num);
+      CallResults_var_vector(results) = construct_variant_answer_template(answer_template);
+      CallResults_subgoal_frame(results) = create_new_consumer_subgoal(CallResults_leaf(results),
+        (subprod_fr_ptr)CallResults_subsumer(results), tab_ent, CallInfo_code(call_info));
+      Trail_Unwind_All;
+    }
+  }
 }
 
 #endif /* TABLING && TABLING_CALL_SUBSUMPTION */

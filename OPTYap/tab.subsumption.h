@@ -12,13 +12,9 @@
 #define TAB_SUBSUMPTION_H
 
 #include "opt.config.h"
-
-#ifdef TABLING_CALL_SUBSUMPTION
 #include "tab.xsb.h"
 #include "tab.utils.h"
 
-sg_node_ptr subsumptive_search(yamop *preg, CELL **Yaddr, TriePathType* path_type);
-
-#endif /* TABLING_CALL_SUBSUMPTION */
+void subsumptive_call_search(TabledCallInfo *call_info, CallLookupResults *results);
 
 #endif
