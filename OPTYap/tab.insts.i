@@ -695,19 +695,6 @@
       store_consumer_node(tab_ent, sg_fr, leader_cp, leader_dep_on_stack);
 #ifdef OPTYAP_ERRORS
       if (PARALLEL_EXECUTION_MODE) {
-<<<<<<< HEAD
-        choiceptr aux_cp;
-        aux_cp = B;
-        while (YOUNGER_CP(aux_cp, LOCAL_top_cp_on_stack))
-          aux_cp = aux_cp->cp_b;
-        if (aux_cp->cp_or_fr != DepFr_top_or_fr(LOCAL_top_dep_fr))
-          OPTYAP_ERROR_MESSAGE("Error on DepFr_top_or_fr (table_try)");
-        aux_cp = B;
-        while (YOUNGER_CP(aux_cp, DepFr_leader_cp(LOCAL_top_dep_fr)))
-          aux_cp = aux_cp->cp_b;
-        if (aux_cp != DepFr_leader_cp(LOCAL_top_dep_fr))
-          OPTYAP_ERROR_MESSAGE("Error on DepFr_leader_cp (table_try)");
-=======
 	choiceptr aux_cp;
 	aux_cp = B;
 	while (YOUNGER_CP(aux_cp, Get_LOCAL_top_cp_on_stack()))
@@ -719,7 +706,6 @@
 	  aux_cp = aux_cp->cp_b;
 	if (aux_cp != DepFr_leader_cp(LOCAL_top_dep_fr))
 	  OPTYAP_ERROR_MESSAGE("Error on DepFr_leader_cp (table_try)");
->>>>>>> master
       }
 #endif /* OPTYAP_ERRORS */
       goto answer_resolution;
