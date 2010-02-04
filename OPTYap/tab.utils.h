@@ -346,6 +346,7 @@ void printSubgoalTriePath(CTXTdeclc FILE *fp, BTNptr pLeaf, tab_ent_ptr tab_entr
 void printTrieNode(FILE *fp, BTNptr pTN);
 void printSubterm(FILE *fp, Term term);
 void printCalledSubgoal(FILE *fp, yamop *preg);
+void printSubstitutionFactor(FILE *fp, CELL* factor);
 
 #define TrieError_UnknownSubtermTagMsg				\
    "Trie Subterm-to-Symbol Conversion\nUnknown subterm type (%d)"

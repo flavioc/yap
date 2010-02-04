@@ -440,4 +440,25 @@ void printCalledSubgoal(FILE *fp, yamop *preg)
   Trail_Unwind_All;
 }
 
+void printSubstitutionFactor(FILE *fp, CELL* factor)
+{
+  int i = (int)*factor;
+  int bindings = Trail_NumBindings;
+  
+  fprintf(fp, "Substitution factor with size %d [", i);
+  
+  variable_counter = 0;
+  
+  for(++factor; i > 0; i--, ++factor) {
+    recursivePrintSubterm(fp, (Term)factor, FALSE);
+    
+    if(i > 1)
+      fprintf(fp, ", ");
+  }
+  
+  fprintf(fp, "]\n");
+  
+  Trail_Unwind(bindings);
+}
+
 #endif /* TABLING_CALL_SUBSUMPTION */
