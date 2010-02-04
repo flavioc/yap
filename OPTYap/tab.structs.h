@@ -99,7 +99,6 @@ typedef struct table_entry {
 **    Trie definitions       **
 ** ------------------------- */
 
-typedef unsigned long time_stamp;
 
 
 /* -------------------------------------------------------------------------- **
@@ -156,7 +155,29 @@ typedef struct answer_trie_node {
 #define TrNode_sg_fr(X)        ((X)->child)
 #define TrNode_next(X)         ((X)->next)
 
+/* ----------------------- **
+** Time stamped trie nodes **
+** ----------------------- */
 
+typedef unsigned long time_stamp;
+
+typedef struct time_stamped_trie_node {
+  struct answer_trie_node base; /* basic node info */
+  time_stamp ts; /* time stamp */
+} *tst_node_ptr;
+
+#define CAST_AN(X)            ((ans_node_ptr)X)
+
+#define TSTN_instr(X)       TrNode_instr(CAST_AN(X))
+#define TSTN_or_arg(X)      TrNode_or_arg(CAST_AN(X))
+#define TSTN_entry(X)       TrNode_entry(CAST_AN(X))
+#define TSTN_lock(X)        TrNode_lock(CAST_AN(X))
+#define TSTN_parent(X)      TrNode_parent(CAST_AN(X))
+#define TSTN_child(X)       TrNode_child(CAST_AN(X))
+#define TSTN_next(X)        TrNode_next(CAST_AN(X))
+#define TSTN_time_stamp(X)  ((X)->ts)
+
+#undef CAST_AN
 
 /* -------------------------------------------------------------------------- **
 **      Structs global_trie_hash, subgoal_trie_hash and answer_trie_hash      **
