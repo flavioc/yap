@@ -33,8 +33,13 @@
 ** -------------------------- */
 
 sg_fr_ptr subgoal_search(yamop *preg, CELL **Yaddr) {
+  TabledCallInfo call_info;
+  CallLookupResults results;
   
-  tab_ent_ptr tab_ent = preg->u.Otapl.te;
+  CallInfo_code(&call_info) = preg;
+  CallInfo_var_vector(&call_info) = *Yaddr - 1;
+  
+  tab_ent_ptr tab_ent = CallInfo_table_entry(&call_info);
   
 #ifdef TABLE_LOCK_AT_ENTRY_LEVEL
   LOCK(TabEnt_lock(tab_ent));
@@ -43,14 +48,6 @@ sg_fr_ptr subgoal_search(yamop *preg, CELL **Yaddr) {
   printf("subgoal_search for ");
   printCalledSubgoal(stdout, preg);
   printf("\n");
-  
-  TabledCallInfo call_info;
-  CallLookupResults results;
-  
-  CallInfo_table_entry(&call_info) = tab_ent;
-  CallInfo_arity(&call_info) = preg->u.Otapl.s;
-  CallInfo_code(&call_info) = preg;
-  CallInfo_var_vector(&call_info) = *Yaddr;
   
   if(TabEnt_is_variant(tab_ent)) {
     printf("IS VARIANT\n");
