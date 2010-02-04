@@ -141,6 +141,10 @@
 	'$wait'(BlockSpec).
 '$exec_directive'(table(PredSpec), _, M) :-
 	'$table'(PredSpec, M).
+'$exec_directive'(use_variant_tabling(PredSpec), _, M) :-
+  '$use_variant_tabling'(PredSpec, M).
+'$exec_directive'(use_subsumptive_tabling(PredSpec), _, M) :-
+  '$use_subsumptive_tabling'(PredSpec, M).
 '$exec_directive'(uncutable(PredSpec), _, M) :-
 	'$uncutable'(PredSpec, M).
 '$exec_directive'(if(Goal), Context, M) :-
