@@ -327,6 +327,8 @@ typedef sg_fr_ptr variant_sf_ptr;
 #define SgFr_previous(X)       (CAST_SF(X)->previous)
 #define SgFr_next(X)           (CAST_SF(X)->next)
 
+#undef CAST_SF
+
 /* ------------------------------------------------------------------------------------------- **
    SgFr_lock:          spin-lock to modify the frame fields.
    SgFr_gen_worker:    the id of the worker that had allocated the frame.
@@ -370,6 +372,8 @@ typedef subsumptive_consumer_sf *subcons_fr_ptr;
 
 #define SgFr_timestamp(X)   (CAST_SUBCONSSF(X)->ts)
 #define SgFr_producer(X)    (CAST_SUBCONSSF(X)->producer)
+
+#undef CAST_SUBCONSSF
 
 /* ------------------------------- **
 ** Subgoal frame types             **
