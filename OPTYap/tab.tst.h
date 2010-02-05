@@ -37,10 +37,26 @@ typedef struct time_stamped_trie_node {
 #define TSTN_next(X)        TrNode_next(CAST_AN(X))
 #define TSTN_time_stamp(X)  ((X)->ts)
 
+/* ----------------------- **
+** Time stamped indexes    **
+** ----------------------- */
+
+typedef struct tst_index_node *tst_index_ptr;
+struct tst_index_node {
+  tst_index_ptr prev;
+  tst_index_ptr next;
+  time_stamp ts;
+  tst_node_ptr node;
+};
+
+/* ----------------------- **
+** Time stamped hash table **
+** ----------------------- */
 
 typedef struct tst_answer_trie_hash {
   struct answer_trie_hash base;
-  /* colocar index */
+  tst_index_ptr index_head;
+  tst_index_ptr index_tail;
 } *tst_ans_hash_ptr;
 
 #define CAST_AH(X)        ((ans_hash_ptr)X)
@@ -52,6 +68,8 @@ typedef struct tst_answer_trie_hash {
 #define TSTHT_bucket(X,N)       (Hash_buckets(CAST_AH(X)))
 #define TSTHT_num_nodes(X)      (Hash_num_nodes(CAST_AH(X))
 #define TSTHT_next(X)           (Hash_next(CAST_AH(X)))
+#define TSTHT_index_head(X)     ((X)->index_head)
+#define TSTHT_index_tail(X)     ((X)->index_tail)
 
 #endif /* TABLING */
 

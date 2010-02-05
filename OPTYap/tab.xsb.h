@@ -49,6 +49,7 @@ typedef Functor Psc;
 
 #define EncodeTrieConstant(Cell_Const) ((Cell)Cell_Const)
 #define EncodeTrieVar(INDEX)      MakeTableVarTerm(INDEX)
+#define EncodeNewTrieVar(INDEX)   MakeNewTableVarTerm(INDEX)
 #define EncodeTrieFunctor(TERM)   AbsAppl((Term *)FunctorOfTerm(TERM))
 #define EncodeTrieList(TERM)  AbsPair(NULL)
 
@@ -117,6 +118,8 @@ typedef Functor Psc;
 #define SubProdSF subprod_fr_ptr
 
 #define subg_leaf_ptr(X)  SgFr_leaf(X)
+
+#define TSTNptr tst_node_ptr
 
 #endif /* TABLING_CALL_SUBSUMPTION */
 
