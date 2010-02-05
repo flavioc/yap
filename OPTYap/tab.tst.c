@@ -21,9 +21,6 @@ STD_PROTO(void hashify_children, (CTXTdeclc BTNptr, int));
 }
 
 #define IsLongSiblingChain(ChainLength) (ChainLength > MAX_SIBLING_LEN)
-
-#define New_TSTN(TSTN,TrieType,NodeType,Symbol,Parent,Sibling)  \
-  TSTN = new_tstn(CTXTc TrieType,NodeType,Symbol,Parent,Sibling)
   
 #define New_BTN(BTN,TrieType,NodeType,Symbol,Parent,Sibling)  \
     BTN = new_btn(CTXTc TrieType,NodeType,Symbol,(BTNptr)Parent, (BTNptr)Sibling);
@@ -55,15 +52,6 @@ STD_PROTO(void hashify_children, (CTXTdeclc BTNptr, int));
 #define VALID_NODE_STATUS 0
 #define HASHED_NODE_MASK 0x01
 #define LEAF_NODE_MASK 0x02
-
-enum Types_of_Trie_Nodes {
-  TRIE_ROOT_NT = 0x08,
-  HASH_HEADER_NT = 0x04,
-  LEAF_NT = 0x02,
-  HASHED_LEAF_NT = 0x03,
-  INTERIOR_NT = 0x00,
-  HASHED_INTERIOR_NT = 0x01
-};
 
 #define TN_SetInstr(pTN,Symbol) \
   switch(TrieSymbolType(Symbol))  { \
@@ -156,7 +144,7 @@ enum Types_of_Trie_Nodes {
 #define TN_GetHashHdr(pTN)    TN_Child(pTN)
 #define BTN_GetHashHdr(pTN)   ((BTHTptr)TN_GetHashHdr(pTN))
 
-static TSTNptr new_tstn(CTXTdeclc int trie_t, int node_t, Cell symbol, TSTNptr parent,
+TSTNptr new_tstn(CTXTdeclc int trie_t, int node_t, Cell symbol, TSTNptr parent,
     TSTNptr sibling) {
   void * tstn;
   

@@ -318,11 +318,17 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
         }                           
         
 #define new_variant_subgoal_frame(SG_FR, CODE, LEAF)  new_basic_subgoal_frame(SG_FR, CODE, LEAF, VARIANT_PRODUCER_SFT, ALLOC_VARIANT_SUBGOAL_FRAME)
-#define new_subsumptive_producer_subgoal_frame(SG_FR, CODE, LEAF) new_basic_subgoal_frame(SG_FR, CODE, LEAF, SUBSUMPTIVE_PRODUCER_SFT, ALLOC_SUBPROD_SUBGOAL_FRAME)
+#define new_subsumptive_producer_subgoal_frame(SG_FR, CODE, LEAF) { \
+        new_basic_subgoal_frame(SG_FR, CODE, LEAF, SUBSUMPTIVE_PRODUCER_SFT, ALLOC_SUBPROD_SUBGOAL_FRAME);  \
+        SgFr_prod_consumers(SG_FR) = NULL;  \
+        SgFr_tst_root(SG_FR) = NULL;  \
+    }
 #define new_subsumed_consumer_subgoal_frame(SG_FR, CODE, LEAF, PRODUCER) {  \
         new_basic_subgoal_frame(SG_FR, CODE, LEAF, SUBSUMED_CONSUMER_SFT, ALLOC_SUBCONS_SUBGOAL_FRAME);  \
         SgFr_timestamp(SG_FR) = 0;  \
         SgFr_producer(SG_FR) = PRODUCER;  \
+        SgFr_consumers(SG_FR) = SgFr_prod_consumers(PRODUCER);  \
+        SgFr_prod_consumers(PRODUCER) = (subcons_fr_ptr)(SG_FR);  \
     }
 
 /* release subgoal frame based on its type */

@@ -271,9 +271,12 @@ extern DynamicStack tstTrail;
 #define ProcessNextSubtermFromTrieStacks(Symbol,StdVarNum) {  \
   Cell subterm; \
   TermStack_Pop(subterm); \
+  printf("Poping first %x\n", subterm); \
   XSB_Deref(subterm); \
+  printf("Deref %x %d %d\n", subterm, cell_tag(subterm), IsAtomOrIntTerm(subterm));  \
   switch(cell_tag(subterm)) { \
     case XSB_REF: \
+    printf("uma variavel\n"); \
       if(!IsStandardizedVariable(subterm)) {  \
         StandardizeVariable(subterm, StdVarNum);  \
         Trail_Push(subterm);  \
@@ -285,17 +288,21 @@ extern DynamicStack tstTrail;
       break;  \
     case XSB_STRING:  \
     case XSB_INT: \
+    printf("Int / Atom\n"); \
       Symbol = EncodeTrieConstant(subterm); \
       break;  \
     case XSB_STRUCT:  \
+    printf("uma struct\n"); \
       Symbol = EncodeTrieFunctor(subterm);  \
       TermStack_PushFunctorArgs(subterm); \
       break;  \
     case XSB_LIST:  \
+    printf("uma lista\n");  \
       Symbol = EncodeTrieList(subterm); \
       TermStack_PushListArgs(subterm);  \
       break;  \
     default:  \
+    printf("Unknown subterm\n");  \
       Symbol = 0; \
       TrieError_UnknownSubtermTag(subterm); \
     } \

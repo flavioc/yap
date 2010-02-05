@@ -67,9 +67,10 @@ sg_fr_ptr subgoal_search(yamop *preg, CELL **Yaddr) {
 ans_node_ptr answer_search(sg_fr_ptr sg_fr, CELL *subs_ptr) {
   if(SgFr_is_variant(sg_fr))
     return variant_answer_search(sg_fr, subs_ptr);
-  else if(SgFr_is_sub_producer(sg_fr))
+  else if(SgFr_is_sub_producer(sg_fr)) {
     return subsumptive_answer_search(sg_fr, subs_ptr);
-  else return NULL;
+  } else
+    return variant_answer_search(sg_fr, subs_ptr);
 }
 
 

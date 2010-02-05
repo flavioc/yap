@@ -93,8 +93,33 @@ typedef struct tst_answer_trie_hash {
 #define TSTHT_trie_type(X)      (TSTN_trie_type(CAST_TSTN(X)))
 #define TSTHT_status(X)         (TSTN_status(CAST_TSTN(X)))
 
+enum Types_of_Tries {
+ CALL_TRIE_TT              = 0x06,     /* binary:  0110 */
+ BASIC_ANSWER_TRIE_TT      = 0x05,     /* binary:  0101 */
+ TS_ANSWER_TRIE_TT         = 0x04,     /* binary:  0100 */
+ DELAY_TRIE_TT             = 0x03,     /* binary:  0011 */
+ ASSERT_TRIE_TT            = 0x02,     /* binary:  0010 */
+ INTERN_TRIE_TT            = 0x01      /* binary:  0001 */
+};
+
+enum Types_of_Trie_Nodes {
+  TRIE_ROOT_NT = 0x08,
+  HASH_HEADER_NT = 0x04,
+  LEAF_NT = 0x02,
+  HASHED_LEAF_NT = 0x03,
+  INTERIOR_NT = 0x00,
+  HASHED_INTERIOR_NT = 0x01
+};
+
+#define EMPTY_TST_TIMESTAMP 0
+
 TSTNptr tst_insert(CTXTdeclc TSTNptr tstRoot, TSTNptr lastMatch, Cell firstSymbol,
   xsbBool maintainTSI);
+TSTNptr new_tstn(CTXTdeclc int trie_t, int node_t, Cell symbol, TSTNptr parent,
+  TSTNptr sibling);
+  
+#define New_TSTN(TSTN,TrieType,NodeType,Symbol,Parent,Sibling)  \
+  TSTN = new_tstn(CTXTc TrieType,NodeType,Symbol,Parent,Sibling)
 
 #endif /* TABLING */
 

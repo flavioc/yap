@@ -35,6 +35,7 @@ typedef Functor Psc;
 #define IsNULL(ptr) ((ptr) == NULL)
 #define CTXTdeclc
 #define CTXTc
+#define CTXT
 #define YES TRUE
 #define NO  FALSE
 
@@ -118,6 +119,8 @@ typedef Functor Psc;
 #define SubProdSF subprod_fr_ptr
 
 #define subg_leaf_ptr(X)  SgFr_leaf(X)
+#define subg_ans_root_ptr(X)  SgFr_tst_root(X)
+#define ProducerSubsumesSubgoals(X) SgFr_subsumes_subgoals(X)
 
 #define TSTNptr tst_node_ptr
 #define TSTHTptr tst_ans_hash_ptr
@@ -161,6 +164,8 @@ typedef Functor Psc;
 #define TSTHT_NodeType(X) TSTHT_node_type(X)
 #define TSTHT_NumBuckets(X) TSTHT_num_buckets(X)
 #define TSTN_Parent(X) TSTN_parent(X)
+
+#define IsEmptyTrie(Root)      IsNULL(TN_Child(Root))
 
 #define TimeStamp time_stamp
 

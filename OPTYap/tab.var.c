@@ -35,7 +35,6 @@ CPtr extract_template_from_insertion(CTXTdeclc CPtr ans_tmplt) {
   while(i < (int)Trail_NumBindings)
     *ans_tmplt-- = (Cell)Trail_Base[i++];
   *ans_tmplt = makeint(i);
-  printf("TOTAL %d\n", i);
   return ans_tmplt;
 }
 

@@ -24,6 +24,7 @@
 #include "yapio.h"
 #include "tab.macros.h"
 #include "tab.stack.h"
+#include "tab.tst.h"
 #include "tab.xsb.h"
 #include "tab.utils.h"
 #include "tab.subsumption.h"
@@ -837,13 +838,13 @@ CPtr construct_variant_answer_template_from_sub(CELL *var_vector) {
     termptr = *binding;
     
     if(!IsUnboundTrieVar(termptr)) {
-      //printf("New variable!\n");
-      *--var_vector = (CELL)termptr;
+      printf("New variable!\n");
+      *var_vector-- = (CELL)termptr;
       ++i;
     }
   }
   
-  *--var_vector = i;
+  *var_vector = i;
   
   return var_vector;
 }
@@ -855,10 +856,8 @@ CPtr extract_template_from_lookup(CTXTdeclc CPtr ans_tmplt) {
   i = 0;
   while(TrieVarBindings[i] != (Cell)(& TrieVarBindings[i])) {
     *ans_tmplt-- = TrieVarBindings[i++];
-    printf("i = %d\n", i);
   }
   *ans_tmplt = makeint(i);
-  printf("TOTAL: %d\n", i);
   return ans_tmplt;
 }
 
@@ -912,8 +911,6 @@ void subsumptive_call_search(TabledCallInfo *call_info, CallLookupResults *resul
   BTNptr btn;
   TriePathType path_type;
   
-  AnsVarCtr = 0; /// XXX
-  
   /* emu/sub_tables_xsb_i.h */
   TermStack_ResetTOS;
   TermStackLog_ResetTOS;
@@ -954,6 +951,7 @@ void subsumptive_call_search(TabledCallInfo *call_info, CallLookupResults *resul
       CallResults_subsumer(results) = sg_fr;
       answer_template = extract_template_from_lookup(answer_template);
       printSubstitutionFactor(stdout, answer_template);
+      printf("CONSUME FROM PRODUCER\n");
     } else {
       sg_fr_ptr super_sg_fr = (sg_fr_ptr)SgFr_producer(sg_fr);
       CallResults_subsumer(results) = super_sg_fr;
@@ -972,6 +970,8 @@ void subsumptive_call_search(TabledCallInfo *call_info, CallLookupResults *resul
       CallResults_leaf(results) = btn;
       CallResults_var_vector(results) = construct_variant_answer_template_from_sub(answer_template);
       Trail_Unwind_All;
+      printSubstitutionFactor(stdout, CallResults_var_vector(results));
+      Trail_Unwind_All;
     } else {
       printf("Found subsumptive subgoal\n");
       
@@ -988,8 +988,86 @@ void subsumptive_call_search(TabledCallInfo *call_info, CallLookupResults *resul
   }
 }
 
-ans_node_ptr subsumptive_answer_search(sg_fr_ptr sg_fr, CELL *subs_ptr) {
-  return variant_answer_search(sg_fr, subs_ptr);
+/* vector de respostas é puxado de cima para baixo!! */
+TSTNptr subsumptive_tst_search(CTXTdeclc TSTNptr tstRoot, int nTerms, CPtr termVector,
+          xsbBool maintainTSI, xsbBool *isNew) {
+  TSTNptr tstn;
+  TriePathType path_type;
+  
+  if(nTerms > 0) {
+    Trail_ResetTOS;
+    TermStack_ResetTOS;
+    TermStack_PushHighToLowVector(termVector,nTerms);
+    
+    if(IsEmptyTrie(tstRoot)) {
+      printf("Is empty... inserting %d\n", TermStack_NumTerms);
+      tstn = tst_insert(CTXTc tstRoot, tstRoot, NO_INSERT_SYMBOL, maintainTSI);
+      *isNew = TRUE;
+    }
+    else {
+      printf("Has something ... inserting %d\n", TermStack_NumTerms);
+      TermStackLog_ResetTOS;
+      tstn = iter_sub_trie_lookup(CTXTc tstRoot, &path_type);
+      if(path_type == NO_PATH) {
+        Trail_Unwind_All;
+        tstn = tst_insert(CTXTc tstRoot, (TSTNptr)stl_restore_variant_cont(CTXT),
+                NO_INSERT_SYMBOL, maintainTSI);
+        *isNew = TRUE;
+      }
+      else
+        *isNew = FALSE;
+    }
+  } else {
+    printf("nTerms = 0 !!!\n");
+  }        
+  
+  return tstn;
+}
+
+/*
+ * Create an Empty Answer Set, represented as a Time-Stamped Trie.
+ * Note that the root of the TST is labelled with a ret/n symbol,
+ * where `n' is the number of terms in an answer.
+ */
+inline static void *newAnswerSet(CTXTdeclc int n, TSTNptr Parent) {
+  TSTNptr root;
+  Cell symbol;
+  
+  /*
+  if(n > 0)
+    symbol = EncodeTriePSC(get_ret_psc(n));
+  else
+    symbol = EncodeTrieConstant(makestring(get_ret_string()));*/
+  symbol = 0;
+  New_TSTN(root, TS_ANSWER_TRIE_TT, TRIE_ROOT_NT, symbol, Parent, NULL);
+  TSTN_TimeStamp(root) = EMPTY_TST_TIMESTAMP;
+  printf("New tst root\n");
+  return root;
+}
+
+ans_node_ptr subsumptive_answer_search(sg_fr_ptr sf, CELL *subs_ptr) {
+  TSTNptr root, tstn;
+  int nTerms = *subs_ptr;
+  CPtr answerVector = subs_ptr + nTerms;
+  int new;
+  int *isNew = &new;
+  
+  int i;
+  printf("==> ");
+  for(i = nTerms; i >= 1; --i) {
+    printf("%x ", *(subs_ptr+i));
+  }
+  printf("\n");
+  AnsVarCtr = 0;
+  
+  if(IsNULL(subg_ans_root_ptr(sf)))
+    subg_ans_root_ptr(sf) = newAnswerSet(CTXTc nTerms, (TSTNptr)sf);
+  root = (TSTNptr)subg_ans_root_ptr(sf);
+  tstn = subsumptive_tst_search(CTXTc root, nTerms, answerVector, TRUE, isNew);
+    //(xsbBool)ProducerSubsumesSubgoals(sf), isNew );
+  Trail_Unwind_All;
+  
+  return variant_answer_search(sf, subs_ptr);
 }
 
 #endif /* TABLING && TABLING_CALL_SUBSUMPTION */

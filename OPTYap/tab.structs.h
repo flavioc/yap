@@ -118,6 +118,7 @@ typedef struct global_trie_node {
 #endif /* GLOBAL_TRIE */
 
 typedef struct subgoal_trie_node {
+  OPCODE junk; /* compatibility with answer_trie_node */
 #ifdef TABLE_LOCK_AT_NODE_LEVEL
   lockvar lock;
 #endif /* TABLE_LOCK_AT_NODE_LEVEL */
@@ -135,6 +136,8 @@ typedef struct subgoal_trie_node {
 } *sg_node_ptr;
 
 typedef struct answer_trie_node {
+  OPCODE trie_instruction;  /* u.opc */
+  
 #ifdef TABLE_LOCK_AT_NODE_LEVEL
   lockvar lock;
 #endif /* TABLE_LOCK_AT_NODE_LEVEL */
@@ -149,7 +152,6 @@ typedef struct answer_trie_node {
   Term entry;
 #endif /* GLOBAL_TRIE */
   
-  OPCODE trie_instruction;  /* u.opc */
 #ifdef YAPOR
   int or_arg;               /* u.Otapl.or_arg */
 #endif /* YAPOR */
@@ -337,17 +339,26 @@ typedef sg_fr_ptr variant_sf_ptr;
    SgFr_next:          a pointer to the next subgoal frame on the chain.
 ** ------------------------------------------------------------------------------------------- */
 
+typedef struct subsumed_consumer_subgoal_frame subsumptive_consumer_sf;
 typedef struct subsumptive_producer_subgoal_frame {
   variant_sf var_sf;
+  subsumptive_consumer_sf *consumers; /* List of properly subsumed subgoals */
+  void *tst_root;
 } subsumptive_producer_sf;
 
 typedef subsumptive_producer_sf *subprod_fr_ptr;
 
-typedef struct subsumed_consumer_subgoal_frame {
+#define CAST_SUBPRODSF(X)   ((subprod_fr_ptr)(X))
+
+#define SgFr_tst_root(X)       (CAST_SUBPRODSF(X)->tst_root)
+#define SgFr_prod_consumers(X) (CAST_SUBPRODSF(X)->consumers)
+
+struct subsumed_consumer_subgoal_frame {
   variant_sf var_sf;
   time_stamp ts;
   subprod_fr_ptr producer;
-} subsumptive_consumer_sf;
+  subsumptive_consumer_sf *consumers; /* Chain link for properly subsumed subgoals */
+};
 
 typedef subsumptive_consumer_sf *subcons_fr_ptr;
 
@@ -355,6 +366,7 @@ typedef subsumptive_consumer_sf *subcons_fr_ptr;
 
 #define SgFr_timestamp(X)   (CAST_SUBCONSSF(X)->ts)
 #define SgFr_producer(X)    (CAST_SUBCONSSF(X)->producer)
+#define SgFr_consumers(X)   (CAST_SUBCONSSF(X)->consumers)
 
 /* ------------------------------- **
 ** Subgoal frame types             **
@@ -366,6 +378,9 @@ typedef subsumptive_consumer_sf *subcons_fr_ptr;
   (SgFr_type(X) == SUBSUMPTIVE_PRODUCER_SFT)
 #define SgFr_is_sub_consumer(X)   \
   (SgFr_type(X) == SUBSUMED_CONSUMER_SFT)
+  
+#define SgFr_subsumes_subgoals(X) \
+  (SgFr_is_sub_producer(X) && SgFr_prod_consumers(X) != NULL)
 
 /* --------------------------------- **
 **      Struct dependency_frame      **
