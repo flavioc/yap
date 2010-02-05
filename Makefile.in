@@ -457,12 +457,13 @@ tab.stack.o: $(srcdir)/OPTYap/tab.stack.c \
 
 tab.tst.o: $(srcdir)/OPTYap/tab.tst.c \
 	$(srcdir)/OPTYap/tab.tst.h \
+	$(srcdir)/OPTYap/tab.utils.h \
 	$(srcdir)/OPTYap/tab.structs.h
 	$(CC) -c $(CFLAGS) $(srcdir)/OPTYap/tab.tst.c -o $@
 
 tab.utils.o: $(srcdir)/OPTYap/tab.stack.o \
 	$(srcdir)/OPTYap/tab.utils.c \
-	$(srcdir)/OPTYap/tab.utils.o \
+	$(srcdir)/OPTYap/tab.utils.h \
 	$(srcdir)/OPTYap/tab.xsb.h
 	$(CC) -c $(CFLAGS) $(srcdir)/OPTYap/tab.utils.c -o $@
 
