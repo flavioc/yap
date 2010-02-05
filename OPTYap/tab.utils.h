@@ -268,6 +268,42 @@ extern DynamicStack tstTrail;
 
 /* --------------------------------------------- */
 
+#define ProcessNextSubtermFromTrieStacks(Symbol,StdVarNum) {  \
+  Cell subterm; \
+  TermStack_Pop(subterm); \
+  XSB_Deref(subterm); \
+  switch(cell_tag(subterm)) { \
+    case XSB_REF: \
+      if(!IsStandardizedVariable(subterm)) {  \
+        StandardizeVariable(subterm, StdVarNum);  \
+        Trail_Push(subterm);  \
+        Symbol = EncodeNewTrieVar(StdVarNum); \
+        StdVarNum++;  \
+      } \
+      else  \
+        Symbol = EncodeTrieVar(IndexOfStdVar(subterm)); \
+      break;  \
+    case XSB_STRING:  \
+    case XSB_INT: \
+      Symbol = EncodeTrieConstant(subterm); \
+      break;  \
+    case XSB_STRUCT:  \
+      Symbol = EncodeTrieFunctor(subterm);  \
+      TermStack_PushFunctorArgs(subterm); \
+      break;  \
+    case XSB_LIST:  \
+      Symbol = EncodeTrieList(subterm); \
+      TermStack_PushListArgs(subterm);  \
+      break;  \
+    default:  \
+      Symbol = 0; \
+      TrieError_UnknownSubtermTag(subterm); \
+    } \
+}
+// TODO: floats, longints
+
+/* --------------------------------------------- */
+
 /* emu/tries.h */
 typedef enum Trie_Path_Type {
   NO_PATH, VARIANT_PATH, SUBSUMPTIVE_PATH
