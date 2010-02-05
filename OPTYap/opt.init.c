@@ -34,6 +34,7 @@ DynamicStack tstSymbolStack; /* symbol stack for subsumption */
 struct tstCCPStack_t tstCCPStack; /* frame stack for subsumption */
 Cell TrieVarBindings[MAX_TABLE_VARS];
 struct VariantContinuation variant_cont;
+int AnsVarCtr;
 #endif
 #endif /* TABLING */
 #if defined(TABLING) || !defined(ACOW)
