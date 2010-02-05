@@ -410,8 +410,6 @@ static xsbBool save_variant_continuation(CTXTdeclc BTNptr last_node_match) {
     pCurrentBTN = BTN_Child(PairedBTN);         \
     search_mode = MATCH_SYMBOL_EXACTLY;         \
     goto While_TermStack_NotEmpty
-
-static int AnsVarCtr;
     
 static
 void *iter_sub_trie_lookup(CTXTdeclc void *trieNode, TriePathType *pathType)
