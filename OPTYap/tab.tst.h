@@ -17,16 +17,66 @@
 #include "tab.utils.h"
 #include "tab.structs.h"
 
+#define TSTN_DEFAULT_TIMESTAMP 1
+#define VALID_NODE_STATUS 0
+
+enum Types_of_Trie_Nodes {
+  TRIE_ROOT_NT = 0x08,
+  HASH_HEADER_NT = 0x04,
+  LEAF_NT = 0x02,
+  HASHED_LEAF_NT = 0x03,
+  INTERIOR_NT = 0x00,
+  HASHED_INTERIOR_NT = 0x01
+};
+
+#define TN_SetInstr(pTN,Symbol) \
+  switch(TrieSymbolType(Symbol))  { \
+    case XSB_STRUCT:  \
+      TN_Instr(pTN) = _trie_try_struct; \
+      break;  \
+    case XSB_INT: \
+    case XSB_STRING:  \
+      TN_Instr(pTN) = _trie_try_atom; \
+      break;  \
+    case XSB_TrieVar: \
+      if(IsNewTrieVar(Symbol))  \
+        TN_Instr(pTN) = _trie_try_var;  \
+      else  \
+        TN_Instr(pTN) = _trie_try_val;  \
+      break;  \
+    case XSB_LIST:  \
+      TN_Instr(pTN) = _trie_try_pair; \
+      break;  \
+    default:  \
+      xsb_abort("Trie Node creation: Bad tag in symbol %lx", \
+                  Symbol);  \
+  }
+  /// XXX: float e long int
+  
+#define TN_ResetInstrCPs(pHead, pSibling) { \
+  if(IsNonNULL(pSibling)) \
+    TN_RotateInstrCPtoRETRYorTRUST(pSibling); \
+  else  \
+    TN_Instr(pHead) -= 2;  /* try -> do */\
+  }
+
+/* XXX : not sure about instrs */
+/* try -> retry : do -> trust */
+#define TN_RotateInstrCPtoRETRYorTRUST(pTN) TN_Instr(pTN) += 1
+
 /* ----------------------- **
 ** Time stamped trie nodes **
 ** ----------------------- */
 
 typedef struct time_stamped_trie_node {
   struct answer_trie_node base; /* basic node info */
+  int node_type;
+  int trie_type;
+  int status;
   time_stamp ts; /* time stamp */
 } *tst_node_ptr;
 
-#define CAST_AN(X)            ((ans_node_ptr)X)
+#define CAST_AN(X)          ((ans_node_ptr)(X))
 
 #define TSTN_instr(X)       TrNode_instr(CAST_AN(X))
 #define TSTN_or_arg(X)      TrNode_or_arg(CAST_AN(X))
@@ -36,6 +86,9 @@ typedef struct time_stamped_trie_node {
 #define TSTN_child(X)       TrNode_child(CAST_AN(X))
 #define TSTN_next(X)        TrNode_next(CAST_AN(X))
 #define TSTN_time_stamp(X)  ((X)->ts)
+#define TSTN_status(X)      ((X)->status)
+#define TSTN_trie_type(X)   ((X)->trie_type)
+#define TSTN_node_type(X)   ((X)->node_type)
 
 /* ----------------------- **
 ** Time stamped indexes    **

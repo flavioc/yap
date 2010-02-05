@@ -737,8 +737,8 @@ void update_answer_trie_branch(ans_node_ptr current_node, int position) {
     ans_node_ptr next = TrNode_next(current_node);
     if (next) {
       while (TrNode_next(next)) {
-	update_answer_trie_branch(next, TRAVERSE_POSITION_NEXT);  /* retry --> retry */
-	next = TrNode_next(next);
+        update_answer_trie_branch(next, TRAVERSE_POSITION_NEXT);  /* retry --> retry */
+        next = TrNode_next(next);
       }
       update_answer_trie_branch(next, TRAVERSE_POSITION_LAST);  /* retry --> trust */
     } else

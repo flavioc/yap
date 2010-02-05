@@ -52,7 +52,6 @@ CellTag cell_tag(Term t)
   return TAG_UNKNOWN;
 }
 
-static inline
 CellTag TrieSymbolType(Term t)
 {
   if(IsVarTerm(t))

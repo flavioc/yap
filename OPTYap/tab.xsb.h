@@ -120,6 +120,20 @@ typedef Functor Psc;
 #define subg_leaf_ptr(X)  SgFr_leaf(X)
 
 #define TSTNptr tst_node_ptr
+#define NO_INSERT_SYMBOL 0
+#define TSTN_TrieType(X)  TSTN_trie_type(X)
+#define TSTN_Child(X) TSTN_child(X)
+#define TSTN_TimeStamp(X) TSTN_time_stamp(X)
+#define TN_Status(X) TSTN_status(X)
+#define TN_Child(X) TSTN_child(X)
+#define TN_Sibling(X) TSTN_next(X)
+#define TN_Parent(X) TSTN_parent(X)
+#define TN_Symbol(X)  TSTN_entry(X)
+#define TN_Instr(X)   TSTN_instr(X)
+#define TN_TrieType(X)  TSTN_trie_type(X)
+#define TN_NodeType(X)  TSTN_node_type(X)
+
+#define trie_root 0
 
 #endif /* TABLING_CALL_SUBSUMPTION */
 
