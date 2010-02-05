@@ -118,35 +118,41 @@ typedef struct global_trie_node {
 #endif /* GLOBAL_TRIE */
 
 typedef struct subgoal_trie_node {
+#ifdef TABLE_LOCK_AT_NODE_LEVEL
+  lockvar lock;
+#endif /* TABLE_LOCK_AT_NODE_LEVEL */
+
+  struct subgoal_trie_node *parent;
+  struct subgoal_trie_node *child;
+  struct subgoal_trie_node *next;
+    
 #ifdef GLOBAL_TRIE
   struct global_trie_node *entry;
 #else
   Term entry;
 #endif /* GLOBAL_TRIE */
-#ifdef TABLE_LOCK_AT_NODE_LEVEL
-  lockvar lock;
-#endif /* TABLE_LOCK_AT_NODE_LEVEL */
-  struct subgoal_trie_node *parent;
-  struct subgoal_trie_node *child;
-  struct subgoal_trie_node *next;
+
 } *sg_node_ptr;
 
 typedef struct answer_trie_node {
+#ifdef TABLE_LOCK_AT_NODE_LEVEL
+  lockvar lock;
+#endif /* TABLE_LOCK_AT_NODE_LEVEL */
+  
+  struct answer_trie_node *parent;
+  struct answer_trie_node *child;
+  struct answer_trie_node *next;
+    
+#ifdef GLOBAL_TRIE
+  struct global_trie_node *entry;
+#else
+  Term entry;
+#endif /* GLOBAL_TRIE */
+  
   OPCODE trie_instruction;  /* u.opc */
 #ifdef YAPOR
   int or_arg;               /* u.Otapl.or_arg */
 #endif /* YAPOR */
-#ifdef GLOBAL_TRIE
-  struct global_trie_node *entry;
-#else
-  Term entry;
-#endif /* GLOBAL_TRIE */
-#ifdef TABLE_LOCK_AT_NODE_LEVEL
-  lockvar lock;
-#endif /* TABLE_LOCK_AT_NODE_LEVEL */
-  struct answer_trie_node *parent;
-  struct answer_trie_node *child;
-  struct answer_trie_node *next;
 } *ans_node_ptr;
 
 #define TrNode_instr(X)        ((X)->trie_instruction)
