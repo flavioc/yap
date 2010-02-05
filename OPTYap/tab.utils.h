@@ -385,6 +385,8 @@ void printSubterm(FILE *fp, Term term);
 void printCalledSubgoal(FILE *fp, yamop *preg);
 void printSubstitutionFactor(FILE *fp, CELL* factor);
 
+extern int AnsVarCtr;
+
 #define TrieError_UnknownSubtermTagMsg				\
    "Trie Subterm-to-Symbol Conversion\nUnknown subterm type (%d)"
    

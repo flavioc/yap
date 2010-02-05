@@ -120,10 +120,13 @@ typedef Functor Psc;
 #define subg_leaf_ptr(X)  SgFr_leaf(X)
 
 #define TSTNptr tst_node_ptr
+#define TSTHTptr tst_ans_hash_ptr
+#define TSINptr tst_index_ptr
 #define NO_INSERT_SYMBOL 0
 #define TSTN_TrieType(X)  TSTN_trie_type(X)
 #define TSTN_Child(X) TSTN_child(X)
 #define TSTN_TimeStamp(X) TSTN_time_stamp(X)
+#define TSTN_Sibling(X) TSTN_next(X)
 #define TN_Status(X) TSTN_status(X)
 #define TN_Child(X) TSTN_child(X)
 #define TN_Sibling(X) TSTN_next(X)
@@ -132,8 +135,41 @@ typedef Functor Psc;
 #define TN_Instr(X)   TSTN_instr(X)
 #define TN_TrieType(X)  TSTN_trie_type(X)
 #define TN_NodeType(X)  TSTN_node_type(X)
+#define TSTN_GetHashHdr(X)  (TSTHTptr)TN_GetHashHdr(X)
+#define TrieHT_BucketArray(X) TSTHT_buckets(X)
+#define TrieHT_GetHashSeed(X) TSTHT_seed(X)
+#define TSC_NodeType(X) TSTN_node_type(X)
+#define TSTHT_NumContents(X) TSTHT_num_nodes(X)
+#define TSIN_TSTNode(X) TSIN_node(X)
+#define TSIN_TimeStamp(X) TSIN_time_stamp(X)
+#define TSTHT_IndexHead(X)  TSTHT_index_head(X)
+#define TSTHT_IndexTail(X)  TSTHT_index_tail(X)
+#define TrieHT_NumContents(X) TSTHT_num_nodes(X)
+#define TrieHT_NumBuckets(X) TSTHT_num_buckets(X)
+#define TSIN_Prev(X)  TSIN_prev(X)
+#define TSIN_Next(X)  TSIN_next(X)
+#define TrieHT_NewSize(X)  TSTHT_new_size(X)
+#define BTHT_NumBuckets(X)  TSTHT_num_buckets(X)
+#define BTHT_Instr(X) TSTHT_instr(X)
+#define BTHT_Status(X)  TSTHT_status(X)
+#define BTHT_TrieType(X)  TSTHT_trie_type(X)
+#define BTHT_NodeType(X)  TSTHT_node_type(X)
+#define BTHT_NumContents(X) TSTHT_num_nodes(X)
+#define TSTHT_Instr(X) TSTHT_instr(X)
+#define TSTHT_Status(X) TSTHT_status(X)
+#define TSTHT_TrieType(X) TSTHT_trie_type(X)
+#define TSTHT_NodeType(X) TSTHT_node_type(X)
+#define TSTHT_NumBuckets(X) TSTHT_num_buckets(X)
+#define TSTN_Parent(X) TSTN_parent(X)
+
+#define TimeStamp time_stamp
 
 #define trie_root 0
+
+#define BUCKET_CONTENT_THRESHOLD MAX_NODES_PER_BUCKET
+#define MAX_SIBLING_LEN MAX_NODES_PER_TRIE_LEVEL
+#define TrieHT_INIT_SIZE BASE_HASH_BUCKETS
+#define hash_opcode 0
 
 #endif /* TABLING_CALL_SUBSUMPTION */
 
