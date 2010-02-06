@@ -429,6 +429,7 @@ tab.subsumption.o: $(srcdir)/OPTYap/tab.subsumption.c \
 	$(srcdir)/OPTYap/tab.utils.o \
 	$(srcdir)/OPTYap/tab.macros.h \
 	$(srcdir)/OPTYap/tab.xsb.h \
+	$(srcdir)/OPTYap/tab.tst.h \
 	$(srcdir)/OPTYap/tab.structs.h \
 	$(srcdir)/H/Yatom.h \
 	$(srcdir)/H/YapHeap.h \
