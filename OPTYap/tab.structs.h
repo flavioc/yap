@@ -343,14 +343,12 @@ typedef struct subsumed_consumer_subgoal_frame subsumptive_consumer_sf;
 typedef struct subsumptive_producer_subgoal_frame {
   variant_sf var_sf;
   subsumptive_consumer_sf *consumers; /* List of properly subsumed subgoals */
-  void *tst_root;
 } subsumptive_producer_sf;
 
 typedef subsumptive_producer_sf *subprod_fr_ptr;
 
 #define CAST_SUBPRODSF(X)   ((subprod_fr_ptr)(X))
 
-#define SgFr_tst_root(X)       (CAST_SUBPRODSF(X)->tst_root)
 #define SgFr_prod_consumers(X) (CAST_SUBPRODSF(X)->consumers)
 
 struct subsumed_consumer_subgoal_frame {

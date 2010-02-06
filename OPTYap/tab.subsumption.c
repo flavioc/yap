@@ -1029,7 +1029,7 @@ TSTNptr subsumptive_tst_search(CTXTdeclc TSTNptr tstRoot, int nTerms, CPtr termV
  * Note that the root of the TST is labelled with a ret/n symbol,
  * where `n' is the number of terms in an answer.
  */
-inline static void *newAnswerSet(CTXTdeclc int n, TSTNptr Parent) {
+void *newAnswerSet(CTXTdeclc int n, TSTNptr Parent) {
   TSTNptr root;
   Cell symbol;
   
@@ -1039,7 +1039,7 @@ inline static void *newAnswerSet(CTXTdeclc int n, TSTNptr Parent) {
   else
     symbol = EncodeTrieConstant(makestring(get_ret_string()));*/
   symbol = 0;
-  New_TSTN(root, TS_ANSWER_TRIE_TT, TRIE_ROOT_NT, symbol, Parent, NULL);
+  New_TSTN(root, TS_ANSWER_TRIE_TT, TRIE_ROOT_NT, symbol, NULL, NULL);
   TSTN_TimeStamp(root) = EMPTY_TST_TIMESTAMP;
   printf("New tst root\n");
   return root;
@@ -1067,7 +1067,8 @@ ans_node_ptr subsumptive_answer_search(sg_fr_ptr sf, CELL *subs_ptr) {
     //(xsbBool)ProducerSubsumesSubgoals(sf), isNew );
   Trail_Unwind_All;
   
-  return variant_answer_search(sf, subs_ptr);
+  return tstn;
+  //return variant_answer_search(sf, subs_ptr);
 }
 
 #endif /* TABLING && TABLING_CALL_SUBSUMPTION */

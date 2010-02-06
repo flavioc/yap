@@ -119,7 +119,7 @@ typedef Functor Psc;
 #define SubProdSF subprod_fr_ptr
 
 #define subg_leaf_ptr(X)  SgFr_leaf(X)
-#define subg_ans_root_ptr(X)  SgFr_tst_root(X)
+#define subg_ans_root_ptr(X)  SgFr_answer_trie(X)
 #define ProducerSubsumesSubgoals(X) SgFr_subsumes_subgoals(X)
 
 #define TSTNptr tst_node_ptr

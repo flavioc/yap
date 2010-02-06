@@ -186,9 +186,7 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
 #define LOCK_TABLE(NODE)         LOCK(GLOBAL_table_lock(HASH_TABLE_LOCK(NODE)))
 #define UNLOCK_TABLE(NODE)     UNLOCK(GLOBAL_table_lock(HASH_TABLE_LOCK(NODE)))
 
-
 #define frame_with_suspensions_not_collected(OR_FR)  (OrFr_nearest_suspnode(OR_FR) == NULL)
-
 
 #ifdef YAPOR
 #define find_dependency_node(SG_FR, LEADER_CP, DEP_ON_STACK)                      \
@@ -301,10 +299,14 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
         memcpy(SuspFr_local_start(SUSP_FR), SuspFr_local_reg(SUSP_FR), B_SIZE);    \
         memcpy(SuspFr_trail_start(SUSP_FR), SuspFr_trail_reg(SUSP_FR), TR_SIZE)
         
+#define add_answer_trie_subgoal_frame(SG_FR)  \
+        { register ans_node_ptr ans_node; \
+          new_root_answer_trie_node(ans_node);  \
+          SgFr_answer_trie(SG_FR) = ans_node;  \
+        }
+        
 #define new_basic_subgoal_frame(SG_FR, CODE, LEAF, TYPE, ALLOC_FN) \
-        { register ans_node_ptr ans_node;                          \
-          new_root_answer_trie_node(ans_node);                     \
-          ALLOC_FN(SG_FR);                                         \
+        { ALLOC_FN(SG_FR);                                         \
           INIT_LOCK(SgFr_lock(SG_FR));                             \
           SgFr_leaf(SG_FR) = LEAF;                                 \
           TrNode_sg_fr(LEAF) = (sg_node_ptr)SG_FR;                 \
@@ -312,19 +314,24 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
           SgFr_code(SG_FR) = CODE;                                 \
           SgFr_state(SG_FR) = ready;                               \
           SgFr_hash_chain(SG_FR) = NULL;                           \
-          SgFr_answer_trie(SG_FR) = ans_node;                      \
           SgFr_first_answer(SG_FR) = NULL;                         \
           SgFr_last_answer(SG_FR) = NULL;                          \
-        }                           
+        }
         
-#define new_variant_subgoal_frame(SG_FR, CODE, LEAF)  new_basic_subgoal_frame(SG_FR, CODE, LEAF, VARIANT_PRODUCER_SFT, ALLOC_VARIANT_SUBGOAL_FRAME)
+#define new_variant_subgoal_frame(SG_FR, CODE, LEAF)  { \
+        new_basic_subgoal_frame(SG_FR, CODE, LEAF, VARIANT_PRODUCER_SFT, ALLOC_VARIANT_SUBGOAL_FRAME);  \
+        add_answer_trie_subgoal_frame(SG_FR); \
+    }
+    
 #define new_subsumptive_producer_subgoal_frame(SG_FR, CODE, LEAF) { \
         new_basic_subgoal_frame(SG_FR, CODE, LEAF, SUBSUMPTIVE_PRODUCER_SFT, ALLOC_SUBPROD_SUBGOAL_FRAME);  \
         SgFr_prod_consumers(SG_FR) = NULL;  \
-        SgFr_tst_root(SG_FR) = NULL;  \
+        SgFr_answer_trie(SG_FR) = newAnswerSet(0, NULL);  \
     }
+    
 #define new_subsumed_consumer_subgoal_frame(SG_FR, CODE, LEAF, PRODUCER) {  \
         new_basic_subgoal_frame(SG_FR, CODE, LEAF, SUBSUMED_CONSUMER_SFT, ALLOC_SUBCONS_SUBGOAL_FRAME);  \
+        add_answer_trie_subgoal_frame(SG_FR); \
         SgFr_timestamp(SG_FR) = 0;  \
         SgFr_producer(SG_FR) = PRODUCER;  \
         SgFr_consumers(SG_FR) = SgFr_prod_consumers(PRODUCER);  \
@@ -350,8 +357,7 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
           SgFr_state(SG_FR) = evaluating;                          \
           SgFr_next(SG_FR) = LOCAL_top_sg_fr;                      \
           LOCAL_top_sg_fr = SG_FR;                                 \
-	}
-	
+	      }
 
 #define SgFr_has_real_answers(SG_FR)                                      \
   (SgFr_first_answer(SG_FR) &&                                            \
