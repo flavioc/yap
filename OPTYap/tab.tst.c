@@ -311,6 +311,38 @@ inline static TSINptr tsiOrderedInsert(CTXTdeclc TSTHTptr ht, TSTNptr tstn) {
 }
 
 /*
+ * This function may be called externally, and is made available to
+ * support lazy creation of Time-Stamp Indices.
+ *
+ * An example of this use is for incomplete subsumptive Answer Sets.
+ * TSIs are created only once a properly subsumed subgoal is issued.
+ */
+void tstCreateTSIs(CTXTdeclc TSTNptr pTST) {
+  TSTNptr *pBucket, tstn;
+  TSTHTptr ht;
+  int bucketNum;
+  printf("Creating TST indices\n");
+  if(IsNULL(pTST))
+    return;
+  
+  /*** For each hash table ... ***/
+  for(ht = TSTRoot_GetHTList(pTST); IsNonNULL(ht);
+      ht = TSTHT_InternalLink(ht) ) {
+    
+    /*** For each bucket in this hash table ... ***/
+    for( pBucket = TSTHT_BucketArray(ht), bucketNum = 0;
+        (unsigned int)bucketNum < TSTHT_NumBuckets(ht);
+        pBucket++, bucketNum++ )
+        
+        /*** For each TSTN in a bucket... ***/
+          for(tstn = *pBucket; IsNonNULL(tstn); tstn = TSTN_Sibling(tstn))
+          
+            /*** Create a TSIN for each symbol (TSTN) ***/
+            TSTN_SetTSIN(tstn,tsiOrderedInsert(CTXTc ht,tstn));
+  }
+}
+
+/*
  * The number of children of 'parent' has increased beyond the threshold
  * and requires a hashing structure.  This function creates a hash table
  * and inserts the children into it.  The value of the third argument

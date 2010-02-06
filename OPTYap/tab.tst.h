@@ -105,6 +105,7 @@ TSTNptr tst_insert(CTXTdeclc TSTNptr tstRoot, TSTNptr lastMatch, Cell firstSymbo
   xsbBool maintainTSI);
 TSTNptr new_tstn(CTXTdeclc int trie_t, int node_t, Cell symbol, TSTNptr parent,
   TSTNptr sibling);
+void tstCreateTSIs(CTXTdeclc TSTNptr pTST);
   
 #define New_TSTN(TSTN,TrieType,NodeType,Symbol,Parent,Sibling)  \
   TSTN = new_tstn(CTXTc TrieType,NodeType,Symbol,Parent,Sibling)
