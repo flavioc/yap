@@ -63,20 +63,20 @@ STD_PROTO(void hashify_children, (CTXTdeclc BTNptr, int));
 #define TN_SetInstr(pTN,Symbol) \
   switch(TrieSymbolType(Symbol))  { \
     case XSB_STRUCT:  \
-      TN_Instr(pTN) = _trie_try_struct; \
+      TN_Instr(pTN) = _trie_retry_struct; \
       break;  \
     case XSB_INT: \
     case XSB_STRING:  \
-      TN_Instr(pTN) = _trie_try_atom; \
+      TN_Instr(pTN) = _trie_retry_atom; \
       break;  \
     case XSB_TrieVar: \
       if(IsNewTrieVar(Symbol))  \
-        TN_Instr(pTN) = _trie_try_var;  \
+        TN_Instr(pTN) = _trie_retry_var;  \
       else  \
-        TN_Instr(pTN) = _trie_try_val;  \
+        TN_Instr(pTN) = _trie_retry_val;  \
       break;  \
     case XSB_LIST:  \
-      TN_Instr(pTN) = _trie_try_pair; \
+      TN_Instr(pTN) = _trie_retry_pair; \
       break;  \
     default:  \
       xsb_abort("Trie Node creation: Bad tag in symbol %lx", \
@@ -84,12 +84,7 @@ STD_PROTO(void hashify_children, (CTXTdeclc BTNptr, int));
   }
   /// XXX: float e long int
   
-#define TN_ResetInstrCPs(pHead, pSibling) { \
-  if(IsNonNULL(pSibling)) \
-    TN_RotateInstrCPtoRETRYorTRUST(pSibling); \
-  else  \
-    TN_Instr(pHead) -= 2;  /* try -> do */\
-  }
+#define TN_ResetInstrCPs(pHead, pSibling) // XXX
   
 #define TN_ForceInstrCPtoNOCP(pTN)  // XXX
 #define TN_ForceInstrCPtoTRY(pTN) // XXX
