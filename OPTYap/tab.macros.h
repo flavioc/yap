@@ -326,7 +326,7 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
 #define new_subsumptive_producer_subgoal_frame(SG_FR, CODE, LEAF) { \
         new_basic_subgoal_frame(SG_FR, CODE, LEAF, SUBSUMPTIVE_PRODUCER_SFT, ALLOC_SUBPROD_SUBGOAL_FRAME);  \
         SgFr_prod_consumers(SG_FR) = NULL;  \
-        SgFr_answer_trie(SG_FR) = newAnswerSet(0, NULL);  \
+        SgFr_answer_trie(SG_FR) = newTSTAnswerSet();  \
     }
     
 #define new_subsumed_consumer_subgoal_frame(SG_FR, CODE, LEAF, PRODUCER) {  \
