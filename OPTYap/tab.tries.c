@@ -444,7 +444,7 @@ void free_subgoal_trie_branch(sg_node_ptr current_node, int nodes_left, int node
     sg_fr_ptr sg_fr;
     ans_node_ptr ans_node;
     sg_fr = (sg_fr_ptr) TrNode_sg_fr(current_node);
-    free_answer_trie_hash_chain(SgFr_hash_chain(sg_fr));
+    free_answer_trie_hash_chain((ans_hash_ptr)SgFr_hash_chain(sg_fr));
     free_answer_continuation(SgFr_first_answer(sg_fr));
     ans_node = SgFr_answer_trie(sg_fr);
     if (TrNode_child(ans_node))
@@ -510,7 +510,7 @@ void free_answer_trie_branch(ans_node_ptr current_node, int position) {
 void update_answer_trie(sg_fr_ptr sg_fr) {
   ans_node_ptr current_node;
 
-  free_answer_trie_hash_chain(SgFr_hash_chain(sg_fr));
+  free_answer_trie_hash_chain((ans_hash_ptr)SgFr_hash_chain(sg_fr));
   SgFr_hash_chain(sg_fr) = NULL;
   SgFr_state(sg_fr) += 2;  /* complete --> compiled : complete_in_use --> compiled_in_use */
   current_node = TrNode_child(SgFr_answer_trie(sg_fr));

@@ -295,9 +295,11 @@ typedef struct subgoal_frame {
     compiled        = 5,
     compiled_in_use = 6   /* LIMIT_TABLING */
   } state_flag;  /* do not change order !!! */
+  
   choiceptr generator_choice_point;
+  
   sg_node_ptr leaf_ptr;
-  struct answer_trie_hash *hash_chain;
+  
   struct answer_trie_node *answer_trie;
   
   continuation_ptr first_answer;
@@ -329,7 +331,7 @@ typedef sg_fr_ptr variant_sf_ptr;
 #define SgFr_state(X)          (CAST_SF(X)->state_flag)
 #define SgFr_gen_cp(X)         (CAST_SF(X)->generator_choice_point)
 #define SgFr_leaf(X)           (CAST_SF(X)->leaf_ptr)
-#define SgFr_hash_chain(X)     (CAST_SF(X)->hash_chain)
+#define SgFr_hash_chain(X)     (TrNode_next(CAST_SF(X)->answer_trie)) /* sibling of root answer trie node */
 #define SgFr_answer_trie(X)    (CAST_SF(X)->answer_trie)
 #define SgFr_first_answer(X)   (CAST_SF(X)->first_answer)
 #define SgFr_last_answer(X)    (CAST_SF(X)->last_answer)

@@ -258,7 +258,7 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
         Hash_next(HASH) = TabEnt_hash_chain(TAB_ENT);  \
         TabEnt_hash_chain(TAB_ENT) = HASH
 #define AnsHash_init_next_field(HASH, SG_FR)       \
-        Hash_next(HASH) = SgFr_hash_chain(SG_FR);  \
+        Hash_next(HASH) = (ans_hash_ptr)SgFr_hash_chain(SG_FR);  \
         SgFr_hash_chain(SG_FR) = HASH
 #else
 #define TabEnt_init_lock_field(TAB_ENT)
@@ -269,8 +269,8 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
         UNLOCK(TabEnt_lock(TAB_ENT))
 #define AnsHash_init_next_field(HASH, SG_FR)       \
         LOCK(SgFr_lock(SG_FR));                    \
-        Hash_next(HASH) = SgFr_hash_chain(SG_FR);  \
-        SgFr_hash_chain(SG_FR) = HASH;             \
+        Hash_next(HASH) = (ans_hash_ptr)SgFr_hash_chain(SG_FR);  \
+        SgFr_hash_chain(SG_FR) = (ans_node_ptr)HASH;             \
         UNLOCK(SgFr_lock(SG_FR))
 #endif /* TABLE_LOCK_AT_ENTRY_LEVEL */
 #ifdef TABLE_LOCK_AT_NODE_LEVEL
@@ -313,7 +313,6 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
           SgFr_type(SG_FR) = TYPE;                                 \
           SgFr_code(SG_FR) = CODE;                                 \
           SgFr_state(SG_FR) = ready;                               \
-          SgFr_hash_chain(SG_FR) = NULL;                           \
           SgFr_first_answer(SG_FR) = NULL;                         \
           SgFr_last_answer(SG_FR) = NULL;                          \
         }
@@ -773,7 +772,7 @@ void abolish_incomplete_subgoals(choiceptr prune_cp) {
       ans_node_ptr node;
       continuation_ptr cont;
       SgFr_state(sg_fr) = ready;
-      free_answer_trie_hash_chain(SgFr_hash_chain(sg_fr));
+      free_answer_trie_hash_chain((ans_hash_ptr)SgFr_hash_chain(sg_fr));
       SgFr_hash_chain(sg_fr) = NULL;
       
       cont = SgFr_first_answer(sg_fr);
@@ -845,6 +844,7 @@ void free_answer_trie_hash_chain(ans_hash_ptr hash) {
         chain_node = *bucket;
       }
     }
+    printf("One hash deleted\n");
     next_hash = Hash_next(hash);
     FREE_HASH_BUCKETS(Hash_buckets(hash));
     FREE_ANSWER_TRIE_HASH(hash);
