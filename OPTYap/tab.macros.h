@@ -334,6 +334,8 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
         SgFr_timestamp(SG_FR) = 0;  \
         SgFr_producer(SG_FR) = PRODUCER;  \
         SgFr_consumers(SG_FR) = SgFr_prod_consumers(PRODUCER);  \
+        if (!SgFr_prod_consumers(PRODUCER))      \
+          tstCreateTSIs((tst_node_ptr)SgFr_answer_trie(PRODUCER));  \
         SgFr_prod_consumers(PRODUCER) = (subcons_fr_ptr)(SG_FR);  \
     }
 
