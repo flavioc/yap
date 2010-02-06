@@ -143,6 +143,7 @@ typedef Functor Psc;
 #define TrieHT_GetHashSeed(X) TSTHT_seed(X)
 #define TSC_NodeType(X) TSTN_node_type(X)
 #define TSTHT_NumContents(X) TSTHT_num_nodes(X)
+#define TSTHT_BucketArray(X) TSTHT_buckets(X)
 #define TSIN_TSTNode(X) TSIN_node(X)
 #define TSIN_TimeStamp(X) TSIN_time_stamp(X)
 #define TSTHT_IndexHead(X)  TSTHT_index_head(X)
@@ -164,6 +165,7 @@ typedef Functor Psc;
 #define TSTHT_NodeType(X) TSTHT_node_type(X)
 #define TSTHT_NumBuckets(X) TSTHT_num_buckets(X)
 #define TSTN_Parent(X) TSTN_parent(X)
+#define TSTHT_InternalLink(X) TSTHT_next(X)
 
 #define IsEmptyTrie(Root)      IsNULL(TN_Child(Root))
 
@@ -172,7 +174,7 @@ typedef Functor Psc;
 #define trie_root 0
 
 #define BUCKET_CONTENT_THRESHOLD MAX_NODES_PER_BUCKET
-#define MAX_SIBLING_LEN MAX_NODES_PER_TRIE_LEVEL
+#define MAX_SIBLING_LEN 1 //MAX_NODES_PER_TRIE_LEVEL
 #define TrieHT_INIT_SIZE BASE_HASH_BUCKETS
 #define hash_opcode 0
 

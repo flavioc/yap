@@ -102,7 +102,32 @@ typedef struct table_entry {
 **    Trie definitions       **
 ** ------------------------- */
 
+enum Types_of_Tries {
+ CALL_TRIE_TT              = 0x06,     /* binary:  0110 */
+ BASIC_ANSWER_TRIE_TT      = 0x05,     /* binary:  0101 */
+ TS_ANSWER_TRIE_TT         = 0x04,     /* binary:  0100 */
+ DELAY_TRIE_TT             = 0x03,     /* binary:  0011 */
+ ASSERT_TRIE_TT            = 0x02,     /* binary:  0010 */
+ INTERN_TRIE_TT            = 0x01      /* binary:  0001 */
+};
+
+enum Types_of_Trie_Nodes {
+  TRIE_ROOT_NT = 0x08,
+  HASH_HEADER_NT = 0x04,
+  LEAF_NT = 0x02,
+  HASHED_LEAF_NT = 0x03,
+  INTERIOR_NT = 0x00,
+  HASHED_INTERIOR_NT = 0x01
+};
+
 typedef unsigned long time_stamp;
+
+struct basic_trie_info {
+  OPCODE instr;
+  int status;
+  int trie_type;
+  int node_type;
+};
 
 /* -------------------------------------------------------------------------- **
 **      Structs global_trie_node, subgoal_trie_node and answer_trie_node      **
@@ -118,7 +143,7 @@ typedef struct global_trie_node {
 #endif /* GLOBAL_TRIE */
 
 typedef struct subgoal_trie_node {
-  OPCODE junk; /* compatibility with answer_trie_node */
+  struct basic_trie_info basic_info;
 #ifdef TABLE_LOCK_AT_NODE_LEVEL
   lockvar lock;
 #endif /* TABLE_LOCK_AT_NODE_LEVEL */
@@ -136,7 +161,7 @@ typedef struct subgoal_trie_node {
 } *sg_node_ptr;
 
 typedef struct answer_trie_node {
-  OPCODE trie_instruction;  /* u.opc */
+  struct basic_trie_info basic_info;
   
 #ifdef TABLE_LOCK_AT_NODE_LEVEL
   lockvar lock;
@@ -157,7 +182,10 @@ typedef struct answer_trie_node {
 #endif /* YAPOR */
 } *ans_node_ptr;
 
-#define TrNode_instr(X)        ((X)->trie_instruction)
+#define TrNode_instr(X)        ((X)->basic_info.instr)
+#define TrNode_node_type(X)    ((X)->basic_info.node_type)
+#define TrNode_status(X)       ((X)->basic_info.status)
+#define TrNode_trie_type(X)    ((X)->basic_info.trie_type)
 #define TrNode_or_arg(X)       ((X)->or_arg)
 #define TrNode_entry(X)        ((X)->entry)
 #define TrNode_lock(X)         ((X)->lock)
@@ -184,11 +212,7 @@ typedef struct global_trie_hash {
 typedef struct subgoal_trie_hash {
   /* the first field is used for compatibility **
   ** with the subgoal_trie_node data structure */
-#ifdef GLOBAL_TRIE
-  struct global_trie_node *mark;
-#else
-  Term mark;    
-#endif /* GLOBAL_TRIE */
+  struct basic_trie_info basic_info;
   int number_of_buckets;
   struct subgoal_trie_node **buckets;
   int number_of_nodes;
@@ -198,14 +222,13 @@ typedef struct subgoal_trie_hash {
 typedef struct answer_trie_hash {
   /* the first field is used for compatibility **
   ** with the answer_trie_node data structure  */
-  OPCODE mark;
+  struct basic_trie_info basic_info;
   int number_of_buckets;
   struct answer_trie_node **buckets;
   int number_of_nodes;
   struct answer_trie_hash *next;
 } *ans_hash_ptr;
 
-#define Hash_mark(X)            ((X)->mark)
 #define Hash_num_buckets(X)     ((X)->number_of_buckets)
 #define Hash_seed(X)            ((X)->number_of_buckets - 1)
 #define Hash_buckets(X)         ((X)->buckets)

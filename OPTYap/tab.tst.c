@@ -9,7 +9,7 @@
 
 /* prototypes */
 STD_PROTO(static inline void expand_trie_ht, (CTXTdeclc BTHTptr));
-STD_PROTO(static inline BTHTptr New_BTHT, (int));
+STD_PROTO(static inline TSTHTptr New_BTHT, (int));
 STD_PROTO(void hashify_children, (CTXTdeclc BTNptr, int));
 
 #define New_TSIN(TSIN, TSTN) {  \
@@ -18,6 +18,13 @@ STD_PROTO(void hashify_children, (CTXTdeclc BTNptr, int));
   TSIN = (TSINptr)t;  \
   TSIN_TSTNode(TSIN) = TSTN;  \
   TSIN_TimeStamp(TSIN) = TSTN_TimeStamp(TSTN);  \
+}
+
+#define New_TSTHT(TSTHT,TrieType,TST) { \
+  TSTHT = New_BTHT(TrieType); \
+  TSTHT_InternalLink(TSTHT) = TSTRoot_GetHTList(TST);  \
+  TSTRoot_SetHTList(TST,TSTHT); \
+  TSTHT_IndexHead(TSTHT) = TSTHT_IndexTail(TSTHT) = NULL; \
 }
 
 #define IsLongSiblingChain(ChainLength) (ChainLength > MAX_SIBLING_LEN)
@@ -36,9 +43,9 @@ STD_PROTO(void hashify_children, (CTXTdeclc BTNptr, int));
   TN_TrieType(TN) = TrieType; \
   TN_NodeType(TN) = NodeType; \
   TN_Symbol(TN) = Symbol; \
-  TN_Parent(TN) = (ans_node_ptr)Parent; \
+  TN_Parent(TN) = Parent; \
   TN_Child(TN) = NULL;  \
-  TN_Sibling(TN) = (ans_node_ptr)Sibling; \
+  TN_Sibling(TN) = Sibling; \
 }
   
 #define CalculateBucketForSymbol(pHT,Symbol)  \
@@ -90,7 +97,13 @@ STD_PROTO(void hashify_children, (CTXTdeclc BTNptr, int));
 
 /* XXX : not sure about instrs */
 /* try -> retry : do -> trust */
-#define TN_RotateInstrCPtoRETRYorTRUST(pTN) TN_Instr(pTN) += 1
+#define TN_RotateInstrCPtoRETRYorTRUST(pTN) /// XXX
+
+#define TSTRoot_SetHTList(pTST,pTSTHT) TSTN_Sibling(pTST) = (TSTNptr)pTSTHT
+#define TSTRoot_GetHTList(pTST) ((TSTHTptr)TSTN_Sibling(pTST))
+
+#define TSTN_SetHashHdr(pTSTN,pTSTHT) TN_SetHashHdr(pTSTN,pTSTHT)
+#define TSTHT_GetHashSeed(pTSTHT) BTHT_GetHashSeed((BTHTptr)(pTSTHT))
 
 #define TrieHT_InsertNode(pBucketArray,HashSeed,pTN) {  \
   void **pBucket; \
@@ -154,15 +167,6 @@ TSTNptr new_tstn(CTXTdeclc int trie_t, int node_t, Cell symbol, TSTNptr parent,
   return (TSTNptr)tstn;        
 }
 
-static BTNptr new_btn(CTXTdeclc int trie_t, int node_t, Cell symbol, BTNptr parent,
-  BTNptr sibling) {
-  void *btn;
-  
-  ALLOC_TST_ANSWER_TRIE_NODE(btn);
-  TN_Init(((BTNptr)btn),trie_t,node_t,symbol,parent,sibling);
-  return (BTNptr)btn;
-}
-
 /*
  * Adds a node containing 'symbol' below 'parent', which currentyle has
  * no children.
@@ -172,7 +176,7 @@ TSTNptr tstnAddSymbol(CTXTdeclc TSTNptr parent, Cell symbol, int trieType) {
   TSTNptr newTSTN;
   
   New_TSTN(newTSTN, trieType, INTERIOR_NT, symbol, parent, NULL);
-  TSTN_Child(parent) = (ans_node_ptr)newTSTN;
+  TSTN_Child(parent) = newTSTN;
   return newTSTN;
 }
 
@@ -247,11 +251,11 @@ static inline void expand_trie_ht(CTXTdeclc BTHTptr pHT) {
   BTHT_BucketArray(pHT) = bucket_array;
 }
 
-static inline BTHTptr New_BTHT(int TrieType) {
+static inline TSTHTptr New_BTHT(int TrieType) {
   TSTHTptr btht;
   
   ALLOC_TST_ANSWER_TRIE_HASH(btht);
-  ALLOC_HASH_BUCKETS(btht, TrieHT_INIT_SIZE);
+  ALLOC_HASH_BUCKETS(TSTHT_BucketArray(btht), TrieHT_INIT_SIZE);
   TSTHT_Instr(btht) = hash_opcode;
   TSTHT_Status(btht) = VALID_NODE_STATUS;
   TSTHT_TrieType(btht) = TrieType;
@@ -259,25 +263,87 @@ static inline BTHTptr New_BTHT(int TrieType) {
   TSTHT_NumContents(btht) = MAX_SIBLING_LEN + 1;
   TSTHT_NumBuckets(btht) = TrieHT_INIT_SIZE;
   
-  return (BTHTptr)btht;
+  return btht;
 }
 
-void hashify_children(CTXTdeclc BTNptr parent, int trieType) {
-  BTNptr children; /* child list of the parent */
-  BTNptr btn; /* current child for processing */
-  BTHTptr ht; /* HT header struct */
-  BTNptr *tablebase; /* first bucket of allocated HT */
-  unsigned long hashseed; /* needed for hashing of BTNs */
+/*
+ *  Used during the creation of a Time-Stamp Index, allocates a TSI node
+ *  for a given TST node and inserts it into the TSI in (decreasing)
+ *  timestamp order.
+ *
+ *  NOTE: We cannot assume that the time stamp of the incoming node is  
+ *  greater than that of all of the nodes already present in the TSI.
+ *  Although this is the norm once the TSI is established, when a
+ *  sibling list is moved to a hashing format, Entries are created for
+ *  the nodes one at a time, but this node-processing order is not
+ *  guaranteed to coincide with time stamp order.
+ */
+inline static TSINptr tsiOrderedInsert(CTXTdeclc TSTHTptr ht, TSTNptr tstn) {
+  TSINptr nextTSIN;
+  TSINptr newTSIN;
   
-  ht = New_BTHT(trieType);
-  children = BTN_Child(parent);
-  BTN_SetHashHdr(parent,ht);
-  tablebase = BTHT_BucketArray(ht);
-  hashseed = BTHT_GetHashSeed(ht);
-  for(btn = children; IsNonNULL(btn); btn = children) {
-    children = BTN_Sibling(btn);
-    TrieHT_InsertNode(tablebase, hashseed, btn);
-    MakeHashedNode(btn);
+  New_TSIN(newTSIN, tstn);
+  
+  /* Determine proper position for insertion
+     --------------------------------------- */
+  nextTSIN = TSTHT_IndexHead(ht);
+  while(IsNonNULL(nextTSIN) &&
+    (TSIN_TimeStamp(newTSIN) < TSIN_TimeStamp(nextTSIN)))
+    nextTSIN = TSIN_Next(nextTSIN);
+  
+  /* Splice newTSIN between nextTSIN and its predecessor
+     --------------------------------------------------- */
+  if(IsNonNULL(nextTSIN)) {
+    TSIN_Prev(newTSIN) = TSIN_Prev(nextTSIN);
+    TSIN_Next(newTSIN) = nextTSIN;
+    if(IsTSindexHead(nextTSIN))
+      TSTHT_IndexHead(ht) = newTSIN;
+    else
+      TSIN_Next(TSIN_Prev(nextTSIN)) = newTSIN;
+    TSIN_Prev(nextTSIN) = newTSIN;
+  }
+  else { /* Insertion is at the end of the TSIN list */
+    TSIN_Prev(newTSIN) = TSTHT_IndexTail(ht);
+    TSIN_Next(newTSIN) = NULL;
+    if(IsNULL(TSTHT_IndexHead(ht))) /* First insertion into TSI */
+      TSTHT_IndexHead(ht) = newTSIN;
+    else
+      TSIN_Next(TSTHT_IndexTail(ht)) = newTSIN;
+    TSTHT_IndexTail(ht) = newTSIN;
+  }
+  
+  return newTSIN;
+}
+
+/*
+ * The number of children of 'parent' has increased beyond the threshold
+ * and requires a hashing structure.  This function creates a hash table
+ * and inserts the children into it.  The value of the third argument
+ * determines whether a TSI is also created for the children.
+ *
+ * After its creation, the hash table is referenced through the `Child'
+ * field of the parent.  Hash tables in a TST are also linked to one
+ * another through the TST's root.
+ */
+inline static
+void tstnHashifyChildren(CTXTdeclc TSTNptr parent, TSTNptr root, xsbBool createTSI) {
+  TSTNptr children;
+  TSTNptr tstn;
+  TSTHTptr ht;
+  TSTNptr *tablebase;
+  unsigned long hashseed;
+  
+  New_TSTHT(ht,TSTN_TrieType(root),root);
+  children = TSTN_Child(parent);
+  TSTN_SetHashHdr(parent,ht);
+  tablebase = (TSTNptr*)TSTHT_BucketArray(ht);
+  hashseed = TSTHT_GetHashSeed(ht);
+  for(tstn = children; IsNonNULL(tstn); tstn = children) {
+    children = TSTN_Sibling(tstn);
+    TrieHT_InsertNode(tablebase, hashseed, tstn);
+    MakeHashedNode(tstn);
+    if( createTSI )
+      TSTN_SetTSIN(tstn, tsiOrderedInsert(CTXTc ht, tstn));
   }
 }
 
@@ -313,24 +379,29 @@ TSTNptr tsthtInsertSymbol(CTXTdeclc TSTNptr parent, Cell symbol, int trieType,
   return tstn;
 }
 
+/*
+ * Inserts a node containing 'symbol' at the head of the sibling chain
+ * below 'parent' and returns a pointer to this node.  If this addition
+ * causes the chain to become "too long", then creates a hashing
+ * environment for the children.
+ */
 inline static
-BTNptr btnInsertSymbol(CTXTdeclc BTNptr parent, Cell symbol, int trieType) {
-  BTNptr btn, chain;
+TSTNptr tstnInsertSymbol(CTXTdeclc TSTNptr parent, Cell symbol, int trieType,
+  TSTNptr root, xsbBool createTSI) {
+  TSTNptr tstn, chain;
   int chain_length;
   
-  chain = BTN_Child(parent);
-  New_BTN(btn,trieType,INTERIOR_NT,symbol,parent,chain);
-  BTN_Child(parent) = btn;
+  chain = TSTN_Child(parent);
+  New_TSTN(tstn,trieType,INTERIOR_NT,symbol,parent,chain);
+  TSTN_Child(parent) = tstn;
   chain_length = 1;
-  
   while(IsNonNULL(chain)) {
     chain_length++;
-    chain = BTN_Sibling(chain);
+    chain = TSTN_Sibling(chain);
   }
-  
   if(IsLongSiblingChain(chain_length))
-    hashify_children(CTXTc parent, trieType);
-  return btn;
+    tstnHashifyChildren(CTXTc parent,root,createTSI);
+  return tstn;
 }
 
 /*
@@ -414,7 +485,8 @@ TSTNptr tst_insert(CTXTdeclc TSTNptr tstRoot, TSTNptr lastMatch, Cell firstSymbo
   else if(IsHashHeader(TSTN_Child(lastMatch)))
     lastMatch = tsthtInsertSymbol(CTXTc lastMatch, symbol, trieType, maintainTSI);
   else
-    lastMatch = (TSTNptr)btnInsertSymbol(CTXTc (BTNptr)lastMatch, symbol, trieType);
+    lastMatch = tstnInsertSymbol(CTXTc lastMatch, symbol, trieType, tstRoot,
+          maintainTSI);
   
   /* insert remaining symbols */
   while(!TermStack_IsEmpty) {

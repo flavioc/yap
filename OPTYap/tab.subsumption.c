@@ -1054,7 +1054,8 @@ ans_node_ptr subsumptive_answer_search(sg_fr_ptr sf, CELL *subs_ptr) {
   AnsVarCtr = 0;
   
   root = (TSTNptr)subg_ans_root_ptr(sf);
-  tstn = subsumptive_tst_search(CTXTc root, nTerms, answerVector, TRUE, isNew);
+  tstn = subsumptive_tst_search(CTXTc root, nTerms, answerVector,
+    TRUE, isNew);
     //(xsbBool)ProducerSubsumesSubgoals(sf), isNew );
   Trail_Unwind_All;
   

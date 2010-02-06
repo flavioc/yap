@@ -415,33 +415,39 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
 
 #define new_root_subgoal_trie_node(NODE)                          \
         ALLOC_SUBGOAL_TRIE_NODE(NODE);                            \
-        init_subgoal_trie_node(NODE, 0, NULL, NULL, NULL)
+        init_subgoal_trie_node(NODE, 0, NULL, NULL, NULL);        \
+        TrNode_node_type(NODE) = TRIE_ROOT_NT
 #define new_subgoal_trie_node(NODE, ENTRY, CHILD, PARENT, NEXT)   \
         INCREMENT_GLOBAL_TRIE_REFS(ENTRY);                        \
         ALLOC_SUBGOAL_TRIE_NODE(NODE);                            \
-        init_subgoal_trie_node(NODE, ENTRY, CHILD, PARENT, NEXT)
+        init_subgoal_trie_node(NODE, ENTRY, CHILD, PARENT, NEXT); \
+        TrNode_node_type(NODE) = INTERIOR_NT
 #define init_subgoal_trie_node(NODE, ENTRY, CHILD, PARENT, NEXT)  \
         TrNode_entry(NODE) = ENTRY;                               \
         TrNode_init_lock_field(NODE);                             \
         TrNode_child(NODE) = CHILD;                               \
         TrNode_parent(NODE) = PARENT;                             \
-	TrNode_next(NODE) = NEXT
+        TrNode_next(NODE) = NEXT;                                 \
+        TrNode_trie_type(NODE) = CALL_TRIE_TT
 
 
 #define new_root_answer_trie_node(NODE)                                 \
         ALLOC_ANSWER_TRIE_NODE(NODE);                                   \
-        init_answer_trie_node(NODE, 0, 0, NULL, NULL, NULL)
+        init_answer_trie_node(NODE, 0, 0, NULL, NULL, NULL);            \
+        TrNode_node_type(NODE) = TRIE_ROOT_NT
 #define new_answer_trie_node(NODE, INSTR, ENTRY, CHILD, PARENT, NEXT)   \
         INCREMENT_GLOBAL_TRIE_REFS(ENTRY);                              \
         ALLOC_ANSWER_TRIE_NODE(NODE);                                   \
-        init_answer_trie_node(NODE, INSTR, ENTRY, CHILD, PARENT, NEXT)
+        init_answer_trie_node(NODE, INSTR, ENTRY, CHILD, PARENT, NEXT); \
+        TrNode_node_type(NODE) = INTERIOR_NT
 #define init_answer_trie_node(NODE, INSTR, ENTRY, CHILD, PARENT, NEXT)  \
         TrNode_instr(NODE) = INSTR;                                     \
         TrNode_entry(NODE) = ENTRY;                                     \
         TrNode_init_lock_field(NODE);                                   \
         TrNode_child(NODE) = CHILD;                                     \
         TrNode_parent(NODE) = PARENT;                                   \
-        TrNode_next(NODE) = NEXT
+        TrNode_next(NODE) = NEXT;                                       \
+        TrNode_trie_type(NODE) = BASIC_ANSWER_TRIE_TT
 
 
 #define MAX_NODES_PER_TRIE_LEVEL           8
@@ -451,13 +457,10 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
 #ifdef GLOBAL_TRIE
 #define GLOBAL_TRIE_HASH_MARK              ((Term) MakeTableVarTerm(MAX_TABLE_VARS))
 #define IS_GLOBAL_TRIE_HASH(NODE)          (TrNode_entry(NODE) == GLOBAL_TRIE_HASH_MARK)
-#define SUBGOAL_TRIE_HASH_MARK             (NULL)
 #else
-#define SUBGOAL_TRIE_HASH_MARK             ((Term) MakeTableVarTerm(MAX_TABLE_VARS))
 #endif /* GLOBAL_TRIE */
-#define IS_SUBGOAL_TRIE_HASH(NODE)         (TrNode_entry(NODE) == SUBGOAL_TRIE_HASH_MARK)
-#define ANSWER_TRIE_HASH_MARK              0
-#define IS_ANSWER_TRIE_HASH(NODE)          (TrNode_instr(NODE) == ANSWER_TRIE_HASH_MARK)
+#define IS_SUBGOAL_TRIE_HASH(NODE)         (TrNode_node_type(NODE) == HASH_HEADER_NT)
+#define IS_ANSWER_TRIE_HASH(NODE)          (TrNode_node_type(NODE) == HASH_HEADER_NT)
 
 
 #define new_global_trie_hash(HASH, NUM_NODES)                       \
@@ -465,12 +468,13 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
         Hash_mark(HASH) = GLOBAL_TRIE_HASH_MARK;                    \
         Hash_num_buckets(HASH) = BASE_HASH_BUCKETS;                 \
         ALLOC_HASH_BUCKETS(Hash_buckets(HASH), BASE_HASH_BUCKETS);  \
-	Hash_num_nodes(HASH) = NUM_NODES
+	      Hash_num_nodes(HASH) = NUM_NODES
 
 
 #define new_subgoal_trie_hash(HASH, NUM_NODES, TAB_ENT)             \
         ALLOC_SUBGOAL_TRIE_HASH(HASH);                              \
-        Hash_mark(HASH) = SUBGOAL_TRIE_HASH_MARK;                   \
+        TrNode_node_type(HASH) = HASH_HEADER_NT;                    \
+        TrNode_trie_type(HASH) = CALL_TRIE_TT;                      \
         Hash_num_buckets(HASH) = BASE_HASH_BUCKETS;                 \
         ALLOC_HASH_BUCKETS(Hash_buckets(HASH), BASE_HASH_BUCKETS);  \
         Hash_num_nodes(HASH) = NUM_NODES;                           \
@@ -479,7 +483,8 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
 
 #define new_answer_trie_hash(HASH, NUM_NODES, SG_FR)                \
         ALLOC_ANSWER_TRIE_HASH(HASH);                               \
-        Hash_mark(HASH) = ANSWER_TRIE_HASH_MARK;                    \
+        TrNode_node_type(HASH) = HASH_HEADER_NT;                    \
+        TrNode_trie_type(HASH) = BASIC_ANSWER_TRIE_TT;              \
         Hash_num_buckets(HASH) = BASE_HASH_BUCKETS;                 \
         ALLOC_HASH_BUCKETS(Hash_buckets(HASH), BASE_HASH_BUCKETS);  \
         Hash_num_nodes(HASH) = NUM_NODES;                           \
