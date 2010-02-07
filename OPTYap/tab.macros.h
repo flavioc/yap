@@ -370,6 +370,30 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
       
 #define SgFr_has_no_answers(SG_FR)  SgFr_first_answer(SG_FR) == NULL
 
+#define free_answer_trie_node(NODE) { \
+    if(TrNode_trie_type(NODE) == BASIC_ANSWER_TRIE_TT) { \
+      printf("delete basic answer node\n"); \
+      FREE_ANSWER_TRIE_NODE(NODE);  \
+    } else if(TrNode_trie_type(NODE) == TS_ANSWER_TRIE_TT) { \
+      printf("delete tst answer node\n"); \
+      FREE_TST_ANSWER_TRIE_NODE(NODE);  \
+    } else {  \
+      printf("NOTHING DELETED!!!!\n");  \
+    }\
+}
+
+#define free_answer_trie_hash(HASH) { \
+  if(TrNode_trie_type(HASH) == BASIC_ANSWER_TRIE_TT) {  \
+    printf("delete basic answer hash\n"); \
+    FREE_ANSWER_TRIE_HASH(HASH);  \
+  } else if(TrNode_trie_type(HASH) == TS_ANSWER_TRIE_TT) {  \
+    printf("delete tst answer hash\n"); \
+    FREE_TST_ANSWER_TRIE_HASH(HASH);  \
+  } else {  \
+    printf("NOTHING DELETED HASH!!!!!!\n"); \
+  } \
+}
+  
 #ifdef TABLING_ANSWER_LIST
 #define free_answer_continuation(CONT) free_answer_list(CONT)
 #define alloc_answer_continuation(CONT) ALLOC_ANSWER_LIST(CONT)
@@ -849,7 +873,7 @@ void free_answer_trie_hash_chain(ans_hash_ptr hash) {
     printf("One hash deleted\n");
     next_hash = Hash_next(hash);
     FREE_HASH_BUCKETS(Hash_buckets(hash));
-    FREE_ANSWER_TRIE_HASH(hash);
+    free_answer_trie_hash(hash);
     hash = next_hash;
   }
   return;

@@ -449,7 +449,7 @@ void free_subgoal_trie_branch(sg_node_ptr current_node, int nodes_left, int node
     ans_node = SgFr_answer_trie(sg_fr);
     if (TrNode_child(ans_node))
       free_answer_trie_branch(TrNode_child(ans_node), TRAVERSE_POSITION_FIRST);
-    FREE_ANSWER_TRIE_NODE(ans_node);
+    free_answer_trie_node(ans_node);
 #ifdef LIMIT_TABLING
     remove_from_global_sg_fr_list(sg_fr);
 #endif /* LIMIT_TABLING */
@@ -493,7 +493,7 @@ void free_answer_trie_branch(ans_node_ptr current_node, int position) {
   if (position == TRAVERSE_POSITION_FIRST) {
     ans_node_ptr next_node = TrNode_next(current_node);
     DECREMENT_GLOBAL_TRIE_REFS(TrNode_entry(current_node));
-    FREE_ANSWER_TRIE_NODE(current_node);
+    free_answer_trie_node(current_node);
     while (next_node) {
       current_node = next_node;
       next_node = TrNode_next(current_node);
@@ -501,7 +501,7 @@ void free_answer_trie_branch(ans_node_ptr current_node, int position) {
     }
   } else {
     DECREMENT_GLOBAL_TRIE_REFS(TrNode_entry(current_node));
-    FREE_ANSWER_TRIE_NODE(current_node);
+    free_answer_trie_node(current_node);
   }
   return;
 }
@@ -681,7 +681,7 @@ int update_answer_trie_branch(ans_node_ptr previous_node, ans_node_ptr current_n
     /* node belonging to a pruned answer */
     if (previous_node) {
       TrNode_next(previous_node) = TrNode_next(current_node);
-      FREE_ANSWER_TRIE_NODE(current_node);
+      free_answer_trie_node(current_node);
       if (TrNode_next(previous_node)) {
         return update_answer_trie_branch(previous_node, TrNode_next(previous_node));
       } else {
@@ -694,7 +694,7 @@ int update_answer_trie_branch(ans_node_ptr previous_node, ans_node_ptr current_n
         TrNode_instr(TrNode_next(current_node)) -= 1;  /* retry --> try */
         update_answer_trie_branch(NULL, TrNode_next(current_node));          
       }
-      FREE_ANSWER_TRIE_NODE(current_node);
+      free_answer_trie_node(current_node);
       return 0;
     }
   }
