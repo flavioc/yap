@@ -197,7 +197,7 @@ C_SOURCES= \
 	$(srcdir)/OPTYap/tab.tries.c $(srcdir)/OPTYap/tab.suspend.c \
 	$(srcdir)/OPTYap/tab.stack.c $(srcdir)/OPTYap/tab.subsumption.c \
 	$(srcdir)/OPTYap/tab.utils.c $(srcdir)/OPTYap/tab.var.c \
-	$(srcdir)/OPTYap/tab.tst.c \
+	$(srcdir)/OPTYap/tab.tst.c $(srcdir)/OPTYap/tab.retrv.c \
 	$(srcdir)/library/mpi/mpi.c $(srcdir)/library/mpi/mpe.c \
 	$(srcdir)/library/lammpi/yap_mpi.c $(srcdir)/library/lammpi/hash.c \
 	$(srcdir)/library/lammpi/prologterms2c.c  \
@@ -274,6 +274,7 @@ OR_OBJECTS = \
 	or.engine.o or.cowengine.o or.sbaengine.o \
 	or.threadengine.o or.scheduler.o or.cut.o      \
 	tab.tries.o tab.stack.o tab.tst.o	\
+	tab.retrv.o \
 	tab.utils.o tab.suspend.o tab.var.o \
 	tab.subsumption.o
 
@@ -462,6 +463,13 @@ tab.tst.o: $(srcdir)/OPTYap/tab.tst.c \
 	$(srcdir)/OPTYap/tab.structs.h
 	$(CC) -c $(CFLAGS) $(srcdir)/OPTYap/tab.tst.c -o $@
 
+tab.retrv.o: $(srcdir)/OPTYap/tab.retrv.c \
+	$(srcdir)/OPTYap/tab.retrv.h \
+	$(srcdir)/OPTYap/tab.utils.h \
+	$(srcdir)/OPTYap/tab.structs.h \
+	$(srcdir)/OPTYap/tab.tst.h
+	$(CC) -c $(CFLAGS) $(srcdir)/OPTYap/tab.retrv.c -o $@
+	
 tab.utils.o: $(srcdir)/OPTYap/tab.stack.o \
 	$(srcdir)/OPTYap/tab.utils.c \
 	$(srcdir)/OPTYap/tab.utils.h \
