@@ -88,7 +88,7 @@ typedef Functor Psc;
 #define IsTrieFunctor(SYMBOL) (cell_tag(SYMBOL) == TAG_STRUCT)
 #define IsTrieList(SYMBOL)  IsPairTerm(SYMBOL)
 
-#define xsb_abort(MSG, ...) Yap_Error(PURE_ABORT, TermNil, MSG, __VA_ARGS__)
+#define xsb_abort(MSG, ...) Yap_Error(PURE_ABORT, TermNil, MSG, ##__VA_ARGS__)
 
 #ifdef BITS64
 #define IntegerFormatString	"%ld"
@@ -177,6 +177,8 @@ typedef Functor Psc;
 #define MAX_SIBLING_LEN 1 //MAX_NODES_PER_TRIE_LEVEL
 #define TrieHT_INIT_SIZE BASE_HASH_BUCKETS
 #define hash_opcode 0
+
+#define ALNptr ans_list_ptr
 
 #endif /* TABLING_CALL_SUBSUMPTION */
 
