@@ -26,7 +26,9 @@
 #ifdef TABLING
 #include "tab.macros.h"
 #ifdef TABLING_CALL_SUBSUMPTION
+#include "tab.tst.h"
 #include "tab.utils.h"
+#include "tab.retrv.h"
 DynamicStack tstTermStack; /* term stack for subsumption */
 DynamicStack tstTermStackLog; /* term log stack for subsumption */
 DynamicStack tstTrail; /* trail stack for subsumption */
@@ -35,6 +37,7 @@ struct tstCCPStack_t tstCCPStack; /* frame stack for subsumption */
 Cell TrieVarBindings[MAX_TABLE_VARS];
 struct VariantContinuation variant_cont;
 int AnsVarCtr;
+struct tstCPStack_t tstCPStack;
 #endif
 #endif /* TABLING */
 #if defined(TABLING) || !defined(ACOW)
@@ -225,6 +228,9 @@ void Yap_init_local(void) {
   
   /* initSubsumptiveLookup */
   tstCCPStack.ceiling = tstCCPStack.base + CALL_CPSTACK_SIZE;
+  
+  /* initCollectRelevantAnswers */
+  tstCPStack.ceiling = tstCPStack.base + TST_CPSTACK_SIZE;
   
   variant_cont.subterms.stack.ptr = NULL;
   variant_cont.bindings.stack.ptr = NULL;

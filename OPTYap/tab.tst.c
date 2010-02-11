@@ -114,12 +114,6 @@ STD_PROTO(void hashify_children, (CTXTdeclc BTNptr, int));
   *pBucket = pTN; \
 }
 
-/* For Hashed TSTNs
-   ---------------- */
-#define TSTN_SetTSIN(pTSTN,TSIN) TSTN_TimeStamp(pTSTN) = (TimeStamp)(TSIN)
-#define TSTN_GetTSIN(pTSTN) ((TSINptr)TSTN_TimeStamp(pTSTN))
-#define TSTN_GetTSfromTSIN(pTSIN) TSIN_TimeStamp(TSTN_GetTSIN(pTSTN))
-
 /* for indices */
 #define IsTSindexHead(TSIN) IsNULL(TSIN_Prev(TSIN))
 #define IsTSindexTail(TSIN) IsNULL(TSIN_Next(TSIN))

@@ -106,9 +106,17 @@ TSTNptr tst_insert(CTXTdeclc TSTNptr tstRoot, TSTNptr lastMatch, Cell firstSymbo
 TSTNptr new_tstn(CTXTdeclc int trie_t, int node_t, Cell symbol, TSTNptr parent,
   TSTNptr sibling);
 void tstCreateTSIs(CTXTdeclc TSTNptr pTST);
+
+/* XSB macros */
   
 #define New_TSTN(TSTN,TrieType,NodeType,Symbol,Parent,Sibling)  \
   TSTN = new_tstn(CTXTc TrieType,NodeType,Symbol,Parent,Sibling)
+  
+/* For Hashed TSTNs
+   ---------------- */
+#define TSTN_SetTSIN(pTSTN,TSIN) TSTN_TimeStamp(pTSTN) = (TimeStamp)(TSIN)
+#define TSTN_GetTSIN(pTSTN) ((TSINptr)TSTN_TimeStamp(pTSTN))
+#define TSTN_GetTSfromTSIN(pTSIN) TSIN_TimeStamp(TSTN_GetTSIN(pTSIN))
 
 #endif /* TABLING */
 

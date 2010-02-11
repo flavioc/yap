@@ -66,7 +66,8 @@ typedef Functor Psc;
 #define BTN_Sibling(NODE)       TrNode_next(NODE)
 #define BTN_Parent(NODE)        TrNode_parent(NODE)
 
-#define IsHashHeader(NODE)      IS_SUBGOAL_TRIE_HASH(NODE)
+#define IsHashHeader(NODE)      (TrNode_node_type(NODE) == HASH_HEADER_NT)
+#define IsHashedNode(NODE)		(TrNode_node_type(NODE) & HASHED_INTERIOR_NT)
 #define BTHT_BucketArray(HASH)  Hash_buckets(HASH)
 #define BTHT_GetHashSeed(HASH)  Hash_seed(HASH)
 #define TrieHash(SYMBOL, SEED)  HASH_ENTRY(SYMBOL, SEED)
@@ -166,6 +167,8 @@ typedef Functor Psc;
 #define TSTHT_NumBuckets(X) TSTHT_num_buckets(X)
 #define TSTN_Parent(X) TSTN_parent(X)
 #define TSTHT_InternalLink(X) TSTHT_next(X)
+#define TSTHT_GetHashSeed(X) TSTHT_seed(X)
+#define TSTN_Symbol(X)	TSTN_entry(X)
 
 #define IsEmptyTrie(Root)      IsNULL(TN_Child(Root))
 
@@ -179,6 +182,8 @@ typedef Functor Psc;
 #define hash_opcode 0
 
 #define ALNptr ans_list_ptr
+
+#define isref IsVarTerm
 
 #endif /* TABLING_CALL_SUBSUMPTION */
 
