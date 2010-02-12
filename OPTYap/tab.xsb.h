@@ -23,13 +23,16 @@ typedef int xsbBool;
 typedef sg_hash_ptr BTHTptr;
 typedef Functor Psc;
 
+#define get_str_psc(FUNCTOR) FunctorOfTerm(FUNCTOR)
 #define get_arity(FUNCTOR)  ArityOfFunctor(FUNCTOR)
 #define get_name(FUNCTOR)   AtomName(NameOfFunctor(FUNCTOR))
 /* FunctorOfTerm(t) === *RepAppl (t) */
 #define clref_val(REF)      RepAppl(REF)
 #define clrefp_val(REF)     RepPair(REF)
+#define cs_val(REF)	RepAppl(REF)
 #define bld_free(ADDR)      *((CELL *)ADDR) = (CELL)(ADDR)
 #define bld_ref(ADDR, VAL)  *((CELL *)ADDR) = (CELL)(VAL)
+#define cell(REF) *(REF)
 
 #define IsNonNULL(ptr)   ( (ptr) != NULL )
 #define IsNULL(ptr) ((ptr) == NULL)
@@ -184,6 +187,14 @@ typedef Functor Psc;
 #define ALNptr ans_list_ptr
 
 #define isref IsVarTerm
+#define LOG_DEBUG 0 /* NOT USED */
+#define xsb_warn printf
+#define stddbg stderr
+#define stdwarn stderr
+#define xsb_dbgmsg(PARAM) my_xsb_debug PARAM
+#define my_xsb_debug(LOG_LEVEL, MSG) printf("%s", MSG)
+#define dbg_printAnswerTemplate(LOG_LEVEL, OUTPUT, TERM_VECTOR, NUMTERMS)
+#define dbg_printTrieNode(LOG_LEVEL, OUTPUT, LEAF);
 
 #endif /* TABLING_CALL_SUBSUMPTION */
 
