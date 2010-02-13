@@ -33,13 +33,13 @@
 #define hreg H
 #define hbreg HB
 #define ereg ENV
-#define ebreg YENV
+#define ebreg YENV // ???? cuts
 #define trfreg TR_FZ
-#define efreg B_FZ
+#define efreg B_FZ // ????
 #define cpreg CP
-#define top_of_trail ((trreg > trfreg) ? trreg : trfreg)
-#define top_of_localstk ASP
-#define Sys_Trail_Unwind(TR0) reset_trail(TR0)
+#define top_of_trail ((trreg > trfreg) ? trreg : trfreg) /// XXXX
+#define top_of_localstk ASP /// XXX
+#define Sys_Trail_Unwind(TR0) reset_trail(TR0) // implementar
 #define unify(TERM1, TERM2) Yap_unify(TERM1, TERM2)
 
 static tr_fr_ptr trail_base;	/* ptr to topmost used Cell on the system Trail;
@@ -82,8 +82,7 @@ static CPtr orig_ebreg;
 	*(Addr) = Val
 	
 /* amiops.h XXX */
-#define conditional(Addr)	\
-	(OUTSIDE(HBREG, Addr, B) || ((Addr) > (CELL *)B_FZ))
+#define conditional(Addr) OUTSIDE(HBREG, Addr, B)
 #define pushtrail0 DO_TRAIL
 	
 #define Trie_Conditionally_Trail(Addr,Val)	\
@@ -542,15 +541,15 @@ static void tstCollectionError(CTXTdeclc char* string, xsbBool cleanup_required)
 				 * structure on the heap so that we can bind the subterm		   \
 				 * variable to it.  Then use this algorithm to find bindings	   \
 				 * for the unbound variables X1,...,Xn in the trie.		   \
-				 */								   \
-				Psc symbolPsc;	\
-				int arity, i;	\
-					\
+				 */								   								\
+				Psc symbolPsc;													\
+				int arity, i;													\
+																				\
 				symbolPsc = (Psc)cs_val(symbol);	\
 				arity = get_arity(symbolPsc);	\
 				Trie_bind_copy((CPtr)Subterm,(Cell)hreg);	\
 				Term tf = Yap_MkNewApplTerm(symbolPsc,arity);	\
-				for (i = arity; i >= 1; i--)	\
+				for (i = arity; i >= 1; i--)					\
 					TermStack_Push(*(RepAppl(tf) + i));	\
 			}	\
 			else {	\
@@ -579,8 +578,8 @@ static void tstCollectionError(CTXTdeclc char* string, xsbBool cleanup_required)
 				 */								   \
 				Trie_bind_copy((CPtr)Subterm,symbol);	\
 			}	\
-			break;	\
-		case XSB_REF:	\
+			break;			\
+		case XSB_REF:		\
 			/*									   \
 			 * The symbol is either an unbound TrieVar or some unbound Prolog	   \
 			 * variable.  If it's an unbound TrieVar, we bind it to the	   \

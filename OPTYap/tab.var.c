@@ -180,7 +180,7 @@ ans_node_ptr variant_answer_search(sg_fr_ptr sg_fr, CELL *subs_ptr) {
 	      t = Deref(t);
 	      if (IsTableVarTerm(t)) {
 	        t = MakeTableVarTerm(VarIndexOfTerm(t));
-          ANSWER_TOKEN_CHECK_INSERT(sg_fr, current_node, t, _trie_retry_val);
+			ANSWER_TOKEN_CHECK_INSERT(sg_fr, current_node, t, _trie_retry_val);
 	      } else {
 	        if (count_vars == MAX_TABLE_VARS)
 	          Yap_Error(INTERNAL_ERROR, TermNil, "MAX_TABLE_VARS exceeded (answer_search)");
@@ -188,7 +188,7 @@ ans_node_ptr variant_answer_search(sg_fr_ptr sg_fr, CELL *subs_ptr) {
 	        *((CELL *)t) = GLOBAL_table_var_enumerator(count_vars);
 	        t = MakeTableVarTerm(count_vars);
 	        count_vars++;
-          ANSWER_TOKEN_CHECK_INSERT(sg_fr, current_node, t, _trie_retry_var);
+			ANSWER_TOKEN_CHECK_INSERT(sg_fr, current_node, t, _trie_retry_var);
 	      }
       } else if (IsAtomOrIntTerm(t)) {
         ANSWER_TOKEN_CHECK_INSERT(sg_fr, current_node, t, _trie_retry_atom);
