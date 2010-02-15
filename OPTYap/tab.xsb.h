@@ -69,7 +69,7 @@ typedef Functor Psc;
 #define BTN_Sibling(NODE)       TrNode_next(NODE)
 #define BTN_Parent(NODE)        TrNode_parent(NODE)
 
-#define IsHashHeader(NODE)      (TrNode_node_type(NODE) == HASH_HEADER_NT)
+#define IsHashHeader(NODE)      (TrNode_node_type(NODE) & HASH_HEADER_NT)
 #define IsHashedNode(NODE)		(TrNode_node_type(NODE) & HASHED_INTERIOR_NT)
 #define BTHT_BucketArray(HASH)  Hash_buckets(HASH)
 #define BTHT_GetHashSeed(HASH)  Hash_seed(HASH)
@@ -85,7 +85,7 @@ typedef Functor Psc;
 #define IsStandardizedVariable(DerefVar)  (IsTableVarTerm(DerefVar))
 
 #define IndexOfStdVar(VAR_ENUM_ADDR)  VarIndexOfTerm(VAR_ENUM_ADDR)
-#define IsTrieRoot(NODE)   (TrNode_parent(NODE) == NULL)
+#define IsTrieRoot(NODE)   (TrNode_parent(NODE) == NULL || TrNode_node_type(NODE) == TRIE_ROOT_NT)
 #define IsLeafNode(NODE)   (TrNode_child(NODE) == NULL) /// XXX
 #define IsEscapeNode(NODE)  (FALSE) // XXX
 #define ESCAPE_NODE_SYMBOL    (long)0xFFFFFFF // XXX
