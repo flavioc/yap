@@ -379,14 +379,16 @@ typedef enum {
   TAG_LIST,
   TAG_REF,
   TAG_DB_REF,
-  TAG_TrieVar,
   TAG_UNKNOWN
 } CellTag;
+
+#define TAG_TrieVar TAG_REF
 
 CellTag cell_tag(Term t);
 CellTag TrieSymbolType(Term t);
 xsbBool are_identical_terms(Cell term1, Cell term2);
 void printSubgoalTriePath(CTXTdeclc FILE *fp, BTNptr pLeaf, tab_ent_ptr tab_entry);
+void printAnswerTriePath(FILE *fp, BTNptr leaf);
 void printTrieNode(FILE *fp, BTNptr pTN);
 void printSubterm(FILE *fp, Term term);
 void printCalledSubgoal(FILE *fp, yamop *preg);
