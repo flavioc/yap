@@ -306,11 +306,6 @@ void printSubgoalTriePath(CTXTdeclc FILE *fp, BTNptr pLeaf, tab_ent_ptr tab_entr
 {
   BTNptr pRoot;
   
-  if(IsNULL(pLeaf)) {
-    fprintf(fp, "NULL");
-    return;
-  }
-  
   SymbolStack_ResetTOS;
   SymbolStack_PushPathRoot(pLeaf, pRoot);
   
@@ -322,6 +317,20 @@ void printSubgoalTriePath(CTXTdeclc FILE *fp, BTNptr pLeaf, tab_ent_ptr tab_entr
     symstkPrintNextTrieTerm(CTXTc fp, FALSE);
   }
   fprintf(fp, ")");
+}
+
+void printAnswerTriePath(FILE *fp, BTNptr leaf)
+{
+  SymbolStack_ResetTOS;
+  SymbolStack_PushPath(leaf);
+  
+  fprintf(fp, "{");
+  symstkPrintNextTrieTerm(CTXTc fp, FALSE);
+  while(!SymbolStack_IsEmpty) {
+    fprintf(fp, ",");
+    symstkPrintNextTrieTerm(CTXTc fp, FALSE);
+  }
+  fprintf(fp, "}");
 }
 
 static int variable_counter = 0;
