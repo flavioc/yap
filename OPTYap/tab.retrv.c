@@ -28,46 +28,86 @@
 #include "tab.retrv.h"
 #include "tab.utils.h"
 
-// CONFIRMAR XXX
-#define trreg TR
-#define hreg H
-#define hbreg HB
-#define ereg ENV
-#define ebreg YENV // ???? cuts
-#define trfreg TR_FZ
-#define efreg B_FZ // ????
-#define cpreg CP
-#define top_of_trail ((trreg > trfreg) ? trreg : trfreg) /// XXXX
-#define top_of_localstk ASP /// XXX
-#define Sys_Trail_Unwind(TR0) reset_trail(TR0) // implementar
-#define unify(TERM1, TERM2) Yap_unify(TERM1, TERM2)
+/*  Data Structures and Related Macros
+    ==================================  */
 
-static tr_fr_ptr trail_base;	/* ptr to topmost used Cell on the system Trail;
+/*
+ *  Trailing
+ *  --------
+ *  Record bindings made during the search through the trie so that
+ *  these variables can be unbound when an alternate path is explored.
+ *  We will use XSB's system Trail to accomodate XSB's unification
+ *  algorithm, which is needed at certain points in the collection
+ *  process.
+ */
+
+#ifdef SUBSUMPTION_XSB
+
+#ifndef MULTI_THREAD
+static CPtr *trail_base;    /* ptr to topmost used Cell on the system Trail;
 			       the beginning of our local trail for this
 			       operation. */
-				   
-static tr_fr_ptr orig_trreg;
-static CPtr orig_hreg;	/* Markers for noting original values of WAM */
-static CPtr orig_hbreg;	/* registers so they can be reset upon exiting */
+
+static CPtr *orig_trreg;            
+static CPtr orig_hreg;      /* Markers for noting original values of WAM */
+static CPtr orig_hbreg;     /* registers so they can be reset upon exiting */
 static CPtr orig_ebreg;
+#endif
 
 /* 
  * Set backtrack registers to the tops of stacks to force trailing in
  * unify().  Save hreg as the heap may be used to construct bindings.
  */
 #define Save_and_Set_WAM_Registers	\
-	orig_hbreg = hbreg;	\
-	orig_hbreg = hbreg = hreg;	\
-	orig_ebreg = ebreg;	\
-	ebreg = top_of_localstk;	\
-	orig_trreg = trreg;	\
-	trreg = top_of_trail
-	
-#define Restore_WAM_Registers	\
-	trreg = orig_trreg;	\
-	hreg = orig_hreg;	\
-	hbreg = orig_hbreg;	\
-	ebreg = orig_ebreg
+   orig_hbreg = hbreg;			\
+   orig_hreg = hbreg = hreg;		\
+   orig_ebreg = ebreg;			\
+   ebreg = top_of_localstk;		\
+   orig_trreg = trreg;			\
+   trreg = top_of_trail
+
+#define Restore_WAM_Registers		\
+   trreg = orig_trreg;			\
+   hreg = orig_hreg;			\
+   hbreg = orig_hbreg;			\
+   ebreg = orig_ebreg
+#else /* YAP */
+
+#define trreg TR
+#define hreg H
+#define hbreg HB
+#define ereg E
+#define trfreg TR_FZ
+#define cpreg CP
+#define top_of_trail ((trreg > trfreg) ? trreg : trfreg)
+#define Sys_Trail_Unwind(TR0) \
+  while(TR != TR0)  { \
+    printf("Untrail one\n");  \
+    TR--; \
+    RESET_VARIABLE((CELL *)TrailTerm(TR));  \
+  }
+#define unify(TERM1, TERM2) Yap_unify(TERM1, TERM2)
+
+static tr_fr_ptr trail_base;
+static tr_fr_ptr orig_trreg;
+static CPtr orig_hreg;
+static CPtr orig_hbreg;
+
+#define Save_and_Set_WAM_Registers  \
+  orig_hbreg = hbreg; \
+  orig_hreg = hbreg = hreg; \
+  orig_trreg = trreg;  \
+  trreg = top_of_trail
+  
+#define Restore_WAM_Registers \
+  trreg = orig_trreg; \
+  hreg = orig_hreg; \
+  hbreg = orig_hbreg
+
+/* amiops.h XXX */
+#define conditional(Addr) OUTSIDE(HBREG, Addr, B)
+#define pushtrail0 DO_TRAIL
+#endif /* SUBSUMPTION_XSB */
 	
 /*
  *  Create a binding and conditionally trail it.  TrieVarBindings[] cells
@@ -79,15 +119,13 @@ static CPtr orig_ebreg;
  */
 #define Trie_bind_copy(Addr,Val)	\
 	Trie_Conditionally_Trail(Addr,Val);	\
+  printf("%x (%x) to %x\n", Addr, *(Addr), Val);  \
 	*(Addr) = Val
-	
-/* amiops.h XXX */
-#define conditional(Addr) OUTSIDE(HBREG, Addr, B)
-#define pushtrail0 DO_TRAIL
+
 	
 #define Trie_Conditionally_Trail(Addr,Val)	\
 	if(IsUnboundTrieVar(Addr) || conditional(Addr))	\
-	{ pushtrail0(Addr,Val) }
+  { printf("Trail one...\n"); pushtrail0(Addr,Val) }
 	
 #define Bind_and_Conditionally_Trail(Addr,Val) Trie_bind_copy(Addr,Val)
 	
@@ -95,7 +133,7 @@ static CPtr orig_ebreg;
  *  Create a binding and trail it.
  */
 // ja existe no Yap ;-)
-// #define Bind_and_Trail(Addr, Val) pushtrail0(Addr, Val)	*(Addr) = Val
+//#define Bind_and_Trail(Addr, Val) pushtrail0(Addr, Val)	*(Addr) = Val
 	
 /* ------------------------------------------------------------------------- */
 
@@ -132,6 +170,7 @@ static CPtr orig_ebreg;
  *  Backtracking to a previous juncture in the trie.
  */
 #define TST_Backtrack	\
+  printf("Backtracking...\n"); \
 	CPStack_Pop;	\
 	ResetParentAndCurrentNodes;	\
 	RestoreTermStack;	\
@@ -214,6 +253,7 @@ static void tstCollectionError(CTXTdeclc char* string, xsbBool cleanup_required)
 		Sys_Trail_Unwind(trail_base);
 		Restore_WAM_Registers;
 	}
+  printf("%s\n", string);
 	xsb_abort(string);
 }
 
@@ -252,6 +292,7 @@ static void tstCollectionError(CTXTdeclc char* string, xsbBool cleanup_required)
 	TSTNptr *buckets = TSTHT_BucketArray(ht);	\
 	SymChain = buckets[TrieHash(Symbol,TSTHT_GetHashSeed(ht))];	\
 	VarChain = buckets[TRIEVAR_BUCKET];	\
+  printf("Using hash table\n"); \
 }
 
 /* ------------------------------------------------------------------------- */
@@ -542,16 +583,21 @@ static void tstCollectionError(CTXTdeclc char* string, xsbBool cleanup_required)
 #define CreateHeapFunctor(Symbol) { \
   Functor functor;													\
 	int arity, i;													\
+  CPtr old_h = H++;               \
 																	\
 	functor = (Functor)RepAppl(Symbol);	\
-	arity = ArityOfFunctor(functor);	\
-	                                            \
+	arity = ArityOfFunctor(functor);  \
 	Term tf = Yap_MkNewApplTerm(functor,arity);	\
-	for (i = arity; i >= 1; i--)					\
-		TermStack_Push(*(RepAppl(tf) + i));	\
+  *old_h = tf;        \
+	for (i = arity; i >= 1; i--)			{		\
+    CPtr c = *(RepAppl(tf) + i);  \
+		TermStack_Push(c);	\
+	} \
 }
 #define CreateHeapList() {  \
+  CPtr old_h = H++;  \
   Term tl = Yap_MkNewPairTerm();	\
+  *old_h = tl;  \
 	TermStack_Push(*(RepPair(tl) + 1));	\
 	TermStack_Push(*(RepPair(tl)));	\
 }
@@ -566,14 +612,19 @@ static void tstCollectionError(CTXTdeclc char* string, xsbBool cleanup_required)
 	CPStack_PushFrame(Continuation);	\
 	TermStackLog_PushFrame;	\
 	symbol = TSTN_Symbol(Chain);	\
+  printf("UnifyWithVariable %x\n", Subterm);  \
 	TrieSymbol_Deref(symbol);	\
+  printf("Derefed\n");  \
 	switch(TrieSymbolType(symbol)) {	\
 		case XSB_INT:	\
 		case XSB_FLOAT:	\
 		case XSB_STRING:	\
+    printf("Var constant\n"); \
 			Trie_bind_copy((CPtr)Subterm,symbol);	\
+      printf("Ok var constant\n");  \
 			break;	\
 		case XSB_STRUCT:	\
+    printf("Var functor\n");  \
 			/*									   \
 			 * Need to be careful here, because TrieVars are bound to heap-	   \
 			 * resident structures and a deref of the (trie) symbol doesn't	   \
@@ -586,8 +637,12 @@ static void tstCollectionError(CTXTdeclc char* string, xsbBool cleanup_required)
 				 * variable to it.  Then use this algorithm to find bindings	   \
 				 * for the unbound variables X1,...,Xn in the trie.		   \
 				 */								   								\
+         printf("subterm before: %x (H: %x)\n", Subterm, H); \
 				Trie_bind_copy((CPtr)Subterm,(Cell)hreg);	\
         CreateHeapFunctor(symbol);  \
+        printf("Create heap functor\n");  \
+        printf("subterm after: %x (IsApplTerm %x %d)\n", Subterm, (CELL)(*(CPtr)Subterm), IsApplTerm(*(CPtr)(Subterm))); \
+        Deref(Subterm); \
 			}	\
 			else {	\
 				/*								   \
@@ -597,6 +652,7 @@ static void tstCollectionError(CTXTdeclc char* string, xsbBool cleanup_required)
 			}	\
 			break;	\
 		case XSB_LIST:	\
+    printf("Var list\n"); \
 			if(IsTrieList(TSTN_Symbol(Chain))) {	\
 				/*								   \
 				 * Since the TSTN contains a (sub)list beginning, create a	   \
@@ -606,6 +662,7 @@ static void tstCollectionError(CTXTdeclc char* string, xsbBool cleanup_required)
 				 */								   \
 				Trie_bind_copy((CPtr)Subterm,(Cell)hreg);	\
         CreateHeapList(); \
+        printf("Create heap list\n"); \
 			}	\
 			else {	\
 				/*								   \
@@ -615,6 +672,7 @@ static void tstCollectionError(CTXTdeclc char* string, xsbBool cleanup_required)
 			}	\
 			break;			\
 		case XSB_REF:		\
+    printf("Var var\n");  \
 			/*									   \
 			 * The symbol is either an unbound TrieVar or some unbound Prolog	   \
 			 * variable.  If it's an unbound TrieVar, we bind it to the	   \
@@ -623,8 +681,10 @@ static void tstCollectionError(CTXTdeclc char* string, xsbBool cleanup_required)
 			if(IsUnboundTrieVar(symbol)) {	\
 				Bind_and_Trail((CPtr)symbol,Subterm);	\
 			}	\
-			else	\
+			else	{ \
+        printf("unify\n");  \
 				unify(CTXTc symbol,Subterm);	\
+			} \
 			break;	\
 		default:	\
 			fprintf(stderr, "subterm: unbound var (%ld), symbol: unknown "	\
@@ -707,7 +767,9 @@ ALNptr tst_collect_relevant_answers(CTXTdeclc TSTNptr tstRoot, TimeStamp ts,
 While_TSnotEmpty:
 	while(!TermStack_IsEmpty) {
 		TermStack_Pop(subterm);
+    printf("Popped: %x\n", subterm);
 		XSB_Deref(subterm);
+    printf("Derefed main\n");
 		switch(cell_tag(subterm)) {
 		
 		/* SUBTERM IS A CONSTANT
@@ -717,6 +779,7 @@ While_TSnotEmpty:
 		case XSB_FLOAT:
 #endif
 		case XSB_STRING:
+    printf("Constant\n");
 			/*
 			 * NOTE: A Trie constant looks like a Prolog constant.
 			 */
@@ -738,6 +801,7 @@ While_TSnotEmpty:
 				SearchChain_UnifyWithConstant(cur_chain,subterm,ts,TSTN_TimeStamp)
 			break;
 		case XSB_STRUCT:
+    printf("Functor\n");
 			/*
 			 *  NOTE:  A trie XSB_STRUCT is a XSB_STRUCT-tagged PSC ptr,
 			 *  while a heap XSB_STRUCT is a XSB_STRUCT-tagged ptr to a PSC ptr.
@@ -761,6 +825,7 @@ While_TSnotEmpty:
 		/* SUBTERM IS A LIST
 		   ----------------- */
 		case XSB_LIST:
+  printf("List\n");
 			/*
 			 *  NOTE:  A trie XSB_LIST uses a plain XSB_LIST tag wherever a recursive
 			 *         substructure begins, while a heap XSB_LIST uses a XSB_LIST-
@@ -788,6 +853,7 @@ While_TSnotEmpty:
 #ifdef SUBSUMPTION_XSB
     case XSB_REF1:
 #endif
+    printf("Variable\n");
 			/*
 			 *  Since variables unify with any term, only prune based on
 			 *  timestamps.  For Hashed/HashRoot nodes we can use the TSI to
