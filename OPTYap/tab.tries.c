@@ -99,13 +99,13 @@ void load_answer(ans_node_ptr current_ans_node, CELL *subs_ptr) {
 #ifdef GLOBAL_TRIE
   for (i = subs_arity; i >= 1; i--) {
     current_node = TrNode_entry(current_ans_node);
-    current_ans_node = UNTAG_ANSWER_LEAF_NODE(TrNode_parent(current_ans_node));
+    current_ans_node = TrNode_parent(current_ans_node);
     t = TrNode_entry(current_node);
     current_node = TrNode_parent(current_node);
 #else
   {
     t = TrNode_entry(current_node);
-    current_node = UNTAG_ANSWER_LEAF_NODE(TrNode_parent(current_node));
+    current_node = TrNode_parent(current_node);
 #endif /* GLOBAL_TRIE */
     do {
       if (IsVarTerm(t)) {
