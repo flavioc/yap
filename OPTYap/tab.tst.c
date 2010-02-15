@@ -29,9 +29,6 @@ STD_PROTO(void hashify_children, (CTXTdeclc BTNptr, int));
 
 #define IsLongSiblingChain(ChainLength) (ChainLength > MAX_SIBLING_LEN)
   
-#define New_BTN(BTN,TrieType,NodeType,Symbol,Parent,Sibling)  \
-    BTN = new_btn(CTXTc TrieType,NodeType,Symbol,(BTNptr)Parent, (BTNptr)Sibling);
-  
 #define TN_Init(TN,TrieType,NodeType,Symbol,Parent,Sibling) { \
   if(NodeType != TRIE_ROOT_NT)  { \
     TN_SetInstr(TN,Symbol); \
@@ -50,10 +47,6 @@ STD_PROTO(void hashify_children, (CTXTdeclc BTNptr, int));
   
 #define CalculateBucketForSymbol(pHT,Symbol)  \
   (TrieHT_BucketArray(pHT) + TrieHash(Symbol, TrieHT_GetHashSeed(pHT)))
-
-#undef IsHashHeader /* remove previous definition for yap hash tables */
-#define IsHashedNode(pTSC)  (TSC_NodeType(pTSC) & HASHED_NODE_MASK)
-#define IsHashHeader(pTSC)  (TSC_NodeType(pTSC) & HASH_HEADER_NT)
 
 #define TSTN_DEFAULT_TIMESTAMP 1
 #define VALID_NODE_STATUS 0
@@ -98,7 +91,6 @@ STD_PROTO(void hashify_children, (CTXTdeclc BTNptr, int));
 #define TSTRoot_GetHTList(pTST) ((TSTHTptr)TSTN_Sibling(pTST))
 
 #define TSTN_SetHashHdr(pTSTN,pTSTHT) TN_SetHashHdr(pTSTN,pTSTHT)
-#define TSTHT_GetHashSeed(pTSTHT) BTHT_GetHashSeed((BTHTptr)(pTSTHT))
 
 #define TrieHT_InsertNode(pBucketArray,HashSeed,pTN) {  \
   void **pBucket; \
@@ -132,6 +124,7 @@ STD_PROTO(void hashify_children, (CTXTdeclc BTNptr, int));
 #define MakeHashedNode(pTN) \
  TN_NodeType(pTN) = TN_NodeType(pTN) | HASHED_NODE_MASK
  
+#ifdef SUBSUMPTION_XSB
 /*
  *  From an INTERIOR-typed node, create a LEAF-typed node, keeping
  *  the hashing status in-tact.  All nodes are assigned a status of
@@ -140,6 +133,9 @@ STD_PROTO(void hashify_children, (CTXTdeclc BTNptr, int));
  */
 #define MakeLeafNode(pTN) \
  TN_NodeType(pTN) = TN_NodeType(pTN) | LEAF_NODE_MASK
+#else
+#define MakeLeafNode(pTN)
+#endif
 
 #define TN_SetHashHdr(pTN,pTHT) TN_Child(pTN) = (void *)(pTHT)
 #define BTN_SetHashHdr(pBTN,pTHT) TN_SetHashHdr(pBTN,pTHT)
@@ -157,7 +153,7 @@ TSTNptr new_tstn(CTXTdeclc int trie_t, int node_t, Cell symbol, TSTNptr parent,
 }
 
 /*
- * Adds a node containing 'symbol' below 'parent', which currentyle has
+ * Adds a node containing 'symbol' below 'parent', which currently has
  * no children.
  */
 inline static
@@ -315,6 +311,7 @@ void tstCreateTSIs(CTXTdeclc TSTNptr pTST) {
   TSTNptr *pBucket, tstn;
   TSTHTptr ht;
   int bucketNum;
+  
   printf("Creating TST indices\n");
   if(IsNULL(pTST))
     return;
