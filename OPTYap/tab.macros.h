@@ -154,9 +154,8 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
 #define INCREMENT_GLOBAL_TRIE_REFS(NODE)
 #define DECREMENT_GLOBAL_TRIE_REFS(NODE)
 #endif /* GLOBAL_TRIE */
-#define TAG_AS_ANSWER_LEAF_NODE(NODE)     TrNode_parent(NODE) = (ans_node_ptr)((unsigned long int) TrNode_parent(NODE) | 0x1)
-#define UNTAG_ANSWER_LEAF_NODE(NODE)      ((ans_node_ptr)((unsigned long int) NODE & ~(0x1)))
-#define IS_ANSWER_LEAF_NODE(NODE)         ((unsigned long int) TrNode_parent(NODE) & 0x1)
+#define TAG_AS_ANSWER_LEAF_NODE(NODE)     TrNode_node_type(NODE) |= LEAF_NT
+#define IS_ANSWER_LEAF_NODE(NODE)         (TrNode_node_type(NODE) & LEAF_NT)
 
 
 /* LowTagBits is 3 for 32 bit-machines and 7 for 64 bit-machines */
@@ -861,7 +860,7 @@ void free_answer_trie_hash_chain(ans_hash_ptr hash) {
     while (! *bucket)
       bucket++;
     chain_node = *bucket;
-    TrNode_child(UNTAG_ANSWER_LEAF_NODE(TrNode_parent(chain_node))) = chain_node;
+    TrNode_child(TrNode_parent(chain_node)) = chain_node;
     while (++bucket != last_bucket) {
       if (*bucket) {
         while (TrNode_next(chain_node))
