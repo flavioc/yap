@@ -582,7 +582,9 @@ While_TermStack_NotEmpty:
         NonVarSearchChain_UnboundTrieVar(subterm, variableChain);
         break;
       case XSB_REF:
-      //case XSB_REF1:
+#ifdef SUBSUMPTION_XSB
+      case XSB_REF1:
+#endif
         /*
          *  A never-before-seen variable in the call must always match a
          *  free variable in the trie.  We can determine this by checking
@@ -945,6 +947,7 @@ void subsumptive_call_search(TabledCallInfo *call_info, CallLookupResults *resul
   } else { /* new consumer */
     CallResults_variant_found(results) = (path_type == VARIANT_PATH);
     sg_fr_ptr sg_fr = (sg_fr_ptr)TrNode_sg_fr(btn);
+    CPtr sub_ans_tmplt;
     
     if(SgFr_is_sub_producer(sg_fr)) {
       /* consume from sg_fr */
@@ -962,6 +965,8 @@ void subsumptive_call_search(TabledCallInfo *call_info, CallLookupResults *resul
           (subprod_fr_ptr)super_sg_fr, answer_template);
       printSubstitutionFactor(stdout, answer_template);
     }
+    
+    sub_ans_tmplt = answer_template--;
     
     if(path_type == VARIANT_PATH) {
       printf("Found variant!\n");
@@ -985,13 +990,27 @@ void subsumptive_call_search(TabledCallInfo *call_info, CallLookupResults *resul
       printSubstitutionFactor(stdout, CallResults_var_vector(results));
       Trail_Unwind_All;
     }
+    
+    if(CallResults_subsumer(results) && path_type != VARIANT_PATH) {
+      int numTerms = (int)*sub_ans_tmplt;
+      sub_ans_tmplt += numTerms;
+      printf("Calculating sub answers for %d terms...\n", numTerms);
+      ALNptr answers =  tst_collect_relevant_answers(SgFr_answer_trie(CallResults_subsumer(results)), 0,
+        numTerms, sub_ans_tmplt);
+        
+      while(answers) {
+        printAnswerTriePath(stdout, AnsList_answer(answers));
+        printf("\n");
+        answers = AnsList_next(answers);
+      }
+    }
   }
 }
 
 /* vector de respostas é puxado de cima para baixo!! */
 TSTNptr subsumptive_tst_search(CTXTdeclc TSTNptr tstRoot, int nTerms, CPtr termVector,
           xsbBool maintainTSI, xsbBool *isNew) {
-  TSTNptr tstn;
+  TSTNptr tstn = NULL;
   TriePathType path_type;
   
   if(nTerms > 0) {
@@ -1000,12 +1019,12 @@ TSTNptr subsumptive_tst_search(CTXTdeclc TSTNptr tstRoot, int nTerms, CPtr termV
     TermStack_PushHighToLowVector(termVector,nTerms);
     
     if(IsEmptyTrie(tstRoot)) {
-      printf("Is empty... inserting %d\n", TermStack_NumTerms);
+      printf("Is empty... inserting %d\n", (int)TermStack_NumTerms);
       tstn = tst_insert(CTXTc tstRoot, tstRoot, NO_INSERT_SYMBOL, maintainTSI);
       *isNew = TRUE;
     }
     else {
-      printf("Has something ... inserting %d\n", TermStack_NumTerms);
+      printf("Has something ... inserting %d\n", (int)TermStack_NumTerms);
       TermStackLog_ResetTOS;
       tstn = iter_sub_trie_lookup(CTXTc tstRoot, &path_type);
       if(path_type == NO_PATH) {
@@ -1058,8 +1077,11 @@ ans_node_ptr subsumptive_answer_search(sg_fr_ptr sf, CELL *subs_ptr) {
     (xsbBool)ProducerSubsumesSubgoals(sf), isNew );
   Trail_Unwind_All;
   
-  return tstn;
-  //return variant_answer_search(sf, subs_ptr);
+  printf("NEW ANSWER: %x ", tstn);
+  printAnswerTriePath(stdout, (BTNptr)tstn);
+  printf("\n");
+  
+  return (ans_node_ptr)tstn;
 }
 
 #endif /* TABLING && TABLING_CALL_SUBSUMPTION */
