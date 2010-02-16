@@ -302,14 +302,17 @@ void symstkPrintNextTrieTerm(CTXTdeclc FILE *fp, xsbBool list_recursion)
   }
 }
 
-void printSubgoalTriePath(CTXTdeclc FILE *fp, BTNptr pLeaf, tab_ent_ptr tab_entry)
+
+void printTriePath(CTXTdeclc FILE *fp, BTNptr pLeaf, xsbBool print_address)
 {
+  if(print_address)
+    fprintf(fp, "Leaf Address: %x ", (unsigned int)pLeaf);
+  
   BTNptr pRoot;
   
   SymbolStack_ResetTOS;
   SymbolStack_PushPathRoot(pLeaf, pRoot);
   
-  fprintf(fp, "%s", string_val((Term)TabEnt_atom(tab_entry)));
   fprintf(fp, "(");
   symstkPrintNextTrieTerm(CTXTc fp, FALSE);
   while(!SymbolStack_IsEmpty) {
@@ -318,6 +321,14 @@ void printSubgoalTriePath(CTXTdeclc FILE *fp, BTNptr pLeaf, tab_ent_ptr tab_entr
   }
   fprintf(fp, ")");
 }
+
+void printSubgoalTriePath(CTXTdeclc FILE *fp, BTNptr pLeaf, tab_ent_ptr tab_entry)
+{
+  fprintf(fp, "%s", string_val((Term)TabEnt_atom(tab_entry)));
+  
+  printTriePath(fp, pLeaf, NO);
+}
+
 
 void printAnswerTriePath(FILE *fp, BTNptr leaf)
 {
@@ -423,18 +434,20 @@ recursivePrintSubterm(FILE *fp, Term symbol, xsbBool list_recursion)
 
 void printSubterm(FILE *fp, Term term)
 {
-  Trail_ResetTOS;
+  int bindings = Trail_NumBindings;
+  
   variable_counter = 0;
   recursivePrintSubterm(fp, term, FALSE);
-  Trail_Unwind_All;
+  
+  Trail_Unwind(bindings);
 }
 
 void printCalledSubgoal(FILE *fp, yamop *preg)
 {
+  int bindings = Trail_NumBindings;
   int i, arity = preg->u.Otapl.s;
   tab_ent_ptr tab_ent = preg->u.Otapl.te;
   
-  Trail_ResetTOS;
   variable_counter = 0;
   
   fprintf(fp, "SUBGOAL: %s(", string_val((Term)TabEnt_atom(tab_ent)));
@@ -445,28 +458,35 @@ void printCalledSubgoal(FILE *fp, yamop *preg)
   }
   fprintf(fp, ")");
   
-  Trail_Unwind_All;
+  Trail_Unwind(bindings);
 }
 
-void printSubstitutionFactor(FILE *fp, CELL* factor)
+void printAnswerTemplate(FILE *fp, CPtr ans_tmplt, int size)
 {
-  int i = (int)*factor;
   int bindings = Trail_NumBindings;
   
-  fprintf(fp, "Substitution factor with size %d [", i);
-  
+  fprintf(fp, "[");
   variable_counter = 0;
   
-  for(++factor; i > 0; i--, ++factor) {
-    recursivePrintSubterm(fp, (Term)factor, FALSE);
+  for(; size > 0; size--, ++ans_tmplt) {
+    recursivePrintSubterm(fp, (Term)ans_tmplt, FALSE);
     
-    if(i > 1)
+    if(size > 1)
       fprintf(fp, ", ");
   }
   
   fprintf(fp, "]\n");
   
   Trail_Unwind(bindings);
+}
+
+void printSubstitutionFactor(FILE *fp, CELL* factor)
+{
+  int size = (int)*factor;
+  
+  fprintf(fp, "Substitution factor with size %d ", size);
+  
+  printAnswerTemplate(fp, ++factor, size);
 }
 
 #endif /* TABLING_CALL_SUBSUMPTION */
