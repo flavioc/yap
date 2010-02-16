@@ -180,7 +180,7 @@ typedef Functor Psc;
 #define trie_root 0
 
 #define BUCKET_CONTENT_THRESHOLD MAX_NODES_PER_BUCKET
-#define MAX_SIBLING_LEN 1 //MAX_NODES_PER_TRIE_LEVEL
+#define MAX_SIBLING_LEN MAX_NODES_PER_TRIE_LEVEL
 #define TrieHT_INIT_SIZE BASE_HASH_BUCKETS
 #define hash_opcode 0
 
