@@ -80,11 +80,10 @@ static CPtr orig_ebreg;
 #define trfreg TR_FZ
 #define cpreg CP
 #define top_of_trail ((trreg > trfreg) ? trreg : trfreg)
-#define Sys_Trail_Unwind(TR0) \
-  while(TR != TR0)  { \
-    printf("Untrail one\n");  \
-    TR--; \
-    RESET_VARIABLE((CELL *)TrailTerm(TR));  \
+#define Sys_Trail_Unwind(TR0)               \
+  while(TR != TR0)  {                       \
+    CELL *var = (CELL *)TrailTerm(--TR);    \
+    RESET_VARIABLE(var);                    \
   }
 #define unify(TERM1, TERM2) Yap_unify(TERM1, TERM2)
 
@@ -119,13 +118,12 @@ static CPtr orig_hbreg;
  */
 #define Trie_bind_copy(Addr,Val)	\
 	Trie_Conditionally_Trail(Addr,Val);	\
-  printf("%x (%x) to %x\n", Addr, *(Addr), Val);  \
 	*(Addr) = Val
 
 	
 #define Trie_Conditionally_Trail(Addr,Val)	\
 	if(IsUnboundTrieVar(Addr) || conditional(Addr))	\
-  { printf("Trail one...\n"); pushtrail0(Addr,Val) }
+  { pushtrail0(Addr,Val) }
 	
 #define Bind_and_Conditionally_Trail(Addr,Val) Trie_bind_copy(Addr,Val)
 
@@ -173,7 +171,6 @@ static CPtr orig_hbreg;
  *  Backtracking to a previous juncture in the trie.
  */
 #define TST_Backtrack	\
-  printf("Backtracking...\n"); \
 	CPStack_Pop;	\
 	ResetParentAndCurrentNodes;	\
 	RestoreTermStack;	\
@@ -294,7 +291,6 @@ static void tstCollectionError(CTXTdeclc char* string, xsbBool cleanup_required)
 	TSTNptr *buckets = TSTHT_BucketArray(ht);	\
 	SymChain = buckets[TrieHash(Symbol,TSTHT_GetHashSeed(ht))];	\
 	VarChain = buckets[TRIEVAR_BUCKET];	\
-  printf("Using hash table\n"); \
 }
 
 /* ------------------------------------------------------------------------- */
@@ -375,7 +371,6 @@ static void tstCollectionError(CTXTdeclc char* string, xsbBool cleanup_required)
 			CPStack_PushFrame(alt_chain);	\
 			Bind_and_Conditionally_Trail((CPtr)symbol, Subterm);	\
 			TermStackLog_PushFrame;	\
-			printf("SearchChain_UnifyWithConstant isref\n");  \
 			Descend_Into_TST_and_Continue_Search;	\
 		}	\
 		else if(symbol == Subterm) {	\
@@ -422,14 +417,12 @@ static void tstCollectionError(CTXTdeclc char* string, xsbBool cleanup_required)
 	Cell sym_tag;	\
 		\
 	Chain_NextValidTSTN(Chain,TS,Get_TS_Op);	\
-  printf("HERE CHAIN: %x\n", Chain); \
 	while(IsNonNULL(Chain)) {	\
 		alt_chain = TSTN_Sibling(Chain);	\
 		Chain_NextValidTSTN(alt_chain,TS,Get_TS_Op);	\
 		symbol = TSTN_Symbol(Chain);	\
 		sym_tag = TrieSymbolType(symbol);	\
 		TrieSymbol_Deref(symbol);	\
-    printf("symbol: %x cell_tag %d\n", symbol, cell_tag(symbol)); \
 		if(isref(symbol)) {	\
 			/*								  \
 			 * Either an unbound TrieVar or some unbound Prolog var.  The	  \
@@ -437,7 +430,6 @@ static void tstCollectionError(CTXTdeclc char* string, xsbBool cleanup_required)
 			 * we don't need to process its args; simply continue the search	  \
 			 * through the trie.						  \
 			 */	\
-       printf("Unbound trievar functor\n"); \
 			CPStack_PushFrame(alt_chain);	\
 			Bind_and_Conditionally_Trail((CPtr)symbol, Subterm);	\
 			TermStackLog_PushFrame;	\
@@ -450,7 +442,6 @@ static void tstCollectionError(CTXTdeclc char* string, xsbBool cleanup_required)
 			 * tell you whether we have something in the trie or in the heap.  \
 			 */	\
 			if(sym_tag == XSB_STRUCT) {	\
-        printf("sym_tag == XSB_STRUCT\n");  \
 				if(get_str_psc(Subterm) == DecodeTrieFunctor(symbol)) {	\
 					/*	\
 					 * We must process the rest of the term ourselves.	\
@@ -462,7 +453,6 @@ static void tstCollectionError(CTXTdeclc char* string, xsbBool cleanup_required)
 				}	\
 			}	\
 			else {	\
-        printf("TRIEVAR BOUND FUNCTOR\n");  \
 				/*								  \
 				 * We have a TrieVar bound to a heap XSB_STRUCT-term; use a	  \
 				 * standard unification algorithm to check the match and	  \
@@ -475,7 +465,6 @@ static void tstCollectionError(CTXTdeclc char* string, xsbBool cleanup_required)
 				}	\
 			}	\
 		}	\
-    printf("NEXT\n"); \
 		Chain = alt_chain;	\
 	}	\
 }
@@ -621,17 +610,14 @@ static void tstCollectionError(CTXTdeclc char* string, xsbBool cleanup_required)
 	CPStack_PushFrame(Continuation);	\
 	TermStackLog_PushFrame;	\
 	symbol = TSTN_Symbol(Chain);	\
-  printf("UnifyWithVariable %x\n", Subterm);  \
 	TrieSymbol_Deref(symbol);	\
 	switch(TrieSymbolType(symbol)) {	\
 		case XSB_INT:	\
 		case XSB_FLOAT:	\
 		case XSB_STRING:	\
-    printf("Var constant\n"); \
 			Trie_bind_copy((CPtr)Subterm,symbol);	\
 			break;	\
 		case XSB_STRUCT:	\
-    printf("Var functor\n");  \
 			/*									   \
 			 * Need to be careful here, because TrieVars are bound to heap-	   \
 			 * resident structures and a deref of the (trie) symbol doesn't	   \
@@ -655,7 +641,6 @@ static void tstCollectionError(CTXTdeclc char* string, xsbBool cleanup_required)
 			}	\
 			break;	\
 		case XSB_LIST:	\
-    printf("Var list\n"); \
 			if(IsTrieList(TSTN_Symbol(Chain))) {	\
 				/*								   \
 				 * Since the TSTN contains a (sub)list beginning, create a	   \
@@ -674,7 +659,6 @@ static void tstCollectionError(CTXTdeclc char* string, xsbBool cleanup_required)
 			}	\
 			break;			\
 		case XSB_REF:		\
-    printf("Var var\n");  \
 			/*									   \
 			 * The symbol is either an unbound TrieVar or some unbound Prolog	   \
 			 * variable.  If it's an unbound TrieVar, we bind it to the	   \
@@ -684,7 +668,6 @@ static void tstCollectionError(CTXTdeclc char* string, xsbBool cleanup_required)
 				Bind_and_Trail((CPtr)symbol,Subterm);	\
 			}	\
 			else	{ \
-        printf("unify\n");  \
 				unify(CTXTc symbol,Subterm);	\
 			} \
 			break;	\
@@ -779,7 +762,6 @@ While_TSnotEmpty:
 		case XSB_FLOAT:
 #endif
 		case XSB_STRING:
-    printf("Constant\n");
 			/*
 			 * NOTE: A Trie constant looks like a Prolog constant.
 			 */
@@ -801,7 +783,6 @@ While_TSnotEmpty:
 				SearchChain_UnifyWithConstant(cur_chain,subterm,ts,TSTN_TimeStamp)
 			break;
 		case XSB_STRUCT:
-    printf("Functor\n");
 			/*
 			 *  NOTE:  A trie XSB_STRUCT is a XSB_STRUCT-tagged PSC ptr,
 			 *  while a heap XSB_STRUCT is a XSB_STRUCT-tagged ptr to a PSC ptr.
@@ -814,10 +795,8 @@ While_TSnotEmpty:
 						TermStack_PushFunctorArgs(subterm));
 						cur_chain = alt_chain;
 				}
-				if(IsNULL(cur_chain)) {
-          printf("BACKTRACK\n");
+				if(IsNULL(cur_chain))
 					backtrack;
-				}
 			}
 			if(IsHashedNode(cur_chain))
 				SearchChain_UnifyWithFunctor(cur_chain,subterm,ts,TSTN_GetTSfromTSIN)
@@ -827,7 +806,6 @@ While_TSnotEmpty:
 		/* SUBTERM IS A LIST
 		   ----------------- */
 		case XSB_LIST:
-  printf("List\n");
 			/*
 			 *  NOTE:  A trie XSB_LIST uses a plain XSB_LIST tag wherever a recursive
 			 *         substructure begins, while a heap XSB_LIST uses a XSB_LIST-
@@ -855,7 +833,6 @@ While_TSnotEmpty:
 #ifdef SUBSUMPTION_XSB
     case XSB_REF1:
 #endif
-    printf("Variable\n");
 			/*
 			 *  Since variables unify with any term, only prune based on
 			 *  timestamps.  For Hashed/HashRoot nodes we can use the TSI to
