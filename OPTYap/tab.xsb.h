@@ -194,7 +194,12 @@ typedef Functor Psc;
 #define xsb_dbgmsg(PARAM) my_xsb_debug PARAM
 #define my_xsb_debug(LOG_LEVEL, MSG) printf("%s", MSG)
 #define dbg_printAnswerTemplate(LOG_LEVEL, OUTPUT, TERM_VECTOR, NUMTERMS)
-#define dbg_printTrieNode(LOG_LEVEL, OUTPUT, LEAF);
+#define dbg_printTrieNode(LOG_LEVEL, OUTPUT, LEAF)
+
+/* amiops.h */
+#define conditional(Addr) OUTSIDE(HBREG, Addr, B)
+#define pushtrail0 DO_TRAIL
+#define bind_ref(A,D) Bind(A,D)
 
 #endif /* TABLING_CALL_SUBSUMPTION */
 
