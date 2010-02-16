@@ -27,6 +27,7 @@
 #include "tab.tst.h"
 #include "tab.retrv.h"
 #include "tab.utils.h"
+#include "tab.xsb_common.h"
 
 /*  Data Structures and Related Macros
     ==================================  */
@@ -71,21 +72,14 @@ static CPtr orig_ebreg;
    hreg = orig_hreg;			\
    hbreg = orig_hbreg;			\
    ebreg = orig_ebreg
+
 #else /* YAP */
 
-#define trreg TR
-#define hreg H
-#define hbreg HB
-#define ereg E
-#define trfreg TR_FZ
-#define cpreg CP
-#define top_of_trail ((trreg > trfreg) ? trreg : trfreg)
 #define Sys_Trail_Unwind(TR0)               \
   while(TR != TR0)  {                       \
     CELL *var = (CELL *)TrailTerm(--TR);    \
     RESET_VARIABLE(var);                    \
   }
-#define unify(TERM1, TERM2) Yap_unify(TERM1, TERM2)
 
 static tr_fr_ptr trail_base;
 static tr_fr_ptr orig_trreg;
@@ -103,9 +97,6 @@ static CPtr orig_hbreg;
   hreg = orig_hreg; \
   hbreg = orig_hbreg
 
-/* amiops.h XXX */
-#define conditional(Addr) OUTSIDE(HBREG, Addr, B)
-#define pushtrail0 DO_TRAIL
 #endif /* SUBSUMPTION_XSB */
 	
 /*
@@ -552,132 +543,102 @@ static void tstCollectionError(CTXTdeclc char* string, xsbBool cleanup_required)
 	}	\
 }
 
-#ifdef SUBSUMPTION_XSB
-#define CreateHeapFunctor(Symbol) { \
-  CPtr heap_var_ptr;  \
-  int arity, i; \
-  Psc symbolPsc;  \
-  symbolPsc = (Psc)cs_val(Symbol);  \
-  arity = get_arity(symbolPsc); \
-  bld_cs(hreg, hreg + 1); \
-  bld_functor(++hreg, symbolPsc); \
-  for(heap_var_ptr = hreg + arity, i = 0; \
-      i < arity;  \
-      heap_var_ptr--, i++) {  \
-    bld_free(heap_var_ptr); \
-    TermStack_Push((Cell)heap_var_ptr); \
-  } \
-  hreg = hreg + arity + 1;  \
-}
-#define CreateHeapList() {  \
-  bld_list(hreg, hreg + 1); \
-  hreg = hreg + 3;  \
-  bld_free(hreg - 1); \
-  TermStack_Push((Cell)(hreg - 1)); \
-  bld_free(hreg - 2); \
-  TermStack_Push((Cell)(hreg - 2)); \
-}
-#else
-#define CreateHeapFunctor(Symbol) { \
-  Functor functor;													\
-	int arity, i;													\
-  CPtr old_h = H++;               \
-																	\
-	functor = (Functor)RepAppl(Symbol);	\
-	arity = ArityOfFunctor(functor);  \
-	Term tf = Yap_MkNewApplTerm(functor,arity);	\
-  *old_h = tf;        \
-	for (i = arity; i >= 1; i--)			{		\
-    CPtr c = *(RepAppl(tf) + i);  \
-		TermStack_Push(c);	\
-	} \
-}
-#define CreateHeapList() {  \
-  CPtr old_h = H++;  \
-  Term tl = Yap_MkNewPairTerm();	\
-  *old_h = tl;  \
-	TermStack_Push(*(RepPair(tl) + 1));	\
-	TermStack_Push(*(RepPair(tl)));	\
-}
-#endif
-
 /* ------------------------------------------------------------------------- */
 
 /*
  *  Unify the timestamp-valid node 'cur_chain' with the variable subterm.
  */
-#define CurrentTSTN_UnifyWithVariable(Chain,Subterm,Continuation)	\
-	CPStack_PushFrame(Continuation);	\
-	TermStackLog_PushFrame;	\
-	symbol = TSTN_Symbol(Chain);	\
-	TrieSymbol_Deref(symbol);	\
-	switch(TrieSymbolType(symbol)) {	\
-		case XSB_INT:	\
-		case XSB_FLOAT:	\
-		case XSB_STRING:	\
-			Trie_bind_copy((CPtr)Subterm,symbol);	\
-			break;	\
-		case XSB_STRUCT:	\
-			/*									   \
-			 * Need to be careful here, because TrieVars are bound to heap-	   \
-			 * resident structures and a deref of the (trie) symbol doesn't	   \
-			 * tell you whether we have something in the trie or in the heap.	   \
-			 */								   \
-			if(IsTrieFunctor(TSTN_Symbol(Chain))) {	\
-				/*								   \
-				 * Since the TSTN contains some f/n, create an f(X1,X2,...,Xn)	   \
-				 * structure on the heap so that we can bind the subterm		   \
-				 * variable to it.  Then use this algorithm to find bindings	   \
-				 * for the unbound variables X1,...,Xn in the trie.		   \
-				 */								   								\
-				Trie_bind_copy((CPtr)Subterm,(Cell)hreg);	\
-        CreateHeapFunctor(symbol);  \
-			}	\
-			else {	\
-				/*								   \
-				 * We have a TrieVar bound to a heap-resident STRUCT.		   \
-				 */								   \
-				Trie_bind_copy((CPtr)Subterm,symbol);	\
-			}	\
-			break;	\
-		case XSB_LIST:	\
-			if(IsTrieList(TSTN_Symbol(Chain))) {	\
-				/*								   \
-				 * Since the TSTN contains a (sub)list beginning, create a	   \
-				 * [X1|X2] structure on the heap so that we can bind the		   \
-				 * subterm variable to it.  Then use this algorithm to find	   \
-				 * bindings for the unbound variables X1 & X2 in the trie.	   \
-				 */								   \
-				Trie_bind_copy((CPtr)Subterm,(Cell)hreg);	\
-        CreateHeapList(); \
-			}	\
-			else {	\
-				/*								   \
-				 * We have a TrieVar bound to a heap-resident LIST.		   \
-				 */								   \
-				Trie_bind_copy((CPtr)Subterm,symbol);	\
-			}	\
-			break;			\
-		case XSB_REF:		\
-			/*									   \
-			 * The symbol is either an unbound TrieVar or some unbound Prolog	   \
-			 * variable.  If it's an unbound TrieVar, we bind it to the	   \
-			 * Prolog var.  Otherwise, binding direction is WAM-defined.	   \
-			 */	\
-			if(IsUnboundTrieVar(symbol)) {	\
-				Bind_and_Trail((CPtr)symbol,Subterm);	\
-			}	\
-			else	{ \
-				unify(CTXTc symbol,Subterm);	\
-			} \
-			break;	\
-		default:	\
-			fprintf(stderr, "subterm: unbound var (%ld), symbol: unknown "	\
-				"(%ld)\n", cell_tag(Subterm), TrieSymbolType(symbol));	\
-			TST_Collection_Error("Trie symbol with bogus tag!", RequiresCleanup);	\
-			break;	\
-		} /* END switch(symbol_tag) */	\
-		Descend_Into_TST_and_Continue_Search
+
+static inline
+xsbBool
+Unify_with_Variable(Cell symbol, Cell subterm, TSTNptr node) {
+ switch(TrieSymbolType(symbol)) {
+  case XSB_INT:
+#ifdef SUBSUMPTION_XSB
+  case XSB_FLOAT:
+#endif
+  case XSB_STRING:
+    /*     printf("before %x %x \n",(CPtr)Subterm,symbol);	*/
+    Trie_bind_copy((CPtr)subterm,symbol);
+    /*     printf("after %x\n",*(CPtr)Subterm);		*/
+    break;
+
+  case XSB_STRUCT:
+    /*
+     * Need to be careful here, because TrieVars are bound to heap-
+     * resident structures and a deref of the (trie) symbol doesn't
+     * tell you whether we have something in the trie or in the heap.
+     */
+    if ( IsTrieFunctor(TSTN_Symbol(node)) ) {
+      /*
+	      * Since the TSTN contains some f/n, create an f(X1,X2,...,Xn)
+	      * structure on the heap so that we can bind the subterm
+	      * variable to it.  Then use this algorithm to find bindings
+	      * for the unbound variables X1,...,Xn in the trie.
+	      */
+	     Trie_bind_copy((CPtr)subterm,(Cell)hreg);
+      CreateHeapFunctor(symbol);
+    }
+    else {
+      /*
+	      * We have a TrieVar bound to a heap-resident STRUCT.
+	      */
+      Trie_bind_copy((CPtr)subterm,symbol);
+    }
+    break;
+
+  case XSB_LIST:
+    if ( IsTrieList(TSTN_Symbol(node)) ) {
+      /*
+	      * Since the TSTN contains a (sub)list beginning, create a
+	      * [X1|X2] structure on the heap so that we can bind the
+	      * subterm variable to it.  Then use this algorithm to find
+	      * bindings for the unbound variables X1 & X2 in the trie.
+	      */
+      Trie_bind_copy((CPtr)subterm,(Cell)hreg);
+      CreateHeapList();
+    }
+    else {
+      /*
+	      * We have a TrieVar bound to a heap-resident LIST.
+	      */
+      Trie_bind_copy((CPtr)subterm,symbol);
+    }
+    break;
+
+  case XSB_REF:
+#ifdef SUBSUMPTION_XSB
+  case XSB_REF1:
+#endif
+    /*
+     * The symbol is either an unbound TrieVar or some unbound Prolog
+     * variable.  If it's an unbound TrieVar, we bind it to the
+     * Prolog var.  Otherwise, binding direction is WAM-defined.
+     */
+    if (IsUnboundTrieVar(symbol)) {
+      Bind_and_Trail((CPtr)symbol,subterm);
+    }
+    else
+      unify(CTXTc symbol,subterm);
+    break;
+
+  default:
+    return FALSE;
+  }  /* END switch(symbol_tag) */
+  return TRUE;
+}
+
+#define CurrentTSTN_UnifyWithVariable(Chain,Subterm,Continuation)	   \
+  CPStack_PushFrame(Continuation);					   \
+  TermStackLog_PushFrame;						   \
+  symbol = TSTN_Symbol(Chain);						   \
+  TrieSymbol_Deref(symbol);						   \
+  if(!Unify_with_Variable(symbol,Subterm,Chain)) { \
+    fprintf(stderr, "subterm: unbound var (%ld),  symbol: unknown "	   \
+	     "(%ld)\n", cell_tag(Subterm), TrieSymbolType(symbol));	   \
+     TST_Collection_Error("Trie symbol with bogus tag!", RequiresCleanup); \
+  } \
+  Descend_Into_TST_and_Continue_Search
 			
 /*
  * Purpose:
