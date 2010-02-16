@@ -41,12 +41,6 @@ struct tstCPStack_t {
 
 extern struct tstCPStack_t tstCPStack;
 
-#define TrieSymbol_Deref(Symbol)	\
-	if(IsTrieVar(Symbol)) {	\
-		Symbol = TrieVarBindings[DecodeTrieVar(Symbol)];	\
-		XSB_Deref(Symbol);	\
-	}
-
 ALNptr tst_collect_relevant_answers(CTXTdeclc TSTNptr tstRoot, TimeStamp ts,
 				    int numTerms, CPtr termsRev);
 

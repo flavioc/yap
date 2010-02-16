@@ -387,11 +387,13 @@ typedef enum {
 CellTag cell_tag(Term t);
 CellTag TrieSymbolType(Term t);
 xsbBool are_identical_terms(Cell term1, Cell term2);
+void printTriePath(CTXTdeclc FILE *fp, BTNptr pLeaf, xsbBool print_address);
 void printSubgoalTriePath(CTXTdeclc FILE *fp, BTNptr pLeaf, tab_ent_ptr tab_entry);
 void printAnswerTriePath(FILE *fp, BTNptr leaf);
 void printTrieNode(FILE *fp, BTNptr pTN);
 void printSubterm(FILE *fp, Term term);
 void printCalledSubgoal(FILE *fp, yamop *preg);
+void printAnswerTemplate(FILE *fp, CPtr ans_tmplt, int size);
 void printSubstitutionFactor(FILE *fp, CELL* factor);
 
 extern int AnsVarCtr;
@@ -401,6 +403,12 @@ extern int AnsVarCtr;
    
 #define TrieError_UnknownSubtermTag(Subterm)			\
    xsb_abort(TrieError_UnknownSubtermTagMsg, cell_tag(Subterm))
+
+#define TrieSymbol_Deref(Symbol)	\
+ if(IsTrieVar(Symbol)) {	\
+   Symbol = TrieVarBindings[DecodeTrieVar(Symbol)];	\
+   XSB_Deref(Symbol);	\
+ }
 
 #endif /* TABLING_CALL_SUBSUMPTION */
 
