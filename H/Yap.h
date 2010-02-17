@@ -1264,6 +1264,8 @@ extern char emacs_tmp[], emacs_tmp2[];
 
 #if defined(YAPOR) || defined(TABLING)
 #include "opt.structs.h"
+#include "tab.xsb.h"
+#include "tab.tst.h"
 #include "opt.proto.h"
 #include "opt.macros.h"
 #endif /* YAPOR || TABLING */
