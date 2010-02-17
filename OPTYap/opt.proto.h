@@ -65,7 +65,6 @@ void finish_yapor(void);
 #ifdef TABLING
 sg_fr_ptr subgoal_search(yamop *preg, CELL **Yaddr);
 ans_node_ptr answer_search(sg_fr_ptr sg_fr, CELL *subs_ptr);
-void consume_variant_answer(ans_node_ptr ans_node, int size, CELL *answer_template);
 #ifdef GLOBAL_TRIE
 CELL *load_substitution_variable(gt_node_ptr current_node, CELL *aux_stack_ptr);
 #endif /* GLOBAL_TRIE */
@@ -83,6 +82,27 @@ void show_global_trie(void);
 #endif /* GLOBAL_TRIE */
 #endif /* TABLING */
 
+/* --------------- **
+**  tab.var.c      **
+** --------------- */
+
+#ifdef TABLING
+inline CPtr extract_template_from_insertion(CTXTdeclc CPtr ans_tmplt);
+sg_node_ptr variant_call_cont_insert(tab_ent_ptr tab_ent, sg_node_ptr current_node, int count_vars);
+void variant_call_search(TabledCallInfo *call_info, CallLookupResults *results);
+ans_node_ptr variant_answer_search(sg_fr_ptr sg_fr, CELL *subs_ptr);
+void consume_variant_answer(ans_node_ptr ans_node, int size, CELL *answer_template);
+#endif /* TABLING */
+
+/* ----------------- **
+** tab.subsumption.c **
+** ----------------- */
+
+#ifdef TABLING
+void subsumptive_call_search(TabledCallInfo *call_info, CallLookupResults *results);
+ans_node_ptr subsumptive_answer_search(sg_fr_ptr sg_fr, CELL *subs_ptr);
+void *newTSTAnswerSet(void);
+#endif
 
 /* --------------- **
 **  tab.suspend.c  **
