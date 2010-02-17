@@ -997,12 +997,20 @@ void subsumptive_call_search(TabledCallInfo *call_info, CallLookupResults *resul
       printf("Calculating sub answers for %d terms...\n", numTerms);
       ALNptr answers =  tst_collect_relevant_answers(SgFr_answer_trie(CallResults_subsumer(results)), 0,
         numTerms, sub_ans_tmplt);
+      ALNptr last;
+      ALNptr first = answers;
         
       while(answers) {
         printAnswerTriePath(stdout, AnsList_answer(answers));
         printf("\n");
+        last = answers;
         answers = AnsList_next(answers);
       }
+      
+      sg_fr_ptr sg_fr = CallResults_subgoal_frame(results);
+      SgFr_first_answer(sg_fr) = first;
+      SgFr_last_answer(sg_fr) = last;
+      SgFr_state(sg_fr) = complete; 
     }
   }
 }
