@@ -556,6 +556,7 @@ struct consumer_choicept {
 struct loader_choicept {
   struct choicept cp;
   continuation_ptr cp_last_answer;
+  sg_fr_ptr sg_fr;
 #ifdef LOW_LEVEL_TRACER
   struct pred_entry *cp_pred_entry;
 #endif /* LOW_LEVEL_TRACER */
