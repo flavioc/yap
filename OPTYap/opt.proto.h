@@ -105,6 +105,14 @@ void *newTSTAnswerSet(void);
 #endif
 
 /* --------------- **
+**   tab.unify.c   **
+** --------------- */
+
+#ifdef TABLING
+void consume_subsumptive_answer(CTXTdeclc BTNptr pAnsLeaf, int sizeTmplt, CPtr pAnsTmplt);
+#endif  
+
+/* --------------- **
 **  tab.suspend.c  **
 ** --------------- */
 

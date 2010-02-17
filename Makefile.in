@@ -460,7 +460,6 @@ tab.tst.o: $(srcdir)/OPTYap/tab.tst.c \
 	$(CC) -c $(CFLAGS) $(srcdir)/OPTYap/tab.tst.c -o $@
 
 tab.unify.o: $(srcdir)/OPTYap/tab.unify.c \
-	$(srcdir)/OPTYap/tab.unify.h \
 	$(srcdir)/OPTYap/tab.utils.h \
 	$(srcdir)/OPTYap/tab.structs.h \
 	$(srcdir)/OPTYap/tab.tst.h \
