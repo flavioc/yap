@@ -65,7 +65,7 @@ void finish_yapor(void);
 #ifdef TABLING
 sg_fr_ptr subgoal_search(yamop *preg, CELL **Yaddr);
 ans_node_ptr answer_search(sg_fr_ptr sg_fr, CELL *subs_ptr);
-void load_answer(ans_node_ptr ans_node, CELL *subs_ptr);
+void consume_variant_answer(ans_node_ptr ans_node, int size, CELL *answer_template);
 #ifdef GLOBAL_TRIE
 CELL *load_substitution_variable(gt_node_ptr current_node, CELL *aux_stack_ptr);
 #endif /* GLOBAL_TRIE */
