@@ -24,7 +24,6 @@
 #include "yapio.h"
 #include "tab.macros.h"
 #include "tab.utils.h"
-#include "tab.var.h"
 #include "tab.tries.h"
 
 inline

@@ -24,9 +24,7 @@
 #include "yapio.h"
 #include "tab.macros.h"
 #include "tab.utils.h"
-#include "tab.subsumption.h"
 #include "tab.tries.h"
-#include "tab.var.h"
 
 /* -------------------------- **
 **      Global functions      **

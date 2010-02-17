@@ -27,8 +27,6 @@
 #include "tab.tst.h"
 #include "tab.xsb.h"
 #include "tab.utils.h"
-#include "tab.subsumption.h"
-#include "tab.var.h"
 
 typedef enum Search_Strategy_Mode {
   MATCH_SYMBOL_EXACTLY, MATCH_WITH_TRIEVAR
