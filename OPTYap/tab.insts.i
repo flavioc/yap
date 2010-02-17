@@ -208,10 +208,10 @@
             TABLING_ERRORS_consume_answer_and_procceed;   \
             subs_ptr = (CELL *) (GEN_CP(B) + 1);          \
             subs_ptr += SgFr_arity(GEN_CP(B)->cp_sg_fr);  \
-	  } else {                                        \
+	        } else {                                        \
             subs_ptr = (CELL *) (CONS_CP(B) + 1);         \
-	  }                                               \
-          load_answer(ANSWER, subs_ptr);                  \
+	        }                                               \
+          CONSUME_VARIANT_ANSWER(ANSWER, subs_ptr);       \
           /* procceed */                                  \
           YENV = ENV;                                     \
           GONext();                                       \
@@ -279,19 +279,27 @@
         ENV = YENV
 #endif /* DEPTH_LIMIT */
 
-/* Consume subsuming answer ANS_NODE using ANS_TMPLT as the
- * pointer to the answer template.
+/* Consume subsuming answer ANS_NODE using ANS_TMPLT
+ * as the pointer to the answer template.
  * the size of the answer template is calculated and
  * consume_subsumptive_answer is called to do the real work
  */
 #define CONSUME_SUBSUMPTIVE_ANSWER(ANS_NODE, ANS_TMPLT) {  \
-  int arity_variant = (int)*ANS_TMPLT; \
-  CELL* answer_template = ANS_TMPLT + arity_variant + 1; \
+  int arity_variant = (int)*(ANS_TMPLT); \
+  CELL* answer_template = (ANS_TMPLT) + arity_variant + 1; \
   int sub_arity = (int)*answer_template;  \
   answer_template += sub_arity; \
   printf("Var arity: %d Sub arity: %d\n", arity_variant, sub_arity);  \
   consume_subsumptive_answer(ANS_NODE, sub_arity, answer_template); \
 }
+
+/* Consume a variant answer ANS_NODE using ANS_TMPLT
+ * as the pointer to the answer template.
+ */
+#define CONSUME_VARIANT_ANSWER(ANS_NODE, ANS_TMPLT) { \
+    int arity = (int)*(ANS_TMPLT);  \
+    consume_variant_answer(ANS_NODE, arity, (ANS_TMPLT)+1); \
+  }
 
 
 /* ------------------------------ **
@@ -315,7 +323,7 @@
 
 
   PBOp(table_load_answer, Otapl)
-    CELL *subs_ptr;
+    CELL *ans_tmplt;
     ans_node_ptr ans_node;
     continuation_ptr next;
     sg_fr_ptr sg_fr;
@@ -333,7 +341,7 @@
     }
 #endif /* YAPOR */
 
-    subs_ptr = (CELL *) (LOAD_CP(B) + 1);
+    ans_tmplt = (CELL *) (LOAD_CP(B) + 1);
     sg_fr = LOAD_CP(B)->sg_fr;
     
     next = ContPtr_next(LOAD_CP(B)->cp_last_answer);
@@ -349,9 +357,9 @@
     PREFETCH_OP(PREG);
     
     if(SgFr_is_variant(sg_fr) || SgFr_is_sub_producer(sg_fr)) {
-      load_answer(ans_node, subs_ptr);
+      CONSUME_VARIANT_ANSWER(ans_node, ans_tmplt);
     } else if(SgFr_is_sub_consumer(sg_fr)) {
-      CONSUME_SUBSUMPTIVE_ANSWER(ans_node, subs_ptr);
+      CONSUME_SUBSUMPTIVE_ANSWER(ans_node, ans_tmplt);
     }
     
     YENV = ENV;
@@ -387,7 +395,7 @@
 
       PREG = (yamop *) CPREG;
       PREFETCH_OP(PREG);
-      load_answer(ans_node, subs_ptr);
+      CONSUME_VARIANT_ANSWER(ans_node, subs_ptr);
       YENV = ENV;
       GONext();
     } else {
@@ -466,7 +474,7 @@
       store_generator_node(tab_ent, sg_fr, PREG->u.Otapl.s, TRY_ANSWER);
       PREG = (yamop *) CPREG;
       PREFETCH_OP(PREG);
-      load_answer(ans_node, subs_ptr);
+      CONSUME_VARIANT_ANSWER(ans_node, subs_ptr);
       YENV = ENV;
       GONext();
 #endif /* INCOMPLETE_TABLING */
@@ -532,7 +540,7 @@
           PREG = (yamop *) CPREG;
           PREFETCH_OP(PREG);
           if(SgFr_is_variant(sg_fr) || SgFr_is_sub_producer(sg_fr)) {
-            load_answer(ans_node, YENV);
+            CONSUME_VARIANT_ANSWER(ans_node, YENV);
           } else if(SgFr_is_sub_consumer(sg_fr)) {
             CONSUME_SUBSUMPTIVE_ANSWER(ans_node, YENV);
           }
@@ -592,7 +600,7 @@
       store_generator_node(tab_ent, sg_fr, PREG->u.Otapl.s, TRY_ANSWER);
       PREG = (yamop *) CPREG;
       PREFETCH_OP(PREG);
-      load_answer(ans_node, subs_ptr);
+      CONSUME_VARIANT_ANSWER(ans_node, subs_ptr);
       YENV = ENV;
       GONext();
 #endif /* INCOMPLETE_TABLING */
@@ -656,7 +664,7 @@
           PREG = (yamop *) CPREG;
           PREFETCH_OP(PREG);
           if(SgFr_is_variant(sg_fr) || SgFr_is_sub_producer(sg_fr)) {
-            load_answer(ans_node, YENV);
+            CONSUME_VARIANT_ANSWER(ans_node, YENV);
           } else if(SgFr_is_sub_consumer(sg_fr)) {
             CONSUME_SUBSUMPTIVE_ANSWER(ans_node, YENV);
           }
@@ -715,7 +723,7 @@
       store_generator_node(tab_ent, sg_fr, PREG->u.Otapl.s, TRY_ANSWER);
       PREG = (yamop *) CPREG;
       PREFETCH_OP(PREG);
-      load_answer(ans_node, subs_ptr);
+      CONSUME_VARIANT_ANSWER(ans_node, subs_ptr);
       YENV = ENV;
       GONext();
 #endif /* INCOMPLETE_TABLING */
@@ -778,7 +786,7 @@
             
           PREG = (yamop *) CPREG;
           PREFETCH_OP(PREG);
-          load_answer(ans_node, YENV);
+          CONSUME_VARIANT_ANSWER(ans_node, YENV);
 	        YENV = ENV;
           GONext();
 	      } else {
@@ -1818,7 +1826,7 @@
             
             PREG = (yamop *) CPREG;
             PREFETCH_OP(PREG);
-            load_answer(ans_node, YENV);
+            CONSUME_VARIANT_ANSWER(ans_node, YENV);
             YENV = ENV;
             GONext();
           } else {
