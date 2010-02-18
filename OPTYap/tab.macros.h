@@ -33,6 +33,7 @@ STD_PROTO(static inline void restore_bindings, (tr_fr_ptr, tr_fr_ptr));
 STD_PROTO(static inline void abolish_incomplete_subgoals, (choiceptr));
 STD_PROTO(static inline void free_subgoal_trie_hash_chain, (sg_hash_ptr));
 STD_PROTO(static inline void free_answer_trie_hash_chain, (ans_hash_ptr));
+STD_PROTO(static inline continuation_ptr get_next_answer_continuation, (dep_fr_ptr dep_fr));
 STD_PROTO(static inline choiceptr freeze_current_cp, (void));
 STD_PROTO(static inline void resume_frozen_cp, (choiceptr));
 
@@ -409,6 +410,7 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
         DepFr_leader_cp(DEP_FR) = NORM_CP(LEADER_CP);                                                  \
         DepFr_cons_cp(DEP_FR) = NORM_CP(CONS_CP);                                                      \
         DepFr_next(DEP_FR) = NEXT;                                                                     \
+        DepFr_sg_fr(DEP_FR) = SG_FR;                                                                   \
         DepFr_last_answer(DEP_FR) = (continuation_ptr)((unsigned long int) (SG_FR) +                   \
                                     (unsigned long int) (&SgFr_first_answer((sg_fr_ptr)DEP_FR)) -      \
                                     (unsigned long int) (&ContPtr_next((continuation_ptr)DEP_FR)))
@@ -877,6 +879,16 @@ void free_answer_trie_hash_chain(ans_hash_ptr hash) {
   }
   return;
 }
+
+static inline continuation_ptr
+get_next_answer_continuation(dep_fr_ptr dep_fr) {
+  continuation_ptr last = DepFr_last_answer(dep_fr);
+  continuation_ptr next = ContPtr_next(last);
+  
+  return next;
+}
+
+
 
 
 /*
