@@ -39,7 +39,7 @@ CPtr extract_template_from_insertion(CTXTdeclc CPtr ans_tmplt) {
 
 static inline
 sg_fr_ptr
-get_subgoal_frame_from_node(sg_node_ptr leaf_node, tab_ent_ptr tab_ent, yamop *code, int* new)
+get_subgoal_frame_from_node(sg_node_ptr leaf_node, tab_ent_ptr tab_ent, yamop *code, int* old)
 {
   sg_fr_ptr sg_fr;
   
@@ -53,9 +53,9 @@ get_subgoal_frame_from_node(sg_node_ptr leaf_node, tab_ent_ptr tab_ent, yamop *c
     /* new tabled subgoal */
     new_variant_subgoal_frame(sg_fr, code, leaf_node);
     //printf("New subgoal frame... %x at node %x\n", sg_fr, current_node);
-    *new = TRUE;
+    *old = FALSE;
   } else {
-    *new = FALSE;
+    *old = TRUE;
     sg_fr = (sg_fr_ptr) TrNode_sg_fr(leaf_node);
     //printf("Node already present... %x\n", sg_fr);
 #ifdef LIMIT_TABLING
