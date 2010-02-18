@@ -424,6 +424,7 @@ typedef struct dependency_frame {
   choiceptr leader_choice_point;
   choiceptr consumer_choice_point;
   continuation_ptr last_consumed_answer;
+  sg_fr_ptr sg_fr; /* NEW */
   struct dependency_frame *next;
 } *dep_fr_ptr;
 
@@ -435,6 +436,7 @@ typedef struct dependency_frame {
 #define DepFr_leader_cp(X)               ((X)->leader_choice_point)
 #define DepFr_cons_cp(X)                 ((X)->consumer_choice_point)
 #define DepFr_last_answer(X)             ((X)->last_consumed_answer)
+#define DepFr_sg_fr(X)                   ((X)->sg_fr)
 #define DepFr_next(X)                    ((X)->next)
 
 /* ---------------------------------------------------------------------------------------------------- **
