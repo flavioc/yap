@@ -236,6 +236,20 @@ void private_completion(sg_fr_ptr sg_fr) {
     FREE_DEPENDENCY_FRAME(LOCAL_top_dep_fr);
     LOCAL_top_dep_fr = dep_fr;
   }
+  
+  /* for subsumed goals, also mark as complete */
+  if(SgFr_is_sub_producer(sg_fr)) {
+    subprod_fr_ptr prod_sg = (subprod_fr_ptr)sg_fr;
+    
+    printf("Marking subsumed goals as complete!\n");
+    subcons_fr_ptr cons_sg = SgFr_prod_consumers(prod_sg);
+    
+    while(cons_sg) {
+      printf("Mark one!\n");
+      mark_as_completed((sg_fr_ptr)cons_sg);
+      cons_sg = SgFr_consumers(cons_sg);
+    }
+  }
 
   /* adjust freeze registers */
   adjust_freeze_registers();
