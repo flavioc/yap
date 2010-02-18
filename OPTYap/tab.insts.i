@@ -146,7 +146,7 @@
           /* pop args */                        \
           x_args = XREGS + 1 ;                  \
           pt_args = (CELL *)(GEN_CP(gcp) + 1);  \
-	  while (x_args < XREGS + 1 + ARITY) {  \
+	  while (x_args < XREGS + 1 + ARITY) {        \
             register CELL x = pt_args[0];       \
             pt_args++;                          \
             x_args++;                           \
@@ -1187,8 +1187,7 @@
     LOCK(DepFr_lock(dep_fr));
     
     ans_node_ptr ans_node;
-    continuation_ptr last = DepFr_last_answer(dep_fr);
-    continuation_ptr next = ContPtr_next(last);
+    continuation_ptr next = get_next_answer_continuation(dep_fr);
     
     if(next) {
       /* unconsumed answer */
@@ -1248,8 +1247,7 @@
         LOCK(DepFr_lock(dep_fr));
         
         ans_node = NULL;
-        last = DepFr_last_answer(dep_fr);
-        next = ContPtr_next(last);
+        next = get_next_answer_continuation(dep_fr);
         
         if(next) {
           /* dependency frame with unconsumed answers */
@@ -1504,7 +1502,7 @@
     INIT_PREFETCH()
     dep_fr_ptr dep_fr;
     ans_node_ptr ans_node;
-    continuation_ptr last, next;
+    continuation_ptr next;
     
 #ifdef YAPOR
 #ifdef TIMESTAMP_CHECK
@@ -1526,8 +1524,7 @@
       LOCK(DepFr_lock(dep_fr));
       
       ans_node = NULL;
-      last = DepFr_last_answer(dep_fr);
-      next = ContPtr_next(last);
+      next = get_next_answer_continuation(dep_fr);
       
       if(next) {
         /* dependency frame with unconsumed answers */
@@ -1723,8 +1720,7 @@
         LOCK_OR_FRAME(LOCAL_top_or_fr);
         LOCK(DepFr_lock(LOCAL_top_dep_fr));
         
-        last = DepFr_last_answer(LOCAL_top_dep_fr);
-        next = ContPtr_next(last);
+        next = get_next_answer_continuation(LOCAL_top_dep_fr);
         
         if(next) {
           /* unconsumed answer */
