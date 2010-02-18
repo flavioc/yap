@@ -217,18 +217,33 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
           }                                                                       \
 	}
 #else
+
 #define find_dependency_node(SG_FR, LEADER_CP, DEP_ON_STACK)                      \
-        LEADER_CP = SgFr_gen_cp(SG_FR);                                           \
+        if(SgFr_is_variant(SG_FR) || SgFr_is_sub_producer(SG_FR))                 \
+          LEADER_CP = SgFr_gen_cp(SG_FR);                                         \
+        else {                                                                    \
+          subcons_fr_ptr cons = (subcons_fr_ptr)(SG_FR);                          \
+          subprod_fr_ptr prod = SgFr_producer(cons);                              \
+                      /* XXX */                                                   \
+          if(SgFr_state(prod) > evaluating) {                                     \
+            LEADER_CP = SgFr_cons_cp(cons);                                       \
+          } else {                                                                \
+            LEADER_CP = SgFr_gen_cp(SgFr_producer((subcons_fr_ptr)(SG_FR)));      \
+          }                                                                       \
+        }                                                                         \
+                                                                                  \
         DEP_ON_STACK = TRUE
 #define find_leader_node(LEADER_CP, DEP_ON_STACK)                                 \
         { dep_fr_ptr chain_dep_fr = LOCAL_top_dep_fr;                             \
           while (YOUNGER_CP(DepFr_cons_cp(chain_dep_fr), LEADER_CP)) {            \
+            printf("One Loop\n"); \
             if (EQUAL_OR_YOUNGER_CP(LEADER_CP, DepFr_leader_cp(chain_dep_fr))) {  \
               LEADER_CP = DepFr_leader_cp(chain_dep_fr);                          \
               break;                                                              \
             }                                                                     \
             chain_dep_fr = DepFr_next(chain_dep_fr);                              \
           }                                                                       \
+          printf("NO LEADER FOUND\n");                                            \
 	}
 #endif /* YAPOR */
 
@@ -407,6 +422,7 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
 #define new_dependency_frame(DEP_FR, DEP_ON_STACK, TOP_OR_FR, LEADER_CP, CONS_CP, SG_FR, NEXT)         \
         ALLOC_DEPENDENCY_FRAME(DEP_FR);                                                                \
         INIT_LOCK(DepFr_lock(DEP_FR));                                                                 \
+        SgFr_cons_cp((subcons_fr_ptr)(SG_FR)) = CONS_CP;                                               \
         DepFr_init_yapor_fields(DEP_FR, DEP_ON_STACK, TOP_OR_FR);                                      \
         DepFr_backchain_cp(DEP_FR) = NULL;                                                             \
         DepFr_leader_cp(DEP_FR) = NORM_CP(LEADER_CP);                                                  \
@@ -552,6 +568,9 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
 #define remove_from_global_sg_fr_list(SG_FR)
 #endif /* LIMIT_TABLING */
 
+/* Get a pointer to the consumer answer template by using B */
+#define CONSUMER_ANSWER_TEMPLATE  ((CELL *) (CONS_CP(B) + 1))
+#define DEPENDENCY_FRAME_ANSWER_TEMPLATE(DEP_FR)  ((CELL *)(CONS_CP(DepFr_cons_cp(DEP_FR)) + 1))
 
 
 /* ------------------------- **
@@ -882,12 +901,92 @@ void free_answer_trie_hash_chain(ans_hash_ptr hash) {
   return;
 }
 
+/* from a dependency frame "dep_fr" compute if
+ * new answers are available to consume
+ */
 static inline continuation_ptr
 get_next_answer_continuation(dep_fr_ptr dep_fr) {
-  continuation_ptr last = DepFr_last_answer(dep_fr);
-  continuation_ptr next = ContPtr_next(last);
+  sg_fr_ptr sg_fr = DepFr_sg_fr(dep_fr);
+  continuation_ptr last_cont = DepFr_last_answer(dep_fr);
+  continuation_ptr next = ContPtr_next(last_cont);
   
-  return next;
+  switch(SgFr_type(sg_fr)) {
+    case VARIANT_PRODUCER_SFT:
+    case SUBSUMPTIVE_PRODUCER_SFT:
+      return next;
+    case SUBSUMED_CONSUMER_SFT:
+      {
+        if(next)
+          return next;
+        else {
+          /* check if new answers are available by:
+           * (1) check if the timestamp from the subsuming
+           *     subgoal frame is newer than the one we keep
+           *     on the subsumed subgoal frame
+           * (2) if (1) collect the new relevant answers
+           *     from the TST and append them to the
+           *     subsumed subgoal frame, finally
+           *     return the continuation
+           * (3) if (1) fails, no unconsumed answers
+           *     are available and no continuation is returned
+           */
+          subcons_fr_ptr consumer_sg = (subcons_fr_ptr)sg_fr;
+          subprod_fr_ptr producer_sg = SgFr_producer(consumer_sg);
+          const int producer_ts = SgFr_prod_timestamp(producer_sg);
+          const int consumer_ts = SgFr_timestamp(consumer_sg);
+          
+          if(producer_ts <= consumer_ts)
+            return NULL; /* no answers were inserted */
+          
+          printf("PRODUCER TIMESTAMP: %d\n", producer_ts);
+          
+          CELL* answer_template = DEPENDENCY_FRAME_ANSWER_TEMPLATE(dep_fr);
+          int variant_size = (int)*answer_template;
+          CELL* sub_answer_template = answer_template + variant_size + 1;
+          int sub_size = (int)*sub_answer_template;
+          sub_answer_template += sub_size; 
+          printf("ANSWER_TEMPLATE: %d %d\n", variant_size, sub_size);
+          
+          printf("Timestamp: %d\n", SgFr_timestamp(consumer_sg));
+          ans_list_ptr answers = tst_collect_relevant_answers((tst_node_ptr)SgFr_answer_trie(producer_sg),
+            consumer_ts, sub_size, sub_answer_template);
+            
+          if(answers == NULL)
+            return NULL;
+          
+          ans_list_ptr first = answers;
+          ans_list_ptr last = NULL;
+          
+          while(answers) {
+            printAnswerTriePath(stdout, AnsList_answer(answers));
+            printf("\n");
+            last = answers;
+            answers = AnsList_next(answers);
+          }
+          
+          if(!SgFr_first_answer(consumer_sg)) {
+            /* first subsumptive answer found */
+            SgFr_first_answer(consumer_sg) = first;
+          } else {
+            /* append new answers found */
+            AnsList_next(SgFr_last_answer(consumer_sg)) = first;
+          }
+          SgFr_last_answer(consumer_sg) = last;
+          SgFr_timestamp(consumer_sg) = producer_ts;
+          
+          printf("First answer %x Last answer %x ContPtr %x Last %x\n", SgFr_first_answer(consumer_sg), SgFr_last_answer(consumer_sg), ContPtr_next(last_cont), last_cont);
+          
+          /* recompute next answer continuation */
+          //if(last == SgFr_first_answer(consumer_sg))
+          //  return last;
+          return ContPtr_next(last_cont);
+        }
+      }
+      break;
+    default:
+      /* NOT REACHABLE */
+      return NULL;
+  }
 }
 
 /* Given a subgoal call result struct

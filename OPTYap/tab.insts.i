@@ -160,12 +160,12 @@
 #define store_consumer_node(TAB_ENT, SG_FR, LEADER_CP, DEP_ON_STACK)       \
         { register choiceptr ccp;                                          \
           register dep_fr_ptr new_dep_fr;                                  \
-	  /* initialize ccp */                                             \
+	        /* initialize ccp */                                             \
           YENV = (CELL *) (CONS_CP(YENV) - 1);                             \
           ccp = NORM_CP(YENV);                                             \
           /* adjust freeze registers */                                    \
           H_FZ = H;                                                        \
-          B_FZ = ccp;                    	                           \
+          B_FZ = ccp;                    	                                 \
           TR_FZ = TR;                                                      \
           /* store dependency frame */                                     \
           new_dependency_frame(new_dep_fr, DEP_ON_STACK, LOCAL_top_or_fr,  \
@@ -174,7 +174,7 @@
           /* store consumer choice point */                                \
           HBREG = H;                                                       \
           store_yaam_reg_cpdepth(ccp);                                     \
-          ccp->cp_tr = TR;         	                                   \
+          ccp->cp_tr = TR;         	                                       \
           ccp->cp_ap = ANSWER_RESOLUTION;                                  \
           ccp->cp_h  = H;                                                  \
           ccp->cp_b  = B;                                                  \
@@ -187,6 +187,15 @@
           YAPOR_SET_LOAD(B);                                               \
           SET_BB(B);                                                       \
           TABLING_ERRORS_check_stack;                                      \
+        }
+        
+        
+#define CONSUME_ANSWER(ANS_NODE, ANSWER_TMPLT, SG_FR)       \
+        { if(SgFr_is_variant(SG_FR) || SgFr_is_sub_producer(SG_FR)) { \
+            CONSUME_VARIANT_ANSWER(ANS_NODE, ANSWER_TMPLT); \
+          } else { \
+            CONSUME_SUBSUMPTIVE_ANSWER(ANS_NODE, ANSWER_TMPLT); \
+          } \
         }
 
 
@@ -209,9 +218,9 @@
             subs_ptr = (CELL *) (GEN_CP(B) + 1);          \
             subs_ptr += SgFr_arity(GEN_CP(B)->cp_sg_fr);  \
 	        } else {                                        \
-            subs_ptr = (CELL *) (CONS_CP(B) + 1);         \
+            subs_ptr = CONSUMER_ANSWER_TEMPLATE;          \
 	        }                                               \
-          CONSUME_VARIANT_ANSWER(ANSWER, subs_ptr);       \
+          CONSUME_ANSWER(ANSWER, subs_ptr, DepFr_sg_fr(DEP_FR));  \
           /* procceed */                                  \
           YENV = ENV;                                     \
           GONext();                                       \
@@ -363,11 +372,7 @@
     PREG = (yamop *) CPREG;
     PREFETCH_OP(PREG);
     
-    if(SgFr_is_variant(sg_fr) || SgFr_is_sub_producer(sg_fr)) {
-      CONSUME_VARIANT_ANSWER(ans_node, ans_tmplt);
-    } else if(SgFr_is_sub_consumer(sg_fr)) {
-      CONSUME_SUBSUMPTIVE_ANSWER(ans_node, ans_tmplt);
-    }
+    CONSUME_ANSWER(ans_node, ans_tmplt, sg_fr);
     
     YENV = ENV;
     GONext();
@@ -553,14 +558,11 @@
 
           PREG = (yamop *) CPREG;
           PREFETCH_OP(PREG);
-          if(SgFr_is_variant(sg_fr) || SgFr_is_sub_producer(sg_fr)) {
-            CONSUME_VARIANT_ANSWER(ans_node, YENV);
-          } else if(SgFr_is_sub_consumer(sg_fr)) {
-            CONSUME_SUBSUMPTIVE_ANSWER(ans_node, YENV);
-          }
+          CONSUME_ANSWER(ans_node, YENV, sg_fr);
           YENV = ENV;
           GONext();
         } else {
+          printf("Compiling code\n");
           /* execute compiled code from the trie */
           if (SgFr_state(sg_fr) < compiled)
             update_answer_trie(sg_fr);
@@ -683,14 +685,11 @@
             
           PREG = (yamop *) CPREG;
           PREFETCH_OP(PREG);
-          if(SgFr_is_variant(sg_fr) || SgFr_is_sub_producer(sg_fr)) {
-            CONSUME_VARIANT_ANSWER(ans_node, YENV);
-          } else if(SgFr_is_sub_consumer(sg_fr)) {
-            CONSUME_SUBSUMPTIVE_ANSWER(ans_node, YENV);
-          }
+          CONSUME_ANSWER(ans_node, YENV, sg_fr);
 	        YENV = ENV;
           GONext();
 	      } else {
+          printf("COmpiled code\n");
 	        /* execute compiled code from the trie */
 	        if (SgFr_state(sg_fr) < compiled)
 	          update_answer_trie(sg_fr);
@@ -754,6 +753,7 @@
       GONext();
 #endif /* INCOMPLETE_TABLING */
     } else if (is_new_consumer_call(&results)) {
+      printf("TABLE_TRY NEW_CONSUMER\n");
       /* new consumer */
       choiceptr leader_cp;
       int leader_dep_on_stack;
@@ -812,20 +812,36 @@
             
           PREG = (yamop *) CPREG;
           PREFETCH_OP(PREG);
-          CONSUME_VARIANT_ANSWER(ans_node, YENV);
+          CONSUME_ANSWER(ans_node, YENV, sg_fr);
 	        YENV = ENV;
           GONext();
 	      } else {
+          printf("COMPILED CODE\n");
 	        /* execute compiled code from the trie */
+	        
+	        if(SgFr_is_sub_consumer(sg_fr)) {
+            sg_fr = (sg_fr_ptr)SgFr_producer((subcons_fr_ptr)sg_fr);
+            
+            int var_arity = (int)*(YENV);
+            YENV += var_arity + 1;
+            printf("Sub arity: %d\n", (int)*(YENV));
+          }
+          
+          // NOT FINISHED XXXX
+          
 	        if (SgFr_state(sg_fr) < compiled)
 	          update_answer_trie(sg_fr);
+	          
 	        UNLOCK(SgFr_lock(sg_fr));
 	        PREG = (yamop *) TrNode_child(SgFr_answer_trie(sg_fr));
 	        PREFETCH_OP(PREG);
+	        
 	        *--YENV = 0;  /* vars_arity */
+	        
 #ifndef GLOBAL_TRIE
 	        *--YENV = 0;  /* heap_arity */
 #endif /* GLOBAL_TRIE */
+
 	        GONext();
 	      }
       }
@@ -1189,7 +1205,6 @@
 
 
   BOp(table_answer_resolution, Otapl)
-    printf("===> TABLE_ANSWER_RESOLUTION\n");
     
 #ifdef YAPOR
     if (SCH_top_shared_cp(B)) {
@@ -1199,6 +1214,8 @@
 
 
   answer_resolution:
+    printf("===> TABLE_ANSWER_RESOLUTION\n");
+  
     INIT_PREFETCH()
     dep_fr_ptr dep_fr;
 
@@ -1514,6 +1531,7 @@
         if (EQUAL_OR_YOUNGER_CP(B_FZ, B) && B != DepFr_leader_cp(LOCAL_top_dep_fr)) {
           /* not leader on that node */
           B = B->cp_b;
+          printf("not leader on that node\n");
           goto fail;
         }
       } else {
@@ -1521,6 +1539,7 @@
         if (B != DepFr_leader_cp(LOCAL_top_dep_fr)) {
           /* not leader on that node */
           B = B->cp_b;
+          printf("not a leader on that node 2\n");
           goto fail;
         }
       }
@@ -1560,6 +1579,8 @@
         /* dependency frame with unconsumed answers */
         ans_node = ContPtr_answer(next);
         DepFr_last_answer(dep_fr) = next;
+      } else {
+        printf("NO UNCONSUMED ANSWERS COMPLETION\n");
       }
       
       if(ans_node != NULL) {
@@ -1811,11 +1832,12 @@
       private_completion(sg_fr);
       
       if (IS_BATCHED_GEN_CP(B)) {
-        /* backtrack */
+        /* batched scheduling -> backtrack */
         B = B->cp_b;
         SET_BB(PROTECT_FROZEN_B(B));
         goto fail;
       } else {
+        /* this is local scheduling, we can now complete and return answers */
         /* subgoal completed */
         
         if (SgFr_has_no_answers(sg_fr)) {
@@ -1860,10 +1882,11 @@
             
             PREG = (yamop *) CPREG;
             PREFETCH_OP(PREG);
-            CONSUME_VARIANT_ANSWER(ans_node, YENV);
+            CONSUME_ANSWER(ans_node, YENV, sg_fr);
             YENV = ENV;
             GONext();
           } else {
+            printf("COMPILED CODE\n");
             /* execute compiled code from the trie */
             LOCK(SgFr_lock(sg_fr));
             if (SgFr_state(sg_fr) < compiled)
