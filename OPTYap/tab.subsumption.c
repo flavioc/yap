@@ -434,8 +434,6 @@ While_TermStack_NotEmpty:
     TermStackLog_PushFrame;
     XSB_Deref(subterm);
     
-    printf("Cell tag: %d\n", cell_tag(subterm));
-    
     switch(cell_tag(subterm)) {
 #ifdef SUBSUMPTION_YAP
       case TAG_FLOAT:
@@ -941,8 +939,6 @@ void subsumptive_call_search(TabledCallInfo *call_info, CallLookupResults *resul
   } else { /* new consumer */
     CallResults_variant_found(results) = (path_type == VARIANT_PATH);
     sg_fr_ptr sg_fr = (sg_fr_ptr)TrNode_sg_fr(btn);
-    printf("Leaf node: %x\n", btn);
-    printf("Subgoal frame: %x\n", sg_fr);
     CPtr sub_ans_tmplt;
     
     if(SgFr_is_sub_producer(sg_fr)) {
@@ -964,7 +960,6 @@ void subsumptive_call_search(TabledCallInfo *call_info, CallLookupResults *resul
         save_variant_continuation(btn);
       }
       Trail_Unwind_All;
-      printf("super_sg_fr %x sg_fr %x\n", super_sg_fr, sg_fr);
       answer_template = reconstruct_template_for_producer(call_info,
           (subprod_fr_ptr)super_sg_fr, answer_template);
       printSubstitutionFactor(stdout, answer_template);
@@ -995,28 +990,6 @@ void subsumptive_call_search(TabledCallInfo *call_info, CallLookupResults *resul
       Trail_Unwind_All;
     }
     
-    if(CallResults_subsumer(results) && path_type != VARIANT_PATH) {
-      int numTerms = (int)*sub_ans_tmplt;
-      sub_ans_tmplt += numTerms;
-      printf("Calculating sub answers for %d terms...\n", numTerms);
-      ALNptr answers =  tst_collect_relevant_answers(SgFr_answer_trie(CallResults_subsumer(results)), 0,
-        numTerms, sub_ans_tmplt);
-      ALNptr last;
-      ALNptr first = answers;
-        
-      while(answers) {
-        printAnswerTriePath(stdout, AnsList_answer(answers));
-        printf("\n");
-        last = answers;
-        answers = AnsList_next(answers);
-      }
-      
-      sg_fr_ptr sg_fr = CallResults_subgoal_frame(results);
-      SgFr_first_answer(sg_fr) = first;
-      SgFr_last_answer(sg_fr) = last;
-      SgFr_state(sg_fr) = complete; 
-    }
-    
     if(path_type == VARIANT_PATH) {
       ALNptr answers = SgFr_first_answer(CallResults_subgoal_frame(results));
       
@@ -1042,12 +1015,10 @@ TSTNptr subsumptive_tst_search(CTXTdeclc TSTNptr tstRoot, int nTerms, CPtr termV
     TermStack_PushHighToLowVector(termVector,nTerms);
     
     if(IsEmptyTrie(tstRoot)) {
-      printf("Is empty... inserting %d\n", (int)TermStack_NumTerms);
       tstn = tst_insert(CTXTc tstRoot, tstRoot, NO_INSERT_SYMBOL, maintainTSI);
       *isNew = TRUE;
     }
     else {
-      printf("Has something ... inserting %d\n", (int)TermStack_NumTerms);
       TermStackLog_ResetTOS;
       tstn = iter_sub_trie_lookup(CTXTc tstRoot, &path_type);
       if(path_type == NO_PATH) {
@@ -1060,7 +1031,10 @@ TSTNptr subsumptive_tst_search(CTXTdeclc TSTNptr tstRoot, int nTerms, CPtr termV
         *isNew = FALSE;
     }
   } else {
+    // XXX
+    *isNew = TRUE;
     printf("nTerms = 0 !!!\n");
+    return tstRoot;
   }        
   
   return tstn;
@@ -1087,22 +1061,12 @@ ans_node_ptr subsumptive_answer_search(subprod_fr_ptr sf, CELL *subs_ptr) {
   int new;
   int *isNew = &new;
   
-  int i;
-  printf("==> ");
-  for(i = nTerms; i >= 1; --i) {
-    printf("%x ", *(subs_ptr+i));
-  }
-  printf("\n");
   AnsVarCtr = 0;
   
   root = (TSTNptr)subg_ans_root_ptr(sf);
   tstn = subsumptive_tst_search(CTXTc root, nTerms, answerVector,
     (xsbBool)ProducerSubsumesSubgoals(sf), isNew );
   Trail_Unwind_All;
-  
-  printf("NEW ANSWER: %x ", tstn);
-  printAnswerTriePath(stdout, (BTNptr)tstn);
-  printf("\n");
   
   return (ans_node_ptr)tstn;
 }
