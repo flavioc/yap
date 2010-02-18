@@ -272,7 +272,6 @@ Unify_Symbol_With_List_Subterm(CTXTdeclc Cell subterm, Cell symbol, Cell sym_ori
 
 static inline xsbBool
 Unify_Symbol_With_Variable_Subterm(CTXTdeclc Cell subterm, Cell symbol, Cell sym_orig_tag) {
-  printf("Unify variable\n");
   switch(cell_tag(symbol)) {
     case XSB_INT:
 #ifdef SUBSUMPTION_XSB
