@@ -308,7 +308,7 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
         { ALLOC_FN(SG_FR);                                         \
           INIT_LOCK(SgFr_lock(SG_FR));                             \
           SgFr_leaf(SG_FR) = LEAF;                                 \
-          TrNode_sg_fr(LEAF) = (sg_node_ptr)SG_FR;                 \
+          TrNode_sg_fr(LEAF) = (sg_node_ptr)(SG_FR);               \
           SgFr_type(SG_FR) = TYPE;                                 \
           SgFr_code(SG_FR) = CODE;                                 \
           SgFr_state(SG_FR) = ready;                               \

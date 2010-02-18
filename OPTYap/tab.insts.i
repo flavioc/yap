@@ -286,11 +286,17 @@
  */
 #define CONSUME_SUBSUMPTIVE_ANSWER(ANS_NODE, ANS_TMPLT) {  \
   int arity_variant = (int)*(ANS_TMPLT); \
-  CELL* answer_template = (ANS_TMPLT) + arity_variant + 1; \
-  int sub_arity = (int)*answer_template;  \
-  answer_template += sub_arity; \
-  printf("Var arity: %d Sub arity: %d\n", arity_variant, sub_arity);  \
-  consume_subsumptive_answer(ANS_NODE, sub_arity, answer_template); \
+  CELL* variant_ans_tmpl = (ANS_TMPLT) + 1; \
+  CELL* sub_answer_template = variant_ans_tmpl + arity_variant; \
+  printf("Subsumptive answer template before: "); \
+  int sub_arity = (int)*sub_answer_template;  \
+  printAnswerTemplate(stdout, sub_answer_template+1, sub_arity); \
+  CELL* answer_template = sub_answer_template + sub_arity; \
+  consume_subsumptive_answer((BTNptr)(ANS_NODE), sub_arity, answer_template); \
+  printf("Variant variables now:\n"); \
+  printAnswerTemplate(stdout, variant_ans_tmpl, arity_variant);  \
+  printf("Subsumptive variables now:\n"); \
+  printAnswerTemplate(stdout, sub_answer_template+1, sub_arity);  \
 }
 
 /* Consume a variant answer ANS_NODE using ANS_TMPLT
@@ -658,6 +664,8 @@
           
 	        UNLOCK(SgFr_lock(sg_fr));
 	  
+          printf("Subgoal completed, storing loader node\n");
+          
 	        if(ContPtr_next(cont))
             store_loader_node(tab_ent, cont, sg_fr);
             

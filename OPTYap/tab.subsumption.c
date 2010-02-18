@@ -131,7 +131,7 @@ static xsbBool save_variant_continuation(CTXTdeclc BTNptr last_node_match) {
   ContStack_ExpandOnOverflow(variant_cont.bindings.stack.ptr,
       variant_cont.bindings.stack.size,
       Trail_NumBindings);
-      
+  
   for(binding = Trail_Base, i = 0; binding < Trail_Top; binding++) {
     termptr = *binding;
     /*
@@ -149,7 +149,6 @@ static xsbBool save_variant_continuation(CTXTdeclc BTNptr last_node_match) {
   }
   variant_cont.bindings.num = i;
   
-  //printf("Got %d var bindings\n", (int)i);
   return TRUE;
 }
 
@@ -725,7 +724,6 @@ While_TermStack_NotEmpty:
  	      */
        NonVarSearchChain_UnboundTrieVar(subterm, variableChain);
        break;
-    /* FLOAT XXX */
     default:
       TrieError_UnknownSubtermTag(subterm);
       break;
@@ -838,13 +836,12 @@ CPtr construct_variant_answer_template_from_sub(CELL *var_vector) {
     termptr = *binding;
     
     if(!IsUnboundTrieVar(termptr)) {
-      printf("New variable!\n");
       *var_vector-- = (CELL)termptr;
       ++i;
     }
   }
   
-  *var_vector = i;
+  *var_vector = makeint(i);
   
   return var_vector;
 }
@@ -855,6 +852,7 @@ CPtr extract_template_from_lookup(CTXTdeclc CPtr ans_tmplt) {
   
   i = 0;
   while(TrieVarBindings[i] != (Cell)(& TrieVarBindings[i])) {
+    printf("TrieVarBindings[i] = %x\n", TrieVarBindings[i]);
     *ans_tmplt-- = TrieVarBindings[i++];
   }
   *ans_tmplt = makeint(i);
@@ -934,9 +932,7 @@ void subsumptive_call_search(TabledCallInfo *call_info, CallLookupResults *resul
     CallResults_leaf(results) = variant_call_cont_insert(tab_ent, stl_restore_variant_cont(),
       variant_cont.bindings.num);
       
-    CPtr subsumptive_answer_template = extract_template_from_insertion(answer_template);
-    printSubstitutionFactor(stdout, subsumptive_answer_template);
-    CallResults_var_vector(results) = extract_template_from_insertion(subsumptive_answer_template);
+    CallResults_var_vector(results) = extract_template_from_insertion(answer_template);
     CallResults_subgoal_frame(results) = create_new_producer_subgoal(CallResults_leaf(results),
       tab_ent, CallInfo_code(call_info));
     Trail_Unwind_All;
@@ -945,20 +941,30 @@ void subsumptive_call_search(TabledCallInfo *call_info, CallLookupResults *resul
   } else { /* new consumer */
     CallResults_variant_found(results) = (path_type == VARIANT_PATH);
     sg_fr_ptr sg_fr = (sg_fr_ptr)TrNode_sg_fr(btn);
+    printf("Leaf node: %x\n", btn);
+    printf("Subgoal frame: %x\n", sg_fr);
     CPtr sub_ans_tmplt;
     
     if(SgFr_is_sub_producer(sg_fr)) {
       /* consume from sg_fr */
       CallResults_subsumer(results) = sg_fr;
-      answer_template = extract_template_from_lookup(answer_template);
-      printSubstitutionFactor(stdout, answer_template);
+      if(path_type != VARIANT_PATH) {
+        answer_template = extract_template_from_lookup(answer_template);
+        Trail_Unwind_All;
+        printSubstitutionFactor(stdout, answer_template);
+      }
       printf("CONSUME FROM PRODUCER\n");
     } else {
-      sg_fr_ptr super_sg_fr = (sg_fr_ptr)SgFr_producer(sg_fr);
+      subcons_fr_ptr first_consumer = (subcons_fr_ptr)sg_fr;
+      sg_fr_ptr super_sg_fr = (sg_fr_ptr)SgFr_producer(first_consumer);
       CallResults_subsumer(results) = super_sg_fr;
-      printf("Super Subsumption call found: ");
-      printSubgoalTriePath(stdout, SgFr_leaf(super_sg_fr), tab_ent);
-      printf("\n");
+      printf("Super Subsumption call found\n");
+      //printSubgoalTriePath(stdout, SgFr_leaf(super_sg_fr), tab_ent);
+      if(path_type == VARIANT_PATH) {
+        save_variant_continuation(btn);
+      }
+      Trail_Unwind_All;
+      printf("super_sg_fr %x sg_fr %x\n", super_sg_fr, sg_fr);
       answer_template = reconstruct_template_for_producer(call_info,
           (subprod_fr_ptr)super_sg_fr, answer_template);
       printSubstitutionFactor(stdout, answer_template);
@@ -971,14 +977,14 @@ void subsumptive_call_search(TabledCallInfo *call_info, CallLookupResults *resul
       // construct template
       CallResults_subgoal_frame(results) = sg_fr;
       CallResults_leaf(results) = btn;
+      if(SgFr_is_sub_consumer(sg_fr)) {
+        stl_restore_variant_cont();
+      }
       CallResults_var_vector(results) = construct_variant_answer_template_from_sub(answer_template);
       Trail_Unwind_All;
       printSubstitutionFactor(stdout, CallResults_var_vector(results));
-      Trail_Unwind_All;
     } else {
       printf("Found subsumptive subgoal\n");
-      
-      Trail_Unwind_All;
       
       // insert variant path and build template
       CallResults_leaf(results) = variant_call_cont_insert(tab_ent, stl_restore_variant_cont(), variant_cont.bindings.num);
@@ -1009,6 +1015,17 @@ void subsumptive_call_search(TabledCallInfo *call_info, CallLookupResults *resul
       SgFr_first_answer(sg_fr) = first;
       SgFr_last_answer(sg_fr) = last;
       SgFr_state(sg_fr) = complete; 
+    }
+    
+    if(path_type == VARIANT_PATH) {
+      ALNptr answers = SgFr_first_answer(CallResults_subgoal_frame(results));
+      
+      printf("Old saved answers: \n");
+      while(answers) {
+        printAnswerTriePath(stdout, AnsList_answer(answers));
+        printf("\n");
+        answers = AnsList_next(answers);
+      }
     }
   }
 }
@@ -1063,7 +1080,7 @@ void *newTSTAnswerSet(void) {
   return root;
 }
 
-ans_node_ptr subsumptive_answer_search(sg_fr_ptr sf, CELL *subs_ptr) {
+ans_node_ptr subsumptive_answer_search(subprod_fr_ptr sf, CELL *subs_ptr) {
   TSTNptr root, tstn;
   int nTerms = *subs_ptr;
   CPtr answerVector = subs_ptr + nTerms;

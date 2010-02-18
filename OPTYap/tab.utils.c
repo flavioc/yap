@@ -370,7 +370,7 @@ recursivePrintSubterm(FILE *fp, Term symbol, xsbBool list_recursion)
       var_index = variable_counter++;
     }
     
-    fprintf(fp, "V" IntegerFormatString, var_index);  
+    fprintf(fp, "V" IntegerFormatString "(%x)", var_index, (void*)symbol);  
     
     if(list_recursion)
       fprintf(fp, "]");
@@ -468,10 +468,10 @@ void printAnswerTemplate(FILE *fp, CPtr ans_tmplt, int size)
   fprintf(fp, "[");
   variable_counter = 0;
   
-  for(; size > 0; size--, ++ans_tmplt) {
-    recursivePrintSubterm(fp, (Term)ans_tmplt, FALSE);
+  for(size--; size >= 0; size--) {
+    recursivePrintSubterm(fp, (Term)(ans_tmplt+size), FALSE);
     
-    if(size > 1)
+    if(size > 0)
       fprintf(fp, ", ");
   }
   
@@ -486,7 +486,7 @@ void printSubstitutionFactor(FILE *fp, CELL* factor)
   
   fprintf(fp, "Substitution factor with size %d ", size);
   
-  printAnswerTemplate(fp, ++factor, size);
+  printAnswerTemplate(fp, factor + 1, size);
 }
 
 #endif /* TABLING_CALL_SUBSUMPTION */

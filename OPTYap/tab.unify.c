@@ -116,6 +116,7 @@ static void consumption_error(CTXTdeclc char *string) {
   abort_string = string;
 #endif
   Trail_Unwind_All; /* unbind TrieVarBindings[] elements */
+  printf("ABORT: %s\n", abort_string);
   xsb_abort(abort_string);
 }
 
@@ -271,6 +272,7 @@ Unify_Symbol_With_List_Subterm(CTXTdeclc Cell subterm, Cell symbol, Cell sym_ori
 
 static inline xsbBool
 Unify_Symbol_With_Variable_Subterm(CTXTdeclc Cell subterm, Cell symbol, Cell sym_orig_tag) {
+  printf("Unify variable\n");
   switch(cell_tag(symbol)) {
     case XSB_INT:
 #ifdef SUBSUMPTION_XSB
