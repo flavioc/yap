@@ -375,9 +375,11 @@ typedef subsumptive_producer_sf *subprod_fr_ptr;
 #define CAST_SUBPRODSF(X)   ((subprod_fr_ptr)(X))
 
 #define SgFr_prod_consumers(X) ((X)->consumers)
+#define SgFr_prod_timestamp(X) TSTN_time_stamp((tst_node_ptr)SgFr_answer_trie(X))
 
 struct subsumed_consumer_subgoal_frame {
   variant_sf var_sf;
+  choiceptr cons_choice_point;
   time_stamp ts;
   subprod_fr_ptr producer;
   subsumptive_consumer_sf *consumers; /* Chain link for properly subsumed subgoals */
@@ -390,6 +392,7 @@ typedef subsumptive_consumer_sf *subcons_fr_ptr;
 #define SgFr_timestamp(X)   ((X)->ts)
 #define SgFr_producer(X)    ((X)->producer)
 #define SgFr_consumers(X)   ((X)->consumers)
+#define SgFr_cons_cp(X)     ((X)->cons_choice_point)
 
 /* ------------------------------- **
 ** Subgoal frame types             **
