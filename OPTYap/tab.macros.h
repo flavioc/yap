@@ -34,6 +34,8 @@ STD_PROTO(static inline void abolish_incomplete_subgoals, (choiceptr));
 STD_PROTO(static inline void free_subgoal_trie_hash_chain, (sg_hash_ptr));
 STD_PROTO(static inline void free_answer_trie_hash_chain, (ans_hash_ptr));
 STD_PROTO(static inline continuation_ptr get_next_answer_continuation, (dep_fr_ptr dep_fr));
+STD_PROTO(static inline int is_new_generator_call, (CallLookupResults *));
+STD_PROTO(static inline int is_new_consumer_call, (CallLookupResults *));
 STD_PROTO(static inline choiceptr freeze_current_cp, (void));
 STD_PROTO(static inline void resume_frozen_cp, (choiceptr));
 
@@ -888,7 +890,45 @@ get_next_answer_continuation(dep_fr_ptr dep_fr) {
   return next;
 }
 
+/* Given a subgoal call result struct
+ * tell if we must allocate a new generator
+ */
+static inline int
+is_new_generator_call(CallLookupResults *results) {
+  sg_fr_ptr sg_fr = CallResults_subgoal_frame(results);
+  
+  switch(SgFr_type(sg_fr)) {
+    case VARIANT_PRODUCER_SFT:
+      return !CallResults_variant_found(results);
+    case SUBSUMPTIVE_PRODUCER_SFT:
+      return !CallResults_variant_found(results);
+    case SUBSUMED_CONSUMER_SFT:
+      return FALSE;
+    default:
+      /* NOT REACHABLE */
+      return FALSE;
+  }
+}
 
+/* Given a subgoal call result struct
+ * tell if we must allocate a new consumer
+ */
+static inline int
+is_new_consumer_call(CallLookupResults *results) {
+  sg_fr_ptr sg_fr = CallResults_subgoal_frame(results);
+  
+  switch(SgFr_type(sg_fr)) {
+    case VARIANT_PRODUCER_SFT:
+      return CallResults_variant_found(results) && SgFr_state(sg_fr) == evaluating;
+    case SUBSUMPTIVE_PRODUCER_SFT:
+      return CallResults_variant_found(results) && SgFr_state(sg_fr) == evaluating;
+    case SUBSUMED_CONSUMER_SFT:
+      return SgFr_state(sg_fr) == ready || SgFr_state(sg_fr) == evaluating;
+    default:
+      /* NOT REACHABLE */
+      return FALSE;
+  }
+}
 
 
 /*

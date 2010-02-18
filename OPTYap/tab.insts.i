@@ -307,7 +307,6 @@
     consume_variant_answer(ANS_NODE, arity, (ANS_TMPLT)+1); \
   }
 
-
 /* ------------------------------ **
 **      Tabling instructions      **
 ** ------------------------------ */  
@@ -333,6 +332,8 @@
     ans_node_ptr ans_node;
     continuation_ptr next;
     sg_fr_ptr sg_fr;
+    
+    printf("===> TABLE_LOAD_ANSWER\n");
 
 #ifdef YAPOR
     if (SCH_top_shared_cp(B)) {
@@ -375,6 +376,7 @@
 
 
   PBOp(table_try_answer, Otapl)
+    printf("===> TABLE_TRY_ANSWER\n");
 #ifdef INCOMPLETE_TABLING
     sg_fr_ptr sg_fr;
     ans_node_ptr ans_node = NULL;
@@ -439,16 +441,22 @@
 
   PBOp(table_try_single, Otapl)
     tab_ent_ptr tab_ent;
+    CallLookupResults results;
     sg_fr_ptr sg_fr;
+    
+    printf("===> TABLE_TRY_SINGLE\n");
 
     check_trail(TR);
     tab_ent = PREG->u.Otapl.te;
     YENV2MEM;
-    sg_fr = subgoal_search(PREG, YENV_ADDRESS);
-    printf("table_try_single\n");
+    subgoal_search(PREG, YENV_ADDRESS, &results);
     MEM2YENV;
+    
+    sg_fr = CallResults_subgoal_frame(&results);
+    
     LOCK(SgFr_lock(sg_fr));
-    if (SgFr_state(sg_fr) == ready) {
+    
+    if (is_new_generator_call(&results)) {
       /* subgoal new */
       init_subgoal_frame(sg_fr);
       UNLOCK(SgFr_lock(sg_fr));
@@ -484,8 +492,8 @@
       YENV = ENV;
       GONext();
 #endif /* INCOMPLETE_TABLING */
-    } else if (SgFr_state(sg_fr) == evaluating) {
-      /* subgoal in evaluation */
+    } else if (is_new_consumer_call(&results)) {
+      /* new consumer */
       choiceptr leader_cp;
       int leader_dep_on_stack;
       find_dependency_node(sg_fr, leader_cp, leader_dep_on_stack);
@@ -569,20 +577,24 @@
     }
     ENDPBOp();
 
-
-
   PBOp(table_try_me, Otapl)
     tab_ent_ptr tab_ent;
     sg_fr_ptr sg_fr;
+    CallLookupResults results;
+    
+    printf("===> TABLE_TRY_ME\n");
 
     check_trail(TR);
     tab_ent = PREG->u.Otapl.te;
     YENV2MEM;
-    sg_fr = subgoal_search(PREG, YENV_ADDRESS);
-    printf("table try me\n");
+    subgoal_search(PREG, YENV_ADDRESS, &results);
     MEM2YENV;
+    
+    sg_fr = CallResults_subgoal_frame(&results);
+    
     LOCK(SgFr_lock(sg_fr));
-    if (SgFr_state(sg_fr) == ready) {
+    
+    if (is_new_generator_call(&results)) {
       /* subgoal new */
       init_subgoal_frame(sg_fr);
       UNLOCK(SgFr_lock(sg_fr));
@@ -610,7 +622,7 @@
       YENV = ENV;
       GONext();
 #endif /* INCOMPLETE_TABLING */
-    } else if (SgFr_state(sg_fr) == evaluating) {
+    } else if (is_new_consumer_call(&results)) {
       /* subgoal in evaluation */
       choiceptr leader_cp;
       int leader_dep_on_stack;
@@ -699,16 +711,22 @@
 
   PBOp(table_try, Otapl)
     tab_ent_ptr tab_ent;
+    CallLookupResults results;
     sg_fr_ptr sg_fr;
+    
+    printf("===> TABLE_TRY\n");
 
     check_trail(TR);
     tab_ent = PREG->u.Otapl.te;
     YENV2MEM;
-    sg_fr = subgoal_search(PREG, YENV_ADDRESS);
-    printf("table try\n");
+    subgoal_search(PREG, YENV_ADDRESS, &results);
     MEM2YENV;
+    
+    sg_fr = CallResults_subgoal_frame(&results);
+    
     LOCK(SgFr_lock(sg_fr));
-    if (SgFr_state(sg_fr) == ready) {
+    
+    if (is_new_generator_call(&results)) {
       /* subgoal new */
       init_subgoal_frame(sg_fr);
       UNLOCK(SgFr_lock(sg_fr));
@@ -735,8 +753,8 @@
       YENV = ENV;
       GONext();
 #endif /* INCOMPLETE_TABLING */
-    } else if (SgFr_state(sg_fr) == evaluating) {
-      /* subgoal in evaluation */
+    } else if (is_new_consumer_call(&results)) {
+      /* new consumer */
       choiceptr leader_cp;
       int leader_dep_on_stack;
       find_dependency_node(sg_fr, leader_cp, leader_dep_on_stack);
@@ -817,6 +835,7 @@
 
 
   Op(table_retry_me, Otapl)
+    printf("===> TABLE_RETRY_ME\n");
     restore_generator_node(PREG->u.Otapl.s, PREG->u.Otapl.d);
     YENV = (CELL *) PROTECT_FROZEN_B(B);
     set_cut(YENV, B->cp_b);
@@ -829,6 +848,7 @@
 
 
   Op(table_retry, Otapl)
+    printf("===> TABLE_RETRY\n");
     restore_generator_node(PREG->u.Otapl.s, NEXTOP(PREG,Otapl));
     YENV = (CELL *) PROTECT_FROZEN_B(B);
     set_cut(YENV, B->cp_b);
@@ -841,6 +861,8 @@
 
 
   Op(table_trust_me, Otapl)
+    printf("===> TABLE_TRUST_ME\n");
+    
     restore_generator_node(PREG->u.Otapl.s, COMPLETION);
 #ifdef DETERMINISTIC_TABLING
     if (B_FZ > B && IS_BATCHED_NORM_GEN_CP(B)) {   
@@ -869,6 +891,8 @@
 
 
   Op(table_trust, Otapl)
+    printf("===> TABLE_TRUST\n");
+    
     restore_generator_node(PREG->u.Otapl.s, COMPLETION);
 #ifdef DETERMINISTIC_TABLING
   if (B_FZ > B && IS_BATCHED_NORM_GEN_CP(B)) {    
@@ -901,6 +925,8 @@
     choiceptr gcp;
     sg_fr_ptr sg_fr;
     ans_node_ptr ans_node;
+
+    printf("===> TABLE_NEW_ANSWER\n");
 
     gcp = NORM_CP(YENV[E_B]);
 #ifdef DETERMINISTIC_TABLING
@@ -1163,6 +1189,8 @@
 
 
   BOp(table_answer_resolution, Otapl)
+    printf("===> TABLE_ANSWER_RESOLUTION\n");
+    
 #ifdef YAPOR
     if (SCH_top_shared_cp(B)) {
       UNLOCK_OR_FRAME(LOCAL_top_or_fr);
@@ -1461,6 +1489,8 @@
 
 
   BOp(table_completion, Otapl)
+    printf("===> TABLE_COMPLETION\n");
+    
 #ifdef YAPOR
     if (SCH_top_shared_cp(B)) {
       if (IS_BATCHED_GEN_CP(B)) {

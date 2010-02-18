@@ -30,9 +30,8 @@
 **      Global functions      **
 ** -------------------------- */
 
-sg_fr_ptr subgoal_search(yamop *preg, CELL **Yaddr) {
+void subgoal_search(yamop *preg, CELL **Yaddr, CallLookupResults *results) {
   TabledCallInfo call_info;
-  CallLookupResults results;
   
   CallInfo_code(&call_info) = preg;
   CallInfo_var_vector(&call_info) = *Yaddr - 1;
@@ -48,17 +47,12 @@ sg_fr_ptr subgoal_search(yamop *preg, CELL **Yaddr) {
   printf("\n");
   
   if(TabEnt_is_variant(tab_ent)) {
-    printf("IS VARIANT\n");
-    variant_call_search(&call_info, &results);
+    variant_call_search(&call_info, results);
   } else {
-    // subsumptive subgoal
-    printf("IS SUBSUMPTIVE\n");
-    subsumptive_call_search(&call_info, &results);
+    subsumptive_call_search(&call_info, results);
   }
   
-  *Yaddr = CallResults_var_vector(&results)++;
-  
-  return CallResults_subgoal_frame(&results);
+  *Yaddr = CallResults_var_vector(results)++;
 }
 
 
