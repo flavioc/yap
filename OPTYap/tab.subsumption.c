@@ -152,6 +152,33 @@ static xsbBool save_variant_continuation(CTXTdeclc BTNptr last_node_match) {
   return TRUE;
 }
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+/*
+ * Restores the state of a trie search to the point from which insertion
+ * is to begin.  This includes readying the term stack with the remaining
+ * portion of the term set, restandardizing any variables already
+ * encountered, and noting these bindings on the trail.
+ */
+
+void*
+stl_restore_variant_cont(CTXTdecl) {
+  int i;
+  
+  TermStack_ResetTOS;
+  TermStack_PushArray(variant_cont.subterms.stack.ptr,
+    variant_cont.subterms.num);
+  
+  Trail_ResetTOS;
+  for(i = 0; i < (int)variant_cont.bindings.num; ++i) {
+    Trail_Push(variant_cont.bindings.stack.ptr[i].var);
+    bld_ref(variant_cont.bindings.stack.ptr[i].var,
+      variant_cont.bindings.stack.ptr[i].value);
+  }
+  
+  return (variant_cont.last_node_matched);
+}
+
 /*
  *  Given a TrieVar number and a marked PrologVar (bound to a
  *  VarEnumerator cell), bind the TrieVar to the variable subterm
@@ -576,6 +603,35 @@ While_TermStack_NotEmpty:
   	     */
         NonVarSearchChain_UnboundTrieVar(subterm, variableChain);
         break;
+      case XSB_LIST:
+        /*
+         *  NOTE:  A trie LIST uses a plain LIST tag wherever a recursive
+         *         substructure begins, while a heap LIST uses a LIST-
+         *         tagged ptr to a pair of Cells, the first being the head
+         *         and the second being the recursive tail, possibly another
+         *         LIST-tagged ptr.
+         */
+         if(search_mode == MATCH_SYMBOL_EXACTLY) {
+           symbol = EncodeTrieList(subterm);
+           Set_Matching_and_TrieVar_Chains(symbol, pCurrentBTN, variableChain);
+           NonVarSearchChain_ExactMatch(symbol, pCurrentBTN, variableChain,
+             TermStack_PushListArgs(subterm))
+          /*
+  	       *  We've failed to find a node in the trie with a XSB_LIST symbol, so
+  	       *  now we consider bound trievars whose bindings exactly match the
+  	       *  actual list subterm.
+  	       */
+           pCurrentBTN = variableChain;
+           SetNoVariant(pParentBTN);
+         }
+         NonVarSearchChain_BoundTrievar(subterm, pCurrentBTN, variableChain);
+         /*
+   	      *  We've failed to find an exact match of the list with a binding
+   	      *  of a trievar.  Our last alternative is to bind an unbound
+   	      *  trievar to this subterm.
+   	      */
+         NonVarSearchChain_UnboundTrieVar(subterm, variableChain);
+         break;
       case XSB_REF:
 #ifdef SUBSUMPTION_XSB
       case XSB_REF1:
@@ -693,35 +749,12 @@ While_TermStack_NotEmpty:
          variableChain = BTN_Sibling(variableChain);
        }
        break;
-    case XSB_LIST:
-      /*
-       *  NOTE:  A trie LIST uses a plain LIST tag wherever a recursive
-       *         substructure begins, while a heap LIST uses a LIST-
-       *         tagged ptr to a pair of Cells, the first being the head
-       *         and the second being the recursive tail, possibly another
-       *         LIST-tagged ptr.
-       */
-       if(search_mode == MATCH_SYMBOL_EXACTLY) {
-         symbol = EncodeTrieList(subterm);
-         Set_Matching_and_TrieVar_Chains(symbol, pCurrentBTN, variableChain);
-         NonVarSearchChain_ExactMatch(symbol, pCurrentBTN, variableChain,
-           TermStack_PushListArgs(subterm))
-        /*
-	       *  We've failed to find a node in the trie with a XSB_LIST symbol, so
-	       *  now we consider bound trievars whose bindings exactly match the
-	       *  actual list subterm.
-	       */
-         pCurrentBTN = variableChain;
-         SetNoVariant(pParentBTN);
-       }
-       NonVarSearchChain_BoundTrievar(subterm, pCurrentBTN, variableChain);
-       /*
- 	      *  We've failed to find an exact match of the list with a binding
- 	      *  of a trievar.  Our last alternative is to bind an unbound
- 	      *  trievar to this subterm.
- 	      */
-       NonVarSearchChain_UnboundTrieVar(subterm, variableChain);
-       break;
+#ifdef SUBSUMPTION_XSB
+    case XSB_ATTV:
+      xsb_table_error(CTXTc 
+	      "Attributed variables not yet implemented in calls to subsumptive tables.");
+      break;
+#endif /* SUBSUMPTION_XSB */
     default:
       TrieError_UnknownSubtermTag(subterm);
       break;
@@ -752,28 +785,8 @@ While_TermStack_NotEmpty:
     *pathType = VARIANT_PATH;
   else
     *pathType = SUBSUMPTIVE_PATH;
-    
-  //printf("currentBTN: %x parentBTN %x\n", pCurrentBTN, pParentBTN);
   
   return pParentBTN;
-}
-
-static sg_node_ptr
-stl_restore_variant_cont(CTXTdecl) {
-  int i;
-  
-  TermStack_ResetTOS;
-  TermStack_PushArray(variant_cont.subterms.stack.ptr,
-    variant_cont.subterms.num);
-  
-  Trail_ResetTOS;
-  for(i = 0; i < (int)variant_cont.bindings.num; ++i) {
-    Trail_Push(variant_cont.bindings.stack.ptr[i].var);
-    bld_ref(variant_cont.bindings.stack.ptr[i].var,
-      variant_cont.bindings.stack.ptr[i].value);
-  }
-  
-  return (variant_cont.last_node_matched);
 }
 
 static sg_fr_ptr
@@ -927,7 +940,7 @@ void subsumptive_call_search(TabledCallInfo *call_info, CallLookupResults *resul
     Trail_Unwind_All;
     CallResults_subsumer(results) = NULL;
     CallResults_variant_found(results) = NO;
-    CallResults_leaf(results) = variant_call_cont_insert(tab_ent, stl_restore_variant_cont(),
+    CallResults_leaf(results) = variant_call_cont_insert(tab_ent, (sg_node_ptr)stl_restore_variant_cont(),
       variant_cont.bindings.num);
       
     CallResults_var_vector(results) = extract_template_from_insertion(answer_template);
@@ -982,7 +995,7 @@ void subsumptive_call_search(TabledCallInfo *call_info, CallLookupResults *resul
       printf("Found subsumptive subgoal\n");
       
       // insert variant path and build template
-      CallResults_leaf(results) = variant_call_cont_insert(tab_ent, stl_restore_variant_cont(), variant_cont.bindings.num);
+      CallResults_leaf(results) = variant_call_cont_insert(tab_ent, (sg_node_ptr)stl_restore_variant_cont(), variant_cont.bindings.num);
       CallResults_var_vector(results) = extract_template_from_insertion(answer_template);
       CallResults_subgoal_frame(results) = create_new_consumer_subgoal(CallResults_leaf(results),
         (subprod_fr_ptr)CallResults_subsumer(results), tab_ent, CallInfo_code(call_info));
