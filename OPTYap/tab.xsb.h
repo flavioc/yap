@@ -37,6 +37,7 @@ typedef Functor Psc;
 #define IsNonNULL(ptr)   ( (ptr) != NULL )
 #define IsNULL(ptr) ((ptr) == NULL)
 #define CTXTdeclc
+#define CTXTdecl void
 #define CTXTc
 #define CTXT
 #define YES TRUE
