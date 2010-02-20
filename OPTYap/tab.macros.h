@@ -952,15 +952,13 @@ build_next_subsumptive_consumer_return_list(subcons_fr_ptr consumer_sg, CELL* an
   
   printf("PRODUCER TIMESTAMP: %d\n", producer_ts);
   
-  int variant_size = (int)*answer_template;
-  CELL* sub_answer_template = answer_template + variant_size + 1;
-  int sub_size = (int)*sub_answer_template;
-  sub_answer_template += sub_size; 
-  printf("ANSWER_TEMPLATE: %d %d\n", variant_size, sub_size);
+  int size = (int)*answer_template;
+  answer_template += size;
+  printf("ANSWER_TEMPLATE: %d\n", size);
   
   printf("Timestamp: %d\n", SgFr_timestamp(consumer_sg));
   ans_list_ptr answers = tst_collect_relevant_answers((tst_node_ptr)SgFr_answer_trie(producer_sg),
-    consumer_ts, sub_size, sub_answer_template);
+    consumer_ts, size, answer_template);
   
   if(answers == NULL)
     return FALSE;

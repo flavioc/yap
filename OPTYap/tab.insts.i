@@ -293,19 +293,14 @@
  * the size of the answer template is calculated and
  * consume_subsumptive_answer is called to do the real work
  */
-#define CONSUME_SUBSUMPTIVE_ANSWER(ANS_NODE, ANS_TMPLT) {  \
-  int arity_variant = (int)*(ANS_TMPLT); \
-  CELL* variant_ans_tmpl = (ANS_TMPLT) + 1; \
-  CELL* sub_answer_template = variant_ans_tmpl + arity_variant; \
-  printf("Subsumptive answer template before: "); \
-  int sub_arity = (int)*sub_answer_template;  \
-  printAnswerTemplate(stdout, sub_answer_template+1, sub_arity); \
-  CELL* answer_template = sub_answer_template + sub_arity; \
-  consume_subsumptive_answer((BTNptr)(ANS_NODE), sub_arity, answer_template); \
-  printf("Variant variables now:\n"); \
-  printAnswerTemplate(stdout, variant_ans_tmpl, arity_variant);  \
+#define CONSUME_SUBSUMPTIVE_ANSWER(ANS_NODE, ANS_TMPLT) {       \
+  int arity = (int)*(ANS_TMPLT);                           \
+  CELL *sub_answer_template = (ANS_TMPLT) + arity;              \
+  printf("Subsumptive answer template before: %d\n", arity); \
+  printAnswerTemplate(stdout, sub_answer_template - arity + 1, arity); \
+  consume_subsumptive_answer((BTNptr)(ANS_NODE), arity, sub_answer_template); \
   printf("Subsumptive variables now:\n"); \
-  printAnswerTemplate(stdout, sub_answer_template+1, sub_arity);  \
+  printAnswerTemplate(stdout, sub_answer_template - arity + 1, arity);  \
 }
 
 /* Consume a variant answer ANS_NODE using ANS_TMPLT

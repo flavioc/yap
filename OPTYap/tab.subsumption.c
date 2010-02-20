@@ -950,57 +950,41 @@ void subsumptive_call_search(TabledCallInfo *call_info, CallLookupResults *resul
     
     printSubstitutionFactor(stdout, CallResults_var_vector(results));
   } else { /* new consumer */
-    CallResults_variant_found(results) = (path_type == VARIANT_PATH);
+    
     sg_fr_ptr sg_fr = (sg_fr_ptr)TrNode_sg_fr(btn);
-    CPtr sub_ans_tmplt;
+    sg_fr_ptr subsumer;
     
     if(SgFr_is_sub_producer(sg_fr)) {
-      /* consume from sg_fr */
-      CallResults_subsumer(results) = sg_fr;
-      if(path_type != VARIANT_PATH) {
-        answer_template = extract_template_from_lookup(answer_template);
-        Trail_Unwind_All;
-        printSubstitutionFactor(stdout, answer_template);
-      }
-      printf("CONSUME FROM PRODUCER\n");
+      /* consume from sf_with_ans_set */
+      answer_template = extract_template_from_lookup(answer_template);
+      Trail_Unwind_All;
+      subsumer = sg_fr;
+      printf("Consume from producer\n");
     } else {
       subcons_fr_ptr first_consumer = (subcons_fr_ptr)sg_fr;
-      sg_fr_ptr super_sg_fr = (sg_fr_ptr)SgFr_producer(first_consumer);
-      CallResults_subsumer(results) = super_sg_fr;
-      printf("Super Subsumption call found\n");
-      //printSubgoalTriePath(stdout, SgFr_leaf(super_sg_fr), tab_ent);
-      if(path_type == VARIANT_PATH) {
-        save_variant_continuation(btn);
-      }
+      subsumer = (sg_fr_ptr)SgFr_producer(first_consumer);
+      printf("Super subsumption call found\n");
       Trail_Unwind_All;
+      //printSubgoalTriePath(stdout, SgFr_leaf(super_sg_fr), tab_ent);
       answer_template = reconstruct_template_for_producer(call_info,
-          (subprod_fr_ptr)super_sg_fr, answer_template);
-      printSubstitutionFactor(stdout, answer_template);
+          (subprod_fr_ptr)subsumer, answer_template);
     }
     
-    sub_ans_tmplt = answer_template--;
+    CallResults_subsumer(results) = subsumer;
+    CallResults_variant_found(results) = (path_type == VARIANT_PATH);
+    CallResults_var_vector(results) = answer_template;
     
-    if(path_type == VARIANT_PATH) {
-      printf("Found variant!\n");
-      // construct template
-      CallResults_subgoal_frame(results) = sg_fr;
-      CallResults_leaf(results) = btn;
-      if(SgFr_is_sub_consumer(sg_fr)) {
-        stl_restore_variant_cont();
-      }
-      CallResults_var_vector(results) = construct_variant_answer_template_from_sub(answer_template);
-      Trail_Unwind_All;
-      printSubstitutionFactor(stdout, CallResults_var_vector(results));
-    } else {
-      printf("Found subsumptive subgoal\n");
-      
-      // insert variant path and build template
+    //if((path_type != VARIANT_PATH) && (SgFr_state(sf_with_ans_set) < complete)) {
+    // To change this when compiled tries work XXX
+    if(path_type != VARIANT_PATH) {
       CallResults_leaf(results) = variant_call_cont_insert(tab_ent, (sg_node_ptr)stl_restore_variant_cont(), variant_cont.bindings.num);
-      CallResults_var_vector(results) = extract_template_from_insertion(answer_template);
-      CallResults_subgoal_frame(results) = create_new_consumer_subgoal(CallResults_leaf(results),
-        (subprod_fr_ptr)CallResults_subsumer(results), tab_ent, CallInfo_code(call_info));
-      printSubstitutionFactor(stdout, CallResults_var_vector(results));
       Trail_Unwind_All;
+      CallResults_subgoal_frame(results) = create_new_consumer_subgoal(CallResults_leaf(results),
+              (subprod_fr_ptr)CallResults_subsumer(results), tab_ent, CallInfo_code(call_info));
+      printf("New variant path\n");
+    } else {
+      CallResults_leaf(results) = btn;
+      CallResults_subgoal_frame(results) = sg_fr;
     }
     
     if(path_type == VARIANT_PATH) {
