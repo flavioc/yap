@@ -193,6 +193,8 @@ typedef struct answer_trie_node {
 #define TrNode_child(X)        ((X)->child)
 #define TrNode_sg_fr(X)        ((X)->child)
 #define TrNode_next(X)         ((X)->next)
+#define TrNode_is_hash(X)      (TrNode_node_type(X) & HASH_HEADER_NT)
+#define TrNode_is_hashed(X)    (TrNode_node_type(X) & HASHED_INTERIOR_NT)
 
 /* -------------------------------------------------------------------------- **
 **      Structs global_trie_hash, subgoal_trie_hash and answer_trie_hash      **
@@ -379,7 +381,6 @@ typedef subsumptive_producer_sf *subprod_fr_ptr;
 
 struct subsumed_consumer_subgoal_frame {
   variant_sf var_sf;
-  choiceptr cons_choice_point;
   time_stamp ts;
   subprod_fr_ptr producer;
   subsumptive_consumer_sf *consumers; /* Chain link for properly subsumed subgoals */
@@ -392,7 +393,6 @@ typedef subsumptive_consumer_sf *subcons_fr_ptr;
 #define SgFr_timestamp(X)   ((X)->ts)
 #define SgFr_producer(X)    ((X)->producer)
 #define SgFr_consumers(X)   ((X)->consumers)
-#define SgFr_cons_cp(X)     ((X)->cons_choice_point)
 
 /* ------------------------------- **
 ** Subgoal frame types             **
