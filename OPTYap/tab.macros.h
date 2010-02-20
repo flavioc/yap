@@ -33,6 +33,9 @@ STD_PROTO(static inline void restore_bindings, (tr_fr_ptr, tr_fr_ptr));
 STD_PROTO(static inline void abolish_incomplete_subgoals, (choiceptr));
 STD_PROTO(static inline void free_subgoal_trie_hash_chain, (sg_hash_ptr));
 STD_PROTO(static inline void free_answer_trie_hash_chain, (ans_hash_ptr));
+STD_PROTO(static inline void free_answer_trie_node, (ans_node_ptr));
+STD_PROTO(static inline void free_answer_trie_hash, (ans_hash_ptr));
+STD_PROTO(static inline int build_next_subsumptive_consumer_return_list, (subcons_fr_ptr, CELL *));
 STD_PROTO(static inline continuation_ptr get_next_answer_continuation, (dep_fr_ptr dep_fr));
 STD_PROTO(static inline int is_new_generator_call, (CallLookupResults *));
 STD_PROTO(static inline int is_new_consumer_call, (CallLookupResults *));
@@ -224,12 +227,7 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
         else {                                                                    \
           subcons_fr_ptr cons = (subcons_fr_ptr)(SG_FR);                          \
           subprod_fr_ptr prod = SgFr_producer(cons);                              \
-                      /* XXX */                                                   \
-          if(SgFr_state(prod) > evaluating) {                                     \
-            LEADER_CP = SgFr_cons_cp(cons);                                       \
-          } else {                                                                \
-            LEADER_CP = SgFr_gen_cp(SgFr_producer((subcons_fr_ptr)(SG_FR)));      \
-          }                                                                       \
+          LEADER_CP = SgFr_gen_cp(prod);                                          \
         }                                                                         \
                                                                                   \
         DEP_ON_STACK = TRUE
@@ -243,7 +241,6 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
             }                                                                     \
             chain_dep_fr = DepFr_next(chain_dep_fr);                              \
           }                                                                       \
-          printf("NO LEADER FOUND\n");                                            \
 	}
 #endif /* YAPOR */
 
@@ -316,10 +313,10 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
         memcpy(SuspFr_local_start(SUSP_FR), SuspFr_local_reg(SUSP_FR), B_SIZE);    \
         memcpy(SuspFr_trail_start(SUSP_FR), SuspFr_trail_reg(SUSP_FR), TR_SIZE)
         
-#define add_answer_trie_subgoal_frame(SG_FR)  \
-        { register ans_node_ptr ans_node; \
-          new_root_answer_trie_node(ans_node);  \
-          SgFr_answer_trie(SG_FR) = ans_node;  \
+#define add_answer_trie_subgoal_frame(SG_FR)      \
+        { register ans_node_ptr ans_node;         \
+          new_root_answer_trie_node(ans_node);    \
+          SgFr_answer_trie(SG_FR) = ans_node;     \
         }
         
 #define new_basic_subgoal_frame(SG_FR, CODE, LEAF, TYPE, ALLOC_FN) \
@@ -357,16 +354,16 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
     }
 
 /* release subgoal frame based on its type */
-#define free_subgoal_frame(SG_FR) {       \
-    if(SgFr_is_variant(SG_FR))   {       \
-      FREE_VARIANT_SUBGOAL_FRAME(SG_FR);  \
-      printf("Free variant\n");  \
-    } else if(SgFr_is_sub_producer(SG_FR)) {  \
-      printf("Free sub producer\n");  \
-      FREE_SUBPROD_SUBGOAL_FRAME(SG_FR)  \
-    } else if(SgFr_is_sub_consumer(SG_FR)) {  \
-      FREE_SUBCONS_SUBGOAL_FRAME(SG_FR)  \
-      printf("Free sub consumer\n");  \
+#define free_subgoal_frame(SG_FR) {             \
+    if(SgFr_is_variant(SG_FR))   {              \
+      FREE_VARIANT_SUBGOAL_FRAME(SG_FR);        \
+      printf("Free variant\n");                 \
+    } else if(SgFr_is_sub_producer(SG_FR)) {    \
+      printf("Free sub producer\n");            \
+      FREE_SUBPROD_SUBGOAL_FRAME(SG_FR);        \
+    } else if(SgFr_is_sub_consumer(SG_FR)) {    \
+      FREE_SUBCONS_SUBGOAL_FRAME(SG_FR);         \
+      printf("Free sub consumer\n");            \
     } \
   }
 
@@ -377,6 +374,11 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
           LOCAL_top_sg_fr = SG_FR;                                 \
 	      }
 
+#define init_sub_consumer_subgoal_frame(SG_FR)  \
+        { SgFr_init_yapor_fields(SG_FR);  \
+          SgFr_state(SG_FR) = evaluating; \
+        }
+
 #define SgFr_has_real_answers(SG_FR)                                      \
   (SgFr_first_answer(SG_FR) &&                                            \
     ContPtr_answer(SgFr_first_answer(SG_FR)) != SgFr_answer_trie(SG_FR))
@@ -386,30 +388,6 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
       ContPtr_answer(SgFr_first_answer(SG_FR)) == SgFr_answer_trie(SG_FR))
       
 #define SgFr_has_no_answers(SG_FR)  SgFr_first_answer(SG_FR) == NULL
-
-#define free_answer_trie_node(NODE) { \
-    if(TrNode_trie_type(NODE) == BASIC_ANSWER_TRIE_TT) { \
-      printf("delete basic answer node\n"); \
-      FREE_ANSWER_TRIE_NODE(NODE);  \
-    } else if(TrNode_trie_type(NODE) == TS_ANSWER_TRIE_TT) { \
-      printf("delete tst answer node\n"); \
-      FREE_TST_ANSWER_TRIE_NODE(NODE);  \
-    } else {  \
-      printf("NOTHING DELETED!!!!\n");  \
-    }\
-}
-
-#define free_answer_trie_hash(HASH) { \
-  if(TrNode_trie_type(HASH) == BASIC_ANSWER_TRIE_TT) {  \
-    printf("delete basic answer hash\n"); \
-    FREE_ANSWER_TRIE_HASH(HASH);  \
-  } else if(TrNode_trie_type(HASH) == TS_ANSWER_TRIE_TT) {  \
-    printf("delete tst answer hash\n"); \
-    FREE_TST_ANSWER_TRIE_HASH(HASH);  \
-  } else {  \
-    printf("NOTHING DELETED HASH!!!!!!\n"); \
-  } \
-}
   
 #ifdef TABLING_ANSWER_LIST
 #define free_answer_continuation(CONT) free_answer_list(CONT)
@@ -422,8 +400,6 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
 #define new_dependency_frame(DEP_FR, DEP_ON_STACK, TOP_OR_FR, LEADER_CP, CONS_CP, SG_FR, NEXT)         \
         ALLOC_DEPENDENCY_FRAME(DEP_FR);                                                                \
         INIT_LOCK(DepFr_lock(DEP_FR));                                                                 \
-        if((SG_FR) && SgFr_is_sub_consumer(SG_FR))                                                       \
-          SgFr_cons_cp((subcons_fr_ptr)(SG_FR)) = CONS_CP;                                             \
         DepFr_init_yapor_fields(DEP_FR, DEP_ON_STACK, TOP_OR_FR);                                      \
         DepFr_backchain_cp(DEP_FR) = NULL;                                                             \
         DepFr_leader_cp(DEP_FR) = NORM_CP(LEADER_CP);                                                  \
@@ -458,22 +434,21 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
         TrNode_parent(NODE) = PARENT;                           \
         TrNode_next(NODE) = NEXT
 
-#define new_root_subgoal_trie_node(NODE)                          \
-        ALLOC_SUBGOAL_TRIE_NODE(NODE);                            \
-        init_subgoal_trie_node(NODE, 0, NULL, NULL, NULL);        \
-        TrNode_node_type(NODE) = TRIE_ROOT_NT
-#define new_subgoal_trie_node(NODE, ENTRY, CHILD, PARENT, NEXT)   \
-        INCREMENT_GLOBAL_TRIE_REFS(ENTRY);                        \
-        ALLOC_SUBGOAL_TRIE_NODE(NODE);                            \
-        init_subgoal_trie_node(NODE, ENTRY, CHILD, PARENT, NEXT); \
-        TrNode_node_type(NODE) = INTERIOR_NT
-#define init_subgoal_trie_node(NODE, ENTRY, CHILD, PARENT, NEXT)  \
-        TrNode_entry(NODE) = ENTRY;                               \
-        TrNode_init_lock_field(NODE);                             \
-        TrNode_child(NODE) = CHILD;                               \
-        TrNode_parent(NODE) = PARENT;                             \
-        TrNode_next(NODE) = NEXT;                                 \
-        TrNode_trie_type(NODE) = CALL_TRIE_TT
+#define new_root_subgoal_trie_node(NODE)                                  \
+        ALLOC_SUBGOAL_TRIE_NODE(NODE);                                    \
+        init_subgoal_trie_node(NODE, 0, NULL, NULL, NULL, TRIE_ROOT_NT)
+#define new_subgoal_trie_node(NODE, ENTRY, CHILD, PARENT, NEXT, TYPE)     \
+        INCREMENT_GLOBAL_TRIE_REFS(ENTRY);                                \
+        ALLOC_SUBGOAL_TRIE_NODE(NODE);                                    \
+        init_subgoal_trie_node(NODE, ENTRY, CHILD, PARENT, NEXT, TYPE)
+#define init_subgoal_trie_node(NODE, ENTRY, CHILD, PARENT, NEXT, TYPE)  \
+        TrNode_entry(NODE) = ENTRY;                                     \
+        TrNode_init_lock_field(NODE);                                   \
+        TrNode_child(NODE) = CHILD;                                     \
+        TrNode_parent(NODE) = PARENT;                                   \
+        TrNode_next(NODE) = NEXT;                                       \
+        TrNode_trie_type(NODE) = CALL_TRIE_TT;                          \
+        TrNode_node_type(NODE) = TYPE
 
 
 #define new_root_answer_trie_node(NODE)                                 \
@@ -504,8 +479,8 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
 #define IS_GLOBAL_TRIE_HASH(NODE)          (TrNode_entry(NODE) == GLOBAL_TRIE_HASH_MARK)
 #else
 #endif /* GLOBAL_TRIE */
-#define IS_SUBGOAL_TRIE_HASH(NODE)         (TrNode_node_type(NODE) == HASH_HEADER_NT)
-#define IS_ANSWER_TRIE_HASH(NODE)          (TrNode_node_type(NODE) == HASH_HEADER_NT)
+#define IS_SUBGOAL_TRIE_HASH(NODE)         TrNode_is_hash(NODE)
+#define IS_ANSWER_TRIE_HASH(NODE)          TrNode_is_hash(NODE)
 
 
 #define new_global_trie_hash(HASH, NUM_NODES)                       \
@@ -758,6 +733,24 @@ void restore_bindings(tr_fr_ptr unbind_tr, tr_fr_ptr rebind_tr) {
   return;
 }
 
+static inline void
+free_answer_trie_node(ans_node_ptr node) {
+  if(TrNode_trie_type(node) == BASIC_ANSWER_TRIE_TT) {
+    FREE_ANSWER_TRIE_NODE(node);
+  } else {
+    FREE_TST_ANSWER_TRIE_NODE(node);
+  }
+}
+
+static inline void
+free_answer_trie_hash(ans_hash_ptr hash) {
+  if(TrNode_trie_type(hash) == BASIC_ANSWER_TRIE_TT) {
+    FREE_ANSWER_TRIE_HASH(hash);
+  } else {
+    FREE_TST_ANSWER_TRIE_HASH(hash);
+  }
+}
+
 #ifdef TABLING_ANSWER_LIST
 static inline
 void free_answer_list(ans_list_ptr list) {
@@ -770,6 +763,82 @@ void free_answer_list(ans_list_ptr list) {
   }
 }
 #endif
+
+static inline
+void free_producer_subgoal_data(sg_fr_ptr sg_fr) {
+  printf("Freeing producer data\n");
+  free_answer_trie_hash_chain((ans_hash_ptr)SgFr_hash_chain(sg_fr));
+  free_answer_trie_branch(TrNode_child(SgFr_answer_trie(sg_fr)), TRAVERSE_POSITION_FIRST);
+  free_answer_continuation(SgFr_first_answer(sg_fr));
+}
+
+static inline
+void free_consumer_subgoal_data(subcons_fr_ptr sg_fr) {
+  printf("Freeing consumer data\n");
+  free_answer_continuation(SgFr_first_answer(sg_fr));
+}
+
+static void
+abolish_incomplete_consumer_subgoal(subcons_fr_ptr sg_fr) {
+  printf("Freeing consumer subgoal\n");
+  free_consumer_subgoal_data(sg_fr);
+  printf("Freeing consumer subgoal path\n");
+  delete_subgoal_path((sg_fr_ptr)sg_fr);
+  printf("Freeing subgoal frame\n");
+  FREE_SUBCONS_SUBGOAL_FRAME(sg_fr);
+}
+
+static void
+abolish_incomplete_variant_subgoal(sg_fr_ptr sg_fr) {
+  if (SgFr_has_no_answers(sg_fr)) {
+    /* no answers --> ready */
+    SgFr_state(sg_fr) = ready;
+  } else if (SgFr_has_yes_answer(sg_fr)) {
+    /* yes answer --> complete */
+#ifndef TABLING_EARLY_COMPLETION
+    /* with early completion, at this point the subgoal should be already completed */
+    SgFr_state(sg_fr) = complete;
+#endif /* TABLING_EARLY_COMPLETION */
+    UNLOCK(SgFr_lock(sg_fr));
+  } else {
+    /* answers --> incomplete/ready */
+#ifdef INCOMPLETE_TABLING
+    SgFr_state(sg_fr) = incomplete;
+#else
+    free_producer_subgoal_data(sg_fr);
+    
+    SgFr_first_answer(sg_fr) = NULL;
+    SgFr_last_answer(sg_fr) = NULL;
+    SgFr_state(sg_fr) = ready;
+    SgFr_hash_chain(sg_fr) = NULL;
+    TrNode_child(SgFr_answer_trie(sg_fr)) = NULL;
+#endif /* INCOMPLETE_TABLING */
+  }
+}
+
+static void
+abolish_incomplete_sub_producer_subgoal(sg_fr_ptr sg_fr) {
+  printf("Freeing producer subgoal\n");
+  subprod_fr_ptr prod_sg = (subprod_fr_ptr)sg_fr;
+  subcons_fr_ptr cons_sg = SgFr_prod_consumers(prod_sg);
+  
+  while(cons_sg) {
+    abolish_incomplete_consumer_subgoal(cons_sg);
+    cons_sg = SgFr_consumers(cons_sg);
+  }
+  
+  free_producer_subgoal_data(sg_fr);
+  delete_subgoal_path(sg_fr);
+  FREE_SUBPROD_SUBGOAL_FRAME(sg_fr);
+}
+
+static void
+abolish_incomplete_producer_subgoal(sg_fr_ptr sg_fr) {
+  if(SgFr_is_variant(sg_fr))
+    abolish_incomplete_variant_subgoal(sg_fr);
+  else if(SgFr_is_sub_producer(sg_fr))
+    abolish_incomplete_sub_producer_subgoal(sg_fr);
+}
 
 static inline
 void abolish_incomplete_subgoals(choiceptr prune_cp) {
@@ -799,42 +868,12 @@ void abolish_incomplete_subgoals(choiceptr prune_cp) {
 #endif /* YAPOR */
     sg_fr = LOCAL_top_sg_fr;
     LOCAL_top_sg_fr = SgFr_next(sg_fr);
+    
     LOCK(SgFr_lock(sg_fr));
-
-    if (SgFr_has_no_answers(sg_fr)) {
-      /* no answers --> ready */
-      SgFr_state(sg_fr) = ready;
-      UNLOCK(SgFr_lock(sg_fr));
-    } else if (SgFr_has_yes_answer(sg_fr)) {
-      /* yes answer --> complete */
-#ifndef TABLING_EARLY_COMPLETION
-      /* with early completion, at this point the subgoal should be already completed */
-      SgFr_state(sg_fr) = complete;
-#endif /* TABLING_EARLY_COMPLETION */
-      UNLOCK(SgFr_lock(sg_fr));
-    } else {
-      /* answers --> incomplete/ready */
-#ifdef INCOMPLETE_TABLING
-      SgFr_state(sg_fr) = incomplete;
-      UNLOCK(SgFr_lock(sg_fr));
-#else
-      ans_node_ptr node;
-      continuation_ptr cont;
-      SgFr_state(sg_fr) = ready;
-      free_answer_trie_hash_chain((ans_hash_ptr)SgFr_hash_chain(sg_fr));
-      SgFr_hash_chain(sg_fr) = NULL;
-      
-      cont = SgFr_first_answer(sg_fr);
-      SgFr_first_answer(sg_fr) = NULL;
-      SgFr_last_answer(sg_fr) = NULL;
-      
-      node = TrNode_child(SgFr_answer_trie(sg_fr));
-      TrNode_child(SgFr_answer_trie(sg_fr)) = NULL;
-      UNLOCK(SgFr_lock(sg_fr));
-      free_answer_trie_branch(node, TRAVERSE_POSITION_FIRST);
-      free_answer_continuation(cont);
-#endif /* INCOMPLETE_TABLING */
-    }
+    printf("Going to free one subgoal\n");
+    abolish_incomplete_producer_subgoal(sg_fr);
+    
+    UNLOCK(SgFr_lock(sg_fr));
 #ifdef LIMIT_TABLING
     insert_into_global_sg_fr_list(sg_fr);
 #endif /* LIMIT_TABLING */
@@ -902,6 +941,53 @@ void free_answer_trie_hash_chain(ans_hash_ptr hash) {
   return;
 }
 
+static inline int
+build_next_subsumptive_consumer_return_list(subcons_fr_ptr consumer_sg, CELL* answer_template) {
+  subprod_fr_ptr producer_sg = SgFr_producer(consumer_sg);
+  const int producer_ts = SgFr_prod_timestamp(producer_sg);
+  const int consumer_ts = SgFr_timestamp(consumer_sg);
+  
+  if(producer_ts <= consumer_ts)
+    return FALSE; /* no answers were inserted */
+  
+  printf("PRODUCER TIMESTAMP: %d\n", producer_ts);
+  
+  int variant_size = (int)*answer_template;
+  CELL* sub_answer_template = answer_template + variant_size + 1;
+  int sub_size = (int)*sub_answer_template;
+  sub_answer_template += sub_size; 
+  printf("ANSWER_TEMPLATE: %d %d\n", variant_size, sub_size);
+  
+  printf("Timestamp: %d\n", SgFr_timestamp(consumer_sg));
+  ans_list_ptr answers = tst_collect_relevant_answers((tst_node_ptr)SgFr_answer_trie(producer_sg),
+    consumer_ts, sub_size, sub_answer_template);
+  
+  if(answers == NULL)
+    return FALSE;
+  
+  ans_list_ptr first = answers;
+  ans_list_ptr last = NULL;
+  
+  while(answers) {
+    printAnswerTriePath(stdout, AnsList_answer(answers));
+    printf("\n");
+    last = answers;
+    answers = AnsList_next(answers);
+  }
+  
+  if(!SgFr_first_answer(consumer_sg)) {
+    /* first subsumptive answer found */
+    SgFr_first_answer(consumer_sg) = first;
+  } else {
+    /* append new answers found */
+    AnsList_next(SgFr_last_answer(consumer_sg)) = first;
+  }
+  SgFr_last_answer(consumer_sg) = last;
+  SgFr_timestamp(consumer_sg) = producer_ts;
+  
+  return TRUE;
+}
+
 /* from a dependency frame "dep_fr" compute if
  * new answers are available to consume
  */
@@ -932,55 +1018,10 @@ get_next_answer_continuation(dep_fr_ptr dep_fr) {
            *     are available and no continuation is returned
            */
           subcons_fr_ptr consumer_sg = (subcons_fr_ptr)sg_fr;
-          subprod_fr_ptr producer_sg = SgFr_producer(consumer_sg);
-          const int producer_ts = SgFr_prod_timestamp(producer_sg);
-          const int consumer_ts = SgFr_timestamp(consumer_sg);
-          
-          if(producer_ts <= consumer_ts)
-            return NULL; /* no answers were inserted */
-          
-          printf("PRODUCER TIMESTAMP: %d\n", producer_ts);
-          
-          CELL* answer_template = DEPENDENCY_FRAME_ANSWER_TEMPLATE(dep_fr);
-          int variant_size = (int)*answer_template;
-          CELL* sub_answer_template = answer_template + variant_size + 1;
-          int sub_size = (int)*sub_answer_template;
-          sub_answer_template += sub_size; 
-          printf("ANSWER_TEMPLATE: %d %d\n", variant_size, sub_size);
-          
-          printf("Timestamp: %d\n", SgFr_timestamp(consumer_sg));
-          ans_list_ptr answers = tst_collect_relevant_answers((tst_node_ptr)SgFr_answer_trie(producer_sg),
-            consumer_ts, sub_size, sub_answer_template);
-            
-          if(answers == NULL)
+          if(build_next_subsumptive_consumer_return_list(consumer_sg, DEPENDENCY_FRAME_ANSWER_TEMPLATE(dep_fr)))
+            return ContPtr_next(last_cont);
+          else
             return NULL;
-          
-          ans_list_ptr first = answers;
-          ans_list_ptr last = NULL;
-          
-          while(answers) {
-            printAnswerTriePath(stdout, AnsList_answer(answers));
-            printf("\n");
-            last = answers;
-            answers = AnsList_next(answers);
-          }
-          
-          if(!SgFr_first_answer(consumer_sg)) {
-            /* first subsumptive answer found */
-            SgFr_first_answer(consumer_sg) = first;
-          } else {
-            /* append new answers found */
-            AnsList_next(SgFr_last_answer(consumer_sg)) = first;
-          }
-          SgFr_last_answer(consumer_sg) = last;
-          SgFr_timestamp(consumer_sg) = producer_ts;
-          
-          printf("First answer %x Last answer %x ContPtr %x Last %x\n", SgFr_first_answer(consumer_sg), SgFr_last_answer(consumer_sg), ContPtr_next(last_cont), last_cont);
-          
-          /* recompute next answer continuation */
-          //if(last == SgFr_first_answer(consumer_sg))
-          //  return last;
-          return ContPtr_next(last_cont);
         }
       }
       break;
@@ -1023,7 +1064,12 @@ is_new_consumer_call(CallLookupResults *results) {
     case SUBSUMPTIVE_PRODUCER_SFT:
       return CallResults_variant_found(results) && SgFr_state(sg_fr) == evaluating;
     case SUBSUMED_CONSUMER_SFT:
-      return SgFr_state(sg_fr) == ready || SgFr_state(sg_fr) == evaluating;
+      if(SgFr_state(sg_fr) == ready) {
+        subprod_fr_ptr prod_sg = SgFr_producer((subcons_fr_ptr)sg_fr);
+        
+        return SgFr_state(prod_sg) < complete;
+      }
+      return SgFr_state(sg_fr) == evaluating;
     default:
       /* NOT REACHABLE */
       return FALSE;
