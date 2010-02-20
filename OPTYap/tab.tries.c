@@ -55,7 +55,6 @@ void subgoal_search(yamop *preg, CELL **Yaddr, CallLookupResults *results) {
   *Yaddr = CallResults_var_vector(results)++;
 }
 
-
 ans_node_ptr answer_search(sg_fr_ptr sg_fr, CELL *subs_ptr) {
   if(SgFr_is_variant(sg_fr))
     return variant_answer_search(sg_fr, subs_ptr);
@@ -63,6 +62,55 @@ ans_node_ptr answer_search(sg_fr_ptr sg_fr, CELL *subs_ptr) {
     return subsumptive_answer_search(sg_fr, subs_ptr);
   } else
     return variant_answer_search(sg_fr, subs_ptr);
+}
+
+void delete_subgoal_path(sg_fr_ptr sg_fr) {
+  sg_node_ptr node = SgFr_leaf(sg_fr);
+  sg_node_ptr parent, first_child, old_node, *bucket;
+  sg_hash_ptr hash = NULL;
+
+  while(TrNode_node_type(node) != TRIE_ROOT_NT) {
+    parent = TrNode_parent(node);
+    first_child = TrNode_child(parent);
+
+    if(IS_SUBGOAL_TRIE_HASH(first_child)) {
+      hash = (sg_hash_ptr) first_child;
+      bucket = Hash_bucket(hash, HASH_ENTRY(TrNode_entry(node), Hash_seed(hash)));
+
+      --Hash_num_nodes(hash);
+      
+      first_child = *bucket;
+      if(first_child == node) {
+        *bucket = TrNode_next(first_child);
+        goto process_next;
+      }
+    } else {
+      /* simple linked list */
+      if(first_child == node) {
+        TrNode_child(parent) = TrNode_next(node);
+        goto process_next;
+      }
+    }
+    
+    /* node is somewhere in the middle of the linked list */
+    while(TrNode_next(first_child) != node)
+      first_child = TrNode_next(first_child);
+    TrNode_next(first_child) = TrNode_next(node);
+  
+process_next:
+    old_node = node;
+    node = parent;
+    printf("Freeing one subgoal trie node\n");
+    FREE_SUBGOAL_TRIE_NODE(old_node);
+    
+    if(hash && Hash_num_nodes(hash) == 0) {
+      /* hash without nodes! */
+      FREE_SUBGOAL_TRIE_HASH(hash);
+    }
+    
+    hash = NULL;
+  }
+  
 }
 
 #ifdef GLOBAL_TRIE
@@ -209,6 +257,7 @@ CELL *load_substitution_variable(gt_node_ptr current_node, CELL *aux_stack_ptr) 
 
 void private_completion(sg_fr_ptr sg_fr) {
   /* complete subgoals */
+  printf("Private completion\n");
 #ifdef LIMIT_TABLING
   sg_fr_ptr aux_sg_fr;
   while (LOCAL_top_sg_fr != sg_fr) {
@@ -224,6 +273,7 @@ void private_completion(sg_fr_ptr sg_fr) {
 #else
   while (LOCAL_top_sg_fr != sg_fr) {
     mark_as_completed(LOCAL_top_sg_fr);
+    printf("One top sg fr completed\n");
     LOCAL_top_sg_fr = SgFr_next(LOCAL_top_sg_fr);
   }
   mark_as_completed(LOCAL_top_sg_fr);
@@ -233,24 +283,16 @@ void private_completion(sg_fr_ptr sg_fr) {
   /* release dependency frames */
   while (EQUAL_OR_YOUNGER_CP(DepFr_cons_cp(LOCAL_top_dep_fr), B)) {  /* never equal if batched scheduling */
     dep_fr_ptr dep_fr = DepFr_next(LOCAL_top_dep_fr);
+    sg_fr_ptr sg_fr = DepFr_sg_fr(LOCAL_top_dep_fr);
+    if(SgFr_is_sub_consumer(sg_fr) && SgFr_state(sg_fr) != complete) {
+      printf("One subsumptive consumer sg fr completed\n");
+      mark_as_completed(sg_fr);
+    }
+    printf("ONE DEPENDENCY FRAME FREED\n");
     FREE_DEPENDENCY_FRAME(LOCAL_top_dep_fr);
     LOCAL_top_dep_fr = dep_fr;
   }
   
-  /* for subsumed goals, also mark as complete */
-  if(SgFr_is_sub_producer(sg_fr)) {
-    subprod_fr_ptr prod_sg = (subprod_fr_ptr)sg_fr;
-    
-    printf("Marking subsumed goals as complete!\n");
-    subcons_fr_ptr cons_sg = SgFr_prod_consumers(prod_sg);
-    
-    while(cons_sg) {
-      printf("Mark one!\n");
-      mark_as_completed((sg_fr_ptr)cons_sg);
-      cons_sg = SgFr_consumers(cons_sg);
-    }
-  }
-
   /* adjust freeze registers */
   adjust_freeze_registers();
 
@@ -265,7 +307,7 @@ void free_subgoal_trie_branch(sg_node_ptr current_node, int nodes_left, int posi
 #else
 void free_subgoal_trie_branch(sg_node_ptr current_node, int nodes_left, int nodes_extra, int position) {
   int current_nodes_left = 0, current_nodes_extra = 0;
-
+  printf("Free subgoal trie branch\n");
   /* save current state if first sibling node */
   if (position == TRAVERSE_POSITION_FIRST) {
     current_nodes_left = nodes_left;

@@ -65,6 +65,7 @@ void finish_yapor(void);
 #ifdef TABLING
 void subgoal_search(yamop *preg, CELL **Yaddr, CallLookupResults *results);
 ans_node_ptr answer_search(sg_fr_ptr sg_fr, CELL *subs_ptr);
+void delete_subgoal_path(sg_fr_ptr sg_fr);
 #ifdef GLOBAL_TRIE
 CELL *load_substitution_variable(gt_node_ptr current_node, CELL *aux_stack_ptr);
 #endif /* GLOBAL_TRIE */
