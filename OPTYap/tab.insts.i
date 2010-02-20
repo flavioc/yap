@@ -501,10 +501,18 @@
       /* new consumer */
       choiceptr leader_cp;
       int leader_dep_on_stack;
+      
+      if(SgFr_state(sg_fr) < evaluating)
+        init_subgoal_frame(sg_fr);
+      
       find_dependency_node(sg_fr, leader_cp, leader_dep_on_stack);
+      
       UNLOCK(SgFr_lock(sg_fr));
+      
       find_leader_node(leader_cp, leader_dep_on_stack);
+      
       store_consumer_node(tab_ent, sg_fr, leader_cp, leader_dep_on_stack);
+      
 #ifdef OPTYAP_ERRORS
       if (PARALLEL_EXECUTION_MODE) {
 	choiceptr aux_cp;
@@ -757,6 +765,10 @@
       /* new consumer */
       choiceptr leader_cp;
       int leader_dep_on_stack;
+      
+      if(SgFr_is_sub_consumer(sg_fr) && SgFr_state(sg_fr) < evaluating) 
+        init_sub_consumer_subgoal_frame((subcons_fr_ptr)sg_fr);
+      
       find_dependency_node(sg_fr, leader_cp, leader_dep_on_stack);
       UNLOCK(SgFr_lock(sg_fr));
       find_leader_node(leader_cp, leader_dep_on_stack);
@@ -779,12 +791,27 @@
       goto answer_resolution;
     } else {
       /* subgoal completed */
+      printf("TABLE_TRY COMPLETE SUBGOAL\n");
+      CELL* answer_template = YENV;
+      
+      /*
+       * if this subgoal is a subsumptive consumer
+       * and it wasn't evaluated before
+       * compute the answer return list from the more general subgoal
+       * and mark this consumer subgoal as completed
+       */
+      if(SgFr_is_sub_consumer(sg_fr) && SgFr_state(sg_fr) == ready) {
+        build_next_subsumptive_consumer_return_list((subcons_fr_ptr)sg_fr, answer_template);
+        mark_as_completed(sg_fr);
+      }
 
       if (SgFr_has_no_answers(sg_fr)) {
 	      /* no answers --> fail */
 	      UNLOCK(SgFr_lock(sg_fr));
 	      goto fail;
-      } else if (SgFr_has_yes_answer(sg_fr)) {
+	    }
+      
+      if (SgFr_has_yes_answer(sg_fr)) {
 	      /* yes answer --> procceed */
 	      UNLOCK(SgFr_lock(sg_fr));
 	      PREG = (yamop *) CPREG;
@@ -812,7 +839,7 @@
             
           PREG = (yamop *) CPREG;
           PREFETCH_OP(PREG);
-          CONSUME_ANSWER(ans_node, YENV, sg_fr);
+          CONSUME_ANSWER(ans_node, answer_template, sg_fr);
 	        YENV = ENV;
           GONext();
 	      } else {
