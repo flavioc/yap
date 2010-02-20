@@ -72,7 +72,7 @@ sg_node_ptr subgoal_trie_node_check_insert(tab_ent_ptr tab_ent, sg_node_ptr pare
 
   if (child_node == NULL) {
 #ifdef ALLOC_BEFORE_CHECK
-    new_subgoal_trie_node(child_node, t, NULL, parent_node, NULL);
+    new_subgoal_trie_node(child_node, t, NULL, parent_node, NULL, INTERIOR_NT);
 #endif /* ALLOC_BEFORE_CHECK */
     LOCK_NODE(parent_node);
     if (TrNode_child(parent_node)) {
@@ -98,9 +98,9 @@ sg_node_ptr subgoal_trie_node_check_insert(tab_ent_ptr tab_ent, sg_node_ptr pare
 #ifdef ALLOC_BEFORE_CHECK
       TrNode_next(child_node) = TrNode_child(parent_node);
 #else
-      new_subgoal_trie_node(child_node, t, NULL, parent_node, TrNode_child(parent_node));
+      new_subgoal_trie_node(child_node, t, NULL, parent_node, TrNode_child(parent_node), INTERIOR_NT);
     } else {
-      new_subgoal_trie_node(child_node, t, NULL, parent_node, NULL);
+      new_subgoal_trie_node(child_node, t, NULL, parent_node, NULL, INTERIOR_NT);
 #endif /* ALLOC_BEFORE_CHECK */
     }
     TrNode_child(parent_node) = child_node;
@@ -119,7 +119,7 @@ sg_node_ptr subgoal_trie_node_check_insert(tab_ent_ptr tab_ent, sg_node_ptr pare
       child_node = TrNode_next(child_node);
     } while (child_node);
 #ifdef ALLOC_BEFORE_CHECK
-    new_subgoal_trie_node(child_node, t, NULL, parent_node, first_node);
+    new_subgoal_trie_node(child_node, t, NULL, parent_node, first_node, INTERIOR_NT);
 #endif /* ALLOC_BEFORE_CHECK */
     LOCK_NODE(parent_node);
     if (first_node != TrNode_child(parent_node)) {
@@ -146,9 +146,9 @@ sg_node_ptr subgoal_trie_node_check_insert(tab_ent_ptr tab_ent, sg_node_ptr pare
 #ifdef ALLOC_BEFORE_CHECK
       TrNode_next(child_node) = TrNode_child(parent_node);
 #else
-      new_subgoal_trie_node(child_node, t, NULL, parent_node, TrNode_child(parent_node));
+      new_subgoal_trie_node(child_node, t, NULL, parent_node, TrNode_child(parent_node), INTERIOR_NT);
     } else {
-      new_subgoal_trie_node(child_node, t, NULL, parent_node, first_node);
+      new_subgoal_trie_node(child_node, t, NULL, parent_node, first_node, INTERIOR_NT);
 #endif /* ALLOC_BEFORE_CHECK */
     }
     count_nodes++;
@@ -160,6 +160,7 @@ sg_node_ptr subgoal_trie_node_check_insert(tab_ent_ptr tab_ent, sg_node_ptr pare
       do {
         bucket = Hash_bucket(hash, HASH_ENTRY(TrNode_entry(chain_node), BASE_HASH_BUCKETS - 1));
         next_node = TrNode_next(chain_node);
+        TrNode_node_type(chain_node) |= HASHED_INTERIOR_NT;
         TrNode_next(chain_node) = *bucket;
         *bucket = chain_node;
         chain_node = next_node;
@@ -189,7 +190,7 @@ subgoal_trie_hash:
       child_node = TrNode_next(child_node);
     }
 #ifdef ALLOC_BEFORE_CHECK
-    new_subgoal_trie_node(child_node, t, NULL, parent_node, first_node);
+    new_subgoal_trie_node(child_node, t, NULL, parent_node, first_node, HASHED_INTERIOR_NT);
 #endif /* ALLOC_BEFORE_CHECK */
     LOCK_NODE(parent_node);
     if (seed != Hash_seed(hash)) {
@@ -216,9 +217,9 @@ subgoal_trie_hash:
 #ifdef ALLOC_BEFORE_CHECK
       TrNode_next(child_node) = *bucket;
 #else
-      new_subgoal_trie_node(child_node, t, NULL, parent_node, *bucket);
+      new_subgoal_trie_node(child_node, t, NULL, parent_node, *bucket, HASHED_INTERIOR_NT);
     } else {
-      new_subgoal_trie_node(child_node, t, NULL, parent_node, first_node);
+      new_subgoal_trie_node(child_node, t, NULL, parent_node, first_node, HASHED_INTERIOR_NT);
 #endif /* ALLOC_BEFORE_CHECK */
     }
     *bucket = child_node;
@@ -556,7 +557,7 @@ sg_node_ptr subgoal_trie_node_check_insert(tab_ent_ptr tab_ent, sg_node_ptr pare
   child_node = TrNode_child(parent_node);
 
   if (child_node == NULL) {
-    new_subgoal_trie_node(child_node, t, NULL, parent_node, NULL);
+    new_subgoal_trie_node(child_node, t, NULL, parent_node, NULL, INTERIOR_NT);
     TrNode_child(parent_node) = child_node;
     UNLOCK_NODE(parent_node);
     return child_node;
@@ -572,7 +573,7 @@ sg_node_ptr subgoal_trie_node_check_insert(tab_ent_ptr tab_ent, sg_node_ptr pare
       count_nodes++;
       child_node = TrNode_next(child_node);
     } while (child_node);
-    new_subgoal_trie_node(child_node, t, NULL, parent_node, TrNode_child(parent_node));
+    new_subgoal_trie_node(child_node, t, NULL, parent_node, TrNode_child(parent_node), INTERIOR_NT);
     count_nodes++;
     if (count_nodes >= MAX_NODES_PER_TRIE_LEVEL) {
       /* alloc a new hash */
@@ -583,6 +584,7 @@ sg_node_ptr subgoal_trie_node_check_insert(tab_ent_ptr tab_ent, sg_node_ptr pare
       do {
         bucket = Hash_bucket(hash, HASH_ENTRY(TrNode_entry(chain_node), BASE_HASH_BUCKETS - 1));
         next_node = TrNode_next(chain_node);
+        TrNode_node_type(chain_node) |= HASHED_INTERIOR_NT;
         TrNode_next(chain_node) = *bucket;
         *bucket = chain_node;
         chain_node = next_node;
@@ -610,7 +612,7 @@ sg_node_ptr subgoal_trie_node_check_insert(tab_ent_ptr tab_ent, sg_node_ptr pare
       count_nodes++;
       child_node = TrNode_next(child_node);
     }
-    new_subgoal_trie_node(child_node, t, NULL, parent_node, *bucket);
+    new_subgoal_trie_node(child_node, t, NULL, parent_node, *bucket, HASHED_INTERIOR_NT);
     *bucket = child_node;
     Hash_num_nodes(hash)++;
     count_nodes++;
