@@ -30,11 +30,25 @@ STD_PROTO(static inline void mark_as_completed, (sg_fr_ptr));
 STD_PROTO(static inline void unbind_variables, (tr_fr_ptr, tr_fr_ptr));
 STD_PROTO(static inline void rebind_variables, (tr_fr_ptr, tr_fr_ptr));
 STD_PROTO(static inline void restore_bindings, (tr_fr_ptr, tr_fr_ptr));
-STD_PROTO(static inline void abolish_incomplete_subgoals, (choiceptr));
+
 STD_PROTO(static inline void free_subgoal_trie_hash_chain, (sg_hash_ptr));
 STD_PROTO(static inline void free_answer_trie_hash_chain, (ans_hash_ptr));
+STD_PROTO(static inline void free_tst_hash_chain, (tst_ans_hash_ptr));
+
 STD_PROTO(static inline void free_answer_trie_node, (ans_node_ptr));
-STD_PROTO(static inline void free_answer_trie_hash, (ans_hash_ptr));
+
+STD_PROTO(static inline void free_producer_subgoal_data, (sg_fr_ptr, int));
+STD_PROTO(static inline void free_consumer_subgoal_data, (subcons_fr_ptr));
+STD_PROTO(static inline void free_variant_subgoal_data, (sg_fr_ptr, int));
+
+STD_PROTO(static void abolish_incomplete_consumer_subgoal, (subcons_fr_ptr sg_fr));
+STD_PROTO(static void abolish_incomplete_variant_subgoal, (sg_fr_ptr sg_fr));
+STD_PROTO(static void abolish_incomplete_variant_subgoal, (sg_fr_ptr sg_fr));
+STD_PROTO(static void abolish_incomplete_sub_producer_subgoal, (sg_fr_ptr sg_fr));
+STD_PROTO(static inline void abolish_incomplete_producer_subgoal, (sg_fr_ptr sg_fr));
+
+STD_PROTO(static inline void abolish_incomplete_subgoals, (choiceptr));
+
 STD_PROTO(static inline int build_next_subsumptive_consumer_return_list, (subcons_fr_ptr, CELL *));
 STD_PROTO(static inline continuation_ptr get_next_answer_continuation, (dep_fr_ptr dep_fr));
 STD_PROTO(static inline int is_new_generator_call, (CallLookupResults *));
@@ -352,20 +366,6 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
           tstCreateTSIs((tst_node_ptr)SgFr_answer_trie(PRODUCER));  \
         SgFr_prod_consumers(PRODUCER) = (subcons_fr_ptr)(SG_FR);  \
     }
-
-/* release subgoal frame based on its type */
-#define free_subgoal_frame(SG_FR) {             \
-    if(SgFr_is_variant(SG_FR))   {              \
-      FREE_VARIANT_SUBGOAL_FRAME(SG_FR);        \
-      printf("Free variant\n");                 \
-    } else if(SgFr_is_sub_producer(SG_FR)) {    \
-      printf("Free sub producer\n");            \
-      FREE_SUBPROD_SUBGOAL_FRAME(SG_FR);        \
-    } else if(SgFr_is_sub_consumer(SG_FR)) {    \
-      FREE_SUBCONS_SUBGOAL_FRAME(SG_FR);         \
-      printf("Free sub consumer\n");            \
-    } \
-  }
 
 #define init_subgoal_frame(SG_FR)                                  \
         { SgFr_init_yapor_fields(SG_FR);                           \
@@ -742,15 +742,6 @@ free_answer_trie_node(ans_node_ptr node) {
   }
 }
 
-static inline void
-free_answer_trie_hash(ans_hash_ptr hash) {
-  if(TrNode_trie_type(hash) == BASIC_ANSWER_TRIE_TT) {
-    FREE_ANSWER_TRIE_HASH(hash);
-  } else {
-    FREE_TST_ANSWER_TRIE_HASH(hash);
-  }
-}
-
 #ifdef TABLING_ANSWER_LIST
 static inline
 void free_answer_list(ans_list_ptr list) {
@@ -765,10 +756,26 @@ void free_answer_list(ans_list_ptr list) {
 #endif
 
 static inline
-void free_producer_subgoal_data(sg_fr_ptr sg_fr) {
+void free_producer_subgoal_data(sg_fr_ptr sg_fr, int delete_all) {
   printf("Freeing producer data\n");
+  free_tst_hash_chain((tst_ans_hash_ptr)SgFr_hash_chain(sg_fr));
+  tst_node_ptr answer_trie = (tst_node_ptr)SgFr_answer_trie(sg_fr);
+  if(TrNode_child(answer_trie))
+    free_answer_trie_branch((ans_node_ptr)TrNode_child(answer_trie), TRAVERSE_POSITION_FIRST);
+  if(delete_all)
+    FREE_TST_ANSWER_TRIE_NODE(answer_trie);
+  free_answer_continuation(SgFr_first_answer(sg_fr));
+}
+
+static inline
+void free_variant_subgoal_data(sg_fr_ptr sg_fr, int delete_all) {
+  printf("Freeing variant subgoal data\n");
   free_answer_trie_hash_chain((ans_hash_ptr)SgFr_hash_chain(sg_fr));
-  free_answer_trie_branch(TrNode_child(SgFr_answer_trie(sg_fr)), TRAVERSE_POSITION_FIRST);
+  ans_node_ptr answer_trie = SgFr_answer_trie(sg_fr);
+  if(TrNode_child(answer_trie))
+    free_answer_trie_branch(TrNode_child(answer_trie), TRAVERSE_POSITION_FIRST);
+  if(delete_all)
+    FREE_ANSWER_TRIE_NODE(answer_trie);
   free_answer_continuation(SgFr_first_answer(sg_fr));
 }
 
@@ -805,7 +812,7 @@ abolish_incomplete_variant_subgoal(sg_fr_ptr sg_fr) {
 #ifdef INCOMPLETE_TABLING
     SgFr_state(sg_fr) = incomplete;
 #else
-    free_producer_subgoal_data(sg_fr);
+    free_variant_subgoal_data(sg_fr, FALSE);
     
     SgFr_first_answer(sg_fr) = NULL;
     SgFr_last_answer(sg_fr) = NULL;
@@ -827,12 +834,12 @@ abolish_incomplete_sub_producer_subgoal(sg_fr_ptr sg_fr) {
     cons_sg = SgFr_consumers(cons_sg);
   }
   
-  free_producer_subgoal_data(sg_fr);
+  free_producer_subgoal_data(sg_fr, FALSE);
   delete_subgoal_path(sg_fr);
   FREE_SUBPROD_SUBGOAL_FRAME(sg_fr);
 }
 
-static void
+static inline void
 abolish_incomplete_producer_subgoal(sg_fr_ptr sg_fr) {
   if(SgFr_is_variant(sg_fr))
     abolish_incomplete_variant_subgoal(sg_fr);
@@ -882,7 +889,6 @@ void abolish_incomplete_subgoals(choiceptr prune_cp) {
   return;
 }
 
-
 static inline
 void free_subgoal_trie_hash_chain(sg_hash_ptr hash) {
   while (hash) {
@@ -912,8 +918,19 @@ void free_subgoal_trie_hash_chain(sg_hash_ptr hash) {
 }
 
 
+/*
+ * free_answer_trie_hash_chain and free_tst_hash_chain
+ * delete the hash tables chained in a subgoal frame
+ * note that they are pretty similar, except
+ * free_tst_hash_chain must deleted the TST indices
+ */
 static inline
 void free_answer_trie_hash_chain(ans_hash_ptr hash) {
+#ifdef TABLING_ERRORS
+  if(hash && TrNode_trie_type(hash) != BASIC_ANSWER_TRIE_TT) {
+    TABLING_ERROR_MESSAGE("free_answer_trie_hash_chain must be called for basic answer tries");
+  }
+#endif
   while (hash) {
     ans_node_ptr chain_node, *bucket, *last_bucket;
     ans_hash_ptr next_hash;
@@ -935,10 +952,52 @@ void free_answer_trie_hash_chain(ans_hash_ptr hash) {
     printf("One hash deleted\n");
     next_hash = Hash_next(hash);
     FREE_HASH_BUCKETS(Hash_buckets(hash));
-    free_answer_trie_hash(hash);
+    FREE_ANSWER_TRIE_HASH(hash);
     hash = next_hash;
   }
   return;
+}
+
+static inline
+void free_tst_hash_chain(tst_ans_hash_ptr hash) {
+#ifdef TABLING_ERRORS
+  if(hash && TrNode_trie_type(hash) != TS_ANSWER_TRIE_TT) {
+    TABLING_ERROR_MESSAGE("free_tst_hash_chain must be called for tst answer tries");
+  }
+#endif
+  while(hash) {
+    tst_node_ptr chain_node, *bucket, *last_bucket;
+    tst_ans_hash_ptr next_hash;
+    
+    bucket = TSTHT_buckets(hash);
+    last_bucket = bucket + TSTHT_num_buckets(hash);
+    while(!*bucket)
+      bucket++;
+    chain_node = *bucket;
+    TSTN_child(TSTN_parent(chain_node)) = chain_node;
+    while(++bucket != last_bucket) {
+      if(*bucket) {
+        while(TrNode_next(chain_node))
+          chain_node = TSTN_next(chain_node);
+        TSTN_next(chain_node) = *bucket;
+        chain_node = *bucket;
+      }
+    }
+    printf("One tst hash deleted\n");
+    next_hash = TSTHT_next(hash);
+    /* delete the TST indices */
+    tst_index_ptr index = TSTHT_index_head(hash);
+    tst_index_ptr next_index;
+    while(index) {
+      printf("one tst index deleted\n");
+      FREE_TST_INDEX_NODE(index);
+      
+      next_index = TSIN_next(index);
+      index = next_index;
+    }
+    FREE_TST_ANSWER_TRIE_HASH(hash);
+    hash = next_hash;
+  }
 }
 
 static inline int
@@ -956,7 +1015,7 @@ build_next_subsumptive_consumer_return_list(subcons_fr_ptr consumer_sg, CELL* an
   answer_template += size;
   printf("ANSWER_TEMPLATE: %d\n", size);
   
-  printf("Timestamp: %d\n", SgFr_timestamp(consumer_sg));
+  printf("Timestamp: %d\n", (int)SgFr_timestamp(consumer_sg));
   ans_list_ptr answers = tst_collect_relevant_answers((tst_node_ptr)SgFr_answer_trie(producer_sg),
     consumer_ts, size, answer_template);
   
@@ -967,7 +1026,7 @@ build_next_subsumptive_consumer_return_list(subcons_fr_ptr consumer_sg, CELL* an
   ans_list_ptr last = NULL;
   
   while(answers) {
-    printAnswerTriePath(stdout, AnsList_answer(answers));
+    printAnswerTriePath(stdout, (BTNptr)AnsList_answer(answers));
     printf("\n");
     last = answers;
     answers = AnsList_next(answers);
