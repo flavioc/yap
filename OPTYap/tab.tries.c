@@ -439,7 +439,11 @@ void free_answer_trie_branch(ans_node_ptr current_node, int position) {
 void update_answer_trie(sg_fr_ptr sg_fr) {
   ans_node_ptr current_node;
 
-  free_answer_trie_hash_chain((ans_hash_ptr)SgFr_hash_chain(sg_fr));
+  if(SgFr_is_variant(sg_fr))
+    free_answer_trie_hash_chain((ans_hash_ptr)SgFr_hash_chain(sg_fr));
+  else /* MUST be subsumptive producer */
+    free_tst_hash_chain((tst_ans_hash_ptr)SgFr_hash_chain(sg_fr));
+  
   SgFr_hash_chain(sg_fr) = NULL;
   SgFr_state(sg_fr) += 2;  /* complete --> compiled : complete_in_use --> compiled_in_use */
   current_node = TrNode_child(SgFr_answer_trie(sg_fr));
