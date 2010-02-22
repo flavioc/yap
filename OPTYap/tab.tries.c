@@ -59,7 +59,7 @@ ans_node_ptr answer_search(sg_fr_ptr sg_fr, CELL *subs_ptr) {
   if(SgFr_is_variant(sg_fr))
     return variant_answer_search(sg_fr, subs_ptr);
   else if(SgFr_is_sub_producer(sg_fr)) {
-    return subsumptive_answer_search(sg_fr, subs_ptr);
+    return subsumptive_answer_search((subprod_fr_ptr)sg_fr, subs_ptr);
   } else
     return variant_answer_search(sg_fr, subs_ptr);
 }
@@ -357,19 +357,32 @@ void free_subgoal_trie_branch(sg_node_ptr current_node, int nodes_left, int node
     free_subgoal_trie_branch(TrNode_child(current_node), nodes_left, nodes_extra, TRAVERSE_POSITION_FIRST);
 #endif /* GLOBAL_TRIE */
   else {
-    sg_fr_ptr sg_fr;
-    ans_node_ptr ans_node;
-    sg_fr = (sg_fr_ptr) TrNode_sg_fr(current_node);
-    free_answer_trie_hash_chain((ans_hash_ptr)SgFr_hash_chain(sg_fr));
-    free_answer_continuation(SgFr_first_answer(sg_fr));
-    ans_node = SgFr_answer_trie(sg_fr);
-    if (TrNode_child(ans_node))
-      free_answer_trie_branch(TrNode_child(ans_node), TRAVERSE_POSITION_FIRST);
-    free_answer_trie_node(ans_node);
+    sg_fr_ptr sg_fr = (sg_fr_ptr) TrNode_sg_fr(current_node);
+    
 #ifdef LIMIT_TABLING
     remove_from_global_sg_fr_list(sg_fr);
 #endif /* LIMIT_TABLING */
-    free_subgoal_frame(sg_fr);
+    
+    /* delete this subgoal data structures */
+    switch(SgFr_type(sg_fr)) {
+      case VARIANT_PRODUCER_SFT:
+        free_variant_subgoal_data(sg_fr, TRUE);
+        FREE_VARIANT_SUBGOAL_FRAME(sg_fr);
+        break;
+      case SUBSUMPTIVE_PRODUCER_SFT:
+        free_producer_subgoal_data(sg_fr, TRUE);
+        FREE_SUBPROD_SUBGOAL_FRAME(sg_fr);
+        break;
+      case SUBSUMED_CONSUMER_SFT:
+        free_consumer_subgoal_data((subcons_fr_ptr)sg_fr);
+        FREE_SUBCONS_SUBGOAL_FRAME(sg_fr);
+        break;
+      default:
+#ifdef TABLING_ERRORS
+        TABLING_ERROR_MESSAGE("unrecognized subgoal frame type (free_subgoal_trie_branch)");
+#endif
+        break;
+    }
   }
 
   if (position == TRAVERSE_POSITION_FIRST) {
