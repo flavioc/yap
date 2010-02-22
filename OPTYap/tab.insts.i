@@ -493,21 +493,18 @@
       GONext();
 #endif /* INCOMPLETE_TABLING */
     } else if (is_new_consumer_call(&results)) {
+      printf("TABLE_TRY_SINGLE NEW_CONSUMER\n");
       /* new consumer */
       choiceptr leader_cp;
       int leader_dep_on_stack;
       
-      if(SgFr_state(sg_fr) < evaluating)
-        init_subgoal_frame(sg_fr);
+      if(SgFr_is_sub_consumer(sg_fr) && SgFr_state(sg_fr) < evaluating) 
+        init_sub_consumer_subgoal_frame((subcons_fr_ptr)sg_fr);
       
       find_dependency_node(sg_fr, leader_cp, leader_dep_on_stack);
-      
       UNLOCK(SgFr_lock(sg_fr));
-      
       find_leader_node(leader_cp, leader_dep_on_stack);
-      
       store_consumer_node(tab_ent, sg_fr, leader_cp, leader_dep_on_stack);
-      
 #ifdef OPTYAP_ERRORS
       if (PARALLEL_EXECUTION_MODE) {
 	      choiceptr aux_cp;
@@ -515,24 +512,38 @@
 	      while (YOUNGER_CP(aux_cp, Get_LOCAL_top_cp_on_stack()))
 	        aux_cp = aux_cp->cp_b;
 	      if (aux_cp->cp_or_fr != DepFr_top_or_fr(LOCAL_top_dep_fr))
-	        OPTYAP_ERROR_MESSAGE("Error on DepFr_top_or_fr (table_try_single)");
+	        OPTYAP_ERROR_MESSAGE("Error on DepFr_top_or_fr (table_try)");
 	      aux_cp = B;
 	      while (YOUNGER_CP(aux_cp, DepFr_leader_cp(LOCAL_top_dep_fr)))
 	        aux_cp = aux_cp->cp_b;
 	      if (aux_cp != DepFr_leader_cp(LOCAL_top_dep_fr))
-	        OPTYAP_ERROR_MESSAGE("Error on DepFr_leader_cp (table_try_single)");
+	        OPTYAP_ERROR_MESSAGE("Error on DepFr_leader_cp (table_try)");
       }
 #endif /* OPTYAP_ERRORS */
       goto answer_resolution;
     } else {
-      
       /* subgoal completed */
+      printf("TABLE_TRY_SINGLE COMPLETE SUBGOAL\n");
+      CELL* answer_template = YENV;
+      
+      /*
+       * if this subgoal is a subsumptive consumer
+       * and it wasn't evaluated before
+       * compute the answer return list from the more general subgoal
+       * and mark this consumer subgoal as completed
+       */
+      if(SgFr_is_sub_consumer(sg_fr) && SgFr_state(sg_fr) == ready) {
+        build_next_subsumptive_consumer_return_list((subcons_fr_ptr)sg_fr, answer_template);
+        mark_as_completed(sg_fr);
+      }
 
       if (SgFr_has_no_answers(sg_fr)) {
         /* no answers --> fail */
         UNLOCK(SgFr_lock(sg_fr));
         goto fail;
-      } else if (SgFr_has_yes_answer(sg_fr)) {
+      }
+      
+      if (SgFr_has_yes_answer(sg_fr)) {
         /* yes answer --> procceed */
         UNLOCK(SgFr_lock(sg_fr));
         PREG = (yamop *) CPREG;
@@ -561,7 +572,7 @@
 
           PREG = (yamop *) CPREG;
           PREFETCH_OP(PREG);
-          CONSUME_ANSWER(ans_node, YENV, sg_fr);
+          CONSUME_ANSWER(ans_node, answer_template, sg_fr);
           YENV = ENV;
           GONext();
         } else {
@@ -628,37 +639,57 @@
       GONext();
 #endif /* INCOMPLETE_TABLING */
     } else if (is_new_consumer_call(&results)) {
-      /* subgoal in evaluation */
+      printf("TABLE_TRY_ME NEW_CONSUMER\n");
+      /* new consumer */
       choiceptr leader_cp;
       int leader_dep_on_stack;
+      
+      if(SgFr_is_sub_consumer(sg_fr) && SgFr_state(sg_fr) < evaluating) 
+        init_sub_consumer_subgoal_frame((subcons_fr_ptr)sg_fr);
+      
       find_dependency_node(sg_fr, leader_cp, leader_dep_on_stack);
       UNLOCK(SgFr_lock(sg_fr));
       find_leader_node(leader_cp, leader_dep_on_stack);
       store_consumer_node(tab_ent, sg_fr, leader_cp, leader_dep_on_stack);
 #ifdef OPTYAP_ERRORS
       if (PARALLEL_EXECUTION_MODE) {
-        choiceptr aux_cp;
-        aux_cp = B;
-        while (YOUNGER_CP(aux_cp, Get_LOCAL_top_cp_on_stack()))
-          aux_cp = aux_cp->cp_b;
-        if (aux_cp->cp_or_fr != DepFr_top_or_fr(LOCAL_top_dep_fr))
-          OPTYAP_ERROR_MESSAGE("Error on DepFr_top_or_fr (table_try_me)");
-        aux_cp = B;
-        while (YOUNGER_CP(aux_cp, DepFr_leader_cp(LOCAL_top_dep_fr)))
-          aux_cp = aux_cp->cp_b;
+	      choiceptr aux_cp;
+	      aux_cp = B;
+	      while (YOUNGER_CP(aux_cp, Get_LOCAL_top_cp_on_stack()))
+	        aux_cp = aux_cp->cp_b;
+	      if (aux_cp->cp_or_fr != DepFr_top_or_fr(LOCAL_top_dep_fr))
+	        OPTYAP_ERROR_MESSAGE("Error on DepFr_top_or_fr (table_try)");
+	      aux_cp = B;
+	      while (YOUNGER_CP(aux_cp, DepFr_leader_cp(LOCAL_top_dep_fr)))
+	        aux_cp = aux_cp->cp_b;
 	      if (aux_cp != DepFr_leader_cp(LOCAL_top_dep_fr))
-	        OPTYAP_ERROR_MESSAGE("Error on DepFr_leader_cp (table_try_me)");
+	        OPTYAP_ERROR_MESSAGE("Error on DepFr_leader_cp (table_try)");
       }
 #endif /* OPTYAP_ERRORS */
       goto answer_resolution;
     } else {
       /* subgoal completed */
+      printf("TABLE_TRY_ME COMPLETE SUBGOAL\n");
+      CELL* answer_template = YENV;
+      
+      /*
+       * if this subgoal is a subsumptive consumer
+       * and it wasn't evaluated before
+       * compute the answer return list from the more general subgoal
+       * and mark this consumer subgoal as completed
+       */
+      if(SgFr_is_sub_consumer(sg_fr) && SgFr_state(sg_fr) == ready) {
+        build_next_subsumptive_consumer_return_list((subcons_fr_ptr)sg_fr, answer_template);
+        mark_as_completed(sg_fr);
+      }
 
       if (SgFr_has_no_answers(sg_fr)) {
 	      /* no answers --> fail */
 	      UNLOCK(SgFr_lock(sg_fr));
 	      goto fail;
-      } else if (SgFr_has_yes_answer(sg_fr)) {
+      }
+      
+      if (SgFr_has_yes_answer(sg_fr)) {
 	      /* yes answer --> procceed */
 	      UNLOCK(SgFr_lock(sg_fr));
 	      PREG = (yamop *) CPREG;
@@ -688,7 +719,7 @@
             
           PREG = (yamop *) CPREG;
           PREFETCH_OP(PREG);
-          CONSUME_ANSWER(ans_node, YENV, sg_fr);
+          CONSUME_ANSWER(ans_node, answer_template, sg_fr);
 	        YENV = ENV;
           GONext();
 	      } else {
@@ -869,7 +900,6 @@
       }
     }
   ENDPBOp();
-
 
 
   Op(table_retry_me, Otapl)
