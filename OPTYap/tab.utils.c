@@ -158,7 +158,7 @@ static void printTrieSymbol(FILE* fp, Cell symbol)
       fprintf(fp, "%s", string_val(symbol));
       break;
     case XSB_TrieVar:
-      fprintf(fp, "V" IntegerFormatString, DecodeTrieVar(symbol));
+      fprintf(fp, "VAR" IntegerFormatString, DecodeTrieVar(symbol));
       break;
     case XSB_STRUCT:
       {
@@ -199,9 +199,9 @@ void symstkPrintNextTrieTerm(CTXTdeclc FILE *fp, xsbBool list_recursion)
       fprintf(fp, IntegerFormatString, int_val(symbol));
   } else if(IsVarTerm(symbol)) {
     if(list_recursion)
-      fprintf(fp, "|V" IntegerFormatString "]", DecodeTrieVar(symbol));
+      fprintf(fp, "|VAR" IntegerFormatString "]", DecodeTrieVar(symbol));
     else
-      fprintf(fp, "V" IntegerFormatString, DecodeTrieVar(symbol));
+      fprintf(fp, "VAR" IntegerFormatString, DecodeTrieVar(symbol));
   } else if(IsAtomTerm(symbol)) {
     char *string = string_val(symbol);
     
@@ -330,7 +330,7 @@ void printSubgoalTriePath(CTXTdeclc FILE *fp, BTNptr pLeaf, tab_ent_ptr tab_entr
 }
 
 
-void printAnswerTriePath(FILE *fp, BTNptr leaf)
+void printAnswerTriePath(FILE *fp, ans_node_ptr leaf)
 {
   SymbolStack_ResetTOS;
   SymbolStack_PushPath(leaf);
@@ -342,6 +342,24 @@ void printAnswerTriePath(FILE *fp, BTNptr leaf)
     symstkPrintNextTrieTerm(CTXTc fp, FALSE);
   }
   fprintf(fp, "}");
+}
+
+void printSubsumptiveAnswer(FILE *fp, ans_node_ptr leaf)
+{
+  SymbolStack_ResetTOS;
+  SymbolStack_PushPath(leaf);
+  
+  int count = 0;
+  while(TRUE) {
+    fprintf(fp, "VAR%d: ", count);
+    symstkPrintNextTrieTerm(fp, FALSE);
+    
+    if(!SymbolStack_IsEmpty) {
+      fprintf(fp, "    ");
+      ++count;
+    } else
+      break;
+  }
 }
 
 static int variable_counter = 0;
@@ -370,7 +388,7 @@ recursivePrintSubterm(FILE *fp, Term symbol, xsbBool list_recursion)
       var_index = variable_counter++;
     }
     
-    fprintf(fp, "V" IntegerFormatString "(%x)", var_index, (void*)symbol);  
+    fprintf(fp, "VAR" IntegerFormatString, var_index);  
     
     if(list_recursion)
       fprintf(fp, "]");
