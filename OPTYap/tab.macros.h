@@ -834,7 +834,7 @@ abolish_incomplete_sub_producer_subgoal(sg_fr_ptr sg_fr) {
     cons_sg = SgFr_consumers(cons_sg);
   }
   
-  free_producer_subgoal_data(sg_fr, FALSE);
+  free_producer_subgoal_data(sg_fr, TRUE);
   delete_subgoal_path(sg_fr);
   FREE_SUBPROD_SUBGOAL_FRAME(sg_fr);
 }
@@ -877,7 +877,6 @@ void abolish_incomplete_subgoals(choiceptr prune_cp) {
     LOCAL_top_sg_fr = SgFr_next(sg_fr);
     
     LOCK(SgFr_lock(sg_fr));
-    printf("Going to free one subgoal\n");
     abolish_incomplete_producer_subgoal(sg_fr);
     
     UNLOCK(SgFr_lock(sg_fr));
@@ -1009,15 +1008,21 @@ build_next_subsumptive_consumer_return_list(subcons_fr_ptr consumer_sg, CELL* an
   if(producer_ts <= consumer_ts)
     return FALSE; /* no answers were inserted */
   
-  printf("PRODUCER TIMESTAMP: %d\n", producer_ts);
-  
   int size = (int)*answer_template;
+  CPtr anst = answer_template + 1;
+  printf("Answer template before collect: ");
+  printAnswerTemplate(stdout, anst, size);
+  
   answer_template += size;
-  printf("ANSWER_TEMPLATE: %d\n", size);
+  //printf("ANSWER_TEMPLATE: %d\n", size);
+  
   
   printf("Timestamp: %d\n", (int)SgFr_timestamp(consumer_sg));
   ans_list_ptr answers = tst_collect_relevant_answers((tst_node_ptr)SgFr_answer_trie(producer_sg),
     consumer_ts, size, answer_template);
+    
+  printf("Answer template after collect: ");
+  printAnswerTemplate(stdout, anst, size);
   
   if(answers == NULL)
     return FALSE;
@@ -1097,7 +1102,7 @@ is_new_generator_call(CallLookupResults *results) {
   
   switch(SgFr_type(sg_fr)) {
     case VARIANT_PRODUCER_SFT:
-      return !CallResults_variant_found(results);
+      return SgFr_state(sg_fr) == ready;
     case SUBSUMPTIVE_PRODUCER_SFT:
       return !CallResults_variant_found(results);
     case SUBSUMED_CONSUMER_SFT:
