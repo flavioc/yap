@@ -198,7 +198,7 @@ typedef Functor Psc;
 #define dbg_printTrieNode(LOG_LEVEL, OUTPUT, LEAF)
 
 /* amiops.h */
-#define conditional(Addr) OUTSIDE(HBREG, Addr, B)
+#define conditional(Addr) (OUTSIDE(HBREG, Addr, B) || ((Addr) > (CELL *)B_FZ))
 #define pushtrail0 DO_TRAIL
 #define bind_ref(A,D) Bind(A,D)
 
