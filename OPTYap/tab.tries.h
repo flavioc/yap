@@ -11,7 +11,7 @@ static int update_answer_trie_branch(ans_node_ptr current_node);
 #else
 static void update_answer_trie_branch(ans_node_ptr current_node, int position);
 #endif /* YAPOR */
-static void traverse_subgoal_trie(sg_node_ptr current_node, char *str, int str_index, int *arity, int mode, int position);
+static void traverse_subgoal_trie(sg_node_ptr current_node, char *str, int str_index, int *arity, int mode, int position, tab_ent_ptr tab_ent);
 static void traverse_answer_trie(ans_node_ptr current_node, char *str, int str_index, int *arity, int var_index, int mode, int position);
 static void traverse_trie_node(Term t, char *str, int *str_index_ptr, int *arity, int *mode_ptr, int type);
 #ifdef GLOBAL_TRIE

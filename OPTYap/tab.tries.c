@@ -469,6 +469,7 @@ static struct trie_statistics{
   long subgoals_incomplete;
   long subgoal_trie_nodes;
   long answers;
+  long subsumptive_answers;
 #ifdef TABLING_INNER_CUTS
   long answers_pruned;
 #endif /* TABLING_INNER_CUTS */
@@ -486,6 +487,7 @@ static struct trie_statistics{
 #define TrStat_sg_incomplete     trie_stats.subgoals_incomplete
 #define TrStat_sg_nodes          trie_stats.subgoal_trie_nodes
 #define TrStat_answers           trie_stats.answers
+#define TrStat_sub_answers       trie_stats.subsumptive_answers
 #define TrStat_answers_true      trie_stats.answers_true
 #define TrStat_answers_no        trie_stats.answers_no
 #define TrStat_answers_pruned    trie_stats.answers_pruned
@@ -502,21 +504,26 @@ void show_table(tab_ent_ptr tab_ent, int show_mode) {
   sg_node_ptr sg_node;
 
   TrStat_show = show_mode;
+  
   if (show_mode == SHOW_MODE_STATISTICS) {
     TrStat_subgoals = 0;
     TrStat_sg_incomplete = 0;
     TrStat_sg_nodes = 1;
     TrStat_answers = 0;
+    TrStat_sub_answers = 0;
     TrStat_answers_true = 0;
     TrStat_answers_no = 0;
 #ifdef TABLING_INNER_CUTS
     TrStat_answers_pruned = 0;
 #endif /* TABLING_INNER_CUTS */
     TrStat_ans_nodes = 0;
-    fprintf(Yap_stdout, "Table statistics for predicate '%s/%d'\n", AtomName(TabEnt_atom(tab_ent)), TabEnt_arity(tab_ent));
-  } else { /* show_mode == SHOW_MODE_STRUCTURE */
-    fprintf(Yap_stdout, "Table structure for predicate '%s/%d'\n", AtomName(TabEnt_atom(tab_ent)), TabEnt_arity(tab_ent));
   }
+  
+  fprintf(Yap_stdout, "Table %s for predicate '%s/%d' [%s]\n",
+    (show_mode == SHOW_MODE_STATISTICS ? "statistics" : "structure"),
+    AtomName(TabEnt_atom(tab_ent)), TabEnt_arity(tab_ent),
+    IsMode_Subsumptive(TabEnt_mode(tab_ent)) ? "SUBSUMPTIVE" : "VARIANT");
+    
   sg_node = TrNode_child(TabEnt_subgoal_trie(tab_ent));
   if (sg_node) {
     if (TabEnt_arity(tab_ent)) {
@@ -525,7 +532,7 @@ void show_table(tab_ent_ptr tab_ent, int show_mode) {
       int *arity = (int *) malloc(sizeof(int) * ARITY_ARRAY_SIZE);
       arity[0] = 1;
       arity[1] = TabEnt_arity(tab_ent);
-      traverse_subgoal_trie(sg_node, str, str_index, arity, TRAVERSE_MODE_NORMAL, TRAVERSE_POSITION_FIRST);
+      traverse_subgoal_trie(sg_node, str, str_index, arity, TRAVERSE_MODE_NORMAL, TRAVERSE_POSITION_FIRST, tab_ent);
       free(str);
       free(arity);
     } else {
@@ -559,6 +566,7 @@ void show_table(tab_ent_ptr tab_ent, int show_mode) {
 #else
     fprintf(Yap_stdout, "    Answers: %ld\n", TrStat_answers);
 #endif /* TABLING_INNER_CUTS */
+    fprintf(Yap_stdout, "    Subsumptive answers: %ld\n", TrStat_sub_answers);
     fprintf(Yap_stdout, "    Answers 'TRUE': %ld\n", TrStat_answers_true);
     fprintf(Yap_stdout, "    Answers 'NO': %ld\n", TrStat_answers_no);
     fprintf(Yap_stdout, "    Answer trie nodes: %ld\n", TrStat_ans_nodes);
@@ -685,7 +693,7 @@ void update_answer_trie_branch(ans_node_ptr current_node, int position) {
 
 
 static
-void traverse_subgoal_trie(sg_node_ptr current_node, char *str, int str_index, int *arity, int mode, int position) {
+void traverse_subgoal_trie(sg_node_ptr current_node, char *str, int str_index, int *arity, int mode, int position, tab_ent_ptr tab_ent) {
   int *current_arity = NULL, current_str_index = 0, current_mode = 0;
 
   /* test if hashing */
@@ -699,7 +707,7 @@ void traverse_subgoal_trie(sg_node_ptr current_node, char *str, int str_index, i
     memcpy(current_arity, arity, sizeof(int) * (arity[0] + 1));
     do {
       if (*bucket) {
-        traverse_subgoal_trie(*bucket, str, str_index, arity, mode, TRAVERSE_POSITION_FIRST);
+        traverse_subgoal_trie(*bucket, str, str_index, arity, mode, TRAVERSE_POSITION_FIRST, tab_ent);
 	memcpy(arity, current_arity, sizeof(int) * (current_arity[0] + 1));
 #ifdef TRIE_COMPACT_PAIRS
 	if (arity[arity[0]] == -2 && str[str_index - 1] != '[')
@@ -731,34 +739,79 @@ void traverse_subgoal_trie(sg_node_ptr current_node, char *str, int str_index, i
 #endif /* GLOBAL_TRIE */
 
   /* continue with child node ... */
-  if (arity[0] != 0)
-    traverse_subgoal_trie(TrNode_child(current_node), str, str_index, arity, mode, TRAVERSE_POSITION_FIRST);
-  /* ... or show answers */
-  else {
+  if (arity[0] != 0) {
+    traverse_subgoal_trie(TrNode_child(current_node), str, str_index, arity, mode, TRAVERSE_POSITION_FIRST, tab_ent);
+  } else {
+    /* ... or show answers */
     sg_fr_ptr sg_fr = (sg_fr_ptr) TrNode_sg_fr(current_node);
     
     TrStat_subgoals++;
     str[str_index] = 0;
-    SHOW_TABLE_STRUCTURE("%s.\n", str);
-    TrStat_ans_nodes++;
-
-    if (SgFr_has_no_answers(sg_fr)) {
-      if (SgFr_state(sg_fr) < complete) {
-	      TrStat_sg_incomplete++;
-	      SHOW_TABLE_STRUCTURE("    ---> INCOMPLETE\n");
-      } else {
-	      TrStat_answers_no++;
-	      SHOW_TABLE_STRUCTURE("    NO\n");
+    if(SgFr_is_variant(sg_fr) || SgFr_is_sub_producer(sg_fr)) {
+      TrStat_ans_nodes++;
+      
+      if(SgFr_is_sub_producer(sg_fr)) {
+        SHOW_TABLE_STRUCTURE("%s. [PRODUCER]\n", str);
       }
-    } else if (SgFr_has_yes_answer(sg_fr)) {
-      TrStat_answers_true++;
-      SHOW_TABLE_STRUCTURE("    TRUE\n");
+
+      if (SgFr_has_no_answers(sg_fr)) {
+        if (SgFr_state(sg_fr) < complete) {
+	        TrStat_sg_incomplete++;
+	        SHOW_TABLE_STRUCTURE("    ---> INCOMPLETE\n");
+        } else {
+	        TrStat_answers_no++;
+	        SHOW_TABLE_STRUCTURE("    NO\n");
+        }
+      } else if (SgFr_has_yes_answer(sg_fr)) {
+        TrStat_answers_true++;
+        SHOW_TABLE_STRUCTURE("    TRUE\n");
+      } else {
+        arity[0] = 0;
+        traverse_answer_trie(TrNode_child(SgFr_answer_trie(sg_fr)), &str[str_index], 0, arity, 0, TRAVERSE_MODE_NORMAL, TRAVERSE_POSITION_FIRST);
+      
+        if (SgFr_state(sg_fr) < complete) {
+	        TrStat_sg_incomplete++;
+	        SHOW_TABLE_STRUCTURE("    ---> INCOMPLETE\n");
+        }
+      }
     } else {
-      arity[0] = 0;
-      traverse_answer_trie(TrNode_child(SgFr_answer_trie(sg_fr)), &str[str_index], 0, arity, 0, TRAVERSE_MODE_NORMAL, TRAVERSE_POSITION_FIRST);
-      if (SgFr_state(sg_fr) < complete) {
-	      TrStat_sg_incomplete++;
-	      SHOW_TABLE_STRUCTURE("    ---> INCOMPLETE\n");
+      subcons_fr_ptr cons_sg = (subcons_fr_ptr)sg_fr;
+      subprod_fr_ptr prod_sg = SgFr_producer(cons_sg);
+      
+      if(TrStat_show == SHOW_MODE_STRUCTURE) {
+        fprintf(Yap_stdout, "%s. [CONSUMES FROM ", str);
+        printSubgoalTriePath(Yap_stdout, SgFr_leaf(prod_sg), tab_ent);
+        fprintf(Yap_stdout, "]\n");
+      }
+      
+      if(SgFr_has_no_answers(sg_fr)) {
+        if(SgFr_state(sg_fr) < complete) {
+          TrStat_sg_incomplete++;
+          SHOW_TABLE_STRUCTURE("    ---> INCOMPLETE\n");
+        } else {
+          TrStat_answers_no++;
+          SHOW_TABLE_STRUCTURE("    NO\n");
+        }
+      } else { // has answers
+        continuation_ptr cont = SgFr_first_answer(sg_fr);
+        
+        while(cont) {
+          tst_node_ptr ans = (tst_node_ptr)ContPtr_answer(cont);
+          
+          TrStat_sub_answers++;
+          
+          if (TrStat_show == SHOW_MODE_STRUCTURE) {
+            fprintf(Yap_stdout, "    ");
+            printSubsumptiveAnswer(Yap_stdout, (ans_node_ptr)ans);
+            fprintf(Yap_stdout, "\n");
+          }
+          
+          cont = ContPtr_next(cont);
+        }
+        if (SgFr_state(sg_fr) < complete) {
+	        TrStat_sg_incomplete++;
+	        SHOW_TABLE_STRUCTURE("    ---> INCOMPLETE\n");
+        }
       }
     }
   }
@@ -777,7 +830,7 @@ void traverse_subgoal_trie(sg_node_ptr current_node, char *str, int str_index, i
       if (arity[arity[0]] == -1)
 	str[str_index - 1] = '|';
 #endif /* TRIE_COMPACT_PAIRS */
-      traverse_subgoal_trie(current_node, str, str_index, arity, mode, TRAVERSE_POSITION_NEXT);
+      traverse_subgoal_trie(current_node, str, str_index, arity, mode, TRAVERSE_POSITION_NEXT, tab_ent);
       current_node = TrNode_next(current_node);
     }
     free(current_arity);
