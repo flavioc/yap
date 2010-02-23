@@ -98,15 +98,18 @@ void delete_subgoal_path(sg_fr_ptr sg_fr) {
     TrNode_next(first_child) = TrNode_next(node);
   
 process_next:
-    old_node = node;
-    node = parent;
-    printf("Freeing one subgoal trie node\n");
-    FREE_SUBGOAL_TRIE_NODE(old_node);
     
     if(hash && Hash_num_nodes(hash) == 0) {
       /* hash without nodes! */
+      TrNode_child(parent) = NULL; 
       FREE_SUBGOAL_TRIE_HASH(hash);
+      printf("FREE SUBGOAL TRIE HASH\n");
     }
+    
+    old_node = node;
+    node = parent;
+    printf("Freeing one subgoal trie node %x\n", (void*)old_node);
+    FREE_SUBGOAL_TRIE_NODE(old_node);
     
     hash = NULL;
   }
