@@ -281,56 +281,83 @@ printf("stack_trie_var_instr\n");                                 \
 **      trie_val      **
 ** ------------------ */
 
+#define UNIFY_VAR() \
+  switch(cell_tag(aux_sub)) { \
+      case TAG_REF: \
+          switch(cell_tag(aux_var)) { \
+            case TAG_REF: \
+              if (aux_sub > aux_var) {                                                          \
+    	          if ((CELL *) aux_sub <= H) {                                                          \
+                  Bind_Global((CELL *) aux_sub, aux_var);                                       \
+                } else if ((CELL *) aux_var <= H) {                                             \
+                  Bind_Local((CELL *) aux_sub, aux_var);                                        \
+                } else {                                                                        \
+                  Bind_Local((CELL *) aux_var, aux_sub);                                        \
+                  *vars_ptr = aux_sub;                                                          \
+                }                                                                               \
+              } else {                                                                          \
+    	          if ((CELL *) aux_var <= H) {                                                    \
+                  Bind_Global((CELL *) aux_var, aux_sub);                                       \
+                  *vars_ptr = aux_sub;                                                          \
+                } else if ((CELL *) aux_sub <= H) {                                             \
+                  Bind_Local((CELL *) aux_var, aux_sub);                                        \
+                  *vars_ptr = aux_sub;                                                          \
+                } else {                                                                        \
+                  Bind_Local((CELL *) aux_sub, aux_var);                                        \
+                }                                                                               \
+              }                                                                                 \
+              break;  \
+              default:  \
+                printf("AUX_SUB VAR TAG_REF DEFAULT\n");  \
+                Bind_Global((CELL *)aux_sub, aux_var);  \
+                break;  \
+          } \
+        break;  \
+      default:  \
+        switch(cell_tag(aux_var)) { \
+          case TAG_REF: \
+            if((CELL *) aux_var <= H) { \
+              Bind_Global((CELL *) aux_var, aux_sub); \
+              *vars_ptr = aux_sub;  /* ok */ \
+              printf("Bind Global 1\n");  \
+            } else {  /* XXX */ \
+              Bind_Local((CELL *) aux_var, aux_sub);  \
+              *vars_ptr = aux_sub;  \
+              printf("Bind local 1\n"); \
+            } \
+            break;      \
+          default:  \
+            /* run yap unification algorithm */ \
+            printf("Run yap unify \n"); \
+            if(!Yap_unify(aux_var, aux_sub)) {  \
+              printf("Unification failed\n"); \
+              goto fail;  \
+            } \
+            break;  \
+        } \
+  }
+
 #define stack_trie_val_instr()                                                              \
 printf("stack_trie_val_instr\n");                                                           \
         if (heap_arity) {                                                                   \
           CELL aux_sub, aux_var, *vars_ptr;				                                          \
           YENV = ++aux_stack_ptr;                                                           \
           vars_ptr = aux_stack_ptr + heap_arity + 1 + subs_arity + vars_arity - var_index;  \
-          aux_sub = *aux_stack_ptr;                                                         \
-          aux_var = *vars_ptr;                                                              \
-          if (aux_sub > aux_var) {                                                          \
-            Bind_Global((CELL *) aux_sub, aux_var);                                         \
-          } else {                                                                          \
-            RESET_VARIABLE(aux_sub);                                                        \
-	          Bind_Local((CELL *) aux_var, aux_sub);                                          \
-            *vars_ptr = aux_sub;                                                            \
-          }                                                                                 \
-          *aux_stack_ptr = heap_arity - 1;                                                  \
+          aux_sub = Deref(*aux_stack_ptr); /* substitution var */                                  \
+          aux_var = Deref(*vars_ptr);                                                              \
+          UNIFY_VAR();                                                                      \
+          INC_HEAP_ARITY(-1);                                                               \
           next_instruction(heap_arity - 1 || subs_arity, node);                             \
         } else {                                                                            \
           CELL aux_sub, aux_var, *vars_ptr;                                                 \
-          int i;                                                                            \
           aux_stack_ptr += 2;                                                               \
           *aux_stack_ptr = subs_arity - 1;                                                  \
           aux_stack_ptr += subs_arity;                                                      \
-          vars_ptr = aux_stack_ptr + vars_arity - var_index;                                \
-          aux_sub = *aux_stack_ptr;                                                         \
-          aux_var = *vars_ptr;                                                              \
-          if (aux_sub > aux_var) {                                                          \
-	    if ((CELL *) aux_sub <= H) {                                                          \
-              Bind_Global((CELL *) aux_sub, aux_var);                                       \
-            } else if ((CELL *) aux_var <= H) {                                             \
-              Bind_Local((CELL *) aux_sub, aux_var);                                        \
-            } else {                                                                        \
-              Bind_Local((CELL *) aux_var, aux_sub);                                        \
-              *vars_ptr = aux_sub;                                                          \
-            }                                                                               \
-          } else {                                                                          \
-	          if ((CELL *) aux_var <= H) {                                                    \
-              Bind_Global((CELL *) aux_var, aux_sub);                                       \
-              *vars_ptr = aux_sub;                                                          \
-            } else if ((CELL *) aux_sub <= H) {                                             \
-              Bind_Local((CELL *) aux_var, aux_sub);                                        \
-              *vars_ptr = aux_sub;                                                          \
-            } else {                                                                        \
-              Bind_Local((CELL *) aux_sub, aux_var);                                        \
-            }                                                                               \
-          }                                                                                 \
-          for (i = 0; i < vars_arity; i++) {                                                \
-            *aux_stack_ptr = *(aux_stack_ptr + 1);                                          \
-            aux_stack_ptr++;                                                                \
-          }                                                                                 \
+          vars_ptr = aux_stack_ptr + vars_arity - var_index; /* pointer to trie var */      \
+          aux_sub = Deref(*aux_stack_ptr);  /* substitution var */                                 \
+          aux_var = Deref(*vars_ptr);  /* trie var */                                       \
+          UNIFY_VAR();                                                                      \
+          ALIGN_STACK_LEFT();                                                               \
           next_instruction(subs_arity - 1, node);                                           \
         }
 
@@ -395,7 +422,7 @@ printf("stack_trie_atom_instr\n");                                    \
           CELL term = Deref(*aux_stack_ptr);                         \
           if(IsVarTerm(term)) {                                        \
             Bind_Global((CELL *) *aux_stack_ptr, TrNode_entry(node));  \
-          } else {                                                      \
+          } else {                                                  \
             if(term != TrNode_entry(node)) {                        \
               printf("No match\n");                                 \
               goto fail;                                            \
@@ -404,7 +431,6 @@ printf("stack_trie_atom_instr\n");                                    \
           INC_HEAP_ARITY(-1);                                        \
           next_instruction(heap_arity - 1 || subs_arity, node);      \
         } else {                                                     \
-          int i;                                                     \
           aux_stack_ptr += 2;                                        \
           *aux_stack_ptr = subs_arity - 1;                           \
           aux_stack_ptr += subs_arity;                               \
@@ -418,10 +444,7 @@ printf("stack_trie_atom_instr\n");                                    \
               goto fail;                                             \
             }                                                        \
           }                                                          \
-          for (i = 0; i < vars_arity; i++) {                         \
-            *aux_stack_ptr = *(aux_stack_ptr + 1);                   \
-            aux_stack_ptr++;                                         \
-          }                                                          \
+          ALIGN_STACK_LEFT();                                        \
           next_instruction(subs_arity - 1, node);                    \
         }
 
