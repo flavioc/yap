@@ -107,6 +107,7 @@
 
 #define store_trie_node(AP)                           \
         { register choiceptr cp;                      \
+          printf("store_trie_node\n");                \
           YENV = (CELL *) (NORM_CP(YENV) - 1);        \
           cp = NORM_CP(YENV);                         \
           HBREG = H;                                  \
@@ -121,10 +122,11 @@
           YAPOR_SET_LOAD(B);                          \
           SET_BB(B);                                  \
           TABLING_ERRORS_check_stack;                 \
-	}                                             \
+	      }                                             \
         copy_arity_stack()
 
 #define restore_trie_node(AP)                         \
+        printf("restore_trie_node\n");                \
         H = HBREG = PROTECT_FROZEN_H(B);              \
         restore_yaam_reg_cpdepth(B);                  \
         CPREG = B->cp_cp;                             \
@@ -136,13 +138,14 @@
         copy_arity_stack()
 
 #define really_pop_trie_node()                        \
+        printf("really_pop_trie_node\n");             \
         YENV = (CELL *) PROTECT_FROZEN_B((B + 1));    \
         H = PROTECT_FROZEN_H(B);                      \
         pop_yaam_reg_cpdepth(B);                      \
-	CPREG = B->cp_cp;                             \
+	      CPREG = B->cp_cp;                             \
         TABLING_close_alt(B);                         \
         ENV = B->cp_env;                              \
-	B = B->cp_b;                                  \
+	      B = B->cp_b;                                  \
         HBREG = PROTECT_FROZEN_H(B);                  \
         SET_BB(PROTECT_FROZEN_B(B));                  \
         if ((choiceptr) YENV == B_FZ) {               \
@@ -151,13 +154,17 @@
 
 #ifdef YAPOR
 #define pop_trie_node()                               \
+        printf("pop_trie_node\n");                    \
         if (SCH_top_shared_cp(B)) {                   \
           restore_trie_node(NULL);                    \
         } else {                                      \
           really_pop_trie_node();                     \
         }
 #else
-#define pop_trie_node()  really_pop_trie_node()
+#define pop_trie_node()  {  \
+        printf("pop_trie_node\n");  \
+      really_pop_trie_node()  \
+    }
 #endif /* YAPOR */
 
 
@@ -167,6 +174,7 @@
 ** ------------------- */
 
 #define stack_trie_null_instr()                              \
+printf("stack_trie_null_instr\n");    \
         next_trie_instruction(node)
 
 #ifdef TRIE_COMPACT_PAIRS
@@ -204,13 +212,14 @@
 **      trie_var      **
 ** ------------------ */
 
+// OK
 #define stack_trie_var_instr()                                   \
+printf("stack_trie_var_instr\n");                                 \
         if (heap_arity) {                                        \
-          CELL var;                                              \
+          CELL term;                                              \
           int i;                                                 \
           *aux_stack_ptr = heap_arity - 1;                       \
-          var = *++aux_stack_ptr;                                \
-          RESET_VARIABLE(var);                                   \
+          term = Deref(*++aux_stack_ptr);                        \
           for (i = 0; i < heap_arity - 1; i++) {                 \
             *aux_stack_ptr = *(aux_stack_ptr + 1);               \
             aux_stack_ptr++;                                     \
@@ -221,11 +230,12 @@
             *aux_stack_ptr = *(aux_stack_ptr + 1);               \
             aux_stack_ptr++;                                     \
           }                                                      \
-          *aux_stack_ptr = var;                                  \
+          *aux_stack_ptr = term;                                 \
           next_instruction(heap_arity - 1 || subs_arity, node);  \
         } else {                                                 \
           *++aux_stack_ptr = vars_arity + 1;                     \
           *++aux_stack_ptr = subs_arity - 1;                     \
+          /* binding is done automatically */                    \
           next_instruction(subs_arity - 1, node);                \
         }
 
@@ -272,8 +282,9 @@
 ** ------------------ */
 
 #define stack_trie_val_instr()                                                              \
+printf("stack_trie_val_instr\n");                                                           \
         if (heap_arity) {                                                                   \
-          CELL aux_sub, aux_var, *vars_ptr;				                    \
+          CELL aux_sub, aux_var, *vars_ptr;				                                          \
           YENV = ++aux_stack_ptr;                                                           \
           vars_ptr = aux_stack_ptr + heap_arity + 1 + subs_arity + vars_arity - var_index;  \
           aux_sub = *aux_stack_ptr;                                                         \
@@ -282,7 +293,7 @@
             Bind_Global((CELL *) aux_sub, aux_var);                                         \
           } else {                                                                          \
             RESET_VARIABLE(aux_sub);                                                        \
-	    Bind_Local((CELL *) aux_var, aux_sub);                                          \
+	          Bind_Local((CELL *) aux_var, aux_sub);                                          \
             *vars_ptr = aux_sub;                                                            \
           }                                                                                 \
           *aux_stack_ptr = heap_arity - 1;                                                  \
@@ -297,7 +308,7 @@
           aux_sub = *aux_stack_ptr;                                                         \
           aux_var = *vars_ptr;                                                              \
           if (aux_sub > aux_var) {                                                          \
-	    if ((CELL *) aux_sub <= H) {                                                    \
+	    if ((CELL *) aux_sub <= H) {                                                          \
               Bind_Global((CELL *) aux_sub, aux_var);                                       \
             } else if ((CELL *) aux_var <= H) {                                             \
               Bind_Local((CELL *) aux_sub, aux_var);                                        \
@@ -306,7 +317,7 @@
               *vars_ptr = aux_sub;                                                          \
             }                                                                               \
           } else {                                                                          \
-	    if ((CELL *) aux_var <= H) {                                                    \
+	          if ((CELL *) aux_var <= H) {                                                    \
               Bind_Global((CELL *) aux_var, aux_sub);                                       \
               *vars_ptr = aux_sub;                                                          \
             } else if ((CELL *) aux_sub <= H) {                                             \
@@ -326,8 +337,8 @@
 #ifdef TRIE_COMPACT_PAIRS      
 #define stack_trie_val_in_new_pair_instr()                                                  \
         if (heap_arity) {                                                                   \
-          CELL aux_sub, aux_var, *vars_ptr;	      	               		            \
-          aux_stack_ptr++;				                                    \
+          CELL aux_sub, aux_var, *vars_ptr;	      	               		                      \
+          aux_stack_ptr++;				                                                          \
           Bind_Global((CELL *) *aux_stack_ptr, AbsPair(H));                                 \
           *aux_stack_ptr = (CELL) (H + 1);                                                  \
           aux_sub = (CELL) H;                                                               \
@@ -337,7 +348,7 @@
             Bind_Global((CELL *) aux_sub, aux_var);                                         \
           } else {                                                                          \
             RESET_VARIABLE(aux_sub);                                                        \
-  	    Bind_Local((CELL *) aux_var, aux_sub);                                          \
+  	    Bind_Local((CELL *) aux_var, aux_sub);                                              \
             *vars_ptr = aux_sub;                                                            \
           }                                                                                 \
         } else {                                                                            \
@@ -354,7 +365,7 @@
             Bind_Global((CELL *) aux_sub, aux_var);                                         \
           } else {                                                                          \
             RESET_VARIABLE(aux_sub);                                                        \
-	    Bind_Local((CELL *) aux_var, aux_sub);                                          \
+	          Bind_Local((CELL *) aux_var, aux_sub);                                          \
             *vars_ptr = aux_sub;                                                            \
           }                                                                                 \
           *aux_stack_ptr = subs_arity - 1;                                                  \
@@ -375,18 +386,38 @@
 **      trie_atom      **
 ** ------------------- */
 
+// OK
 #define stack_trie_atom_instr()                                      \
+printf("stack_trie_atom_instr\n");                                    \
+        printf("Heap arity: %d\n", heap_arity); \
         if (heap_arity) {                                            \
           YENV = ++aux_stack_ptr;                                    \
-          Bind_Global((CELL *) *aux_stack_ptr, TrNode_entry(node));  \
-          *aux_stack_ptr = heap_arity - 1;                           \
+          CELL term = Deref(*aux_stack_ptr);                         \
+          if(IsVarTerm(term)) {                                        \
+            Bind_Global((CELL *) *aux_stack_ptr, TrNode_entry(node));  \
+          } else {                                                      \
+            if(term != TrNode_entry(node)) {                        \
+              printf("No match\n");                                 \
+              goto fail;                                            \
+            }                                                       \
+          }                                                         \
+          INC_HEAP_ARITY(-1);                                        \
           next_instruction(heap_arity - 1 || subs_arity, node);      \
         } else {                                                     \
           int i;                                                     \
           aux_stack_ptr += 2;                                        \
           *aux_stack_ptr = subs_arity - 1;                           \
           aux_stack_ptr += subs_arity;                               \
-          Bind((CELL *) *aux_stack_ptr, TrNode_entry(node));         \
+          CELL term = Deref(*aux_stack_ptr);                         \
+          if(IsVarTerm(term)) {                                      \
+            printf("aux_stack_ptr is var\n");                        \
+            Bind((CELL *) term, TrNode_entry(node));       \
+          } else {                                                   \
+            if(term != TrNode_entry(node)) {               \
+              printf("No match\n");                                  \
+              goto fail;                                             \
+            }                                                        \
+          }                                                          \
           for (i = 0; i < vars_arity; i++) {                         \
             *aux_stack_ptr = *(aux_stack_ptr + 1);                   \
             aux_stack_ptr++;                                         \
@@ -425,6 +456,22 @@
 **      trie_pair      **
 ** ------------------- */
 
+#define PUSH_LIST_ARGS(TERM) {  \
+  *aux_stack_ptr-- = *(RepPair(TERM) + 1);  \
+  *aux_stack_ptr-- = *(RepPair(TERM) + 0);  \
+}
+
+#define PUSH_NEW_LIST() { \
+  *aux_stack_ptr-- = (CELL) (H + 1);                 \
+  *aux_stack_ptr-- = (CELL) H;                       \
+}
+
+#define MARK_HEAP_LIST() {  \
+    RESET_VARIABLE(H);  \
+    RESET_VARIABLE(H+1);  \
+    H += 2; \
+  }
+
 #ifdef TRIE_COMPACT_PAIRS
 /* trie compiled code for term 'CompactPairEndList' */
 #define stack_trie_pair_instr()		                     \
@@ -451,64 +498,179 @@
         next_trie_instruction(node)
 #else
 #define stack_trie_pair_instr()                              \
+        printf("stack_trie_pair_instr\n");                    \
         if (heap_arity) {                                    \
           aux_stack_ptr++;                                   \
-          Bind_Global((CELL *) *aux_stack_ptr, AbsPair(H));  \
-          *aux_stack_ptr-- = (CELL) (H + 1);                 \
-          *aux_stack_ptr-- = (CELL) H;                       \
-          *aux_stack_ptr = heap_arity - 1 + 2;               \
-          YENV = aux_stack_ptr;                              \
+          Term term = Deref(*aux_stack_ptr);                 \
+          switch(cell_tag(term)) {                           \
+            case TAG_LIST: {                                 \
+                PUSH_LIST_ARGS(term);                        \
+                INC_HEAP_ARITY(1);                            \
+                YENV = aux_stack_ptr;                         \
+              }                                                   \
+              break;                                              \
+            case TAG_REF: {                                     \
+                Bind_Global((CELL *) *aux_stack_ptr, AbsPair(H));  \
+                PUSH_NEW_LIST();                                   \
+                INC_HEAP_ARITY(1);                                \
+                YENV = aux_stack_ptr;                           \
+                MARK_HEAP_LIST();                               \
+              }                                                \
+              break;                                          \
+            default:                                          \
+              goto fail;                                     \
+            }                                               \
         } else {                                             \
-          int i;                                             \
-          *aux_stack_ptr-- = (CELL) (H + 1);                 \
-          *aux_stack_ptr-- = (CELL) H;                       \
-          *aux_stack_ptr = 2;                                \
-          YENV = aux_stack_ptr;                              \
-          aux_stack_ptr += 2 + 2;                            \
-          *aux_stack_ptr = subs_arity - 1;                   \
-          aux_stack_ptr += subs_arity;                       \
-          Bind((CELL *) *aux_stack_ptr, AbsPair(H));         \
-          for (i = 0; i < vars_arity; i++) {                 \
-            *aux_stack_ptr = *(aux_stack_ptr + 1);           \
-            aux_stack_ptr++;                                 \
-          }                                                  \
+          CELL term = Deref(*(aux_stack_ptr + 2 + subs_arity)); \
+          switch(cell_tag(term))  { \
+            case TAG_LIST:  { \
+                PUSH_LIST_ARGS(term); \
+                INC_HEAP_ARITY(2);  \
+                YENV = aux_stack_ptr; \
+                aux_stack_ptr += 2 + 2; /* jump to subs */ \
+                *aux_stack_ptr = subs_arity - 1; /* update subs arity */ \
+                aux_stack_ptr += subs_arity;        \
+                ALIGN_STACK_LEFT();     \
+              } \
+              break;  \
+            case TAG_REF: { \
+                PUSH_NEW_LIST();  \
+                INC_HEAP_ARITY(2);  \
+                YENV = aux_stack_ptr; \
+                aux_stack_ptr += 2 + 2; /* jump to subs */ \
+                *aux_stack_ptr = subs_arity - 1; /* change subs arity */ \
+                aux_stack_ptr += subs_arity;  \
+                Bind((CELL *) *aux_stack_ptr, AbsPair(H));         \
+                ALIGN_STACK_LEFT(); \
+                MARK_HEAP_LIST(); \
+              } \
+            break;  \
+            default:  \
+                goto fail;  \
+          } \
         }                                                    \
-        H += 2;                                              \
         next_trie_instruction(node)
 #endif /* TRIE_COMPACT_PAIRS */
 
 
+#define ALIGN_STACK_LEFT() { \
+      int i;    \
+      for(i = 0; i < vars_arity; i++, aux_stack_ptr++) { \
+        *aux_stack_ptr = *(aux_stack_ptr + 1);  \
+      } \
+    }
+
+/* given a functor term this put
+   starting from aux_stack_ptr (from high to low)
+   the functor arguments of TERM */
+#define PUSH_FUNCTOR_ARGS(TERM)  { \
+    int i;  \
+    for(i = 0; i < func_arity; ++i) { \
+      *aux_stack_ptr-- = (CELL)*(RepAppl(TERM) + func_arity - i);    \
+      printf("Pushed one old arg\n"); \
+    } \
+  }
+  
+#define PUSH_NEW_FUNCTOR()  { \
+    int i;                                                 \
+    for (i = 0; i < func_arity; i++) {                       \
+    *aux_stack_ptr-- = (CELL) (H + func_arity - i);      \
+    printf("Pushed one arg\n"); \
+  } \
+  }
+
+/* tag a functor on the heap */
+#define MARK_HEAP_FUNCTOR() { \
+  *H = (CELL)func;  \
+  int i;  \
+  for(i = 0; i < func_arity; ++i) \
+    RESET_VARIABLE(H + 1 + i);  \
+  H += 1 + func_arity;  \
+}
+
+/* if aux_stack_ptr is positioned on the heap arity cell, increment it by TOTAL */
+#define INC_HEAP_ARITY(TOTAL)  { \
+    *aux_stack_ptr = heap_arity + (TOTAL);  \
+  }
 
 /* --------------------- **
 **      trie_struct      **
 ** --------------------- */
 
 #define stack_trie_struct_instr()                                \
+printf("stack_trie_struct_instr\n");                            \
         if (heap_arity) {                                        \
-          int i;                                                 \
+          printf("struct heap arity %d\n", heap_arity); \
           aux_stack_ptr++;                                       \
-          Bind_Global((CELL *) *aux_stack_ptr, AbsAppl(H));      \
-          for (i = 0; i < func_arity; i++)                       \
-            *aux_stack_ptr-- = (CELL) (H + func_arity - i);      \
-          *aux_stack_ptr = heap_arity - 1 + func_arity;          \
-          YENV = aux_stack_ptr;                                  \
+          CELL term = Deref(*aux_stack_ptr);                     \
+          switch(cell_tag(term))  {                               \
+            case TAG_STRUCT:  {                                   \
+              printf("TAG_STRUCT\n"); \
+              Functor func2 = FunctorOfTerm(term);                \
+              if(func != func2) {                                 \
+                printf("NOT SAME FUNCTOR\n");                     \
+                goto fail;                                        \
+              }                                                   \
+              printf("Pushing already built functor on the stack with arity %d\n", func_arity); \
+              PUSH_FUNCTOR_ARGS(term);  \
+              YENV = aux_stack_ptr; \
+              INC_HEAP_ARITY(func_arity - 1); \
+            } \
+            break;  \
+            case TAG_REF: { \
+              printf("TAG_REF\n");  \
+              /* bind this variable to a new functor  \
+                 that is built using the arguments on the trie  \
+                 */ \
+              Bind_Global((CELL *) term, AbsAppl(H)); \
+              PUSH_NEW_FUNCTOR(); \
+              YENV = aux_stack_ptr; \
+              INC_HEAP_ARITY(func_arity - 1); \
+              MARK_HEAP_FUNCTOR();  \
+            } \
+            break;  \
+            default:  \
+              printf("??\n"); \
+              goto fail;  \
+          } \
         } else {                                                 \
-          int i;                                                 \
-          for (i = 0; i < func_arity; i++)                       \
-            *aux_stack_ptr-- = (CELL) (H + func_arity - i);      \
-          *aux_stack_ptr = func_arity;                           \
-          YENV = aux_stack_ptr;                                  \
-          aux_stack_ptr += func_arity + 2;                       \
-          *aux_stack_ptr = subs_arity - 1;                       \
-          aux_stack_ptr += subs_arity;                           \
-          Bind((CELL *) *aux_stack_ptr, AbsAppl(H));             \
-          for (i = 0; i < vars_arity; i++) {                     \
-            *aux_stack_ptr = *(aux_stack_ptr + 1);               \
-            aux_stack_ptr++;                                     \
-          }                                                      \
+          CELL term = Deref(*(aux_stack_ptr + 2 + subs_arity));               \
+          switch(cell_tag(term))  { \
+            case TAG_STRUCT: {  \
+              printf("TAG_STRUCT NON HEAP\n");  \
+              Functor func2 = FunctorOfTerm(term);     \
+              if(func != func2) {  \
+                printf("NOT A FUNCTOR\n");  \
+                goto fail;                                          \
+              }             \
+              printf("Pushing already built functor on the stack with arity %d\n", func_arity); \
+              /* push already built functor terms on the stack */         \
+              PUSH_FUNCTOR_ARGS(term);  \
+              YENV = aux_stack_ptr; \
+              INC_HEAP_ARITY(func_arity); \
+              aux_stack_ptr += func_arity + 2; /* jump to subs*/ \
+              *aux_stack_ptr = subs_arity - 1; /* new subs arity */ \
+              aux_stack_ptr += subs_arity;  \
+              ALIGN_STACK_LEFT(); \
+            } \
+            break;  \
+            case TAG_REF:     {                                      \
+              printf("TAG_REF NON HEAP\n"); \
+              PUSH_NEW_FUNCTOR();                                     \
+              INC_HEAP_ARITY(func_arity); \
+              YENV = aux_stack_ptr;                                  \
+              aux_stack_ptr += func_arity + 2; /* jump to subs */    \
+              *aux_stack_ptr = subs_arity - 1; /* new subs arity */  \
+              aux_stack_ptr += subs_arity;                           \
+              Bind((CELL *) *aux_stack_ptr, AbsAppl(H));      \
+              ALIGN_STACK_LEFT(); \
+              MARK_HEAP_FUNCTOR();  \
+            } \
+              break;  \
+            default:  \
+              goto fail;  \
+          } \
         }                                                        \
-        *H = (CELL) func;                                        \
-        H += 1 + func_arity;                                     \
         next_trie_instruction(node)
 
 #ifdef TRIE_COMPACT_PAIRS
@@ -552,6 +714,7 @@
 ** ------------------------ */
 
 #define stack_trie_extension_instr()                               \
+printf("stack_trie_extension_instr\n");       \
         *aux_stack_ptr-- = 0;  /* float/longint extension mark */  \
         *aux_stack_ptr-- = TrNode_entry(node);                     \
         *aux_stack_ptr = heap_arity + 2;                           \
@@ -565,6 +728,7 @@
 ** ---------------------------- */
 
 #define stack_trie_float_longint_instr()                         \
+printf("stack_trie_float_longint_instr\n");     \
         if (heap_arity) {                                        \
           YENV = ++aux_stack_ptr;                                \
           Bind_Global((CELL *) *aux_stack_ptr, t);               \
@@ -592,6 +756,7 @@
 ** --------------------------- */
 
   PBOp(trie_do_null, e)
+  printf("trie_do_null\n");
 #ifndef GLOBAL_TRIE
     register ans_node_ptr node = (ans_node_ptr) PREG;
 
@@ -603,6 +768,7 @@
 
 
   PBOp(trie_trust_null, e)
+    printf("trie_trust_null\n");
 #ifndef GLOBAL_TRIE
     register ans_node_ptr node = (ans_node_ptr) PREG;
     register CELL *aux_stack_ptr = (CELL *) (B + 1);
@@ -619,6 +785,7 @@
 
 
   PBOp(trie_try_null, e)
+    printf("trie_try_null\n");
 #ifndef GLOBAL_TRIE
     register ans_node_ptr node = (ans_node_ptr) PREG;
     register CELL *aux_stack_ptr = YENV;
@@ -635,6 +802,7 @@
 
 
   PBOp(trie_retry_null, e)
+    printf("trie_retry_null\n");
 #ifndef GLOBAL_TRIE
     register ans_node_ptr node = (ans_node_ptr) PREG;
     register CELL *aux_stack_ptr = (CELL *) (B + 1);
@@ -651,6 +819,7 @@
 
 
   PBOp(trie_do_null_in_new_pair, e)
+    printf("trie_do_null_in_new_pair\n");
 #if defined(TRIE_COMPACT_PAIRS) && !defined(GLOBAL_TRIE)
     register ans_node_ptr node = (ans_node_ptr) PREG;
     register CELL *aux_stack_ptr = YENV;
@@ -666,6 +835,7 @@
 
 
   PBOp(trie_trust_null_in_new_pair, e)
+    printf("trie_trust_null_in_new_pair\n");
 #if defined(TRIE_COMPACT_PAIRS) && !defined(GLOBAL_TRIE)
     register ans_node_ptr node = (ans_node_ptr) PREG;
     register CELL *aux_stack_ptr = (CELL *) (B + 1);
@@ -682,6 +852,7 @@
 
 
   PBOp(trie_try_null_in_new_pair, e)
+    printf("trie_try_null_in_new_pair\n");
 #if defined(TRIE_COMPACT_PAIRS) && !defined(GLOBAL_TRIE)
     register ans_node_ptr node = (ans_node_ptr) PREG;
     register CELL *aux_stack_ptr = YENV;
@@ -698,6 +869,7 @@
 
 
   PBOp(trie_retry_null_in_new_pair, e)
+    printf("trie_retry_null_in_new_pair\n");
 #if defined(TRIE_COMPACT_PAIRS) && !defined(GLOBAL_TRIE)
     register ans_node_ptr node = (ans_node_ptr) PREG;
     register CELL *aux_stack_ptr = (CELL *) (B + 1);
@@ -714,6 +886,7 @@
 
 
   PBOp(trie_do_var, e)
+    printf("trie_do_var\n");
 #ifndef GLOBAL_TRIE
     register ans_node_ptr node = (ans_node_ptr) PREG;
     register CELL *aux_stack_ptr = YENV;
@@ -729,6 +902,7 @@
 
 
   PBOp(trie_trust_var, e)
+    printf("trie_trust_var\n");
 #ifndef GLOBAL_TRIE
     register ans_node_ptr node = (ans_node_ptr) PREG;
     register CELL *aux_stack_ptr = (CELL *) (B + 1);
@@ -745,6 +919,7 @@
 
 
   PBOp(trie_try_var, e)
+    printf("trie_try_var\n");
 #ifndef GLOBAL_TRIE
     register ans_node_ptr node = (ans_node_ptr) PREG;
     register CELL *aux_stack_ptr = YENV;
@@ -761,6 +936,7 @@
 
 
   PBOp(trie_retry_var, e)
+    printf("trie_retry_var\n");
 #ifndef GLOBAL_TRIE
     register ans_node_ptr node = (ans_node_ptr) PREG;
     register CELL *aux_stack_ptr = (CELL *) (B + 1);
@@ -777,6 +953,7 @@
 
 
   PBOp(trie_do_var_in_new_pair, e)
+    printf("trie_do_var_in_new_pair\n");
 #if defined(TRIE_COMPACT_PAIRS) && !defined(GLOBAL_TRIE)
     register ans_node_ptr node = (ans_node_ptr) PREG;
     register CELL *aux_stack_ptr = YENV;
@@ -792,6 +969,7 @@
 
 
   PBOp(trie_trust_var_in_new_pair, e)
+    printf("trie_trust_var_in_new_pair\n");
 #if defined(TRIE_COMPACT_PAIRS) && !defined(GLOBAL_TRIE)
     register ans_node_ptr node = (ans_node_ptr) PREG;
     register CELL *aux_stack_ptr = (CELL *) (B + 1);
@@ -808,6 +986,7 @@
 
 
   PBOp(trie_try_var_in_new_pair, e)
+    printf("trie_try_var_in_new_pair\n");
 #if defined(TRIE_COMPACT_PAIRS) && !defined(GLOBAL_TRIE)
     register ans_node_ptr node = (ans_node_ptr) PREG;
     register CELL *aux_stack_ptr = YENV;
@@ -824,6 +1003,7 @@
 
 
   PBOp(trie_retry_var_in_new_pair, e)
+    printf("trie_retry_var_in_new_pair\n");
 #if defined(TRIE_COMPACT_PAIRS) && !defined(GLOBAL_TRIE)
     register ans_node_ptr node = (ans_node_ptr) PREG;
     register CELL *aux_stack_ptr = (CELL *) (B + 1);
@@ -840,6 +1020,7 @@
 
 
   PBOp(trie_do_val, e)
+    printf("trie_do_val\n");
 #ifndef GLOBAL_TRIE
     register ans_node_ptr node = (ans_node_ptr) PREG;
     register CELL *aux_stack_ptr = YENV;
@@ -856,6 +1037,7 @@
 
 
   PBOp(trie_trust_val, e)
+    printf("trie_trust_val\n");
 #ifndef GLOBAL_TRIE
     register ans_node_ptr node = (ans_node_ptr) PREG;
     register CELL *aux_stack_ptr = (CELL *) (B + 1);
@@ -873,6 +1055,7 @@
 
 
   PBOp(trie_try_val, e)
+    printf("trie_try_val\n");
 #ifndef GLOBAL_TRIE
     register ans_node_ptr node = (ans_node_ptr) PREG;
     register CELL *aux_stack_ptr = YENV;
@@ -890,6 +1073,7 @@
 
 
   PBOp(trie_retry_val, e)
+    printf("trie_retry_val\n");
 #ifndef GLOBAL_TRIE
     register ans_node_ptr node = (ans_node_ptr) PREG;
     register CELL *aux_stack_ptr = (CELL *) (B + 1);
@@ -907,6 +1091,7 @@
 
 
   PBOp(trie_do_val_in_new_pair, e)
+    printf("trie_do_val_in_new_pair\n");
 #if defined(TRIE_COMPACT_PAIRS) && !defined(GLOBAL_TRIE)
     register ans_node_ptr node = (ans_node_ptr) PREG;
     register CELL *aux_stack_ptr = YENV;
@@ -923,6 +1108,7 @@
 
 
   PBOp(trie_trust_val_in_new_pair, e)
+    printf("trie_trust_val_in_pair\n");
 #if defined(TRIE_COMPACT_PAIRS) && !defined(GLOBAL_TRIE)
     register ans_node_ptr node = (ans_node_ptr) PREG;
     register CELL *aux_stack_ptr = (CELL *) (B + 1);
@@ -940,6 +1126,7 @@
 
 
   PBOp(trie_try_val_in_new_pair, e)
+    printf("trie_retry_val_in_new_pair\n");
 #if defined(TRIE_COMPACT_PAIRS) && !defined(GLOBAL_TRIE)
     register ans_node_ptr node = (ans_node_ptr) PREG;
     register CELL *aux_stack_ptr = YENV;
@@ -957,6 +1144,7 @@
 
 
   PBOp(trie_retry_val_in_new_pair, e)
+    printf("trie_retry_val_in_new_pair\n");
 #if defined(TRIE_COMPACT_PAIRS) && !defined(GLOBAL_TRIE)
     register ans_node_ptr node = (ans_node_ptr) PREG;
     register CELL *aux_stack_ptr = (CELL *) (B + 1);
@@ -974,6 +1162,7 @@
 
 
   PBOp(trie_do_atom, e)
+    printf("trie_do_atom\n");
     register ans_node_ptr node = (ans_node_ptr) PREG;
     register CELL *aux_stack_ptr = YENV;
 #ifdef GLOBAL_TRIE
@@ -991,6 +1180,7 @@
 
 
   PBOp(trie_trust_atom, e)
+    printf("trie_trust_atom\n");
     register ans_node_ptr node = (ans_node_ptr) PREG;
     register CELL *aux_stack_ptr = (CELL *) (B + 1);
 #ifdef GLOBAL_TRIE
@@ -1012,6 +1202,7 @@
 
 
   PBOp(trie_try_atom, e)
+    printf("trie_try_atom\n");
     register ans_node_ptr node = (ans_node_ptr) PREG;
     register CELL *aux_stack_ptr = YENV;
 #ifdef GLOBAL_TRIE
@@ -1033,6 +1224,7 @@
 
 
   PBOp(trie_retry_atom, e)
+    printf("trie_retry_atom\n");
     register ans_node_ptr node = (ans_node_ptr) PREG;
     register CELL *aux_stack_ptr = (CELL *) (B + 1);
 #ifdef GLOBAL_TRIE
@@ -1054,6 +1246,7 @@
 
 
   PBOp(trie_do_atom_in_new_pair, e)
+    printf("trie_do_atom_in_new_pair\n");
 #if defined(TRIE_COMPACT_PAIRS) && !defined(GLOBAL_TRIE)
     register ans_node_ptr node = (ans_node_ptr) PREG;
     register CELL *aux_stack_ptr = YENV;
@@ -1069,6 +1262,7 @@
 
 
   PBOp(trie_trust_atom_in_new_pair, e)
+    printf("trie_trust_atom_in_new_pair\n");
 #if defined(TRIE_COMPACT_PAIRS) && !defined(GLOBAL_TRIE)
     register ans_node_ptr node = (ans_node_ptr) PREG;
     register CELL *aux_stack_ptr = (CELL *) (B + 1);
@@ -1085,6 +1279,7 @@
 
 
   PBOp(trie_try_atom_in_new_pair, e)
+    printf("trie_try_atom_in_new_pair\n");
 #if defined(TRIE_COMPACT_PAIRS) && !defined(GLOBAL_TRIE)
     register ans_node_ptr node = (ans_node_ptr) PREG;
     register CELL *aux_stack_ptr = YENV;
@@ -1101,6 +1296,7 @@
 
 
   PBOp(trie_retry_atom_in_new_pair, e)
+    printf("trie_retry_atom_in_new_pair\n");
 #if defined(TRIE_COMPACT_PAIRS) && !defined(GLOBAL_TRIE)
     register ans_node_ptr node = (ans_node_ptr) PREG;
     register CELL *aux_stack_ptr = (CELL *) (B + 1);
@@ -1117,6 +1313,7 @@
 
 
   PBOp(trie_do_pair, e)
+    printf("trie_do_pair\n");
 #ifndef GLOBAL_TRIE
     register ans_node_ptr node = (ans_node_ptr) PREG;
     register CELL *aux_stack_ptr = YENV;
@@ -1132,6 +1329,7 @@
 
 
   PBOp(trie_trust_pair, e)
+    printf("trie_trust_pair\n");
 #ifndef GLOBAL_TRIE
     register ans_node_ptr node = (ans_node_ptr) PREG;
     register CELL *aux_stack_ptr = (CELL *) (B + 1);
@@ -1148,6 +1346,7 @@
 
 
   PBOp(trie_try_pair, e)
+    printf("trie_try_pair\n");
 #ifndef GLOBAL_TRIE
     register ans_node_ptr node = (ans_node_ptr) PREG;
     register CELL *aux_stack_ptr = YENV;
@@ -1164,6 +1363,7 @@
 
 
   PBOp(trie_retry_pair, e)
+    printf("trie_retry_pair\n");
 #ifndef GLOBAL_TRIE
     register ans_node_ptr node = (ans_node_ptr) PREG;
     register CELL *aux_stack_ptr = (CELL *) (B + 1);
@@ -1180,6 +1380,7 @@
 
 
   PBOp(trie_do_struct, e)
+    printf("trie_do_struct\n");
 #ifndef GLOBAL_TRIE
     register ans_node_ptr node = (ans_node_ptr) PREG;
     register CELL *aux_stack_ptr = YENV;
@@ -1197,6 +1398,7 @@
 
 
   PBOp(trie_trust_struct, e)
+    printf("trie_trust_struct\n");
 #ifndef GLOBAL_TRIE
     register ans_node_ptr node = (ans_node_ptr) PREG;
     register CELL *aux_stack_ptr = (CELL *) (B + 1);
@@ -1215,6 +1417,7 @@
 
 
   PBOp(trie_try_struct, e)
+    printf("trie_try_struct\n");
 #ifndef GLOBAL_TRIE
     register ans_node_ptr node = (ans_node_ptr) PREG;
     register CELL *aux_stack_ptr = YENV;
@@ -1233,6 +1436,7 @@
 
 
   PBOp(trie_retry_struct, e)
+    printf("trie_retry_struct\n");
 #ifndef GLOBAL_TRIE
     register ans_node_ptr node = (ans_node_ptr) PREG;
     register CELL *aux_stack_ptr = (CELL *) (B + 1);
@@ -1251,6 +1455,7 @@
 
 
   PBOp(trie_do_struct_in_new_pair, e)
+    printf("trie_do_struct_in_new_pair\n");
 #if defined(TRIE_COMPACT_PAIRS) && !defined(GLOBAL_TRIE)
     register ans_node_ptr node = (ans_node_ptr) PREG;
     register CELL *aux_stack_ptr = YENV;
@@ -1268,6 +1473,7 @@
 
 
   PBOp(trie_trust_struct_in_new_pair, e)
+    printf("trie_trust_struct_in_new_pair\n");
 #if defined(TRIE_COMPACT_PAIRS) && !defined(GLOBAL_TRIE)
     register ans_node_ptr node = (ans_node_ptr) PREG;
     register CELL *aux_stack_ptr = (CELL *) (B + 1);
@@ -1286,6 +1492,7 @@
 
 
   PBOp(trie_try_struct_in_new_pair, e)
+    printf("trie_try_struct_in_new_pair\n");
 #if defined(TRIE_COMPACT_PAIRS) && !defined(GLOBAL_TRIE)
     register ans_node_ptr node = (ans_node_ptr) PREG;
     register CELL *aux_stack_ptr = YENV;
@@ -1304,6 +1511,7 @@
 
 
   PBOp(trie_retry_struct_in_new_pair, e)
+    printf("trie_retry_struct_in_new_pair\n");
 #if defined(TRIE_COMPACT_PAIRS) && !defined(GLOBAL_TRIE)
     register ans_node_ptr node = (ans_node_ptr) PREG;
     register CELL *aux_stack_ptr = (CELL *) (B + 1);
@@ -1322,6 +1530,7 @@
 
 
   PBOp(trie_do_extension, e)
+    printf("trie_do_extension\n");
 #ifndef GLOBAL_TRIE
     register ans_node_ptr node = (ans_node_ptr) PREG;
     register CELL *aux_stack_ptr = YENV;
@@ -1335,6 +1544,7 @@
 
 
   PBOp(trie_trust_extension, e)
+    printf("trie_trust_extension\n");
 #ifndef GLOBAL_TRIE
     register ans_node_ptr node = (ans_node_ptr) PREG;
     register CELL *aux_stack_ptr = (CELL *) (B + 1);
@@ -1351,6 +1561,7 @@
 
 
   PBOp(trie_try_extension, e)
+    printf("trie_try_extension\n");
 #ifndef GLOBAL_TRIE
     register ans_node_ptr node = (ans_node_ptr) PREG;
     register CELL *aux_stack_ptr = YENV;
@@ -1367,6 +1578,7 @@
 
 
   PBOp(trie_retry_extension, e)
+    printf("trie_retry_extension\n");
 #ifndef GLOBAL_TRIE
     register ans_node_ptr node = (ans_node_ptr) PREG;
     register CELL *aux_stack_ptr = (CELL *) (B + 1);
@@ -1383,6 +1595,7 @@
 
 
   PBOp(trie_do_float, e)
+    printf("trie_do_float\n");
 #ifndef GLOBAL_TRIE
     register ans_node_ptr node = (ans_node_ptr) PREG;
     register CELL *aux_stack_ptr = YENV;
@@ -1427,6 +1640,7 @@
 
 
   PBOp(trie_do_long, e)
+    printf("trie_do_long\n");
 #ifndef GLOBAL_TRIE
     register ans_node_ptr node = (ans_node_ptr) PREG;
     register CELL *aux_stack_ptr = YENV;
