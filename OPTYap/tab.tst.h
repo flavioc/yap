@@ -106,6 +106,8 @@ TSTNptr tst_insert(CTXTdeclc TSTNptr tstRoot, TSTNptr lastMatch, Cell firstSymbo
 TSTNptr new_tstn(CTXTdeclc int trie_t, int node_t, Cell symbol, TSTNptr parent,
   TSTNptr sibling);
 void tstCreateTSIs(CTXTdeclc TSTNptr pTST);
+void tstht_remove_index(TSTHTptr ht);
+void print_hash_table(TSTHTptr ht);
 
 /* XSB macros */
   
@@ -117,6 +119,14 @@ void tstCreateTSIs(CTXTdeclc TSTNptr pTST);
 #define TSTN_SetTSIN(pTSTN,TSIN) TSTN_TimeStamp(pTSTN) = (TimeStamp)(TSIN)
 #define TSTN_GetTSIN(pTSTN) ((TSINptr)TSTN_TimeStamp(pTSTN))
 #define TSTN_GetTSfromTSIN(pTSIN) TSIN_TimeStamp(TSTN_GetTSIN(pTSIN))
+
+struct hash_choicept {
+   struct choicept cp;
+   tst_node_ptr *last_bucket;
+   tst_ans_hash_ptr hash;
+   int is_variable;
+};
+typedef struct hash_choicept *hash_cp_ptr;
 
 #endif /* TABLING */
 
