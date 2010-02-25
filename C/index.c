@@ -1118,6 +1118,8 @@ has_cut(yamop *pc)
     case _trie_trust_long:
     case _trie_try_long:
     case _trie_retry_long:
+    case _trie_do_hash:
+    case _trie_retry_hash:
 #endif /* TABLING */
       pc = NEXTOP(pc,e);
       break;
