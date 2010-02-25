@@ -2134,6 +2134,8 @@ mark_choicepoints(register choiceptr gc_B, tr_fr_ptr saved_TR, int very_verbose)
       case _trie_retry_float:
       case _trie_trust_long:
       case _trie_retry_long:
+      case _trie_do_hash:
+      case _trie_retry_hash:
 	{
 	  CELL *vars_ptr;
 	  int heap_arity, vars_arity, subs_arity;
@@ -2170,10 +2172,10 @@ mark_choicepoints(register choiceptr gc_B, tr_fr_ptr saved_TR, int very_verbose)
       case _profiled_retry_and_mark:
       case _count_retry_and_mark:
       case _retry_and_mark:
-	mark_ref_in_use((DBRef)ClauseCodeToDynamicClause(gc_B->cp_ap));
+        mark_ref_in_use((DBRef)ClauseCodeToDynamicClause(gc_B->cp_ap));
       case _retry2:
-	nargs = 2;
-	break;
+        nargs = 2;
+        break;
       case _retry3:
 	nargs = 3;
 	break;

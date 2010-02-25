@@ -586,6 +586,8 @@ PredForChoicePt(yamop *p_code) {
     case _trie_retry_float:
     case _trie_trust_long:
     case _trie_retry_long:
+    case _trie_do_hash:
+    case _trie_retry_hash:
       return NULL;
     case _table_load_answer:
     case _table_try_answer:

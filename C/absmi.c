@@ -1916,6 +1916,8 @@ Yap_absmi(int inp)
 	      case _trie_retry_float:
 	      case _trie_trust_long:
 	      case _trie_retry_long:
+        case _trie_do_hash:
+        case _trie_retry_hash:
 		low_level_trace(retry_table_loader, UndefCode, NULL);
 		break;
 #endif /* TABLING */
