@@ -74,18 +74,24 @@
           aux_stack_ptr = YENV;                                 \
 	}
 #else
+
+#define CALCULATE_STACK_SIZE() (heap_arity + subs_arity + vars_arity + 3)
 #define copy_arity_stack()                                      \
-        { int size = heap_arity + subs_arity + vars_arity + 3;  \
+  {       int size = CALCULATE_STACK_SIZE();                    \
           YENV -= size;                                         \
           memcpy(YENV, aux_stack_ptr, size * sizeof(CELL *));   \
           aux_stack_ptr = YENV;                                 \
 	}
 #endif /* GLOBAL_TRIE */
 
-#define next_trie_instruction(NODE)                             \
-        PREG = (yamop *) TrNode_child(NODE);                    \
+#define next_trie_instruction(NODE) \
+        next_node_instruction(TrNode_child(NODE))
+        
+#define next_node_instruction(NODE) {                           \
+        PREG = (yamop *)(NODE);                                 \
         PREFETCH_OP(PREG);                                      \
-        GONext()
+        GONext();                                               \
+      }
 
 #define next_instruction(CONDITION, NODE)                       \
         if (CONDITION) {                                        \
@@ -104,7 +110,7 @@
 ** the 'store_trie_node', 'restore_trie_node' and 'pop_trie_node' macros do not **
 ** include the 'set_cut' macro because there are no cuts in trie instructions.  **
 ** ---------------------------------------------------------------------------- */
-
+        
 #define store_trie_node(AP)                           \
         { register choiceptr cp;                      \
           printf("store_trie_node\n");                \
@@ -136,7 +142,7 @@
         YENV = (CELL *) PROTECT_FROZEN_B(B);          \
         SET_BB(NORM_CP(YENV));                        \
         copy_arity_stack()
-
+        
 #define really_pop_trie_node()                        \
         printf("really_pop_trie_node\n");             \
         YENV = (CELL *) PROTECT_FROZEN_B((B + 1));    \
@@ -1694,4 +1700,160 @@ printf("stack_trie_float_longint_instr\n");     \
 
   BOp(trie_retry_long, e)
     Yap_Error(INTERNAL_ERROR, TermNil, "invalid instruction (trie_retry_long)");
+  ENDBOp();
+  
+#define store_hash_node()                             \
+        { register choiceptr cp;                      \
+          YENV = (CELL *)(HASH_CP(YENV) - 1);         \
+          cp = NORM_CP(YENV);                         \
+          HBREG = H;                                  \
+          store_yaam_reg_cpdepth(cp);                 \
+          cp->cp_tr = TR;                             \
+          cp->cp_h = H;                               \
+          cp->cp_b = B;                               \
+          cp->cp_cp = CPREG;                          \
+          cp->cp_ap = TRIE_RETRY_HASH;                \
+          cp->cp_env = ENV;                           \
+          B = cp;                                     \
+          YAPOR_SET_LOAD(B);                          \
+          SET_BB(B);                                  \
+          TABLING_ERRORS_check_stack;                 \
+        }                                             \
+        if(heap_arity)                                \
+          aux_stack_ptr--;                            \
+        else                                          \
+          aux_stack_ptr -= 2 + subs_arity;            \
+        copy_arity_stack()
+  
+#define restore_hash_node()                               \
+    /* restore choice point */                            \
+    H = HBREG = PROTECT_FROZEN_H(B);                      \
+    restore_yaam_reg_cpdepth(B);                          \
+    CPREG = B->cp_cp;                                     \
+    ENV = B->cp_env;                                      \
+    YENV = (CELL *)PROTECT_FROZEN_B(B);                   \
+    SET_BB(NORM_CP(YENV));                                \
+                                                          \
+    register CELL *aux_stack_ptr = (CELL *)(hash_cp + 1); \
+    int heap_arity = *aux_stack_ptr;                      \
+    int vars_arity = *(aux_stack_ptr + heap_arity + 1);   \
+    int subs_arity = *(aux_stack_ptr + heap_arity + 2);   \
+    copy_arity_stack()
+    
+#define pop_hash_node()                                   \
+    YENV = (CELL *) PROTECT_FROZEN_B((choiceptr)(hash_cp + 1));    \
+    H = PROTECT_FROZEN_H(B);                              \
+    pop_yaam_reg_cpdepth(B);                              \
+    CPREG = B->cp_cp;                                     \
+    TABLING_close_alt(B);                                 \
+    ENV = B->cp_env;                                      \
+    B = B->cp_b;                                          \
+    HBREG = PROTECT_FROZEN_H(B);                          \
+    SET_BB(PROTECT_FROZEN_B(B));                          \
+    if ((choiceptr) YENV == B_FZ) {                       \
+      register CELL *aux_stack_ptr = YENV;                \
+      int heap_arity = *aux_stack_ptr;                    \
+      int vars_arity = *(aux_stack_ptr + heap_arity + 1); \
+      int subs_arity = *(aux_stack_ptr + heap_arity + 2); \
+      printf("Copy stack\n");                             \
+      copy_arity_stack();                                 \
+    }
+  
+  BOp(trie_do_hash, e)
+    register tst_ans_hash_ptr hash = (tst_ans_hash_ptr) PREG;
+    register CELL *aux_stack_ptr = YENV;
+    int heap_arity = *aux_stack_ptr;
+    int vars_arity = *(aux_stack_ptr + heap_arity + 1);
+    int subs_arity = *(aux_stack_ptr + heap_arity + 2);
+    
+    if(heap_arity)
+      aux_stack_ptr++;
+    else
+      aux_stack_ptr += 2 + subs_arity;
+    
+    CELL term = Deref(*aux_stack_ptr);
+    
+    if(IsVarTerm(term)) {
+      store_hash_node();
+      
+      hash_cp_ptr hash_cp = HASH_CP(B);
+      
+      hash_cp->last_bucket = TSTHT_buckets(hash);
+      
+      // find first valid bucket
+      while(!*(hash_cp->last_bucket))
+        hash_cp->last_bucket++;
+      
+      hash_cp->is_variable = TRUE;
+      hash_cp->hash = hash;
+      
+      next_node_instruction(*(hash_cp->last_bucket));
+    } else {
+      switch(cell_tag(term)) {
+        case TAG_ATOM:
+        case TAG_INT:
+          break;
+        case TAG_STRUCT:
+          term = EncodeTrieFunctor(term);
+          break;
+        case TAG_LIST:
+          term = EncodeTrieList(term);
+          break;
+        default:
+          break;
+      }
+      
+      tst_node_ptr *bucket_ptr = Hash_bucket(hash, HASH_ENTRY(term, Hash_seed(hash)));
+      tst_node_ptr *var_bucket_ptr = Hash_bucket(hash, TRIEVAR_BUCKET);
+      tst_node_ptr bucket = *bucket_ptr;
+      tst_node_ptr var_bucket = *var_bucket_ptr;
+      
+      if(bucket == NULL && var_bucket == NULL)
+        goto fail;
+      
+      if(bucket != NULL && var_bucket != NULL) {
+        store_hash_node();
+
+        hash_cp_ptr hash_cp = HASH_CP(B);
+        
+        hash_cp->is_variable = FALSE;
+        hash_cp->last_bucket = var_bucket_ptr;
+        
+        next_node_instruction(bucket);
+      }
+      
+      /* run the valid bucket */
+      if(bucket)
+        next_node_instruction(bucket)
+      else
+        next_node_instruction(var_bucket)
+    }
+  ENDBOp();
+  
+  BOp(trie_retry_hash, e)
+    hash_cp_ptr hash_cp = HASH_CP(B);
+  
+    if(hash_cp->is_variable) {
+      tst_ans_hash_ptr hash = hash_cp->hash;
+      tst_node_ptr *last_bucket = TSTHT_buckets(hash) + TSTHT_num_buckets(hash);
+      
+      do {
+        hash_cp->last_bucket++;
+        
+        if(last_bucket == hash_cp->last_bucket) {
+          pop_hash_node();
+          goto fail; /* it is over */
+        }
+        
+        if(*(hash_cp->last_bucket)) {
+          restore_hash_node();
+          next_node_instruction(*(hash_cp->last_bucket));
+        }
+      } while(TRUE);
+    } else {
+      /* consume the var bucket */
+      pop_hash_node();
+        
+      next_node_instruction(*(hash_cp->last_bucket));
+    }
   ENDBOp();
