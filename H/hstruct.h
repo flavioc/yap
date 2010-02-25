@@ -191,6 +191,7 @@
   yamop  table_try_answer_code[1];
   yamop  table_answer_resolution_code[1];
   yamop  table_completion_code[1];
+  yamop  table_trie_retry_hash_code[1];
 #endif /* TABLING */
 
 
