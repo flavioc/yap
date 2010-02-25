@@ -397,6 +397,8 @@
   OPCODE(trie_trust_long            ,e),
   OPCODE(trie_try_long              ,e),
   OPCODE(trie_retry_long            ,e),
+  OPCODE(trie_do_hash               ,e),
+  OPCODE(trie_retry_hash            ,e),
 #endif
   /* this instruction is hardwired */
 #ifdef YAPOR
