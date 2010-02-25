@@ -289,7 +289,7 @@ void private_completion(sg_fr_ptr sg_fr) {
     sg_fr_ptr sg_fr = DepFr_sg_fr(LOCAL_top_dep_fr);
     if(SgFr_is_sub_consumer(sg_fr) && SgFr_state(sg_fr) != complete) {
       printf("One subsumptive consumer sg fr completed\n");
-      mark_as_completed(sg_fr);
+      mark_consumer_as_completed(sg_fr);
     }
     printf("ONE DEPENDENCY FRAME FREED\n");
     FREE_DEPENDENCY_FRAME(LOCAL_top_dep_fr);
@@ -441,14 +441,7 @@ void free_answer_trie_branch(ans_node_ptr current_node, int position) {
 
 void update_answer_trie(sg_fr_ptr sg_fr) {
   ans_node_ptr current_node;
-
-  if(SgFr_is_variant(sg_fr))
-    free_answer_trie_hash_chain((ans_hash_ptr)SgFr_hash_chain(sg_fr));
-  else /* MUST be subsumptive producer */
-    free_tst_hash_chain((tst_ans_hash_ptr)SgFr_hash_chain(sg_fr));
-  
-  SgFr_hash_chain(sg_fr) = NULL;
-  SgFr_state(sg_fr) += 2;  /* complete --> compiled : complete_in_use --> compiled_in_use */
+  SgFr_mark_compiled(sg_fr);
   current_node = TrNode_child(SgFr_answer_trie(sg_fr));
   if (current_node) {
 #ifdef YAPOR
@@ -615,6 +608,7 @@ void show_global_trie(void) {
 static
 int update_answer_trie_branch(ans_node_ptr previous_node, ans_node_ptr current_node) {
   int ltt;
+  
   if (! IS_ANSWER_LEAF_NODE(current_node)) {
     if (TrNode_child(current_node)) {
       TrNode_instr(TrNode_child(current_node)) -= 1;  /* retry --> try */
@@ -658,6 +652,7 @@ update_next_trie_branch:
 static
 int update_answer_trie_branch(ans_node_ptr current_node) {
   int ltt;
+  
   if (! IS_ANSWER_LEAF_NODE(current_node)) {
     TrNode_instr(TrNode_child(current_node)) -= 1;  /* retry --> try */
     update_answer_trie_branch(TrNode_child(current_node));
@@ -676,6 +671,26 @@ int update_answer_trie_branch(ans_node_ptr current_node) {
 #else /* TABLING */
 static
 void update_answer_trie_branch(ans_node_ptr current_node, int position) {
+  if(IS_ANSWER_TRIE_HASH(current_node)) {
+    /* we can only be here if the answer trie is a time stamped trie! */
+    tst_node_ptr chain_node, *bucket, *last_bucket;
+    tst_ans_hash_ptr hash = (tst_ans_hash_ptr)current_node;
+    
+    bucket = TSTHT_buckets(hash);
+    last_bucket = bucket + TSTHT_num_buckets(hash);
+    
+    while(bucket != last_bucket) {
+      if(*bucket) {
+        chain_node = *bucket;
+        update_answer_trie_branch(chain_node, TRAVERSE_POSITION_FIRST); /* retry --> try */
+      }
+      bucket++;
+    }
+    TrNode_instr(current_node) = Yap_opcode(TrNode_instr(current_node));
+    tstht_remove_index(hash);
+    return;
+  }
+  
   if (! IS_ANSWER_LEAF_NODE(current_node))
     update_answer_trie_branch(TrNode_child(current_node), TRAVERSE_POSITION_FIRST);  /* retry --> try */
   if (position == TRAVERSE_POSITION_FIRST) {
@@ -755,8 +770,10 @@ void traverse_subgoal_trie(sg_node_ptr current_node, char *str, int str_index, i
       
       if(SgFr_is_sub_producer(sg_fr)) {
         SHOW_TABLE_STRUCTURE("%s. [PRODUCER]\n", str);
+      } else {
+        SHOW_TABLE_STRUCTURE("%s.\n", str);
       }
-
+      
       if (SgFr_has_no_answers(sg_fr)) {
         if (SgFr_state(sg_fr) < complete) {
 	        TrStat_sg_incomplete++;

@@ -27,6 +27,7 @@
 
 STD_PROTO(static inline void adjust_freeze_registers, (void));
 STD_PROTO(static inline void mark_as_completed, (sg_fr_ptr));
+STD_PROTO(static inline void mark_consumer_as_completed, (sg_fr_ptr sg_fr));
 STD_PROTO(static inline void unbind_variables, (tr_fr_ptr, tr_fr_ptr));
 STD_PROTO(static inline void rebind_variables, (tr_fr_ptr, tr_fr_ptr));
 STD_PROTO(static inline void restore_bindings, (tr_fr_ptr, tr_fr_ptr));
@@ -34,6 +35,7 @@ STD_PROTO(static inline void restore_bindings, (tr_fr_ptr, tr_fr_ptr));
 STD_PROTO(static inline void free_subgoal_trie_hash_chain, (sg_hash_ptr));
 STD_PROTO(static inline void free_answer_trie_hash_chain, (ans_hash_ptr));
 STD_PROTO(static inline void free_tst_hash_chain, (tst_ans_hash_ptr));
+STD_PROTO(static inline void free_tst_hash_index, (tst_ans_hash_ptr hash));
 
 STD_PROTO(static inline void free_answer_trie_node, (ans_node_ptr));
 
@@ -113,6 +115,7 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
 #define GEN_CP(CP)                  ((struct generator_choicept *)(CP))
 #define CONS_CP(CP)                 ((struct consumer_choicept *)(CP))
 #define LOAD_CP(CP)                 ((struct loader_choicept *)(CP))
+#define HASH_CP(CP)                 ((struct hash_choicept *)(CP))
 #ifdef DETERMINISTIC_TABLING
 #define DET_GEN_CP(CP)              ((struct deterministic_generator_choicept *)(CP))
 #define IS_DET_GEN_CP(CP)           (*(CELL*)(DET_GEN_CP(CP) + 1) <= MAX_TABLE_VARS)
@@ -388,6 +391,9 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
       ContPtr_answer(SgFr_first_answer(SG_FR)) == SgFr_answer_trie(SG_FR))
       
 #define SgFr_has_no_answers(SG_FR)  SgFr_first_answer(SG_FR) == NULL
+
+/* complete --> compiled : complete_in_use --> compiled_in_use */
+#define SgFr_mark_compiled(SG_FR) SgFr_state(SG_FR) += 2
   
 #ifdef TABLING_ANSWER_LIST
 #define free_answer_continuation(CONT) free_answer_list(CONT)
@@ -565,9 +571,35 @@ void adjust_freeze_registers(void) {
 static inline
 void mark_as_completed(sg_fr_ptr sg_fr) {
   LOCK(SgFr_lock(sg_fr));
-  SgFr_state(sg_fr) = complete;
+  if(SgFr_state(sg_fr) != complete) {
+    SgFr_state(sg_fr) = complete;
+    if(SgFr_is_sub_producer(sg_fr) && TabEnt_is_exec(SgFr_tab_ent(sg_fr)))
+      free_tst_hash_index((tst_ans_hash_ptr)SgFr_hash_chain(sg_fr));
+    else if(SgFr_is_variant(sg_fr)) {
+      free_answer_trie_hash_chain((ans_hash_ptr)SgFr_hash_chain(sg_fr));
+      SgFr_hash_chain(sg_fr) = NULL;
+    }
+  }
   UNLOCK(SgFr_lock(sg_fr));
   return;
+}
+
+static inline
+void mark_consumer_as_completed(sg_fr_ptr sg_fr) {
+  LOCK(SgFr_lock(sg_fr));
+  
+  if(SgFr_state(sg_fr) != complete) {
+    SgFr_state(sg_fr) = complete;
+    if(TabEnt_is_exec(SgFr_tab_ent(sg_fr))) {
+      /* not needed anymore */
+      printf("Deleting consumer data (EXEC)\n");
+      free_consumer_subgoal_data((subcons_fr_ptr)sg_fr);
+      SgFr_first_answer(sg_fr) = NULL;
+      SgFr_last_answer(sg_fr) = NULL;
+    }
+  }
+  
+  UNLOCK(SgFr_lock(sg_fr));
 }
 
 
@@ -984,18 +1016,17 @@ void free_tst_hash_chain(tst_ans_hash_ptr hash) {
     }
     printf("One tst hash deleted\n");
     next_hash = TSTHT_next(hash);
-    /* delete the TST indices */
-    tst_index_ptr index = TSTHT_index_head(hash);
-    tst_index_ptr next_index;
-    while(index) {
-      printf("one tst index deleted\n");
-      FREE_TST_INDEX_NODE(index);
-      
-      next_index = TSIN_next(index);
-      index = next_index;
-    }
+    tstht_remove_index(hash);
     FREE_TST_ANSWER_TRIE_HASH(hash);
     hash = next_hash;
+  }
+}
+
+static inline
+void free_tst_hash_index(tst_ans_hash_ptr hash) {
+  while(hash) {
+    tstht_remove_index(hash);
+    hash = TSTHT_next(hash);
   }
 }
 
