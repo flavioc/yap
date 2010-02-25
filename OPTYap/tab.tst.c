@@ -10,7 +10,6 @@
 /* prototypes */
 STD_PROTO(static inline void expand_trie_ht, (CTXTdeclc BTHTptr));
 STD_PROTO(static inline TSTHTptr New_BTHT, (int));
-STD_PROTO(void hashify_children, (CTXTdeclc BTNptr, int));
 
 #define New_TSIN(TSIN, TSTN) {  \
   void *t;  \
@@ -362,6 +361,7 @@ void tstnHashifyChildren(CTXTdeclc TSTNptr parent, TSTNptr root, xsbBool createT
     MakeHashedNode(tstn);
     if( createTSI )
       TSTN_SetTSIN(tstn, tsiOrderedInsert(CTXTc ht, tstn));
+    printf("Created hash table\n");
   }
 }
 
@@ -516,4 +516,49 @@ TSTNptr tst_insert(CTXTdeclc TSTNptr tstRoot, TSTNptr lastMatch, Cell firstSymbo
   TN_UpgradeInstrTypeToSUCCESS(lastMatch,TrieSymbolType(symbol));
   AnsVarCtr = AnsVarCtr + std_var_num;
   return lastMatch;
+}
+
+/* remove tst indices from the hash table */
+void tstht_remove_index(TSTHTptr ht) {
+  TSINptr head = TSTHT_IndexHead(ht);
+  TSINptr saved_head;
+  
+  while(head) {
+    saved_head = TSIN_Next(head);
+    
+    FREE_TST_INDEX_NODE(head);
+    
+    head = saved_head;
+  }
+  
+  TSTHT_IndexHead(ht) = NULL;
+  TSTHT_IndexTail(ht) = NULL;
+}
+
+void print_hash_table(TSTHTptr ht) {
+  tst_node_ptr *bucket = TSTHT_buckets(ht);
+  tst_node_ptr *last_bucket = bucket + TSTHT_num_buckets(ht);
+  printf("Num buckets: %d\n", TSTHT_num_buckets(ht));
+  printf("Num nodes: %d\n", TSTHT_num_nodes(ht));
+  
+  int i = 0;
+  while(bucket != last_bucket) {
+    ++i;
+    
+    if(*bucket) {
+      // count
+      int count = 0;
+      tst_node_ptr link = *bucket;
+      
+      while(link) {
+        count++;
+        link = TSTN_next(link);
+      }
+      
+      printf("Bucket %d with %d\n", i, count);
+    }
+    
+    ++bucket;
+  }
+  
 }
