@@ -113,7 +113,7 @@
         
 #define store_trie_node(AP)                           \
         { register choiceptr cp;                      \
-          printf("store_trie_node\n");                \
+          dprintf("store_trie_node\n");                \
           YENV = (CELL *) (NORM_CP(YENV) - 1);        \
           cp = NORM_CP(YENV);                         \
           HBREG = H;                                  \
@@ -132,7 +132,7 @@
         copy_arity_stack()
 
 #define restore_trie_node(AP)                         \
-        printf("restore_trie_node\n");                \
+        dprintf("restore_trie_node\n");                \
         H = HBREG = PROTECT_FROZEN_H(B);              \
         restore_yaam_reg_cpdepth(B);                  \
         CPREG = B->cp_cp;                             \
@@ -144,7 +144,7 @@
         copy_arity_stack()
         
 #define really_pop_trie_node()                        \
-        printf("really_pop_trie_node\n");             \
+        dprintf("really_pop_trie_node\n");             \
         YENV = (CELL *) PROTECT_FROZEN_B((B + 1));    \
         H = PROTECT_FROZEN_H(B);                      \
         pop_yaam_reg_cpdepth(B);                      \
@@ -160,7 +160,7 @@
 
 #ifdef YAPOR
 #define pop_trie_node()                               \
-        printf("pop_trie_node\n");                    \
+        dprintf("pop_trie_node\n");                    \
         if (SCH_top_shared_cp(B)) {                   \
           restore_trie_node(NULL);                    \
         } else {                                      \
@@ -168,7 +168,7 @@
         }
 #else
 #define pop_trie_node()  {  \
-        printf("pop_trie_node\n");  \
+        dprintf("pop_trie_node\n");  \
       really_pop_trie_node()  \
     }
 #endif /* YAPOR */
@@ -180,7 +180,7 @@
 ** ------------------- */
 
 #define stack_trie_null_instr()                              \
-printf("stack_trie_null_instr\n");    \
+dprintf("stack_trie_null_instr\n");    \
         next_trie_instruction(node)
 
 #ifdef TRIE_COMPACT_PAIRS
@@ -220,7 +220,7 @@ printf("stack_trie_null_instr\n");    \
 
 // OK
 #define stack_trie_var_instr()                                   \
-printf("stack_trie_var_instr\n");                                 \
+dprintf("stack_trie_var_instr\n");                                 \
         if (heap_arity) {                                        \
           CELL term;                                              \
           int i;                                                 \
@@ -314,7 +314,7 @@ printf("stack_trie_var_instr\n");                                 \
               }                                                                                 \
               break;  \
               default:  \
-                printf("AUX_SUB VAR TAG_REF DEFAULT\n");  \
+                dprintf("AUX_SUB VAR TAG_REF DEFAULT\n");  \
                 Bind_Global((CELL *)aux_sub, aux_var);  \
                 break;  \
           } \
@@ -325,18 +325,18 @@ printf("stack_trie_var_instr\n");                                 \
             if((CELL *) aux_var <= H) { \
               Bind_Global((CELL *) aux_var, aux_sub); \
               *vars_ptr = aux_sub;  /* ok */ \
-              printf("Bind Global 1\n");  \
+              dprintf("Bind Global 1\n");  \
             } else {  /* XXX */ \
               Bind_Local((CELL *) aux_var, aux_sub);  \
               *vars_ptr = aux_sub;  \
-              printf("Bind local 1\n"); \
+              dprintf("Bind local 1\n"); \
             } \
             break;      \
           default:  \
             /* run yap unification algorithm */ \
-            printf("Run yap unify \n"); \
+            dprintf("Run yap unify \n"); \
             if(!Yap_unify(aux_var, aux_sub)) {  \
-              printf("Unification failed\n"); \
+              dprintf("Unification failed\n"); \
               goto fail;  \
             } \
             break;  \
@@ -344,7 +344,7 @@ printf("stack_trie_var_instr\n");                                 \
   }
 
 #define stack_trie_val_instr()                                                              \
-printf("stack_trie_val_instr\n");                                                           \
+dprintf("stack_trie_val_instr\n");                                                           \
         if (heap_arity) {                                                                   \
           CELL aux_sub, aux_var, *vars_ptr;				                                          \
           YENV = ++aux_stack_ptr;                                                           \
@@ -421,8 +421,8 @@ printf("stack_trie_val_instr\n");                                               
 
 // OK
 #define stack_trie_atom_instr()                                      \
-printf("stack_trie_atom_instr\n");                                    \
-        printf("Heap arity: %d\n", heap_arity); \
+dprintf("stack_trie_atom_instr\n");                                    \
+        dprintf("Heap arity: %d\n", heap_arity); \
         if (heap_arity) {                                            \
           YENV = ++aux_stack_ptr;                                    \
           CELL term = Deref(*aux_stack_ptr);                         \
@@ -430,7 +430,7 @@ printf("stack_trie_atom_instr\n");                                    \
             Bind_Global((CELL *) *aux_stack_ptr, TrNode_entry(node));  \
           } else {                                                  \
             if(term != TrNode_entry(node)) {                        \
-              printf("No match\n");                                 \
+              dprintf("No match\n");                                 \
               goto fail;                                            \
             }                                                       \
           }                                                         \
@@ -442,11 +442,11 @@ printf("stack_trie_atom_instr\n");                                    \
           aux_stack_ptr += subs_arity;                               \
           CELL term = Deref(*aux_stack_ptr);                         \
           if(IsVarTerm(term)) {                                      \
-            printf("aux_stack_ptr is var\n");                        \
+            dprintf("aux_stack_ptr is var\n");                        \
             Bind((CELL *) term, TrNode_entry(node));       \
           } else {                                                   \
             if(term != TrNode_entry(node)) {               \
-              printf("No match\n");                                  \
+              dprintf("No match\n");                                  \
               goto fail;                                             \
             }                                                        \
           }                                                          \
@@ -527,7 +527,7 @@ printf("stack_trie_atom_instr\n");                                    \
         next_trie_instruction(node)
 #else
 #define stack_trie_pair_instr()                              \
-        printf("stack_trie_pair_instr\n");                    \
+        dprintf("stack_trie_pair_instr\n");                    \
         if (heap_arity) {                                    \
           aux_stack_ptr++;                                   \
           Term term = Deref(*aux_stack_ptr);                 \
@@ -596,7 +596,7 @@ printf("stack_trie_atom_instr\n");                                    \
     int i;  \
     for(i = 0; i < func_arity; ++i) { \
       *aux_stack_ptr-- = (CELL)*(RepAppl(TERM) + func_arity - i);    \
-      printf("Pushed one old arg\n"); \
+      dprintf("Pushed one old arg\n"); \
     } \
   }
   
@@ -604,7 +604,7 @@ printf("stack_trie_atom_instr\n");                                    \
     int i;                                                 \
     for (i = 0; i < func_arity; i++) {                       \
     *aux_stack_ptr-- = (CELL) (H + func_arity - i);      \
-    printf("Pushed one arg\n"); \
+    dprintf("Pushed one arg\n"); \
   } \
   }
 
@@ -627,27 +627,27 @@ printf("stack_trie_atom_instr\n");                                    \
 ** --------------------- */
 
 #define stack_trie_struct_instr()                                \
-printf("stack_trie_struct_instr\n");                            \
+dprintf("stack_trie_struct_instr\n");                            \
         if (heap_arity) {                                        \
-          printf("struct heap arity %d\n", heap_arity); \
+          dprintf("struct heap arity %d\n", heap_arity); \
           aux_stack_ptr++;                                       \
           CELL term = Deref(*aux_stack_ptr);                     \
           switch(cell_tag(term))  {                               \
             case TAG_STRUCT:  {                                   \
-              printf("TAG_STRUCT\n"); \
+              dprintf("TAG_STRUCT\n"); \
               Functor func2 = FunctorOfTerm(term);                \
               if(func != func2) {                                 \
-                printf("NOT SAME FUNCTOR\n");                     \
+                dprintf("NOT SAME FUNCTOR\n");                     \
                 goto fail;                                        \
               }                                                   \
-              printf("Pushing already built functor on the stack with arity %d\n", func_arity); \
+              dprintf("Pushing already built functor on the stack with arity %d\n", func_arity); \
               PUSH_FUNCTOR_ARGS(term);  \
               YENV = aux_stack_ptr; \
               INC_HEAP_ARITY(func_arity - 1); \
             } \
             break;  \
             case TAG_REF: { \
-              printf("TAG_REF\n");  \
+              dprintf("TAG_REF\n");  \
               /* bind this variable to a new functor  \
                  that is built using the arguments on the trie  \
                  */ \
@@ -659,20 +659,20 @@ printf("stack_trie_struct_instr\n");                            \
             } \
             break;  \
             default:  \
-              printf("??\n"); \
+              dprintf("??\n"); \
               goto fail;  \
           } \
         } else {                                                 \
           CELL term = Deref(*(aux_stack_ptr + 2 + subs_arity));               \
           switch(cell_tag(term))  { \
             case TAG_STRUCT: {  \
-              printf("TAG_STRUCT NON HEAP\n");  \
+              dprintf("TAG_STRUCT NON HEAP\n");  \
               Functor func2 = FunctorOfTerm(term);     \
               if(func != func2) {  \
-                printf("NOT A FUNCTOR\n");  \
+                dprintf("NOT A FUNCTOR\n");  \
                 goto fail;                                          \
               }             \
-              printf("Pushing already built functor on the stack with arity %d\n", func_arity); \
+              dprintf("Pushing already built functor on the stack with arity %d\n", func_arity); \
               /* push already built functor terms on the stack */         \
               PUSH_FUNCTOR_ARGS(term);  \
               YENV = aux_stack_ptr; \
@@ -684,7 +684,7 @@ printf("stack_trie_struct_instr\n");                            \
             } \
             break;  \
             case TAG_REF:     {                                      \
-              printf("TAG_REF NON HEAP\n"); \
+              dprintf("TAG_REF NON HEAP\n"); \
               PUSH_NEW_FUNCTOR();                                     \
               INC_HEAP_ARITY(func_arity); \
               YENV = aux_stack_ptr;                                  \
@@ -743,7 +743,7 @@ printf("stack_trie_struct_instr\n");                            \
 ** ------------------------ */
 
 #define stack_trie_extension_instr()                               \
-printf("stack_trie_extension_instr\n");       \
+dprintf("stack_trie_extension_instr\n");       \
         *aux_stack_ptr-- = 0;  /* float/longint extension mark */  \
         *aux_stack_ptr-- = TrNode_entry(node);                     \
         *aux_stack_ptr = heap_arity + 2;                           \
@@ -757,7 +757,7 @@ printf("stack_trie_extension_instr\n");       \
 ** ---------------------------- */
 
 #define stack_trie_float_longint_instr()                         \
-printf("stack_trie_float_longint_instr\n");     \
+dprintf("stack_trie_float_longint_instr\n");     \
         if (heap_arity) {                                        \
           YENV = ++aux_stack_ptr;                                \
           Bind_Global((CELL *) *aux_stack_ptr, t);               \
@@ -785,7 +785,7 @@ printf("stack_trie_float_longint_instr\n");     \
 ** --------------------------- */
 
   PBOp(trie_do_null, e)
-  printf("trie_do_null\n");
+  dprintf("trie_do_null\n");
 #ifndef GLOBAL_TRIE
     register ans_node_ptr node = (ans_node_ptr) PREG;
 
@@ -797,7 +797,7 @@ printf("stack_trie_float_longint_instr\n");     \
 
 
   PBOp(trie_trust_null, e)
-    printf("trie_trust_null\n");
+    dprintf("trie_trust_null\n");
 #ifndef GLOBAL_TRIE
     register ans_node_ptr node = (ans_node_ptr) PREG;
     register CELL *aux_stack_ptr = (CELL *) (B + 1);
@@ -814,7 +814,7 @@ printf("stack_trie_float_longint_instr\n");     \
 
 
   PBOp(trie_try_null, e)
-    printf("trie_try_null\n");
+    dprintf("trie_try_null\n");
 #ifndef GLOBAL_TRIE
     register ans_node_ptr node = (ans_node_ptr) PREG;
     register CELL *aux_stack_ptr = YENV;
@@ -831,7 +831,7 @@ printf("stack_trie_float_longint_instr\n");     \
 
 
   PBOp(trie_retry_null, e)
-    printf("trie_retry_null\n");
+    dprintf("trie_retry_null\n");
 #ifndef GLOBAL_TRIE
     register ans_node_ptr node = (ans_node_ptr) PREG;
     register CELL *aux_stack_ptr = (CELL *) (B + 1);
@@ -848,7 +848,7 @@ printf("stack_trie_float_longint_instr\n");     \
 
 
   PBOp(trie_do_null_in_new_pair, e)
-    printf("trie_do_null_in_new_pair\n");
+    dprintf("trie_do_null_in_new_pair\n");
 #if defined(TRIE_COMPACT_PAIRS) && !defined(GLOBAL_TRIE)
     register ans_node_ptr node = (ans_node_ptr) PREG;
     register CELL *aux_stack_ptr = YENV;
@@ -864,7 +864,7 @@ printf("stack_trie_float_longint_instr\n");     \
 
 
   PBOp(trie_trust_null_in_new_pair, e)
-    printf("trie_trust_null_in_new_pair\n");
+    dprintf("trie_trust_null_in_new_pair\n");
 #if defined(TRIE_COMPACT_PAIRS) && !defined(GLOBAL_TRIE)
     register ans_node_ptr node = (ans_node_ptr) PREG;
     register CELL *aux_stack_ptr = (CELL *) (B + 1);
@@ -881,7 +881,7 @@ printf("stack_trie_float_longint_instr\n");     \
 
 
   PBOp(trie_try_null_in_new_pair, e)
-    printf("trie_try_null_in_new_pair\n");
+    dprintf("trie_try_null_in_new_pair\n");
 #if defined(TRIE_COMPACT_PAIRS) && !defined(GLOBAL_TRIE)
     register ans_node_ptr node = (ans_node_ptr) PREG;
     register CELL *aux_stack_ptr = YENV;
@@ -898,7 +898,7 @@ printf("stack_trie_float_longint_instr\n");     \
 
 
   PBOp(trie_retry_null_in_new_pair, e)
-    printf("trie_retry_null_in_new_pair\n");
+    dprintf("trie_retry_null_in_new_pair\n");
 #if defined(TRIE_COMPACT_PAIRS) && !defined(GLOBAL_TRIE)
     register ans_node_ptr node = (ans_node_ptr) PREG;
     register CELL *aux_stack_ptr = (CELL *) (B + 1);
@@ -915,7 +915,7 @@ printf("stack_trie_float_longint_instr\n");     \
 
 
   PBOp(trie_do_var, e)
-    printf("trie_do_var\n");
+    dprintf("trie_do_var\n");
 #ifndef GLOBAL_TRIE
     register ans_node_ptr node = (ans_node_ptr) PREG;
     register CELL *aux_stack_ptr = YENV;
@@ -931,7 +931,7 @@ printf("stack_trie_float_longint_instr\n");     \
 
 
   PBOp(trie_trust_var, e)
-    printf("trie_trust_var\n");
+    dprintf("trie_trust_var\n");
 #ifndef GLOBAL_TRIE
     register ans_node_ptr node = (ans_node_ptr) PREG;
     register CELL *aux_stack_ptr = (CELL *) (B + 1);
@@ -948,7 +948,7 @@ printf("stack_trie_float_longint_instr\n");     \
 
 
   PBOp(trie_try_var, e)
-    printf("trie_try_var\n");
+    dprintf("trie_try_var\n");
 #ifndef GLOBAL_TRIE
     register ans_node_ptr node = (ans_node_ptr) PREG;
     register CELL *aux_stack_ptr = YENV;
@@ -965,7 +965,7 @@ printf("stack_trie_float_longint_instr\n");     \
 
 
   PBOp(trie_retry_var, e)
-    printf("trie_retry_var\n");
+    dprintf("trie_retry_var\n");
 #ifndef GLOBAL_TRIE
     register ans_node_ptr node = (ans_node_ptr) PREG;
     register CELL *aux_stack_ptr = (CELL *) (B + 1);
@@ -982,7 +982,7 @@ printf("stack_trie_float_longint_instr\n");     \
 
 
   PBOp(trie_do_var_in_new_pair, e)
-    printf("trie_do_var_in_new_pair\n");
+    dprintf("trie_do_var_in_new_pair\n");
 #if defined(TRIE_COMPACT_PAIRS) && !defined(GLOBAL_TRIE)
     register ans_node_ptr node = (ans_node_ptr) PREG;
     register CELL *aux_stack_ptr = YENV;
@@ -998,7 +998,7 @@ printf("stack_trie_float_longint_instr\n");     \
 
 
   PBOp(trie_trust_var_in_new_pair, e)
-    printf("trie_trust_var_in_new_pair\n");
+    dprintf("trie_trust_var_in_new_pair\n");
 #if defined(TRIE_COMPACT_PAIRS) && !defined(GLOBAL_TRIE)
     register ans_node_ptr node = (ans_node_ptr) PREG;
     register CELL *aux_stack_ptr = (CELL *) (B + 1);
@@ -1015,7 +1015,7 @@ printf("stack_trie_float_longint_instr\n");     \
 
 
   PBOp(trie_try_var_in_new_pair, e)
-    printf("trie_try_var_in_new_pair\n");
+    dprintf("trie_try_var_in_new_pair\n");
 #if defined(TRIE_COMPACT_PAIRS) && !defined(GLOBAL_TRIE)
     register ans_node_ptr node = (ans_node_ptr) PREG;
     register CELL *aux_stack_ptr = YENV;
@@ -1032,7 +1032,7 @@ printf("stack_trie_float_longint_instr\n");     \
 
 
   PBOp(trie_retry_var_in_new_pair, e)
-    printf("trie_retry_var_in_new_pair\n");
+    dprintf("trie_retry_var_in_new_pair\n");
 #if defined(TRIE_COMPACT_PAIRS) && !defined(GLOBAL_TRIE)
     register ans_node_ptr node = (ans_node_ptr) PREG;
     register CELL *aux_stack_ptr = (CELL *) (B + 1);
@@ -1049,7 +1049,7 @@ printf("stack_trie_float_longint_instr\n");     \
 
 
   PBOp(trie_do_val, e)
-    printf("trie_do_val\n");
+    dprintf("trie_do_val\n");
 #ifndef GLOBAL_TRIE
     register ans_node_ptr node = (ans_node_ptr) PREG;
     register CELL *aux_stack_ptr = YENV;
@@ -1066,7 +1066,7 @@ printf("stack_trie_float_longint_instr\n");     \
 
 
   PBOp(trie_trust_val, e)
-    printf("trie_trust_val\n");
+    dprintf("trie_trust_val\n");
 #ifndef GLOBAL_TRIE
     register ans_node_ptr node = (ans_node_ptr) PREG;
     register CELL *aux_stack_ptr = (CELL *) (B + 1);
@@ -1084,7 +1084,7 @@ printf("stack_trie_float_longint_instr\n");     \
 
 
   PBOp(trie_try_val, e)
-    printf("trie_try_val\n");
+    dprintf("trie_try_val\n");
 #ifndef GLOBAL_TRIE
     register ans_node_ptr node = (ans_node_ptr) PREG;
     register CELL *aux_stack_ptr = YENV;
@@ -1102,7 +1102,7 @@ printf("stack_trie_float_longint_instr\n");     \
 
 
   PBOp(trie_retry_val, e)
-    printf("trie_retry_val\n");
+    dprintf("trie_retry_val\n");
 #ifndef GLOBAL_TRIE
     register ans_node_ptr node = (ans_node_ptr) PREG;
     register CELL *aux_stack_ptr = (CELL *) (B + 1);
@@ -1120,7 +1120,7 @@ printf("stack_trie_float_longint_instr\n");     \
 
 
   PBOp(trie_do_val_in_new_pair, e)
-    printf("trie_do_val_in_new_pair\n");
+    dprintf("trie_do_val_in_new_pair\n");
 #if defined(TRIE_COMPACT_PAIRS) && !defined(GLOBAL_TRIE)
     register ans_node_ptr node = (ans_node_ptr) PREG;
     register CELL *aux_stack_ptr = YENV;
@@ -1137,7 +1137,7 @@ printf("stack_trie_float_longint_instr\n");     \
 
 
   PBOp(trie_trust_val_in_new_pair, e)
-    printf("trie_trust_val_in_pair\n");
+    dprintf("trie_trust_val_in_pair\n");
 #if defined(TRIE_COMPACT_PAIRS) && !defined(GLOBAL_TRIE)
     register ans_node_ptr node = (ans_node_ptr) PREG;
     register CELL *aux_stack_ptr = (CELL *) (B + 1);
@@ -1155,7 +1155,7 @@ printf("stack_trie_float_longint_instr\n");     \
 
 
   PBOp(trie_try_val_in_new_pair, e)
-    printf("trie_retry_val_in_new_pair\n");
+    dprintf("trie_retry_val_in_new_pair\n");
 #if defined(TRIE_COMPACT_PAIRS) && !defined(GLOBAL_TRIE)
     register ans_node_ptr node = (ans_node_ptr) PREG;
     register CELL *aux_stack_ptr = YENV;
@@ -1173,7 +1173,7 @@ printf("stack_trie_float_longint_instr\n");     \
 
 
   PBOp(trie_retry_val_in_new_pair, e)
-    printf("trie_retry_val_in_new_pair\n");
+    dprintf("trie_retry_val_in_new_pair\n");
 #if defined(TRIE_COMPACT_PAIRS) && !defined(GLOBAL_TRIE)
     register ans_node_ptr node = (ans_node_ptr) PREG;
     register CELL *aux_stack_ptr = (CELL *) (B + 1);
@@ -1191,7 +1191,7 @@ printf("stack_trie_float_longint_instr\n");     \
 
 
   PBOp(trie_do_atom, e)
-    printf("trie_do_atom\n");
+    dprintf("trie_do_atom\n");
     register ans_node_ptr node = (ans_node_ptr) PREG;
     register CELL *aux_stack_ptr = YENV;
 #ifdef GLOBAL_TRIE
@@ -1209,7 +1209,7 @@ printf("stack_trie_float_longint_instr\n");     \
 
 
   PBOp(trie_trust_atom, e)
-    printf("trie_trust_atom\n");
+    dprintf("trie_trust_atom\n");
     register ans_node_ptr node = (ans_node_ptr) PREG;
     register CELL *aux_stack_ptr = (CELL *) (B + 1);
 #ifdef GLOBAL_TRIE
@@ -1231,7 +1231,7 @@ printf("stack_trie_float_longint_instr\n");     \
 
 
   PBOp(trie_try_atom, e)
-    printf("trie_try_atom\n");
+    dprintf("trie_try_atom\n");
     register ans_node_ptr node = (ans_node_ptr) PREG;
     register CELL *aux_stack_ptr = YENV;
 #ifdef GLOBAL_TRIE
@@ -1253,7 +1253,7 @@ printf("stack_trie_float_longint_instr\n");     \
 
 
   PBOp(trie_retry_atom, e)
-    printf("trie_retry_atom\n");
+    dprintf("trie_retry_atom\n");
     register ans_node_ptr node = (ans_node_ptr) PREG;
     register CELL *aux_stack_ptr = (CELL *) (B + 1);
 #ifdef GLOBAL_TRIE
@@ -1275,7 +1275,7 @@ printf("stack_trie_float_longint_instr\n");     \
 
 
   PBOp(trie_do_atom_in_new_pair, e)
-    printf("trie_do_atom_in_new_pair\n");
+    dprintf("trie_do_atom_in_new_pair\n");
 #if defined(TRIE_COMPACT_PAIRS) && !defined(GLOBAL_TRIE)
     register ans_node_ptr node = (ans_node_ptr) PREG;
     register CELL *aux_stack_ptr = YENV;
@@ -1291,7 +1291,7 @@ printf("stack_trie_float_longint_instr\n");     \
 
 
   PBOp(trie_trust_atom_in_new_pair, e)
-    printf("trie_trust_atom_in_new_pair\n");
+    dprintf("trie_trust_atom_in_new_pair\n");
 #if defined(TRIE_COMPACT_PAIRS) && !defined(GLOBAL_TRIE)
     register ans_node_ptr node = (ans_node_ptr) PREG;
     register CELL *aux_stack_ptr = (CELL *) (B + 1);
@@ -1308,7 +1308,7 @@ printf("stack_trie_float_longint_instr\n");     \
 
 
   PBOp(trie_try_atom_in_new_pair, e)
-    printf("trie_try_atom_in_new_pair\n");
+    dprintf("trie_try_atom_in_new_pair\n");
 #if defined(TRIE_COMPACT_PAIRS) && !defined(GLOBAL_TRIE)
     register ans_node_ptr node = (ans_node_ptr) PREG;
     register CELL *aux_stack_ptr = YENV;
@@ -1325,7 +1325,7 @@ printf("stack_trie_float_longint_instr\n");     \
 
 
   PBOp(trie_retry_atom_in_new_pair, e)
-    printf("trie_retry_atom_in_new_pair\n");
+    dprintf("trie_retry_atom_in_new_pair\n");
 #if defined(TRIE_COMPACT_PAIRS) && !defined(GLOBAL_TRIE)
     register ans_node_ptr node = (ans_node_ptr) PREG;
     register CELL *aux_stack_ptr = (CELL *) (B + 1);
@@ -1342,7 +1342,7 @@ printf("stack_trie_float_longint_instr\n");     \
 
 
   PBOp(trie_do_pair, e)
-    printf("trie_do_pair\n");
+    dprintf("trie_do_pair\n");
 #ifndef GLOBAL_TRIE
     register ans_node_ptr node = (ans_node_ptr) PREG;
     register CELL *aux_stack_ptr = YENV;
@@ -1358,7 +1358,7 @@ printf("stack_trie_float_longint_instr\n");     \
 
 
   PBOp(trie_trust_pair, e)
-    printf("trie_trust_pair\n");
+    dprintf("trie_trust_pair\n");
 #ifndef GLOBAL_TRIE
     register ans_node_ptr node = (ans_node_ptr) PREG;
     register CELL *aux_stack_ptr = (CELL *) (B + 1);
@@ -1375,7 +1375,7 @@ printf("stack_trie_float_longint_instr\n");     \
 
 
   PBOp(trie_try_pair, e)
-    printf("trie_try_pair\n");
+    dprintf("trie_try_pair\n");
 #ifndef GLOBAL_TRIE
     register ans_node_ptr node = (ans_node_ptr) PREG;
     register CELL *aux_stack_ptr = YENV;
@@ -1392,7 +1392,7 @@ printf("stack_trie_float_longint_instr\n");     \
 
 
   PBOp(trie_retry_pair, e)
-    printf("trie_retry_pair\n");
+    dprintf("trie_retry_pair\n");
 #ifndef GLOBAL_TRIE
     register ans_node_ptr node = (ans_node_ptr) PREG;
     register CELL *aux_stack_ptr = (CELL *) (B + 1);
@@ -1409,7 +1409,7 @@ printf("stack_trie_float_longint_instr\n");     \
 
 
   PBOp(trie_do_struct, e)
-    printf("trie_do_struct\n");
+    dprintf("trie_do_struct\n");
 #ifndef GLOBAL_TRIE
     register ans_node_ptr node = (ans_node_ptr) PREG;
     register CELL *aux_stack_ptr = YENV;
@@ -1427,7 +1427,7 @@ printf("stack_trie_float_longint_instr\n");     \
 
 
   PBOp(trie_trust_struct, e)
-    printf("trie_trust_struct\n");
+    dprintf("trie_trust_struct\n");
 #ifndef GLOBAL_TRIE
     register ans_node_ptr node = (ans_node_ptr) PREG;
     register CELL *aux_stack_ptr = (CELL *) (B + 1);
@@ -1446,7 +1446,7 @@ printf("stack_trie_float_longint_instr\n");     \
 
 
   PBOp(trie_try_struct, e)
-    printf("trie_try_struct\n");
+    dprintf("trie_try_struct\n");
 #ifndef GLOBAL_TRIE
     register ans_node_ptr node = (ans_node_ptr) PREG;
     register CELL *aux_stack_ptr = YENV;
@@ -1465,7 +1465,7 @@ printf("stack_trie_float_longint_instr\n");     \
 
 
   PBOp(trie_retry_struct, e)
-    printf("trie_retry_struct\n");
+    dprintf("trie_retry_struct\n");
 #ifndef GLOBAL_TRIE
     register ans_node_ptr node = (ans_node_ptr) PREG;
     register CELL *aux_stack_ptr = (CELL *) (B + 1);
@@ -1484,7 +1484,7 @@ printf("stack_trie_float_longint_instr\n");     \
 
 
   PBOp(trie_do_struct_in_new_pair, e)
-    printf("trie_do_struct_in_new_pair\n");
+    dprintf("trie_do_struct_in_new_pair\n");
 #if defined(TRIE_COMPACT_PAIRS) && !defined(GLOBAL_TRIE)
     register ans_node_ptr node = (ans_node_ptr) PREG;
     register CELL *aux_stack_ptr = YENV;
@@ -1502,7 +1502,7 @@ printf("stack_trie_float_longint_instr\n");     \
 
 
   PBOp(trie_trust_struct_in_new_pair, e)
-    printf("trie_trust_struct_in_new_pair\n");
+    dprintf("trie_trust_struct_in_new_pair\n");
 #if defined(TRIE_COMPACT_PAIRS) && !defined(GLOBAL_TRIE)
     register ans_node_ptr node = (ans_node_ptr) PREG;
     register CELL *aux_stack_ptr = (CELL *) (B + 1);
@@ -1521,7 +1521,7 @@ printf("stack_trie_float_longint_instr\n");     \
 
 
   PBOp(trie_try_struct_in_new_pair, e)
-    printf("trie_try_struct_in_new_pair\n");
+    dprintf("trie_try_struct_in_new_pair\n");
 #if defined(TRIE_COMPACT_PAIRS) && !defined(GLOBAL_TRIE)
     register ans_node_ptr node = (ans_node_ptr) PREG;
     register CELL *aux_stack_ptr = YENV;
@@ -1540,7 +1540,7 @@ printf("stack_trie_float_longint_instr\n");     \
 
 
   PBOp(trie_retry_struct_in_new_pair, e)
-    printf("trie_retry_struct_in_new_pair\n");
+    dprintf("trie_retry_struct_in_new_pair\n");
 #if defined(TRIE_COMPACT_PAIRS) && !defined(GLOBAL_TRIE)
     register ans_node_ptr node = (ans_node_ptr) PREG;
     register CELL *aux_stack_ptr = (CELL *) (B + 1);
@@ -1559,7 +1559,7 @@ printf("stack_trie_float_longint_instr\n");     \
 
 
   PBOp(trie_do_extension, e)
-    printf("trie_do_extension\n");
+    dprintf("trie_do_extension\n");
 #ifndef GLOBAL_TRIE
     register ans_node_ptr node = (ans_node_ptr) PREG;
     register CELL *aux_stack_ptr = YENV;
@@ -1573,7 +1573,7 @@ printf("stack_trie_float_longint_instr\n");     \
 
 
   PBOp(trie_trust_extension, e)
-    printf("trie_trust_extension\n");
+    dprintf("trie_trust_extension\n");
 #ifndef GLOBAL_TRIE
     register ans_node_ptr node = (ans_node_ptr) PREG;
     register CELL *aux_stack_ptr = (CELL *) (B + 1);
@@ -1590,7 +1590,7 @@ printf("stack_trie_float_longint_instr\n");     \
 
 
   PBOp(trie_try_extension, e)
-    printf("trie_try_extension\n");
+    dprintf("trie_try_extension\n");
 #ifndef GLOBAL_TRIE
     register ans_node_ptr node = (ans_node_ptr) PREG;
     register CELL *aux_stack_ptr = YENV;
@@ -1607,7 +1607,7 @@ printf("stack_trie_float_longint_instr\n");     \
 
 
   PBOp(trie_retry_extension, e)
-    printf("trie_retry_extension\n");
+    dprintf("trie_retry_extension\n");
 #ifndef GLOBAL_TRIE
     register ans_node_ptr node = (ans_node_ptr) PREG;
     register CELL *aux_stack_ptr = (CELL *) (B + 1);
@@ -1624,7 +1624,7 @@ printf("stack_trie_float_longint_instr\n");     \
 
 
   PBOp(trie_do_float, e)
-    printf("trie_do_float\n");
+    dprintf("trie_do_float\n");
 #ifndef GLOBAL_TRIE
     register ans_node_ptr node = (ans_node_ptr) PREG;
     register CELL *aux_stack_ptr = YENV;
@@ -1669,7 +1669,7 @@ printf("stack_trie_float_longint_instr\n");     \
 
 
   PBOp(trie_do_long, e)
-    printf("trie_do_long\n");
+    dprintf("trie_do_long\n");
 #ifndef GLOBAL_TRIE
     register ans_node_ptr node = (ans_node_ptr) PREG;
     register CELL *aux_stack_ptr = YENV;
@@ -1755,7 +1755,7 @@ printf("stack_trie_float_longint_instr\n");     \
       int heap_arity = *aux_stack_ptr;                    \
       int vars_arity = *(aux_stack_ptr + heap_arity + 1); \
       int subs_arity = *(aux_stack_ptr + heap_arity + 2); \
-      printf("Copy stack\n");                             \
+      dprintf("Copy stack\n");                             \
       copy_arity_stack();                                 \
     }
   

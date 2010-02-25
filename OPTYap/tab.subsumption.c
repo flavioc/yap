@@ -480,7 +480,7 @@ While_TermStack_NotEmpty:
           Term match1 = *(t_dbl + 1);
           Term match2 = *t_dbl;
           
-          printf("match double 64 %lf\n", dbl);
+          dprintf("match double 64 %lf\n", dbl);
           
           while(IsNonNULL(pCurrentBTN)) {
             if(symbol == BTN_Symbol(pCurrentBTN)) {
@@ -504,7 +504,7 @@ While_TermStack_NotEmpty:
           }
 #else
           Term match1 = *t_dbl;
-          printf("Double 32 %f\n", *t_dbl);
+          dprintf("Double 32 %f\n", *t_dbl);
           
           while(IsNonNULL(pCurrentBTN)) {
             if(symbol == BTN_Symbol(pCurrentBTN)) {
@@ -863,7 +863,6 @@ CPtr extract_template_from_lookup(CTXTdeclc CPtr ans_tmplt) {
   
   i = 0;
   while(TrieVarBindings[i] != (Cell)(& TrieVarBindings[i])) {
-    printf("TrieVarBindings[i] = %x\n", TrieVarBindings[i]);
     *ans_tmplt-- = TrieVarBindings[i++];
   }
   *ans_tmplt = makeint(i);
@@ -928,15 +927,15 @@ void subsumptive_call_search(TabledCallInfo *call_info, CallLookupResults *resul
   
   btn = iter_sub_trie_lookup(CTXTc btRoot, &path_type);
   
+  /*
   if(btn) {
-    //printf("Btn: %d %x\n", TrNode_child(btn) == NULL, btn);
-    printf("Subsumption call found: ");
+    //dprintf("Btn: %d %x\n", TrNode_child(btn) == NULL, btn);
+    dprintf("Subsumption call found: ");
     printSubgoalTriePath(stdout, btn, tab_ent);
-    printf("\n");
-  }
-  
+    dprintf("\n");
+  }*/
   if(path_type == NO_PATH) { /* new producer */
-    printf("No path found... new producer\n");
+    dprintf("No path found... new producer\n");
     Trail_Unwind_All;
     CallResults_subsumer(results) = NULL;
     CallResults_variant_found(results) = NO;
@@ -948,7 +947,7 @@ void subsumptive_call_search(TabledCallInfo *call_info, CallLookupResults *resul
       tab_ent, CallInfo_code(call_info));
     Trail_Unwind_All;
     
-    printSubstitutionFactor(stdout, CallResults_var_vector(results));
+    //printSubstitutionFactor(stdout, CallResults_var_vector(results));
   } else { /* new consumer */
     
     sg_fr_ptr sg_fr = (sg_fr_ptr)TrNode_sg_fr(btn);
@@ -959,11 +958,11 @@ void subsumptive_call_search(TabledCallInfo *call_info, CallLookupResults *resul
       answer_template = extract_template_from_lookup(answer_template);
       Trail_Unwind_All;
       subsumer = sg_fr;
-      printf("Consume from producer\n");
+      dprintf("Consume from producer\n");
     } else {
       subcons_fr_ptr first_consumer = (subcons_fr_ptr)sg_fr;
       subsumer = (sg_fr_ptr)SgFr_producer(first_consumer);
-      printf("Super subsumption call found\n");
+      dprintf("Super subsumption call found\n");
       Trail_Unwind_All;
       //printSubgoalTriePath(stdout, SgFr_leaf(super_sg_fr), tab_ent);
       answer_template = reconstruct_template_for_producer(call_info,
@@ -981,22 +980,27 @@ void subsumptive_call_search(TabledCallInfo *call_info, CallLookupResults *resul
       Trail_Unwind_All;
       CallResults_subgoal_frame(results) = create_new_consumer_subgoal(CallResults_leaf(results),
               (subprod_fr_ptr)CallResults_subsumer(results), tab_ent, CallInfo_code(call_info));
-      printf("New variant path\n");
+      dprintf("New variant path\n");
     } else {
       CallResults_leaf(results) = btn;
       CallResults_subgoal_frame(results) = sg_fr;
     }
     
+    //dprintf("TEMPLATE: ");
+    //int tmplt_size = (int)*answer_template;
+    //printAnswerTemplate(stdout, answer_template+1, tmplt_size);
+    
+    /*
     if(path_type == VARIANT_PATH) {
       ALNptr answers = SgFr_first_answer(CallResults_subgoal_frame(results));
       
-      printf("Old saved answers: \n");
+      dprintf("Old saved answers: \n");
       while(answers) {
         printAnswerTriePath(stdout, AnsList_answer(answers));
-        printf("\n");
+        dprintf("\n");
         answers = AnsList_next(answers);
       }
-    }
+    } */
   }
 }
 
@@ -1030,7 +1034,7 @@ TSTNptr subsumptive_tst_search(CTXTdeclc TSTNptr tstRoot, int nTerms, CPtr termV
   } else {
     // XXX
     *isNew = TRUE;
-    printf("nTerms = 0 !!!\n");
+    dprintf("nTerms = 0 !!!\n");
     return tstRoot;
   }        
   

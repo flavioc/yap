@@ -3800,7 +3800,6 @@ p_set_yap_flags(void)
       SetMode_LoadAnswers(yap_flags[TABLING_MODE_FLAG]);
       SetMode_CompletedOn(yap_flags[TABLING_MODE_FLAG]);
     } else if(value == 5) { /* variant */
-      printf("yap_flags variant\n");
       tab_ent_ptr tab_ent = GLOBAL_root_tab_ent;
       while(tab_ent) {
         TabEnt_set_variant(tab_ent);
@@ -3809,7 +3808,6 @@ p_set_yap_flags(void)
       SetMode_Variant(yap_flags[TABLING_MODE_FLAG]);
       SetMode_ChecksOn(yap_flags[TABLING_MODE_FLAG]);
     } else if(value == 6) { /* subsumptive */
-      printf("yap_flags subsumptive\n");
       tab_ent_ptr tab_ent = GLOBAL_root_tab_ent;
       while(tab_ent) {
         TabEnt_set_subsumptive(tab_ent);

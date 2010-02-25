@@ -366,11 +366,11 @@ ans_node_ptr answer_trie_node_check_insert(sg_fr_ptr sg_fr, ans_node_ptr parent_
     UNLOCK_NODE(parent_node);
     return child_node;
   }
-  printf("Hash this\n");
+  dprintf("Hash this\n");
 
   hash = (ans_hash_ptr) child_node;
 answer_trie_hash:
-  printf("Trie Nodes with hashing\n");
+  dprintf("Trie Nodes with hashing\n");
   { /* trie nodes with hashing */
     ans_node_ptr *bucket, first_node;
     int seed, count_nodes = 0;
@@ -682,7 +682,7 @@ ans_node_ptr answer_trie_node_check_insert(sg_fr_ptr sg_fr, ans_node_ptr parent_
     count_nodes++;
     if (count_nodes >= MAX_NODES_PER_TRIE_LEVEL) {
       /* alloc a new hash */
-      printf("Creating a new hash...\n");
+      dprintf("Creating a new hash...\n");
       ans_hash_ptr hash;
       ans_node_ptr chain_node, next_node, *bucket;
       new_answer_trie_hash(hash, count_nodes, sg_fr);

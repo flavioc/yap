@@ -311,7 +311,7 @@ void tstCreateTSIs(CTXTdeclc TSTNptr pTST) {
   TSTHTptr ht;
   int bucketNum;
   
-  printf("Creating TST indices\n");
+  dprintf("Creating TST indices\n");
   if(IsNULL(pTST))
     return;
   
@@ -361,7 +361,7 @@ void tstnHashifyChildren(CTXTdeclc TSTNptr parent, TSTNptr root, xsbBool createT
     MakeHashedNode(tstn);
     if( createTSI )
       TSTN_SetTSIN(tstn, tsiOrderedInsert(CTXTc ht, tstn));
-    printf("Created hash table\n");
+    dprintf("Created hash table\n");
   }
 }
 
@@ -538,8 +538,8 @@ void tstht_remove_index(TSTHTptr ht) {
 void print_hash_table(TSTHTptr ht) {
   tst_node_ptr *bucket = TSTHT_buckets(ht);
   tst_node_ptr *last_bucket = bucket + TSTHT_num_buckets(ht);
-  printf("Num buckets: %d\n", TSTHT_num_buckets(ht));
-  printf("Num nodes: %d\n", TSTHT_num_nodes(ht));
+  dprintf("Num buckets: %d\n", TSTHT_num_buckets(ht));
+  dprintf("Num nodes: %d\n", TSTHT_num_nodes(ht));
   
   int i = 0;
   while(bucket != last_bucket) {
@@ -555,7 +555,7 @@ void print_hash_table(TSTHTptr ht) {
         link = TSTN_next(link);
       }
       
-      printf("Bucket %d with %d\n", i, count);
+      dprintf("Bucket %d with %d\n", i, count);
     }
     
     ++bucket;

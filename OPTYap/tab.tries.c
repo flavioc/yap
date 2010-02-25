@@ -42,9 +42,9 @@ void subgoal_search(yamop *preg, CELL **Yaddr, CallLookupResults *results) {
   LOCK(TabEnt_lock(tab_ent));
 #endif /* TABLE_LOCK_LEVEL */
   
-  printf("subgoal_search for ");
+  /*dprintf("subgoal_search for ");
   printCalledSubgoal(stdout, preg);
-  printf("\n");
+  dprintf("\n");*/
   
   if(TabEnt_is_variant(tab_ent)) {
     variant_call_search(&call_info, results);
@@ -103,12 +103,12 @@ process_next:
       /* hash without nodes! */
       TrNode_child(parent) = NULL; 
       FREE_SUBGOAL_TRIE_HASH(hash);
-      printf("FREE SUBGOAL TRIE HASH\n");
+      dprintf("FREE SUBGOAL TRIE HASH\n");
     }
     
     old_node = node;
     node = parent;
-    printf("Freeing one subgoal trie node %x\n", (void*)old_node);
+    dprintf("Freeing one subgoal trie node %x\n", (void*)old_node);
     FREE_SUBGOAL_TRIE_NODE(old_node);
     
     hash = NULL;
@@ -260,7 +260,7 @@ CELL *load_substitution_variable(gt_node_ptr current_node, CELL *aux_stack_ptr) 
 
 void private_completion(sg_fr_ptr sg_fr) {
   /* complete subgoals */
-  printf("Private completion\n");
+  dprintf("Private completion\n");
 #ifdef LIMIT_TABLING
   sg_fr_ptr aux_sg_fr;
   while (LOCAL_top_sg_fr != sg_fr) {
@@ -276,7 +276,7 @@ void private_completion(sg_fr_ptr sg_fr) {
 #else
   while (LOCAL_top_sg_fr != sg_fr) {
     mark_as_completed(LOCAL_top_sg_fr);
-    printf("One top sg fr completed\n");
+    dprintf("One top sg fr completed\n");
     LOCAL_top_sg_fr = SgFr_next(LOCAL_top_sg_fr);
   }
   mark_as_completed(LOCAL_top_sg_fr);
@@ -288,10 +288,10 @@ void private_completion(sg_fr_ptr sg_fr) {
     dep_fr_ptr dep_fr = DepFr_next(LOCAL_top_dep_fr);
     sg_fr_ptr sg_fr = DepFr_sg_fr(LOCAL_top_dep_fr);
     if(SgFr_is_sub_consumer(sg_fr) && SgFr_state(sg_fr) != complete) {
-      printf("One subsumptive consumer sg fr completed\n");
+      dprintf("One subsumptive consumer sg fr completed\n");
       mark_consumer_as_completed(sg_fr);
     }
-    printf("ONE DEPENDENCY FRAME FREED\n");
+    dprintf("ONE DEPENDENCY FRAME FREED\n");
     FREE_DEPENDENCY_FRAME(LOCAL_top_dep_fr);
     LOCAL_top_dep_fr = dep_fr;
   }
@@ -310,7 +310,7 @@ void free_subgoal_trie_branch(sg_node_ptr current_node, int nodes_left, int posi
 #else
 void free_subgoal_trie_branch(sg_node_ptr current_node, int nodes_left, int nodes_extra, int position) {
   int current_nodes_left = 0, current_nodes_extra = 0;
-  printf("Free subgoal trie branch\n");
+  dprintf("Free subgoal trie branch\n");
   /* save current state if first sibling node */
   if (position == TRAVERSE_POSITION_FIRST) {
     current_nodes_left = nodes_left;

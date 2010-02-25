@@ -404,6 +404,13 @@ extern int AnsVarCtr;
    XSB_Deref(Symbol);	\
  }
 
+// deactivate to test
+#ifdef FDEBUG
+#define dprintf(MESG, ARGS...) printf(MESG, ##ARGS)
+#else
+#define dprintf(MESG, ARGS...)
+#endif
+
 #endif /* TABLING_CALL_SUBSUMPTION */
 
 #endif

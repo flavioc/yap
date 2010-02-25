@@ -251,7 +251,7 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
 #define find_leader_node(LEADER_CP, DEP_ON_STACK)                                 \
         { dep_fr_ptr chain_dep_fr = LOCAL_top_dep_fr;                             \
           while (YOUNGER_CP(DepFr_cons_cp(chain_dep_fr), LEADER_CP)) {            \
-            printf("One Loop\n"); \
+            dprintf("One Loop\n"); \
             if (EQUAL_OR_YOUNGER_CP(LEADER_CP, DepFr_leader_cp(chain_dep_fr))) {  \
               LEADER_CP = DepFr_leader_cp(chain_dep_fr);                          \
               break;                                                              \
@@ -592,7 +592,7 @@ void mark_consumer_as_completed(sg_fr_ptr sg_fr) {
     SgFr_state(sg_fr) = complete;
     if(TabEnt_is_exec(SgFr_tab_ent(sg_fr))) {
       /* not needed anymore */
-      printf("Deleting consumer data (EXEC)\n");
+      dprintf("Deleting consumer data (EXEC)\n");
       free_consumer_subgoal_data((subcons_fr_ptr)sg_fr);
       SgFr_first_answer(sg_fr) = NULL;
       SgFr_last_answer(sg_fr) = NULL;
@@ -789,7 +789,7 @@ void free_answer_list(ans_list_ptr list) {
 
 static inline
 void free_producer_subgoal_data(sg_fr_ptr sg_fr, int delete_all) {
-  printf("Freeing producer data\n");
+  dprintf("Freeing producer data\n");
   free_tst_hash_chain((tst_ans_hash_ptr)SgFr_hash_chain(sg_fr));
   tst_node_ptr answer_trie = (tst_node_ptr)SgFr_answer_trie(sg_fr);
   if(TrNode_child(answer_trie))
@@ -801,7 +801,7 @@ void free_producer_subgoal_data(sg_fr_ptr sg_fr, int delete_all) {
 
 static inline
 void free_variant_subgoal_data(sg_fr_ptr sg_fr, int delete_all) {
-  printf("Freeing variant subgoal data\n");
+  dprintf("Freeing variant subgoal data\n");
   free_answer_trie_hash_chain((ans_hash_ptr)SgFr_hash_chain(sg_fr));
   ans_node_ptr answer_trie = SgFr_answer_trie(sg_fr);
   if(TrNode_child(answer_trie))
@@ -813,17 +813,17 @@ void free_variant_subgoal_data(sg_fr_ptr sg_fr, int delete_all) {
 
 static inline
 void free_consumer_subgoal_data(subcons_fr_ptr sg_fr) {
-  printf("Freeing consumer data\n");
+  dprintf("Freeing consumer data\n");
   free_answer_continuation(SgFr_first_answer(sg_fr));
 }
 
 static void
 abolish_incomplete_consumer_subgoal(subcons_fr_ptr sg_fr) {
-  printf("Freeing consumer subgoal\n");
+  dprintf("Freeing consumer subgoal\n");
   free_consumer_subgoal_data(sg_fr);
-  printf("Freeing consumer subgoal path\n");
+  dprintf("Freeing consumer subgoal path\n");
   delete_subgoal_path((sg_fr_ptr)sg_fr);
-  printf("Freeing subgoal frame\n");
+  dprintf("Freeing subgoal frame\n");
   FREE_SUBCONS_SUBGOAL_FRAME(sg_fr);
 }
 
@@ -857,7 +857,7 @@ abolish_incomplete_variant_subgoal(sg_fr_ptr sg_fr) {
 
 static void
 abolish_incomplete_sub_producer_subgoal(sg_fr_ptr sg_fr) {
-  printf("Freeing producer subgoal\n");
+  dprintf("Freeing producer subgoal\n");
   subprod_fr_ptr prod_sg = (subprod_fr_ptr)sg_fr;
   subcons_fr_ptr cons_sg = SgFr_prod_consumers(prod_sg);
   
@@ -980,7 +980,7 @@ void free_answer_trie_hash_chain(ans_hash_ptr hash) {
         chain_node = *bucket;
       }
     }
-    printf("One hash deleted\n");
+    dprintf("One hash deleted\n");
     next_hash = Hash_next(hash);
     FREE_HASH_BUCKETS(Hash_buckets(hash));
     FREE_ANSWER_TRIE_HASH(hash);
@@ -1014,7 +1014,7 @@ void free_tst_hash_chain(tst_ans_hash_ptr hash) {
         chain_node = *bucket;
       }
     }
-    printf("One tst hash deleted\n");
+    dprintf("One tst hash deleted\n");
     next_hash = TSTHT_next(hash);
     tstht_remove_index(hash);
     FREE_TST_ANSWER_TRIE_HASH(hash);
@@ -1040,20 +1040,20 @@ build_next_subsumptive_consumer_return_list(subcons_fr_ptr consumer_sg, CELL* an
     return FALSE; /* no answers were inserted */
   
   int size = (int)*answer_template;
-  CPtr anst = answer_template + 1;
-  printf("Answer template before collect: ");
-  printAnswerTemplate(stdout, anst, size);
+  //CPtr anst = answer_template + 1;
+  //dprintf("Answer template before collect: ");
+  //printAnswerTemplate(stdout, anst, size);
   
   answer_template += size;
   //printf("ANSWER_TEMPLATE: %d\n", size);
   
   
-  printf("Timestamp: %d\n", (int)SgFr_timestamp(consumer_sg));
+  dprintf("Timestamp: %d\n", (int)SgFr_timestamp(consumer_sg));
   ans_list_ptr answers = tst_collect_relevant_answers((tst_node_ptr)SgFr_answer_trie(producer_sg),
     consumer_ts, size, answer_template);
     
-  printf("Answer template after collect: ");
-  printAnswerTemplate(stdout, anst, size);
+  //dprintf("Answer template after collect: ");
+  //printAnswerTemplate(stdout, anst, size);
   
   if(answers == NULL)
     return FALSE;
@@ -1062,8 +1062,8 @@ build_next_subsumptive_consumer_return_list(subcons_fr_ptr consumer_sg, CELL* an
   ans_list_ptr last = NULL;
   
   while(answers) {
-    printAnswerTriePath(stdout, (BTNptr)AnsList_answer(answers));
-    printf("\n");
+    //printAnswerTriePath(stdout, (BTNptr)AnsList_answer(answers));
+    //printf("\n");
     last = answers;
     answers = AnsList_next(answers);
   }

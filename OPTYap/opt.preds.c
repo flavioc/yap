@@ -619,6 +619,8 @@ Int p_table(void) {
     SetMode_Local(TabEnt_mode(tab_ent));
   if (IsMode_LoadAnswers(yap_flags[TABLING_MODE_FLAG]))
     SetMode_LoadAnswers(TabEnt_mode(tab_ent));
+  if (IsMode_Subsumptive(yap_flags[TABLING_MODE_FLAG]))
+    SetMode_Subsumptive(TabEnt_mode(tab_ent));
   pe->TableOfPred = tab_ent;
   return (TRUE);
 }

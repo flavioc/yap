@@ -201,7 +201,7 @@
 
 #define consume_answer_and_procceed(DEP_FR, ANSWER)       \
         { CELL *subs_ptr;                                 \
-          printf("Consume_answer_and_proceed\n");         \
+          dprintf("Consume_answer_and_proceed\n");         \
           /* restore consumer choice point */             \
           H = HBREG = PROTECT_FROZEN_H(B);                \
           restore_yaam_reg_cpdepth(B);                    \
@@ -296,11 +296,11 @@
 #define CONSUME_SUBSUMPTIVE_ANSWER(ANS_NODE, ANS_TMPLT) {       \
   int arity = (int)*(ANS_TMPLT);                           \
   CELL *sub_answer_template = (ANS_TMPLT) + arity;              \
-  printf("Subsumptive answer template before: %d\n", arity); \
-  printAnswerTemplate(stdout, sub_answer_template - arity + 1, arity); \
+  dprintf("Subsumptive answer template before: %d\n", arity); \
+  /*printAnswerTemplate(stdout, sub_answer_template - arity + 1, arity);*/ \
   consume_subsumptive_answer((BTNptr)(ANS_NODE), arity, sub_answer_template); \
-  printf("Subsumptive variables now:\n"); \
-  printAnswerTemplate(stdout, sub_answer_template - arity + 1, arity);  \
+  dprintf("Subsumptive variables now:\n"); \
+  /*printAnswerTemplate(stdout, sub_answer_template - arity + 1, arity);*/  \
 }
 
 /* Consume a variant answer ANS_NODE using ANS_TMPLT
@@ -337,7 +337,7 @@
     continuation_ptr next;
     sg_fr_ptr sg_fr;
     
-    printf("===> TABLE_LOAD_ANSWER\n");
+    dprintf("===> TABLE_LOAD_ANSWER\n");
 
 #ifdef YAPOR
     if (SCH_top_shared_cp(B)) {
@@ -376,7 +376,7 @@
 
 
   PBOp(table_try_answer, Otapl)
-    printf("===> TABLE_TRY_ANSWER\n");
+    dprintf("===> TABLE_TRY_ANSWER\n");
 #ifdef INCOMPLETE_TABLING
     sg_fr_ptr sg_fr;
     ans_node_ptr ans_node = NULL;
@@ -444,7 +444,7 @@
     CallLookupResults results;
     sg_fr_ptr sg_fr;
     
-    printf("===> TABLE_TRY_SINGLE\n");
+    dprintf("===> TABLE_TRY_SINGLE\n");
 
     check_trail(TR);
     tab_ent = PREG->u.Otapl.te;
@@ -493,7 +493,7 @@
       GONext();
 #endif /* INCOMPLETE_TABLING */
     } else if (is_new_consumer_call(&results)) {
-      printf("TABLE_TRY_SINGLE NEW_CONSUMER\n");
+      dprintf("TABLE_TRY_SINGLE NEW_CONSUMER\n");
       /* new consumer */
       choiceptr leader_cp;
       int leader_dep_on_stack;
@@ -523,7 +523,7 @@
       goto answer_resolution;
     } else {
       /* subgoal completed */
-      printf("TABLE_TRY_SINGLE COMPLETE SUBGOAL\n");
+      dprintf("TABLE_TRY_SINGLE COMPLETE SUBGOAL\n");
       CELL* answer_template = YENV;
 
       if(SgFr_is_variant(sg_fr) || SgFr_is_sub_producer(sg_fr)) {
@@ -614,7 +614,7 @@ exec_compiled_trie_single:
     sg_fr_ptr sg_fr;
     CallLookupResults results;
     
-    printf("===> TABLE_TRY_ME\n");
+    dprintf("===> TABLE_TRY_ME\n");
 
     check_trail(TR);
     tab_ent = PREG->u.Otapl.te;
@@ -655,7 +655,7 @@ exec_compiled_trie_single:
       GONext();
 #endif /* INCOMPLETE_TABLING */
     } else if (is_new_consumer_call(&results)) {
-      printf("TABLE_TRY_ME NEW_CONSUMER\n");
+      dprintf("TABLE_TRY_ME NEW_CONSUMER\n");
       /* new consumer */
       choiceptr leader_cp;
       int leader_dep_on_stack;
@@ -685,7 +685,7 @@ exec_compiled_trie_single:
       goto answer_resolution;
     } else {
       /* subgoal completed */
-      printf("TABLE_TRY_ME COMPLETE SUBGOAL\n");
+      dprintf("TABLE_TRY_ME COMPLETE SUBGOAL\n");
       CELL* answer_template = YENV;
 
       if(SgFr_is_variant(sg_fr) || SgFr_is_sub_producer(sg_fr)) {
@@ -778,7 +778,7 @@ exec_compiled_trie_me:
     CallLookupResults results;
     sg_fr_ptr sg_fr;
     
-    printf("===> TABLE_TRY\n");
+    dprintf("===> TABLE_TRY\n");
 
     check_trail(TR);
     tab_ent = PREG->u.Otapl.te;
@@ -818,7 +818,7 @@ exec_compiled_trie_me:
       GONext();
 #endif /* INCOMPLETE_TABLING */
     } else if (is_new_consumer_call(&results)) {
-      printf("TABLE_TRY NEW_CONSUMER\n");
+      dprintf("TABLE_TRY NEW_CONSUMER\n");
       /* new consumer */
       choiceptr leader_cp;
       int leader_dep_on_stack;
@@ -848,7 +848,7 @@ exec_compiled_trie_me:
       goto answer_resolution;
     } else {
       /* subgoal completed */
-      printf("TABLE_TRY COMPLETE SUBGOAL\n");
+      dprintf("TABLE_TRY COMPLETE SUBGOAL\n");
       CELL* answer_template = YENV;
       
       if(SgFr_is_variant(sg_fr) || SgFr_is_sub_producer(sg_fr)) {
@@ -936,7 +936,7 @@ exec_compiled_trie:
 
 
   Op(table_retry_me, Otapl)
-    printf("===> TABLE_RETRY_ME\n");
+    dprintf("===> TABLE_RETRY_ME\n");
     restore_generator_node(PREG->u.Otapl.s, PREG->u.Otapl.d);
     YENV = (CELL *) PROTECT_FROZEN_B(B);
     set_cut(YENV, B->cp_b);
@@ -949,7 +949,7 @@ exec_compiled_trie:
 
 
   Op(table_retry, Otapl)
-    printf("===> TABLE_RETRY\n");
+    dprintf("===> TABLE_RETRY\n");
     restore_generator_node(PREG->u.Otapl.s, NEXTOP(PREG,Otapl));
     YENV = (CELL *) PROTECT_FROZEN_B(B);
     set_cut(YENV, B->cp_b);
@@ -962,7 +962,7 @@ exec_compiled_trie:
 
 
   Op(table_trust_me, Otapl)
-    printf("===> TABLE_TRUST_ME\n");
+    dprintf("===> TABLE_TRUST_ME\n");
     
     restore_generator_node(PREG->u.Otapl.s, COMPLETION);
 #ifdef DETERMINISTIC_TABLING
@@ -992,7 +992,7 @@ exec_compiled_trie:
 
 
   Op(table_trust, Otapl)
-    printf("===> TABLE_TRUST\n");
+    dprintf("===> TABLE_TRUST\n");
     
     restore_generator_node(PREG->u.Otapl.s, COMPLETION);
 #ifdef DETERMINISTIC_TABLING
@@ -1027,7 +1027,7 @@ exec_compiled_trie:
     sg_fr_ptr sg_fr;
     ans_node_ptr ans_node;
 
-    printf("===> TABLE_NEW_ANSWER\n");
+    dprintf("===> TABLE_NEW_ANSWER\n");
 
     gcp = NORM_CP(YENV[E_B]);
 #ifdef DETERMINISTIC_TABLING
@@ -1299,7 +1299,7 @@ exec_compiled_trie:
 
 
   answer_resolution:
-    printf("===> TABLE_ANSWER_RESOLUTION\n");
+    dprintf("===> TABLE_ANSWER_RESOLUTION\n");
   
     INIT_PREFETCH()
     dep_fr_ptr dep_fr;
@@ -1591,7 +1591,7 @@ exec_compiled_trie:
 
 
   BOp(table_completion, Otapl)
-    printf("===> TABLE_COMPLETION\n");
+    dprintf("===> TABLE_COMPLETION\n");
     
 #ifdef YAPOR
     if (SCH_top_shared_cp(B)) {
@@ -1616,7 +1616,7 @@ exec_compiled_trie:
         if (EQUAL_OR_YOUNGER_CP(B_FZ, B) && B != DepFr_leader_cp(LOCAL_top_dep_fr)) {
           /* not leader on that node */
           B = B->cp_b;
-          printf("not leader on that node\n");
+          dprintf("not leader on that node\n");
           goto fail;
         }
       } else {
@@ -1624,7 +1624,7 @@ exec_compiled_trie:
         if (B != DepFr_leader_cp(LOCAL_top_dep_fr)) {
           /* not leader on that node */
           B = B->cp_b;
-          printf("not a leader on that node 2\n");
+          dprintf("not a leader on that node 2\n");
           goto fail;
         }
       }
@@ -1665,7 +1665,7 @@ exec_compiled_trie:
         ans_node = ContPtr_answer(next);
         DepFr_last_answer(dep_fr) = next;
       } else {
-        printf("NO UNCONSUMED ANSWERS COMPLETION\n");
+        dprintf("NO UNCONSUMED ANSWERS COMPLETION\n");
       }
       
       if(ans_node != NULL) {
@@ -1971,7 +1971,7 @@ exec_compiled_trie:
             YENV = ENV;
             GONext();
           } else {
-            printf("COMPILED CODE\n");
+            dprintf("COMPILED CODE\n");
             /* execute compiled code from the trie */
             LOCK(SgFr_lock(sg_fr));
             if (SgFr_state(sg_fr) < compiled)
