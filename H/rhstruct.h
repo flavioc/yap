@@ -191,6 +191,7 @@
   RestoreOtaplInst(TRY_ANSWER,_table_try_answer,PredFail);
   RestoreOtaplInst(ANSWER_RESOLUTION,_table_answer_resolution,PredFail);
   RestoreOtaplInst(COMPLETION,_table_completion,PredFail);
+  RestoreOtaplInst(TRIE_RETRY_HASH,_trie_retry_hash,PredFail);
 #endif /* TABLING */
 
 
