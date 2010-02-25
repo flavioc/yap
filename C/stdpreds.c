@@ -3754,15 +3754,15 @@ p_set_yap_flags(void)
 	      
 	      /* load answers / exec answers */
 	      if (IsDefaultMode_LoadAnswers(TabEnt_mode(tab_ent)))
-	        SetMode_LoadAnswers(TabEnt_mode(tab_ent));
+          TabEnt_set_load(tab_ent)
 	      else
-	        SetMode_ExecAnswers(TabEnt_mode(tab_ent));
+          TabEnt_set_exec(tab_ent)
 	        
 	      /* subsumptive / variant */
 	      if (IsDefaultMode_Subsumptive(TabEnt_mode(tab_ent)))
-          SetMode_Subsumptive(TabEnt_mode(tab_ent));
+          TabEnt_set_subsumptive(tab_ent)
         else
-          SetMode_Variant(TabEnt_mode(tab_ent));
+          TabEnt_set_variant(tab_ent)
           
 	      tab_ent = TabEnt_next(tab_ent);
       }
@@ -3786,7 +3786,7 @@ p_set_yap_flags(void)
     } else if (value == 3) {  /* exec_answers */
       tab_ent_ptr tab_ent = GLOBAL_root_tab_ent;
       while(tab_ent) {
-	      SetMode_ExecAnswers(TabEnt_mode(tab_ent));
+        TabEnt_set_exec(tab_ent);
 	      tab_ent = TabEnt_next(tab_ent);
       }
       SetMode_ExecAnswers(yap_flags[TABLING_MODE_FLAG]);
@@ -3794,7 +3794,7 @@ p_set_yap_flags(void)
     } else if (value == 4) {  /* load_answers */
       tab_ent_ptr tab_ent = GLOBAL_root_tab_ent;
       while(tab_ent) {
-	      SetMode_LoadAnswers(TabEnt_mode(tab_ent));
+        TabEnt_set_load(tab_ent);
 	      tab_ent = TabEnt_next(tab_ent);
       }
       SetMode_LoadAnswers(yap_flags[TABLING_MODE_FLAG]);
@@ -3803,7 +3803,7 @@ p_set_yap_flags(void)
       printf("yap_flags variant\n");
       tab_ent_ptr tab_ent = GLOBAL_root_tab_ent;
       while(tab_ent) {
-        SetMode_Variant(TabEnt_mode(tab_ent));
+        TabEnt_set_variant(tab_ent);
         tab_ent = TabEnt_next(tab_ent);
       }
       SetMode_Variant(yap_flags[TABLING_MODE_FLAG]);
@@ -3812,7 +3812,7 @@ p_set_yap_flags(void)
       printf("yap_flags subsumptive\n");
       tab_ent_ptr tab_ent = GLOBAL_root_tab_ent;
       while(tab_ent) {
-        SetMode_Subsumptive(TabEnt_mode(tab_ent));
+        TabEnt_set_subsumptive(tab_ent);
         tab_ent = TabEnt_next(tab_ent);
       }
       SetMode_Subsumptive(yap_flags[TABLING_MODE_FLAG]);
