@@ -40,12 +40,12 @@
           register choiceptr gcp;                                     \
           /* store args */                                            \
           pt_args = XREGS + (ARITY);                                  \
-	  while (pt_args > XREGS) {                                   \
+	        while (pt_args > XREGS) {                                   \
             register CELL aux_arg = pt_args[0];                       \
             --YENV;                                                   \
             --pt_args;                                                \
             *YENV = aux_arg;                                          \
-	  }                                                           \
+	        }                                                           \
           /* initialize gcp and adjust subgoal frame field */         \
           YENV = (CELL *) (GEN_CP(YENV) - 1);                         \
           gcp = NORM_CP(YENV);                                        \
@@ -59,7 +59,7 @@
           gcp->cp_b  = B;                                             \
           gcp->cp_env = ENV;                                          \
           gcp->cp_cp = CPREG;                                         \
-	  if (IsMode_Local(TabEnt_mode(TAB_ENT))) {                   \
+	        if (IsMode_Local(TabEnt_mode(TAB_ENT))) {                   \
             /* go local */                                            \
             register dep_fr_ptr new_dep_fr;                           \
             /* adjust freeze registers */                             \
@@ -90,16 +90,16 @@
         { register choiceptr gcp;                                     \
           /* initialize gcp and adjust subgoal frame field */         \
           YENV = (CELL *) (DET_GEN_CP(YENV) - 1);                     \
-	  gcp = NORM_CP(YENV);                                        \
+	        gcp = NORM_CP(YENV);                                        \
           SgFr_gen_cp(SG_FR) = gcp;                                   \
           /* store deterministic generator choice point */            \
           HBREG = H;                                                  \
           store_yaam_reg_cpdepth(gcp);                                \
           gcp->cp_ap = COMPLETION;                                    \
           gcp->cp_b  = B;                                             \
-          gcp->cp_tr = TR;           	  	                      \
+          gcp->cp_tr = TR;           	  	                            \
           gcp->cp_h = H;                                              \
-	  DET_GEN_CP(gcp)->cp_sg_fr = SG_FR;                          \
+	        DET_GEN_CP(gcp)->cp_sg_fr = SG_FR;                          \
           store_low_level_trace_info(DET_GEN_CP(gcp), TAB_ENT);       \
           set_cut((CELL *)gcp, B);                                    \
           B = gcp;                                                    \
@@ -128,7 +128,7 @@
             --x_args;                                   \
             --pt_args;                                  \
             *x_args = x;                                \
-	  }                                             \
+	        }                                             \
         }
 
 
@@ -142,7 +142,7 @@
           ENV = gcp->cp_env;                    \
           TR = gcp->cp_tr;                      \
           B = gcp->cp_b;                        \
-          HBREG = PROTECT_FROZEN_H(B);		\
+          HBREG = PROTECT_FROZEN_H(B);		      \
           /* pop args */                        \
           x_args = XREGS + 1 ;                  \
           pt_args = (CELL *)(GEN_CP(gcp) + 1);  \
@@ -525,71 +525,87 @@
       /* subgoal completed */
       printf("TABLE_TRY_SINGLE COMPLETE SUBGOAL\n");
       CELL* answer_template = YENV;
-      
-      /*
-       * if this subgoal is a subsumptive consumer
-       * and it wasn't evaluated before
-       * compute the answer return list from the more general subgoal
-       * and mark this consumer subgoal as completed
-       */
-      if(SgFr_is_sub_consumer(sg_fr) && SgFr_state(sg_fr) == ready) {
-        build_next_subsumptive_consumer_return_list((subcons_fr_ptr)sg_fr, answer_template);
-        mark_as_completed(sg_fr);
+
+      if(SgFr_is_variant(sg_fr) || SgFr_is_sub_producer(sg_fr)) {
+        if (SgFr_has_no_answers(sg_fr)) {
+  	      /* no answers --> fail */
+  	      UNLOCK(SgFr_lock(sg_fr));
+  	      goto fail;
+  	    }
+        if (SgFr_has_yes_answer(sg_fr)) {
+  	      /* yes answer --> procceed */
+  	      UNLOCK(SgFr_lock(sg_fr));
+  	      PREG = (yamop *) CPREG;
+  	      PREFETCH_OP(PREG);
+  	      YENV = ENV;
+  	      GONext();
+        }
+      } else {
+  	    /* consumer */
+  	    if(TabEnt_is_load(tab_ent)) {
+  	      if(SgFr_state(sg_fr) < complete) {
+  	        build_next_subsumptive_consumer_return_list((subcons_fr_ptr)sg_fr, answer_template);
+            SgFr_state(sg_fr) = complete;
+  	      }
+  	      if (SgFr_has_no_answers(sg_fr)) {
+    	      /* no answers --> fail */
+    	      UNLOCK(SgFr_lock(sg_fr));
+    	      goto fail;
+    	    }
+          goto load_consumer_table_single;
+  	    } else {
+  	      if(SgFr_state(sg_fr) < compiled)
+  	        SgFr_state(sg_fr) = compiled;
+          UNLOCK(SgFr_lock(sg_fr));
+  	      sg_fr = (sg_fr_ptr)SgFr_producer((subcons_fr_ptr)sg_fr);
+          goto exec_compiled_trie_single;
+  	    }
       }
 
-      if (SgFr_has_no_answers(sg_fr)) {
-        /* no answers --> fail */
-        UNLOCK(SgFr_lock(sg_fr));
-        goto fail;
-      }
-      
-      if (SgFr_has_yes_answer(sg_fr)) {
-        /* yes answer --> procceed */
-        UNLOCK(SgFr_lock(sg_fr));
+      /* variant consumer! ... */
+      /* answers -> get first answer */
+#ifdef LIMIT_TABLING
+	    if (SgFr_state(sg_fr) == complete || SgFr_state(sg_fr) == compiled) {
+	      SgFr_state(sg_fr)++;  /* complete --> complete_in_use : compiled --> compiled_in_use */
+	      remove_from_global_sg_fr_list(sg_fr);
+	      TRAIL_FRAME(sg_fr);
+	    }
+#endif /* LIMIT_TABLING */
+
+	    if (TabEnt_is_load(tab_ent))
+load_consumer_table_single:
+      {
+        /* load answers from the trie */
+        continuation_ptr cont = SgFr_first_answer(sg_fr);
+        ans_node_ptr ans_node = ContPtr_answer(cont);
+
+	      UNLOCK(SgFr_lock(sg_fr));
+
+	      if(ContPtr_next(cont))
+          store_loader_node(tab_ent, cont, sg_fr);
+
         PREG = (yamop *) CPREG;
         PREFETCH_OP(PREG);
-        YENV = ENV;
+        CONSUME_ANSWER(ans_node, answer_template, sg_fr);
+	      YENV = ENV;
         GONext();
-      } else {
-        /* answers -> get first answer */
-#ifdef LIMIT_TABLING
-        if (SgFr_state(sg_fr) == complete || SgFr_state(sg_fr) == compiled) {
-          SgFr_state(sg_fr)++;  /* complete --> complete_in_use : compiled --> compiled_in_use */
-          remove_from_global_sg_fr_list(sg_fr);
-          TRAIL_FRAME(sg_fr);
-        }
-#endif /* LIMIT_TABLING */
-        if (IsMode_LoadAnswers(TabEnt_mode(tab_ent))) {
-          /* load answers from the trie */
-          continuation_ptr cont = SgFr_first_answer(sg_fr);
-          ans_node_ptr ans_node = ContPtr_answer(cont);
-          
-          UNLOCK(SgFr_lock(sg_fr));
-          
-          if(ContPtr_next(cont)) {
-            store_loader_node(tab_ent, cont, sg_fr);
-          }
+	    }
 
-          PREG = (yamop *) CPREG;
-          PREFETCH_OP(PREG);
-          CONSUME_ANSWER(ans_node, answer_template, sg_fr);
-          YENV = ENV;
-          GONext();
-        } else {
-          printf("Compiling code\n");
-          /* execute compiled code from the trie */
-          if (SgFr_state(sg_fr) < compiled)
-            update_answer_trie(sg_fr);
-          UNLOCK(SgFr_lock(sg_fr));
-          PREG = (yamop *) TrNode_child(SgFr_answer_trie(sg_fr));
-          PREFETCH_OP(PREG);
-          *--YENV = 0;  /* vars_arity */
-#ifndef GLOBAL_TRIE
-          *--YENV = 0;  /* heap_arity */
-#endif /* GLOBAL_TRIE */
-          GONext();
-        }
-      }
+exec_compiled_trie_single:
+	    /* execute compiled code from the trie */
+
+	    if (SgFr_state(sg_fr) < compiled)
+	      update_answer_trie(sg_fr);
+
+	    UNLOCK(SgFr_lock(sg_fr));
+
+	    PREG = (yamop *) TrNode_child(SgFr_answer_trie(sg_fr));
+	    PREFETCH_OP(PREG);
+
+	    *--YENV = 0;  /* vars_arity */
+	    *--YENV = 0;  /* heap_arity */
+
+	    GONext();
     }
     ENDPBOp();
 
@@ -671,72 +687,87 @@
       /* subgoal completed */
       printf("TABLE_TRY_ME COMPLETE SUBGOAL\n");
       CELL* answer_template = YENV;
-      
-      /*
-       * if this subgoal is a subsumptive consumer
-       * and it wasn't evaluated before
-       * compute the answer return list from the more general subgoal
-       * and mark this consumer subgoal as completed
-       */
-      if(SgFr_is_sub_consumer(sg_fr) && SgFr_state(sg_fr) == ready) {
-        build_next_subsumptive_consumer_return_list((subcons_fr_ptr)sg_fr, answer_template);
-        mark_as_completed(sg_fr);
+
+      if(SgFr_is_variant(sg_fr) || SgFr_is_sub_producer(sg_fr)) {
+        if (SgFr_has_no_answers(sg_fr)) {
+  	      /* no answers --> fail */
+  	      UNLOCK(SgFr_lock(sg_fr));
+  	      goto fail;
+  	    }
+        if (SgFr_has_yes_answer(sg_fr)) {
+  	      /* yes answer --> procceed */
+  	      UNLOCK(SgFr_lock(sg_fr));
+  	      PREG = (yamop *) CPREG;
+  	      PREFETCH_OP(PREG);
+  	      YENV = ENV;
+  	      GONext();
+        }
+      } else {
+  	    /* consumer */
+  	    if(TabEnt_is_load(tab_ent)) {
+  	      if(SgFr_state(sg_fr) < complete) {
+  	        build_next_subsumptive_consumer_return_list((subcons_fr_ptr)sg_fr, answer_template);
+            SgFr_state(sg_fr) = complete;
+  	      }
+  	      if (SgFr_has_no_answers(sg_fr)) {
+    	      /* no answers --> fail */
+    	      UNLOCK(SgFr_lock(sg_fr));
+    	      goto fail;
+    	    }
+          goto load_consumer_table_me;
+  	    } else {
+  	      if(SgFr_state(sg_fr) < compiled)
+  	        SgFr_state(sg_fr) = compiled;
+          UNLOCK(SgFr_lock(sg_fr));
+  	      sg_fr = (sg_fr_ptr)SgFr_producer((subcons_fr_ptr)sg_fr);
+          goto exec_compiled_trie_me;
+  	    }
       }
 
-      if (SgFr_has_no_answers(sg_fr)) {
-	      /* no answers --> fail */
-	      UNLOCK(SgFr_lock(sg_fr));
-	      goto fail;
-      }
-      
-      if (SgFr_has_yes_answer(sg_fr)) {
-	      /* yes answer --> procceed */
-	      UNLOCK(SgFr_lock(sg_fr));
-	      PREG = (yamop *) CPREG;
-	      PREFETCH_OP(PREG);
-	      YENV = ENV;
-	      GONext();
-      } else {
-	/* answers -> get first answer */
+      /* variant consumer! ... */
+      /* answers -> get first answer */
 #ifdef LIMIT_TABLING
-	      if (SgFr_state(sg_fr) == complete || SgFr_state(sg_fr) == compiled) {
-	        SgFr_state(sg_fr)++;  /* complete --> complete_in_use : compiled --> compiled_in_use */
-	        remove_from_global_sg_fr_list(sg_fr);
-	        TRAIL_FRAME(sg_fr);
-	      }
+	    if (SgFr_state(sg_fr) == complete || SgFr_state(sg_fr) == compiled) {
+	      SgFr_state(sg_fr)++;  /* complete --> complete_in_use : compiled --> compiled_in_use */
+	      remove_from_global_sg_fr_list(sg_fr);
+	      TRAIL_FRAME(sg_fr);
+	    }
 #endif /* LIMIT_TABLING */
-	      if (IsMode_LoadAnswers(TabEnt_mode(tab_ent))) {
-          /* load answers from the trie */
-          continuation_ptr cont = SgFr_first_answer(sg_fr);
-          ans_node_ptr ans_node = ContPtr_answer(cont);
-          
-	        UNLOCK(SgFr_lock(sg_fr));
-	  
-          printf("Subgoal completed, storing loader node\n");
-          
-	        if(ContPtr_next(cont))
-            store_loader_node(tab_ent, cont, sg_fr);
-            
-          PREG = (yamop *) CPREG;
-          PREFETCH_OP(PREG);
-          CONSUME_ANSWER(ans_node, answer_template, sg_fr);
-	        YENV = ENV;
-          GONext();
-	      } else {
-          printf("COmpiled code\n");
-	        /* execute compiled code from the trie */
-	        if (SgFr_state(sg_fr) < compiled)
-	          update_answer_trie(sg_fr);
-	        UNLOCK(SgFr_lock(sg_fr));
-	        PREG = (yamop *) TrNode_child(SgFr_answer_trie(sg_fr));
-	        PREFETCH_OP(PREG);
-	        *--YENV = 0;  /* vars_arity */
-#ifndef GLOBAL_TRIE
-	        *--YENV = 0;  /* heap_arity */
-#endif /* GLOBAL_TRIE */
-	        GONext();
-	      }
-      }
+
+	    if (TabEnt_is_load(tab_ent))
+load_consumer_table_me:
+      {
+        /* load answers from the trie */
+        continuation_ptr cont = SgFr_first_answer(sg_fr);
+        ans_node_ptr ans_node = ContPtr_answer(cont);
+
+	      UNLOCK(SgFr_lock(sg_fr));
+
+	      if(ContPtr_next(cont))
+          store_loader_node(tab_ent, cont, sg_fr);
+
+        PREG = (yamop *) CPREG;
+        PREFETCH_OP(PREG);
+        CONSUME_ANSWER(ans_node, answer_template, sg_fr);
+	      YENV = ENV;
+        GONext();
+	    }
+
+exec_compiled_trie_me:
+	    /* execute compiled code from the trie */
+
+	    if (SgFr_state(sg_fr) < compiled)
+	      update_answer_trie(sg_fr);
+
+	    UNLOCK(SgFr_lock(sg_fr));
+
+	    PREG = (yamop *) TrNode_child(SgFr_answer_trie(sg_fr));
+	    PREFETCH_OP(PREG);
+
+	    *--YENV = 0;  /* vars_arity */
+	    *--YENV = 0;  /* heap_arity */
+
+	    GONext();
     }
   ENDPBOp();
 
@@ -820,84 +851,86 @@
       printf("TABLE_TRY COMPLETE SUBGOAL\n");
       CELL* answer_template = YENV;
       
-      /*
-       * if this subgoal is a subsumptive consumer
-       * and it wasn't evaluated before
-       * compute the answer return list from the more general subgoal
-       * and mark this consumer subgoal as completed
-       */
-      if(SgFr_is_sub_consumer(sg_fr) && SgFr_state(sg_fr) == ready) {
-        build_next_subsumptive_consumer_return_list((subcons_fr_ptr)sg_fr, answer_template);
-        mark_as_completed(sg_fr);
-      }
-
-      if (SgFr_has_no_answers(sg_fr)) {
-	      /* no answers --> fail */
-	      UNLOCK(SgFr_lock(sg_fr));
-	      goto fail;
-	    }
-      
-      if (SgFr_has_yes_answer(sg_fr)) {
-	      /* yes answer --> procceed */
-	      UNLOCK(SgFr_lock(sg_fr));
-	      PREG = (yamop *) CPREG;
-	      PREFETCH_OP(PREG);
-	      YENV = ENV;
-	      GONext();
+      if(SgFr_is_variant(sg_fr) || SgFr_is_sub_producer(sg_fr)) {
+        if (SgFr_has_no_answers(sg_fr)) {
+  	      /* no answers --> fail */
+  	      UNLOCK(SgFr_lock(sg_fr));
+  	      goto fail;
+  	    }
+        if (SgFr_has_yes_answer(sg_fr)) {
+  	      /* yes answer --> procceed */
+  	      UNLOCK(SgFr_lock(sg_fr));
+  	      PREG = (yamop *) CPREG;
+  	      PREFETCH_OP(PREG);
+  	      YENV = ENV;
+  	      GONext();
+        }
       } else {
-        /* answers -> get first answer */
-#ifdef LIMIT_TABLING
-	      if (SgFr_state(sg_fr) == complete || SgFr_state(sg_fr) == compiled) {
-	        SgFr_state(sg_fr)++;  /* complete --> complete_in_use : compiled --> compiled_in_use */
-	        remove_from_global_sg_fr_list(sg_fr);
-	        TRAIL_FRAME(sg_fr);
-	      }
-#endif /* LIMIT_TABLING */
-	      if (IsMode_LoadAnswers(TabEnt_mode(tab_ent))) {
-          /* load answers from the trie */
-          continuation_ptr cont = SgFr_first_answer(sg_fr);
-          ans_node_ptr ans_node = ContPtr_answer(cont);
-          
-	        UNLOCK(SgFr_lock(sg_fr));
-	        
-	        if(ContPtr_next(cont))
-            store_loader_node(tab_ent, cont, sg_fr);
-            
-          PREG = (yamop *) CPREG;
-          PREFETCH_OP(PREG);
-          CONSUME_ANSWER(ans_node, answer_template, sg_fr);
-	        YENV = ENV;
-          GONext();
-	      } else {
-          printf("COMPILED CODE\n");
-	        /* execute compiled code from the trie */
-	        
-	        if(SgFr_is_sub_consumer(sg_fr)) {
-            sg_fr = (sg_fr_ptr)SgFr_producer((subcons_fr_ptr)sg_fr);
-            
-            int var_arity = (int)*(YENV);
-            YENV += var_arity + 1;
-            printf("Sub arity: %d\n", (int)*(YENV));
-          }
-          
-          // NOT FINISHED XXXX
-          
-	        if (SgFr_state(sg_fr) < compiled)
-	          update_answer_trie(sg_fr);
-	          
-	        UNLOCK(SgFr_lock(sg_fr));
-	        PREG = (yamop *) TrNode_child(SgFr_answer_trie(sg_fr));
-	        PREFETCH_OP(PREG);
-	        
-	        *--YENV = 0;  /* vars_arity */
-	        
-#ifndef GLOBAL_TRIE
-	        *--YENV = 0;  /* heap_arity */
-#endif /* GLOBAL_TRIE */
-
-	        GONext();
-	      }
+  	    /* consumer */
+  	    if(TabEnt_is_load(tab_ent)) {
+  	      if(SgFr_state(sg_fr) < complete) {
+  	        build_next_subsumptive_consumer_return_list((subcons_fr_ptr)sg_fr, answer_template);
+            SgFr_state(sg_fr) = complete;
+  	      }
+  	      if (SgFr_has_no_answers(sg_fr)) {
+    	      /* no answers --> fail */
+    	      UNLOCK(SgFr_lock(sg_fr));
+    	      goto fail;
+    	    }
+          goto load_consumer_table;
+  	    } else {
+  	      if(SgFr_state(sg_fr) < compiled)
+  	        SgFr_state(sg_fr) = compiled;
+          UNLOCK(SgFr_lock(sg_fr));
+  	      sg_fr = (sg_fr_ptr)SgFr_producer((subcons_fr_ptr)sg_fr);
+          goto exec_compiled_trie;
+  	    }
       }
+      
+      /* variant consumer! ... */
+      /* answers -> get first answer */
+#ifdef LIMIT_TABLING
+	    if (SgFr_state(sg_fr) == complete || SgFr_state(sg_fr) == compiled) {
+	      SgFr_state(sg_fr)++;  /* complete --> complete_in_use : compiled --> compiled_in_use */
+	      remove_from_global_sg_fr_list(sg_fr);
+	      TRAIL_FRAME(sg_fr);
+	    }
+#endif /* LIMIT_TABLING */
+
+	    if (TabEnt_is_load(tab_ent))
+load_consumer_table:
+      {
+        /* load answers from the trie */
+        continuation_ptr cont = SgFr_first_answer(sg_fr);
+        ans_node_ptr ans_node = ContPtr_answer(cont);
+
+	      UNLOCK(SgFr_lock(sg_fr));
+
+	      if(ContPtr_next(cont))
+          store_loader_node(tab_ent, cont, sg_fr);
+
+        PREG = (yamop *) CPREG;
+        PREFETCH_OP(PREG);
+        CONSUME_ANSWER(ans_node, answer_template, sg_fr);
+	      YENV = ENV;
+        GONext();
+	    }
+	    
+exec_compiled_trie:
+	    /* execute compiled code from the trie */
+
+	    if (SgFr_state(sg_fr) < compiled)
+	      update_answer_trie(sg_fr);
+
+	    UNLOCK(SgFr_lock(sg_fr));
+
+	    PREG = (yamop *) TrNode_child(SgFr_answer_trie(sg_fr));
+	    PREFETCH_OP(PREG);
+
+	    *--YENV = 0;  /* vars_arity */
+	    *--YENV = 0;  /* heap_arity */
+
+	    GONext();
     }
   ENDPBOp();
 
