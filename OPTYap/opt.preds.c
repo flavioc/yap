@@ -638,38 +638,42 @@ static inline
 void tab_entry_set_variant_mode(tab_ent_ptr tab_ent) {
   SetDefaultMode_Variant(TabEnt_mode(tab_ent));
   if (IsMode_ChecksOff(yap_flags[TABLING_MODE_FLAG]))
-    SetMode_Variant(TabEnt_mode(tab_ent));
+    TabEnt_set_variant(tab_ent)
 }
 
 static inline
 void tab_entry_set_subsumptive_mode(tab_ent_ptr tab_ent) {
   SetDefaultMode_Subsumptive(TabEnt_mode(tab_ent));
   if (IsMode_ChecksOff(yap_flags[TABLING_MODE_FLAG]))
-    SetMode_Subsumptive(TabEnt_mode(tab_ent));
+    TabEnt_set_subsumptive(tab_ent)
 }
 
 static
 Int p_use_variant_tabling(void) {
   tab_ent_ptr tab_ent = get_pred_table_entry(Deref(ARG1), Deref(ARG2));
   
-  if(tab_ent) {
-    printf("Set var tabling\n");
+  if(!tab_ent)
+    return FALSE;
+    
+  if(TabEnt_is_empty(tab_ent)) {
     tab_entry_set_variant_mode(tab_ent);
-    return (TRUE);
+    return TRUE;
   } else
-    return (FALSE);
+    return TabEnt_is_variant(tab_ent);
 }
 
 static
 Int p_use_subsumptive_tabling(void) {
   tab_ent_ptr tab_ent = get_pred_table_entry(Deref(ARG1), Deref(ARG2));
   
-  if(tab_ent) {
-    printf("Set sub tabling\n");
+  if(!tab_ent)
+    return FALSE;
+    
+  if(TabEnt_is_empty(tab_ent)) {
     tab_entry_set_subsumptive_mode(tab_ent);
-    return (TRUE);
+    return TRUE;
   } else
-    return (FALSE);
+    return TabEnt_is_subsumptive(tab_ent);
 }
 
 static
@@ -760,15 +764,15 @@ Int p_tabling_mode(void) {
     if (strcmp(str_val,"exec_answers") == 0) {
       SetDefaultMode_ExecAnswers(TabEnt_mode(tab_ent));
       if (IsMode_CompletedOff(yap_flags[TABLING_MODE_FLAG]))
-	      SetMode_ExecAnswers(TabEnt_mode(tab_ent));
-      return(TRUE);
+        TabEnt_set_exec(tab_ent)
+      return TabEnt_is_exec(tab_ent);
     }
     
     if (strcmp(str_val,"load_answers") == 0) {
       SetDefaultMode_LoadAnswers(TabEnt_mode(tab_ent));
       if (IsMode_CompletedOff(yap_flags[TABLING_MODE_FLAG]))
-	      SetMode_LoadAnswers(TabEnt_mode(tab_ent));
-      return(TRUE);
+        TabEnt_set_load(tab_ent)
+      return TabEnt_is_load(tab_ent);
     }
     
     if(strcmp(str_val,"variant") == 0) {
