@@ -74,7 +74,7 @@
 /* ----------------------------------------- -- **
 **      enable error checking ? (optional)      **
 ** -------------------------------------------- */
-#define TABLING_ERRORS 1
+/* #define TABLING_ERRORS 1 */
 
 
 
