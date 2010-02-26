@@ -1153,7 +1153,7 @@ is_new_consumer_call(CallLookupResults *results) {
   
   switch(SgFr_type(sg_fr)) {
     case VARIANT_PRODUCER_SFT:
-      return CallResults_variant_found(results) && SgFr_state(sg_fr) == evaluating;
+      return SgFr_state(sg_fr) == evaluating;
     case SUBSUMPTIVE_PRODUCER_SFT:
       return CallResults_variant_found(results) && SgFr_state(sg_fr) == evaluating;
     case SUBSUMED_CONSUMER_SFT:
