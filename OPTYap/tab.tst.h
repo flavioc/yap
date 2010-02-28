@@ -43,7 +43,6 @@ struct time_stamped_trie_node {
 #define TSTN_parent(X)      TrNode_parent(X)
 #define TSTN_child(X)       TrNode_child(X)
 #define TSTN_next(X)        TrNode_next(X)
-#define TSTN_status(X)      TrNode_status(X)
 #define TSTN_trie_type(X)   TrNode_trie_type(X)
 #define TSTN_node_type(X)   TrNode_node_type(X)
 #define TSTN_time_stamp(X)  (CAST_TSTN(X)->ts)
@@ -97,7 +96,6 @@ struct tst_answer_trie_hash {
 #define TSTHT_instr(X)          (TrNode_instr(X))
 #define TSTHT_node_type(X)      (TrNode_node_type(X))
 #define TSTHT_trie_type(X)      (TrNode_trie_type(X))
-#define TSTHT_status(X)         (TrNode_status(X))
 
 #define EMPTY_TST_TIMESTAMP 0
 

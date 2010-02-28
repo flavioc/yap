@@ -132,9 +132,8 @@ typedef unsigned long time_stamp;
 
 struct basic_trie_info {
   OPCODE instr;
-  int status;
-  int trie_type;
-  int node_type;
+  unsigned char trie_type;
+  unsigned char node_type;
 };
 
 /* -------------------------------------------------------------------------- **
@@ -192,7 +191,6 @@ typedef struct answer_trie_node {
 
 #define TrNode_instr(X)        ((X)->basic_info.instr)
 #define TrNode_node_type(X)    ((X)->basic_info.node_type)
-#define TrNode_status(X)       ((X)->basic_info.status)
 #define TrNode_trie_type(X)    ((X)->basic_info.trie_type)
 #define TrNode_or_arg(X)       ((X)->or_arg)
 #define TrNode_entry(X)        ((X)->entry)

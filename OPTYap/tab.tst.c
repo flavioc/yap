@@ -35,7 +35,6 @@ STD_PROTO(static inline TSTHTptr New_BTHT, (int));
   } \
   else  \
     TN_Instr(TN) = trie_root; \
-  TN_Status(TN) = VALID_NODE_STATUS;  \
   TN_TrieType(TN) = TrieType; \
   TN_NodeType(TN) = NodeType; \
   TN_Symbol(TN) = Symbol; \
@@ -241,7 +240,7 @@ static inline TSTHTptr New_BTHT(int TrieType) {
   ALLOC_TST_ANSWER_TRIE_HASH(btht);
   ALLOC_HASH_BUCKETS(TSTHT_BucketArray(btht), TrieHT_INIT_SIZE);
   TSTHT_Instr(btht) = hash_opcode;
-  TSTHT_Status(btht) = VALID_NODE_STATUS;
+  //TSTHT_Status(btht) = VALID_NODE_STATUS;
   TSTHT_TrieType(btht) = TrieType;
   TSTHT_NodeType(btht) = HASH_HEADER_NT;
   TSTHT_NumContents(btht) = MAX_SIBLING_LEN + 1;
