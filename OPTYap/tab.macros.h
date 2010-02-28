@@ -1050,28 +1050,15 @@ build_next_subsumptive_consumer_return_list(subcons_fr_ptr consumer_sg, CELL* an
   //printAnswerTemplate(stdout, anst, size);
   
   answer_template += size;
-  //printf("ANSWER_TEMPLATE: %d\n", size);
-  
   
   dprintf("Timestamp: %d\n", (int)SgFr_timestamp(consumer_sg));
-  ans_list_ptr answers = tst_collect_relevant_answers((tst_node_ptr)SgFr_answer_trie(producer_sg),
-    consumer_ts, size, answer_template);
+  ans_list_ptr first, last;
+  if(!tst_collect_relevant_answers((tst_node_ptr)SgFr_answer_trie(producer_sg),
+        consumer_ts, size, answer_template, &first, &last))
+    return FALSE;
     
   //dprintf("Answer template after collect: ");
   //printAnswerTemplate(stdout, anst, size);
-  
-  if(answers == NULL)
-    return FALSE;
-  
-  ans_list_ptr first = answers;
-  ans_list_ptr last = NULL;
-  
-  while(answers) {
-    //printAnswerTriePath(stdout, (BTNptr)AnsList_answer(answers));
-    //printf("\n");
-    last = answers;
-    answers = AnsList_next(answers);
-  }
   
   if(!SgFr_first_answer(consumer_sg)) {
     /* first subsumptive answer found */

@@ -228,7 +228,7 @@ static CPtr orig_hbreg;
 
 #define TST_Collection_Error(String, DoesRequireCleanup) {	\
 		tstCollectionError(CTXTc String, DoesRequireCleanup);	\
-		return NULL;	\
+		return FALSE;	\
 	}
 
 static void tstCollectionError(CTXTdeclc char* string, xsbBool cleanup_required) {
@@ -662,14 +662,14 @@ Unify_with_Variable(CTXTdeclc Cell symbol, Cell subterm, TSTNptr node) {
  *  In the code, we push a CPF before doing any of this recording.
  *  However, the log info is, in fact, saved.  */
  
-ALNptr tst_collect_relevant_answers(CTXTdeclc TSTNptr tstRoot, TimeStamp ts,
-				    int numTerms, CPtr termsRev)
+xsbBool tst_collect_relevant_answers(CTXTdeclc TSTNptr tstRoot, TimeStamp ts,
+				    int numTerms, CPtr termsRev, ALNptr *firstAnswer, ALNptr *lastAnswer)
 {
 	/* numTerms -- size of Answer Template */
 	/* termsRev -- Answer template (on heap) */
-  
-	ALNptr tstAnswerList; /* for collecting leaves to be returned */
 	
+  xsbBool any_answers = FALSE;
+  
 	TSTNptr cur_chain;     /* main ptr for stepping through siblings; under
 			    normal (non-hashed) circumstances, variable and
 			    non-variable symbols will appear in the same
@@ -698,7 +698,7 @@ ALNptr tst_collect_relevant_answers(CTXTdeclc TSTNptr tstRoot, TimeStamp ts,
 	
 	parentTSTN = tstRoot;
 	cur_chain = TSTN_Child(tstRoot);
-	tstAnswerList = NULL;
+  *firstAnswer = NULL;
 	symbol = 0; /* suppress compiler warning */
 	
 	/* Major loop of the algorithm
@@ -850,7 +850,7 @@ While_TSnotEmpty:
 		if(CPStack_IsEmpty) {
 			Sys_Trail_Unwind(trail_base);
 			Restore_WAM_Registers;
-			return tstAnswerList;
+			return any_answers;
 		}
 		TST_Backtrack;
 	} /* END while( ! TermStack_IsEmpty ) */
@@ -875,12 +875,16 @@ While_TSnotEmpty:
 		fprintf(stdwarn, "Attempting to continue...\n");
 	}
 	else {
-		ALN_InsertAnswer(tstAnswerList, parentTSTN);
+		ALN_InsertAnswer(*firstAnswer, parentTSTN);
+		if(!any_answers) {
+      *lastAnswer = *firstAnswer;
+      any_answers = TRUE;
+    }
 	}
 	if(CPStack_IsEmpty) {
 		Sys_Trail_Unwind(trail_base);
 		Restore_WAM_Registers;
-		return tstAnswerList;
+		return any_answers;
 	}
 	TST_Backtrack;
 	goto While_TSnotEmpty;

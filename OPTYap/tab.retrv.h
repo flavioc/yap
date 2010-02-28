@@ -41,8 +41,8 @@ struct tstCPStack_t {
 
 extern struct tstCPStack_t tstCPStack;
 
-ALNptr tst_collect_relevant_answers(CTXTdeclc TSTNptr tstRoot, TimeStamp ts,
-				    int numTerms, CPtr termsRev);
+xsbBool tst_collect_relevant_answers(CTXTdeclc TSTNptr tstRoot, TimeStamp ts,
+  int numTerms, CPtr termsRev, ALNptr *firstAnswer, ALNptr *lastAnswer);
 
 #endif /* TABLING */
 #endif
