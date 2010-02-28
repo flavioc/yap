@@ -75,12 +75,6 @@ static CPtr orig_ebreg;
 
 #else /* YAP */
 
-#define Sys_Trail_Unwind(TR0)               \
-  while(TR != TR0)  {                       \
-    CELL *var = (CELL *)TrailTerm(--TR);    \
-    RESET_VARIABLE(var);                    \
-  }
-
 static tr_fr_ptr trail_base;
 static tr_fr_ptr orig_trreg;
 static CPtr orig_hreg;

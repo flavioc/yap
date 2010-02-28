@@ -329,7 +329,6 @@ void printSubgoalTriePath(CTXTdeclc FILE *fp, BTNptr pLeaf, tab_ent_ptr tab_entr
   printTriePath(fp, pLeaf, NO);
 }
 
-
 void printAnswerTriePath(FILE *fp, ans_node_ptr leaf)
 {
   SymbolStack_ResetTOS;
@@ -342,24 +341,6 @@ void printAnswerTriePath(FILE *fp, ans_node_ptr leaf)
     symstkPrintNextTrieTerm(CTXTc fp, FALSE);
   }
   fprintf(fp, "}");
-}
-
-void printSubsumptiveAnswer(FILE *fp, ans_node_ptr leaf)
-{
-  SymbolStack_ResetTOS;
-  SymbolStack_PushPath(leaf);
-  
-  int count = 0;
-  while(TRUE) {
-    fprintf(fp, "VAR%d: ", count);
-    symstkPrintNextTrieTerm(fp, FALSE);
-    
-    if(!SymbolStack_IsEmpty) {
-      fprintf(fp, "    ");
-      ++count;
-    } else
-      break;
-  }
 }
 
 static int variable_counter = 0;
@@ -505,6 +486,167 @@ void printSubstitutionFactor(FILE *fp, CELL* factor)
   fprintf(fp, "Substitution factor with size %d ", size);
   
   printAnswerTemplate(fp, factor + 1, size);
+}
+
+CELL* construct_subgoal_heap(BTNptr pLeaf, CPtr* var_pointer)
+{
+  CELL* orig_hreg = H;
+  CELL symbol;
+  int argument = 0;
+  CELL* args = (CELL *)Yap_TrailTop;
+  CELL* trie_vars = *var_pointer;
+  int count_vars = 0;
+  
+  Trail_ResetTOS;
+  SymbolStack_ResetTOS;
+  SymbolStack_PushPath(pLeaf);
+  
+  while(!SymbolStack_IsEmpty) {
+    SymbolStack_Pop(symbol);
+
+    if(IsAtomOrIntTerm(symbol)) {
+      *H++ = symbol;
+      
+      if(!argument)
+        STACK_PUSH_UP(symbol, args);
+      else
+        --argument;
+        
+    } else if(IsVarTerm(symbol)) {
+      int index = DecodeTrieVar(symbol);
+      
+      if(IsNewTableVarTerm(symbol)) {
+        *H = (CELL)H;
+        *(trie_vars - index) = (CELL)H++;
+        
+        ++count_vars;
+      } else {
+        *H++ = *(trie_vars - index);
+      }
+      
+      if(!argument)
+        STACK_PUSH_UP(*(trie_vars - index), args);
+      else
+        --argument;
+        
+    } else if(IsApplTerm(symbol)) {
+      Functor f = DecodeTrieFunctor(symbol);
+
+      if(f == FunctorDouble) {
+        // XXX IMPLEMENT
+      } else if(f == FunctorLongInt) {
+        // XXX IMPLEMENT
+      } else {
+        if(!argument)
+          STACK_PUSH_UP(AbsAppl(H + 1), args);
+        else
+          --argument;
+        
+        argument += ArityOfFunctor(f);
+        
+        *H = AbsAppl(H + 1);
+        ++H;
+        *H++ = (CELL)f;
+      }
+    } else if(IsPairTerm(symbol)) {
+      if(!argument)
+        STACK_PUSH_UP(AbsPair(H + 1), args);
+      else
+        --argument;
+      argument += 2;
+      *H = AbsPair(H + 1);
+      ++H;
+    } else {
+      printf("BIG ERROR!!!\n");
+    }
+  }
+  
+  *var_pointer = trie_vars - count_vars;
+  **var_pointer = count_vars;
+  
+  /* put arguments on termstack */
+  TermStack_ResetTOS;
+  for(; args < (CELL*)Yap_TrailTop; ++args) {
+    TermStack_Push(*args);
+  }
+  
+  Trail_Unwind_All;
+  
+  /* return original H register */
+  return orig_hreg;
+}
+
+CPtr reconstruct_template_for_producer_no_args(SubProdSF subsumer, CPtr ans_tmplt) {
+  int sizeAnsTmplt;
+  Cell subterm, symbol;
+  
+  /*
+   * Store the symbols along the path of the more general call.
+   */
+  SymbolStack_ResetTOS;
+  SymbolStack_PushPath(subg_leaf_ptr(subsumer));
+    
+  /*
+   * Create the answer template while we process.  Since we know we have a
+   * more general subsuming call, we can greatly simplify the "matching"
+   * process: we know we either have exact matches of non-variable symbols
+   * or a variable paired with some subterm of the current call.
+   */
+  sizeAnsTmplt = 0;
+  while(!TermStack_IsEmpty) {
+    TermStack_Pop(subterm);
+    XSB_Deref(subterm);
+    SymbolStack_Pop(symbol);
+    if(IsTrieVar(symbol) && IsNewTrieVar(symbol)) {
+      *ans_tmplt-- = subterm;
+      sizeAnsTmplt++;
+    }
+    else if(IsTrieFunctor(symbol))
+      TermStack_PushFunctorArgs(subterm)
+    else if(IsTrieList(symbol))
+      TermStack_PushListArgs(subterm)
+  }
+  *ans_tmplt = makeint(sizeAnsTmplt);
+  return ans_tmplt;
+}
+
+void
+printTermStack(FILE *fp)
+{
+  int bindings = Trail_NumBindings;
+  CELL* start = TermStack_Base;
+  CELL* end = TermStack_Top;
+  int total = TermStack_NumTerms - 1;
+  
+  variable_counter = 0;
+  
+  fprintf(fp, "(");
+  for(--end; end >= start; --end, --total) {
+    recursivePrintSubterm(fp, *end, FALSE);
+    if(total)
+      fprintf(fp, ",");
+  }
+  fprintf(fp, ")");
+  
+  Trail_Unwind(bindings);
+}
+
+void printSubsumptiveAnswer(FILE *fp, CELL* vars)
+{
+  int total = (int)*vars;
+  vars += total;
+  int i = 0;
+  
+  fprintf(fp, "    ");
+  for(i = 0; i < total; ++i, --vars) {
+    if(i)
+      fprintf(fp, "    ");
+    
+    fprintf(fp, "VAR%d: ", i);
+    recursivePrintSubterm(fp, *vars, FALSE);
+  }
+  
+  fprintf(fp, "\n");
 }
 
 #endif /* TABLING_CALL_SUBSUMPTION */

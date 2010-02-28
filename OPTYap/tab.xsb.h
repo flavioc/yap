@@ -199,6 +199,7 @@ typedef Functor Psc;
 
 /* amiops.h */
 #define conditional(Addr) (OUTSIDE(HBREG, Addr, B) || ((Addr) > (CELL *)B_FZ))
+#define Sys_Trail_Unwind(TR0) trail_unwind(TR0)
 #define pushtrail0 DO_TRAIL
 #define bind_ref(A,D) Bind(A,D)
 

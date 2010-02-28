@@ -383,12 +383,15 @@ xsbBool are_identical_terms(Cell term1, Cell term2);
 void printTriePath(CTXTdeclc FILE *fp, BTNptr pLeaf, xsbBool print_address);
 void printSubgoalTriePath(CTXTdeclc FILE *fp, BTNptr pLeaf, tab_ent_ptr tab_entry);
 void printAnswerTriePath(FILE *fp, ans_node_ptr leaf);
-void printSubsumptiveAnswer(FILE *fp, ans_node_ptr leaf);
+void printSubsumptiveAnswer(FILE *fp, CELL* vars);
 void printTrieNode(FILE *fp, BTNptr pTN);
 void printSubterm(FILE *fp, Term term);
 void printCalledSubgoal(FILE *fp, yamop *preg);
 void printAnswerTemplate(FILE *fp, CPtr ans_tmplt, int size);
 void printSubstitutionFactor(FILE *fp, CELL* factor);
+CELL* construct_subgoal_heap(BTNptr pLeaf, CPtr* var_pointer);
+void printTermStack(FILE *fp);
+CPtr reconstruct_template_for_producer_no_args(SubProdSF subsumer, CELL* ans_tmplt);
 
 extern int AnsVarCtr;
 

@@ -515,10 +515,15 @@ void show_table(tab_ent_ptr tab_ent, int show_mode) {
     TrStat_ans_nodes = 0;
   }
   
+  /*
   fprintf(Yap_stdout, "Table %s for predicate '%s/%d' [%s]\n",
     (show_mode == SHOW_MODE_STATISTICS ? "statistics" : "structure"),
     AtomName(TabEnt_atom(tab_ent)), TabEnt_arity(tab_ent),
     IsMode_Subsumptive(TabEnt_mode(tab_ent)) ? "SUBSUMPTIVE" : "VARIANT");
+    */
+  fprintf(Yap_stdout, "Table %s for predicate '%s/%d'\n",
+    (show_mode == SHOW_MODE_STATISTICS ? "statistics" : "structure"),
+    AtomName(TabEnt_atom(tab_ent)), TabEnt_arity(tab_ent));
     
   sg_node = TrNode_child(TabEnt_subgoal_trie(tab_ent));
   if (sg_node) {
@@ -768,11 +773,13 @@ void traverse_subgoal_trie(sg_node_ptr current_node, char *str, int str_index, i
     if(SgFr_is_variant(sg_fr) || SgFr_is_sub_producer(sg_fr)) {
       TrStat_ans_nodes++;
       
+      SHOW_TABLE_STRUCTURE("%s.\n", str);
+      /*
       if(SgFr_is_sub_producer(sg_fr)) {
         SHOW_TABLE_STRUCTURE("%s. [PRODUCER]\n", str);
       } else {
         SHOW_TABLE_STRUCTURE("%s.\n", str);
-      }
+      }*/
       
       if (SgFr_has_no_answers(sg_fr)) {
         if (SgFr_state(sg_fr) < complete) {
@@ -798,11 +805,13 @@ void traverse_subgoal_trie(sg_node_ptr current_node, char *str, int str_index, i
       subcons_fr_ptr cons_sg = (subcons_fr_ptr)sg_fr;
       subprod_fr_ptr prod_sg = SgFr_producer(cons_sg);
       
-      if(TrStat_show == SHOW_MODE_STRUCTURE) {
+      SHOW_TABLE_STRUCTURE("%s.\n", str);
+      
+      /*if(TrStat_show == SHOW_MODE_STRUCTURE) {
         fprintf(Yap_stdout, "%s. [CONSUMES FROM ", str);
         printSubgoalTriePath(Yap_stdout, SgFr_leaf(prod_sg), tab_ent);
         fprintf(Yap_stdout, "]\n");
-      }
+      }*/
       
       if(SgFr_has_no_answers(sg_fr)) {
         if(SgFr_state(sg_fr) < complete) {
@@ -814,20 +823,47 @@ void traverse_subgoal_trie(sg_node_ptr current_node, char *str, int str_index, i
         }
       } else { // has answers
         continuation_ptr cont = SgFr_first_answer(sg_fr);
+        CELL* vars = (CELL * )HeapTop - 1;
+        CELL* saved_H = construct_subgoal_heap(SgFr_leaf(sg_fr), &vars);
         
-        while(cont) {
-          tst_node_ptr ans = (tst_node_ptr)ContPtr_answer(cont);
-          
+        if((int)*vars == 0) {
+          TrStat_answers_true++;
           TrStat_sub_answers++;
+          SHOW_TABLE_STRUCTURE("    TRUE\n");
+        } else {
+          CELL* ans_tmplt = reconstruct_template_for_producer_no_args(prod_sg, vars - 1);
+          tr_fr_ptr saved_TR = TR;
+          CELL* saved_HB = HB;
+          int ans_size = (int)*ans_tmplt;
+          ans_tmplt += ans_size;
           
-          if (TrStat_show == SHOW_MODE_STRUCTURE) {
-            fprintf(Yap_stdout, "    ");
-            printSubsumptiveAnswer(Yap_stdout, (ans_node_ptr)ans);
-            fprintf(Yap_stdout, "\n");
+          HB = H;
+          
+          while(cont) {
+            tst_node_ptr ans = (tst_node_ptr)ContPtr_answer(cont);
+          
+            TrStat_sub_answers++;
+            TrStat_answers++;
+            
+            if (TrStat_show == SHOW_MODE_STRUCTURE) {
+              consume_subsumptive_answer((ans_node_ptr)ans, ans_size, ans_tmplt);
+              
+              printSubsumptiveAnswer(Yap_stdout, vars);
+              
+              trail_unwind(saved_TR);
+            }
+          
+            cont = ContPtr_next(cont);
           }
           
-          cont = ContPtr_next(cont);
+          /* restore TR and HB */
+          TR = saved_TR;
+          HB = saved_HB;
         }
+        
+        /* restore H register */
+        H = saved_H;
+        
         if (SgFr_state(sg_fr) < complete) {
 	        TrStat_sg_incomplete++;
 	        SHOW_TABLE_STRUCTURE("    ---> INCOMPLETE\n");

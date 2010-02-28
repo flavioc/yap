@@ -554,6 +554,11 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
 #define CONSUMER_ANSWER_TEMPLATE  ((CELL *) (CONS_CP(B) + 1))
 #define DEPENDENCY_FRAME_ANSWER_TEMPLATE(DEP_FR)  ((CELL *)(CONS_CP(DepFr_cons_cp(DEP_FR)) + 1))
 
+#define trail_unwind(TR0)                   \
+  while(TR != TR0)  {                       \
+    CELL *var = (CELL *)TrailTerm(--TR);    \
+    RESET_VARIABLE(var);                    \
+  }
 
 /* ------------------------- **
 **      Inline funcions      **
@@ -593,9 +598,9 @@ void mark_consumer_as_completed(sg_fr_ptr sg_fr) {
     if(TabEnt_is_exec(SgFr_tab_ent(sg_fr))) {
       /* not needed anymore */
       dprintf("Deleting consumer data (EXEC)\n");
-      free_consumer_subgoal_data((subcons_fr_ptr)sg_fr);
+      /*free_consumer_subgoal_data((subcons_fr_ptr)sg_fr);
       SgFr_first_answer(sg_fr) = NULL;
-      SgFr_last_answer(sg_fr) = NULL;
+      SgFr_last_answer(sg_fr) = NULL;*/
     }
   }
   

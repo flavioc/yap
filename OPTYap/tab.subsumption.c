@@ -789,7 +789,7 @@ While_TermStack_NotEmpty:
   return pParentBTN;
 }
 
-static sg_fr_ptr
+static inline sg_fr_ptr
 create_new_consumer_subgoal(sg_node_ptr leaf_node, subprod_fr_ptr subsumer, tab_ent_ptr tab_ent, yamop *code) {
   subcons_fr_ptr sg_fr;
   
@@ -813,7 +813,7 @@ create_new_consumer_subgoal(sg_node_ptr leaf_node, subprod_fr_ptr subsumer, tab_
   return (sg_fr_ptr)sg_fr;
 }
 
-static sg_fr_ptr
+static inline sg_fr_ptr
 create_new_producer_subgoal(sg_node_ptr leaf_node, tab_ent_ptr tab_ent, yamop *code)
 {
   subprod_fr_ptr sg_fr;
