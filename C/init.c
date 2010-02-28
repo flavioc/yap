@@ -366,6 +366,8 @@ static Opdef    Ops[] = {
 #endif /* YAPOR */
 #ifdef TABLING
   {"table", fx, 1150},
+  {"use_variant_tabling", fx, 1100},
+  {"use_subsumptive_tabling", fx, 1100},
 #endif /* TABLING */
 #ifndef UNCUTABLE
   {"uncutable", fx, 1150},
