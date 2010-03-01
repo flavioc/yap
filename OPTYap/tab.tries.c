@@ -69,7 +69,10 @@ void delete_subgoal_path(sg_fr_ptr sg_fr) {
   sg_node_ptr parent, first_child, old_node, *bucket;
   sg_hash_ptr hash = NULL;
 
-  while(TrNode_node_type(node) != TRIE_ROOT_NT) {
+  TrNode_child(node) = NULL;
+  
+  while(TrNode_node_type(node) != TRIE_ROOT_NT && TrNode_child(node) == NULL) {
+    
     parent = TrNode_parent(node);
     first_child = TrNode_child(parent);
 
@@ -101,15 +104,15 @@ process_next:
     
     if(hash && Hash_num_nodes(hash) == 0) {
       /* hash without nodes! */
-      TrNode_child(parent) = NULL; 
+      TrNode_child(parent) = NULL;
       FREE_SUBGOAL_TRIE_HASH(hash);
       dprintf("FREE SUBGOAL TRIE HASH\n");
     }
     
     old_node = node;
     node = parent;
-    dprintf("Freeing one subgoal trie node %x\n", (void*)old_node);
     FREE_SUBGOAL_TRIE_NODE(old_node);
+    dprintf("Freeing one subgoal trie node %x\n", (void*)old_node);
     
     hash = NULL;
   }
