@@ -488,89 +488,95 @@ void printSubstitutionFactor(FILE *fp, CELL* factor)
   printAnswerTemplate(fp, factor + 1, size);
 }
 
+static CELL*
+recursive_construct_subgoal(CELL* trie_vars)
+{
+  CELL symbol;
+  
+  SymbolStack_Pop(symbol);
+  
+  if(IsAtomOrIntTerm(symbol)) {
+    dprintf("New constant\n");
+    *H = symbol;
+    return H++;
+  } else if(IsVarTerm(symbol)) {
+    int index = DecodeTrieVar(symbol);
+    
+    if(IsNewTableVarTerm(symbol)) {
+      *H = (CELL)H;
+      *(trie_vars - index) = (CELL)H;
+      
+      ++variable_counter;
+    } else {
+      *H = *(trie_vars - index);
+    }
+    
+    dprintf("New var\n");
+    
+    return H++;
+  } else if(IsApplTerm(symbol)) {
+    Functor f = DecodeTrieFunctor(symbol);
+
+    if(f == FunctorDouble) {
+      // XXX IMPLEMENT
+    } else if(f == FunctorLongInt) {
+      // XXX IMPLEMENT
+    } else {
+      int i, arity = ArityOfFunctor(f);
+      
+      *H = AbsAppl(H + 1);
+      ++H;
+      *H++ = (CELL)f;
+      
+      CELL* arguments = H;
+      H += arity;
+
+      for(i = 0; i < arity; ++i) {
+        *(arguments + i) = recursive_construct_subgoal(trie_vars);
+      }
+      
+      return arguments - 2;
+    }
+  } else if(IsPairTerm(symbol)) {
+    CELL* arguments = H + 1;
+    
+    *H = AbsPair(H + 1);
+    H += 3;
+    
+    *(arguments + 0) = recursive_construct_subgoal(trie_vars);
+    *(arguments + 1) = recursive_construct_subgoal(trie_vars);
+    
+    return arguments - 1;
+  } else {
+    dprintf("BIG ERROR!!!\n");
+  }
+}
+
+static void
+recursive_put_argument_stack(CELL *trie_vars)
+{
+  CELL *argument = recursive_construct_subgoal(trie_vars);
+  
+  if(!SymbolStack_IsEmpty)
+    recursive_put_argument_stack(trie_vars);
+    
+  TermStack_Push(*argument);
+}
+
 CELL* construct_subgoal_heap(BTNptr pLeaf, CPtr* var_pointer)
 {
   CELL* orig_hreg = H;
-  CELL symbol;
-  int argument = 0;
-  CELL* args = (CELL *)Yap_TrailTop;
   CELL* trie_vars = *var_pointer;
-  int count_vars = 0;
   
-  Trail_ResetTOS;
+  variable_counter = 0;
+  
+  TermStack_ResetTOS;
   SymbolStack_ResetTOS;
   SymbolStack_PushPath(pLeaf);
   
-  while(!SymbolStack_IsEmpty) {
-    SymbolStack_Pop(symbol);
-
-    if(IsAtomOrIntTerm(symbol)) {
-      *H++ = symbol;
-      
-      if(!argument)
-        STACK_PUSH_UP(symbol, args);
-      else
-        --argument;
-        
-    } else if(IsVarTerm(symbol)) {
-      int index = DecodeTrieVar(symbol);
-      
-      if(IsNewTableVarTerm(symbol)) {
-        *H = (CELL)H;
-        *(trie_vars - index) = (CELL)H++;
-        
-        ++count_vars;
-      } else {
-        *H++ = *(trie_vars - index);
-      }
-      
-      if(!argument)
-        STACK_PUSH_UP(*(trie_vars - index), args);
-      else
-        --argument;
-        
-    } else if(IsApplTerm(symbol)) {
-      Functor f = DecodeTrieFunctor(symbol);
-
-      if(f == FunctorDouble) {
-        // XXX IMPLEMENT
-      } else if(f == FunctorLongInt) {
-        // XXX IMPLEMENT
-      } else {
-        if(!argument)
-          STACK_PUSH_UP(AbsAppl(H + 1), args);
-        else
-          --argument;
-        
-        argument += ArityOfFunctor(f);
-        
-        *H = AbsAppl(H + 1);
-        ++H;
-        *H++ = (CELL)f;
-      }
-    } else if(IsPairTerm(symbol)) {
-      if(!argument)
-        STACK_PUSH_UP(AbsPair(H + 1), args);
-      else
-        --argument;
-      argument += 2;
-      *H = AbsPair(H + 1);
-      ++H;
-    } else {
-      printf("BIG ERROR!!!\n");
-    }
-  }
-  
-  *var_pointer = trie_vars - count_vars;
-  **var_pointer = count_vars;
-  
-  /* put arguments on termstack */
-  TermStack_ResetTOS;
-  for(; args < (CELL*)Yap_TrailTop; ++args) {
-    TermStack_Push(*args);
-  }
-  
-  Trail_Unwind_All;
+  recursive_put_argument_stack(trie_vars);
+  *var_pointer = trie_vars - variable_counter;
+  **var_pointer = variable_counter;
   
   /* return original H register */
   return orig_hreg;
