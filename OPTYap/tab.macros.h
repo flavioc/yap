@@ -251,7 +251,6 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
 #define find_leader_node(LEADER_CP, DEP_ON_STACK)                                 \
         { dep_fr_ptr chain_dep_fr = LOCAL_top_dep_fr;                             \
           while (YOUNGER_CP(DepFr_cons_cp(chain_dep_fr), LEADER_CP)) {            \
-            dprintf("One Loop\n"); \
             if (EQUAL_OR_YOUNGER_CP(LEADER_CP, DepFr_leader_cp(chain_dep_fr))) {  \
               LEADER_CP = DepFr_leader_cp(chain_dep_fr);                          \
               break;                                                              \
@@ -687,6 +686,7 @@ void rebind_variables(tr_fr_ptr rebind_tr, tr_fr_ptr end_tr) {
 }
 
 
+
 static inline
 void restore_bindings(tr_fr_ptr unbind_tr, tr_fr_ptr rebind_tr) {
   CELL ref;
@@ -755,7 +755,7 @@ void restore_bindings(tr_fr_ptr unbind_tr, tr_fr_ptr rebind_tr) {
 	if (rebind_tr > (tr_fr_ptr) Yap_TrailTop)
           TABLING_ERROR_MESSAGE("rebind_tr > Yap_TrailTop (function restore_bindings)");
         if (rebind_tr < end_tr)
-          TABLING_ERROR_MESSAGE("rebind_tr < end_tr (function restore_bindings)");
+TABLING_ERROR_MESSAGE("rebind_tr < end_tr (function restore_bindings)");
 #endif /* TABLING_ERRORS */
       }
 #ifdef MULTI_ASSIGNMENT_VARIABLES
@@ -867,6 +867,7 @@ abolish_incomplete_sub_producer_subgoal(sg_fr_ptr sg_fr) {
   subcons_fr_ptr cons_sg = SgFr_prod_consumers(prod_sg);
   
   while(cons_sg) {
+    dprintf("Deleting one consumer\n");
     abolish_incomplete_consumer_subgoal(cons_sg);
     cons_sg = SgFr_consumers(cons_sg);
   }
@@ -1043,22 +1044,36 @@ build_next_subsumptive_consumer_return_list(subcons_fr_ptr consumer_sg, CELL* an
   
   if(producer_ts <= consumer_ts)
     return FALSE; /* no answers were inserted */
+    
+  dprintf("Producer ts %d consumer ts %d\n", producer_ts, consumer_ts);
   
   int size = (int)*answer_template;
-  //CPtr anst = answer_template + 1;
-  //dprintf("Answer template before collect: ");
-  //printAnswerTemplate(stdout, anst, size);
+
+#ifdef FDEBUG  
+  printSubgoalTriePath(stdout, SgFr_leaf(consumer_sg), SgFr_tab_ent(consumer_sg));
+
+  CPtr anst = answer_template + 1;
+  dprintf("Answer template before collect: ");
+  printAnswerTemplate(stdout, anst, size);
+#endif
   
   answer_template += size;
   
-  dprintf("Timestamp: %d\n", (int)SgFr_timestamp(consumer_sg));
   ans_list_ptr first, last;
   if(!tst_collect_relevant_answers((tst_node_ptr)SgFr_answer_trie(producer_sg),
-        consumer_ts, size, answer_template, &first, &last))
+        consumer_ts, size, answer_template, &first, &last)) {
+#ifdef FDEBUG
+  dprintf("failed to collect, Answer template after collect: ");
+  printAnswerTemplate(stdout, anst, size);
+#endif
+    SgFr_timestamp(consumer_sg) = producer_ts;
     return FALSE;
+  }
     
-  //dprintf("Answer template after collect: ");
-  //printAnswerTemplate(stdout, anst, size);
+#ifdef FDEBUG
+  dprintf("Answer template after collect: ");
+  printAnswerTemplate(stdout, anst, size);
+#endif
   
   if(!SgFr_first_answer(consumer_sg)) {
     /* first subsumptive answer found */
