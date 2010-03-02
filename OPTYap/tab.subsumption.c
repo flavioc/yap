@@ -927,13 +927,14 @@ void subsumptive_call_search(TabledCallInfo *call_info, CallLookupResults *resul
   
   btn = iter_sub_trie_lookup(CTXTc btRoot, &path_type);
   
-  /*
+#ifdef FDEBUG
   if(btn) {
-    //dprintf("Btn: %d %x\n", TrNode_child(btn) == NULL, btn);
     dprintf("Subsumption call found: ");
     printSubgoalTriePath(stdout, btn, tab_ent);
     dprintf("\n");
-  }*/
+  }
+#endif
+  
   if(path_type == NO_PATH) { /* new producer */
     dprintf("No path found... new producer\n");
     Trail_Unwind_All;
@@ -964,7 +965,6 @@ void subsumptive_call_search(TabledCallInfo *call_info, CallLookupResults *resul
       subsumer = (sg_fr_ptr)SgFr_producer(first_consumer);
       dprintf("Super subsumption call found\n");
       Trail_Unwind_All;
-      //printSubgoalTriePath(stdout, SgFr_leaf(super_sg_fr), tab_ent);
       answer_template = reconstruct_template_for_producer(call_info,
           (subprod_fr_ptr)subsumer, answer_template);
     }
@@ -980,10 +980,10 @@ void subsumptive_call_search(TabledCallInfo *call_info, CallLookupResults *resul
       Trail_Unwind_All;
       CallResults_subgoal_frame(results) = create_new_consumer_subgoal(CallResults_leaf(results),
               (subprod_fr_ptr)CallResults_subsumer(results), tab_ent, CallInfo_code(call_info));
-      dprintf("New variant path\n");
     } else {
       CallResults_leaf(results) = btn;
       CallResults_subgoal_frame(results) = sg_fr;
+      dprintf("New variant path\n");
     }
     
     //dprintf("TEMPLATE: ");
