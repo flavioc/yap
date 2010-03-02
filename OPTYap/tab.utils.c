@@ -16,6 +16,9 @@
 #ifdef TABLING_CALL_SUBSUMPTION
 
 static void printTrieSymbol(FILE* fp, Cell symbol);
+static inline void fix_functor(Term t, CELL* placeholder);
+static inline void fix_list(Term t, CELL* placeholder);
+static inline void fix_rec(Term t, CELL* placeholder);
 
 CellTag cell_tag(Term t)
 {
@@ -331,6 +334,7 @@ void printSubgoalTriePath(CTXTdeclc FILE *fp, BTNptr pLeaf, tab_ent_ptr tab_entr
 
 void printAnswerTriePath(FILE *fp, ans_node_ptr leaf)
 {
+  #ifdef FDEBUG
   SymbolStack_ResetTOS;
   SymbolStack_PushPath(leaf);
   
@@ -341,6 +345,7 @@ void printAnswerTriePath(FILE *fp, ans_node_ptr leaf)
     symstkPrintNextTrieTerm(CTXTc fp, FALSE);
   }
   fprintf(fp, "}");
+  #endif
 }
 
 static int variable_counter = 0;
@@ -462,6 +467,7 @@ void printCalledSubgoal(FILE *fp, yamop *preg)
 
 void printAnswerTemplate(FILE *fp, CPtr ans_tmplt, int size)
 {
+  #ifdef FDEBUG
   int bindings = Trail_NumBindings;
   
   fprintf(fp, "[");
@@ -477,6 +483,7 @@ void printAnswerTemplate(FILE *fp, CPtr ans_tmplt, int size)
   fprintf(fp, "]\n");
   
   Trail_Unwind(bindings);
+  #endif
 }
 
 void printSubstitutionFactor(FILE *fp, CELL* factor)
@@ -681,6 +688,82 @@ void printSubsumptiveAnswer(FILE *fp, CELL* vars)
   }
   
   fprintf(fp, "\n");
+}
+
+static inline void
+fix_functor(Term t, CELL* placeholder)
+{
+  Functor f = FunctorOfTerm(t);
+  
+  if(f == FunctorDouble) {
+    printf("DOUBLE!\n");
+  } else if(f == FunctorLongInt) {
+    printf("LONG INT!\n");
+  } else {
+    *placeholder = H;
+    *H = AbsAppl(H+1);
+    ++H;
+    *H++ = (CELL)f;
+  
+    CELL *arguments = H;
+    int i, arity = ArityOfFunctor(f);
+     
+    H += arity;
+
+    for(i = 1; i <= arity; ++i)
+      fix_rec(Deref(*(RepAppl(t) + i)), arguments + i - 1);
+  }
+}
+
+static inline void
+fix_list(Term t, CELL* placeholder)
+{
+  *placeholder = (CELL)H;
+  *H = AbsPair(H + 1);
+  ++H;
+  CELL* arguments = H;
+  
+  H += 2;
+  
+  fix_rec(Deref(*(RepPair(t))), arguments);
+  fix_rec(Deref(*(RepPair(t) + 1)), arguments + 1);
+}
+
+static inline void
+fix_rec(CELL val, CELL* placeholder)
+{
+  if(IsAtomOrIntTerm(val) || IsVarTerm(val)) {
+    *placeholder = val;
+  } else if(IsApplTerm(val)) {
+    fix_functor(val, placeholder);
+  } else if(IsPairTerm(val)) {
+    fix_list(val, placeholder);
+  } else {
+    printf("BAD TAG\n");
+  }
+}
+
+void
+fix_answer_template(CELL *ans_tmplt)
+{
+  int size = (int)*ans_tmplt++;
+  int i;
+  
+  for(i = 0; i < size; ++i) {
+    CELL *cell = ans_tmplt + i;
+    CELL val = Deref(*cell);
+    if(!IsVarTerm(val)) {
+      if(IsAtomOrIntTerm(val)) {
+        *cell = val;
+      } else if(IsApplTerm(val)) {
+        fix_functor(val, cell);
+      } else if(IsPairTerm(val)) {
+        fix_list(val, cell);
+      } else {
+        printf("BAD TAGGG\n");
+      }
+    }
+  }
 }
 
 #endif /* TABLING_CALL_SUBSUMPTION */

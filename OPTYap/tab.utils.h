@@ -392,6 +392,7 @@ void printSubstitutionFactor(FILE *fp, CELL* factor);
 CELL* construct_subgoal_heap(BTNptr pLeaf, CPtr* var_pointer);
 void printTermStack(FILE *fp);
 CPtr reconstruct_template_for_producer_no_args(SubProdSF subsumer, CELL* ans_tmplt);
+void fix_answer_template(CELL *ans_tmplt);
 
 extern int AnsVarCtr;
 
@@ -408,6 +409,7 @@ extern int AnsVarCtr;
  }
 
 // deactivate to test
+#define FDEBUG
 #ifdef FDEBUG
 #define dprintf(MESG, ARGS...) printf(MESG, ##ARGS)
 #else
