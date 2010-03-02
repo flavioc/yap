@@ -98,7 +98,7 @@ static void consumption_error(CTXTdeclc char *string) {
   printTriePath(stderr,gAnsLeaf,NO);
 #endif
   fprintf(stderr,"\nwith ");
-  printAnswerTemplate(stderr,gAnsTmplt,gSizeTmplt);
+  printAnswerTemplate(stderr,gAnsTmplt-gSizeTmplt+1,gSizeTmplt);
   fprintf(stderr,
     "(ª Note: this template may be partially instantiated *)\n");
 #ifdef DEBUG_ASSERTIONS
