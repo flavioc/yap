@@ -297,10 +297,10 @@
   int arity = (int)*(ANS_TMPLT);                           \
   CELL *sub_answer_template = (ANS_TMPLT) + arity;              \
   dprintf("Subsumptive answer template before: %d\n", arity); \
-  /*printAnswerTemplate(stdout, sub_answer_template - arity + 1, arity);*/ \
+  printAnswerTemplate(stdout, sub_answer_template - arity + 1, arity); \
   consume_subsumptive_answer((BTNptr)(ANS_NODE), arity, sub_answer_template); \
   dprintf("Subsumptive variables now:\n"); \
-  /*printAnswerTemplate(stdout, sub_answer_template - arity + 1, arity);*/  \
+  printAnswerTemplate(stdout, sub_answer_template - arity + 1, arity);  \
 }
 
 /* Consume a variant answer ANS_NODE using ANS_TMPLT
@@ -1664,8 +1664,6 @@ exec_compiled_trie:
         /* dependency frame with unconsumed answers */
         ans_node = ContPtr_answer(next);
         DepFr_last_answer(dep_fr) = next;
-      } else {
-        dprintf("NO UNCONSUMED ANSWERS COMPLETION\n");
       }
       
       if(ans_node != NULL) {
