@@ -5,7 +5,7 @@
                                                                
   Copyright:   R. Rocha and NCC - University of Porto, Portugal
   File:        tab.tries.C
-  version:     $Id: tab.tries.c,v 1.24 2008-05-20 18:25:37 ricroc Exp $   
+  version:     $Id: tab.tries.c,v 1.24 2008-05-20 18:25:37 ricroc Exp $
                                                                      
 **********************************************************************/
 
@@ -32,7 +32,7 @@
 
 void subgoal_search(yamop *preg, CELL **Yaddr, CallLookupResults *results) {
   TabledCallInfo call_info;
-  
+
   CallInfo_code(&call_info) = preg;
   CallInfo_var_vector(&call_info) = *Yaddr - 1;
   
@@ -42,9 +42,11 @@ void subgoal_search(yamop *preg, CELL **Yaddr, CallLookupResults *results) {
   LOCK(TabEnt_lock(tab_ent));
 #endif /* TABLE_LOCK_LEVEL */
   
-  /*dprintf("subgoal_search for ");
+#ifdef FDEBUG
+  dprintf("subgoal_search for ");
   printCalledSubgoal(stdout, preg);
-  dprintf("\n");*/
+  dprintf("\n");
+#endif
   
   if(TabEnt_is_variant(tab_ent)) {
     variant_call_search(&call_info, results);
@@ -52,6 +54,14 @@ void subgoal_search(yamop *preg, CELL **Yaddr, CallLookupResults *results) {
     subsumptive_call_search(&call_info, results);
   }
   
+  #ifdef FDEBUG
+      dprintf("SUBGOAL IS: ");
+      printSubgoalTriePath(stdout, SgFr_leaf(CallResults_subgoal_frame(results)), tab_ent);
+      printf("\n");
+  #endif
+  
+  fix_answer_template(CallResults_var_vector(results));
+      
   *Yaddr = CallResults_var_vector(results)++;
 }
 
@@ -836,7 +846,7 @@ void traverse_subgoal_trie(sg_node_ptr current_node, char *str, int str_index, i
         } else {
           CELL* ans_tmplt = reconstruct_template_for_producer_no_args(prod_sg, vars - 1);
           tr_fr_ptr saved_TR = TR;
-          CELL* saved_HB = HB;
+          CELL*     saved_HB = HB;
           int ans_size = (int)*ans_tmplt;
           ans_tmplt += ans_size;
           
