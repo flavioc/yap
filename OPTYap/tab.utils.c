@@ -20,6 +20,11 @@ static inline void fix_functor(Term t, CELL* placeholder);
 static inline void fix_list(Term t, CELL* placeholder);
 static inline void fix_rec(Term t, CELL* placeholder);
 
+typedef enum {
+  PRINT_ANSWER_VAR,
+  PRINT_VAR
+} PrintVarType;
+
 CellTag cell_tag(Term t)
 {
   if(IsVarTerm(t))
@@ -351,7 +356,7 @@ void printAnswerTriePath(FILE *fp, ans_node_ptr leaf)
 static int variable_counter = 0;
 
 static void
-recursivePrintSubterm(FILE *fp, Term symbol, xsbBool list_recursion)
+recursivePrintSubterm(FILE *fp, Term symbol, xsbBool list_recursion, PrintVarType var_type)
 {
   XSB_Deref(symbol);
   
@@ -374,7 +379,7 @@ recursivePrintSubterm(FILE *fp, Term symbol, xsbBool list_recursion)
       var_index = variable_counter++;
     }
     
-    fprintf(fp, "VAR" IntegerFormatString, var_index);  
+    fprintf(fp, "%s" IntegerFormatString, var_type == PRINT_ANSWER_VAR ? "ANSVAR" : "VAR", var_index);  
     
     if(list_recursion)
       fprintf(fp, "]");
@@ -417,7 +422,7 @@ recursivePrintSubterm(FILE *fp, Term symbol, xsbBool list_recursion)
       for(i = 1; i <= (int)get_arity(f); i++) {
         if(i > 1)
           fprintf(fp, ",");
-        recursivePrintSubterm(fp, *(RepAppl(symbol) + i), FALSE);
+        recursivePrintSubterm(fp, *(RepAppl(symbol) + i), FALSE, var_type);
       }
       
       fprintf(fp, ")");
@@ -431,8 +436,8 @@ recursivePrintSubterm(FILE *fp, Term symbol, xsbBool list_recursion)
     else
       fprintf(fp, "[");
     
-    recursivePrintSubterm(fp, *(RepPair(symbol)), FALSE);
-    recursivePrintSubterm(fp, *(RepPair(symbol) + 1), TRUE);
+    recursivePrintSubterm(fp, *(RepPair(symbol)), FALSE, var_type);
+    recursivePrintSubterm(fp, *(RepPair(symbol) + 1), TRUE, var_type);
   }
 }
 
@@ -441,7 +446,7 @@ void printSubterm(FILE *fp, Term term)
   int bindings = Trail_NumBindings;
   
   variable_counter = 0;
-  recursivePrintSubterm(fp, term, FALSE);
+  recursivePrintSubterm(fp, term, FALSE, PRINT_VAR);
   
   Trail_Unwind(bindings);
 }
@@ -458,7 +463,7 @@ void printCalledSubgoal(FILE *fp, yamop *preg)
   for(i = 1; i <= arity; ++i) {
     if(i > 1)
       fprintf(fp, ",");
-    recursivePrintSubterm(fp, XREGS[i], FALSE);
+    recursivePrintSubterm(fp, XREGS[i], FALSE, PRINT_VAR);
   }
   fprintf(fp, ")");
   
@@ -479,7 +484,7 @@ void printAnswerTemplate(FILE *fp, CPtr ans_tmplt, int size)
     if(i)
       fprintf(fp, ", ");
       
-    recursivePrintSubterm(fp, (Term)ans_tmplt, FALSE);
+    recursivePrintSubterm(fp, (Term)ans_tmplt, FALSE, PRINT_VAR);
   }
   
   fprintf(fp, "]\n");
@@ -634,7 +639,7 @@ printTermStack(FILE *fp)
   
   fprintf(fp, "(");
   for(--end; end >= start; --end, --total) {
-    recursivePrintSubterm(fp, *end, FALSE);
+    recursivePrintSubterm(fp, *end, FALSE, PRINT_VAR);
     if(total)
       fprintf(fp, ",");
   }
@@ -648,6 +653,8 @@ void printSubsumptiveAnswer(FILE *fp, CELL* vars)
   int total = (int)*vars;
   vars += total;
   int i = 0;
+
+  Trail_ResetTOS;
   
   fprintf(fp, "    ");
   for(i = 0; i < total; ++i, --vars) {
@@ -655,10 +662,12 @@ void printSubsumptiveAnswer(FILE *fp, CELL* vars)
       fprintf(fp, "    ");
     
     fprintf(fp, "VAR%d: ", i);
-    recursivePrintSubterm(fp, *vars, FALSE);
+    recursivePrintSubterm(fp, *vars, FALSE, PRINT_ANSWER_VAR);
   }
   
   fprintf(fp, "\n");
+
+  Trail_Unwind_All;
 }
 
 static inline void
