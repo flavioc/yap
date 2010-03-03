@@ -842,7 +842,7 @@ void traverse_subgoal_trie(sg_node_ptr current_node, char *str, int str_index, i
       } else { // has answers
         continuation_ptr cont = SgFr_first_answer(sg_fr);
         CELL* vars = (CELL * )HeapTop - 1;
-        CELL* saved_H = construct_subgoal_heap(SgFr_leaf(sg_fr), &vars);
+        CELL* saved_H = construct_subgoal_heap(SgFr_leaf(sg_fr), &vars, SgFr_arity(sg_fr));
         
         if((int)*vars == 0) {
           TrStat_answers_true++;

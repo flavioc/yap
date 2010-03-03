@@ -497,7 +497,7 @@ void printSubstitutionFactor(FILE *fp, CELL* factor)
   printAnswerTemplate(fp, factor + 1, size);
 }
 
-static CELL*
+static void
 recursive_construct_subgoal(CELL* trie_vars, CELL* placeholder)
 {
   CELL symbol;
@@ -506,18 +506,10 @@ recursive_construct_subgoal(CELL* trie_vars, CELL* placeholder)
   
   if(IsAtomOrIntTerm(symbol)) {
     dprintf("New constant\n");
-    if(!placeholder)
-      placeholder = H++;
-      
     *placeholder = symbol;
-    
-    return placeholder;
   } else if(IsVarTerm(symbol)) {
     int index = DecodeTrieVar(symbol);
     
-    if(!placeholder)
-      placeholder = H++;
-      
     if(IsNewTableVarTerm(symbol)) {
       *placeholder = (CELL)placeholder;
       *(trie_vars - index) = (CELL)placeholder;
@@ -529,7 +521,6 @@ recursive_construct_subgoal(CELL* trie_vars, CELL* placeholder)
     
     dprintf("New var\n");
     
-    return placeholder;
   } else if(IsApplTerm(symbol)) {
     Functor f = DecodeTrieFunctor(symbol);
 
@@ -539,71 +530,42 @@ recursive_construct_subgoal(CELL* trie_vars, CELL* placeholder)
       // XXX IMPLEMENT
     } else {
       int i, arity = ArityOfFunctor(f);
+      CELL *arguments;
+      
+      *placeholder = AbsAppl(H);
       
       dprintf("New functor\n");
       
-      *H = AbsAppl(H + 1);
-      ++H;
-      *H++ = (CELL)f;
+      *H = (CELL)f;
       
-      CELL* arguments = H;
+      arguments = ++H;
       H += arity;
 
-      for(i = 0; i < arity; ++i) {
-        CELL* dest = arguments + i;
-        CELL* realdest = recursive_construct_subgoal(trie_vars, dest);
-        
-        if(realdest != dest) {
-          *dest = realdest;
-          dprintf("Could not use placeholder\n");
-        } else {
-          dprintf("Could use place holder\n");
-        }
-      }
-      
-      return arguments - 2;
+      for(i = 0; i < arity; ++i)
+        recursive_construct_subgoal(trie_vars, arguments + i);
     }
   } else if(IsPairTerm(symbol)) {
-    CELL* arguments = H + 1;
+    CELL *arguments = H;
     int i;
+    
+    *placeholder = AbsPair(H);
     
     dprintf("New pair\n");
     
-    *H = AbsPair(H + 1);
-    H += 3;
+    H += 2;
     
-    for(i = 0; i < 2; ++i) {
-      CELL* dest = arguments + i;
-      CELL* realdest = recursive_construct_subgoal(trie_vars, dest);
-      
-      if(realdest != dest) {
-        *dest = realdest;
-        dprintf("Could not use place holder\n");
-      } else {
-        dprintf("Could use place holder\n");
-      }
-    }
-    return arguments - 1;
+    for(i = 0; i < 2; ++i)
+      recursive_construct_subgoal(trie_vars, arguments + i);
   } else {
     dprintf("BIG ERROR!!!\n");
   }
 }
 
-static void
-recursive_put_argument_stack(CELL *trie_vars)
-{
-  CELL *argument = recursive_construct_subgoal(trie_vars, NULL);
-  
-  if(!SymbolStack_IsEmpty)
-    recursive_put_argument_stack(trie_vars);
-    
-  TermStack_Push(*argument);
-}
-
-CELL* construct_subgoal_heap(BTNptr pLeaf, CPtr* var_pointer)
+CELL* construct_subgoal_heap(BTNptr pLeaf, CPtr* var_pointer, int arity)
 {
   CELL* orig_hreg = H;
   CELL* trie_vars = *var_pointer;
+  int i;
   
   variable_counter = 0;
   
@@ -611,7 +573,14 @@ CELL* construct_subgoal_heap(BTNptr pLeaf, CPtr* var_pointer)
   SymbolStack_ResetTOS;
   SymbolStack_PushPath(pLeaf);
   
-  recursive_put_argument_stack(trie_vars);
+  CELL *arguments = H;
+  H += arity;
+  
+  for(i = 0; i < arity; ++i)
+    recursive_construct_subgoal(trie_vars, arguments + i);
+  for(i = arity - 1; i >= 0; --i)
+    TermStack_Push(*(arguments + i))
+  
   *var_pointer = trie_vars - variable_counter;
   **var_pointer = variable_counter;
   
