@@ -467,23 +467,25 @@ void printCalledSubgoal(FILE *fp, yamop *preg)
 
 void printAnswerTemplate(FILE *fp, CPtr ans_tmplt, int size)
 {
-  #ifdef FDEBUG
+#ifdef FDEBUG
   int bindings = Trail_NumBindings;
   
   fprintf(fp, "[");
   variable_counter = 0;
   
-  for(size--; size >= 0; size--) {
-    recursivePrintSubterm(fp, (Term)(ans_tmplt+size), FALSE);
-    
-    if(size > 0)
+  int i;
+  
+  for(i = 0; i < size; ++i, ans_tmplt--) {
+    if(i)
       fprintf(fp, ", ");
+      
+    recursivePrintSubterm(fp, (Term)ans_tmplt, FALSE);
   }
   
   fprintf(fp, "]\n");
   
   Trail_Unwind(bindings);
-  #endif
+#endif
 }
 
 void printSubstitutionFactor(FILE *fp, CELL* factor)
@@ -700,9 +702,13 @@ fix_functor(Term t, CELL* placeholder)
   } else if(f == FunctorLongInt) {
     printf("LONG INT!\n");
   } else {
-    *placeholder = H;
-    *H = AbsAppl(H+1);
-    ++H;
+    if(placeholder)
+      *placeholder = AbsAppl(H);
+    else {
+      TermStack_Push(H);
+      *H = AbsAppl(H + 1);
+      ++H;
+    }
     *H++ = (CELL)f;
   
     CELL *arguments = H;
@@ -718,9 +724,14 @@ fix_functor(Term t, CELL* placeholder)
 static inline void
 fix_list(Term t, CELL* placeholder)
 {
-  *placeholder = (CELL)H;
-  *H = AbsPair(H + 1);
-  ++H;
+  if(placeholder)
+    *placeholder = AbsPair(H);
+  else {
+    TermStack_Push(H);
+    *H = AbsPair(H + 1);
+    ++H;
+  }
+  
   CELL* arguments = H;
   
   H += 2;
@@ -732,8 +743,42 @@ fix_list(Term t, CELL* placeholder)
 static inline void
 fix_rec(CELL val, CELL* placeholder)
 {
-  if(IsAtomOrIntTerm(val) || IsVarTerm(val)) {
-    *placeholder = val;
+  if(IsAtomOrIntTerm(val)) {
+    if(placeholder)
+      *placeholder = val;
+    else {
+      TermStack_Push(H);
+      *H++ = val;
+    }
+  } else if(IsVarTerm(val)) {
+    if(IsStandardizedVariable(val)) {
+      dprintf("Old variable\n");
+      val = TrieVarBindings[IndexOfStdVar(val)];
+      if(placeholder)
+        *placeholder = val;
+      else {
+        *H = (CELL)val;
+        TermStack_Push(H);
+        ++H;
+      }
+    } else {
+      dprintf("New variable\n");
+      Trail_Push(val);
+      StandardizeVariable(val, variable_counter);
+      Trail_Push(&TrieVarBindings[variable_counter]);
+      if(placeholder) {
+        *placeholder = (CELL)placeholder;
+        TrieVarBindings[variable_counter] = placeholder;
+      } else {
+        *H = (CELL)H;
+        TrieVarBindings[variable_counter] = H;
+        TermStack_Push(H);
+        ++H;
+      }
+      ++variable_counter;
+    }
+    
+    
   } else if(IsApplTerm(val)) {
     fix_functor(val, placeholder);
   } else if(IsPairTerm(val)) {
@@ -749,21 +794,20 @@ fix_answer_template(CELL *ans_tmplt)
   int size = (int)*ans_tmplt++;
   int i;
   
-  for(i = 0; i < size; ++i) {
-    CELL *cell = ans_tmplt + i;
-    CELL val = Deref(*cell);
-    if(!IsVarTerm(val)) {
-      if(IsAtomOrIntTerm(val)) {
-        *cell = val;
-      } else if(IsApplTerm(val)) {
-        fix_functor(val, cell);
-      } else if(IsPairTerm(val)) {
-        fix_list(val, cell);
-      } else {
-        printf("BAD TAGGG\n");
-      }
-    }
+  Trail_ResetTOS;
+  TermStack_ResetTOS;
+  variable_counter = 0;
+  
+  for(i = size - 1; i >= 0; --i)
+    fix_rec(Deref(*(ans_tmplt + i)), NULL);
+    
+  CELL term;
+  while(!TermStack_IsEmpty) {
+    TermStack_Pop(term);
+    *H++ = term;
   }
+  
+  Trail_Unwind_All;
 }
 
 #endif /* TABLING_CALL_SUBSUMPTION */
