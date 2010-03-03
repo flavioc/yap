@@ -51,7 +51,7 @@ STD_PROTO(static inline void abolish_incomplete_producer_subgoal, (sg_fr_ptr sg_
 
 STD_PROTO(static inline void abolish_incomplete_subgoals, (choiceptr));
 
-STD_PROTO(static inline int build_next_subsumptive_consumer_return_list, (subcons_fr_ptr, CELL *));
+STD_PROTO(static inline int build_next_subsumptive_consumer_return_list, (subcons_fr_ptr, CELL*, CELL *));
 STD_PROTO(static inline continuation_ptr get_next_answer_continuation, (dep_fr_ptr dep_fr));
 STD_PROTO(static inline int is_new_generator_call, (CallLookupResults *));
 STD_PROTO(static inline int is_new_consumer_call, (CallLookupResults *));
@@ -1037,7 +1037,7 @@ void free_tst_hash_index(tst_ans_hash_ptr hash) {
 }
 
 static inline int
-build_next_subsumptive_consumer_return_list(subcons_fr_ptr consumer_sg, CELL* answer_template) {
+build_next_subsumptive_consumer_return_list(subcons_fr_ptr consumer_sg, CELL* hreg, CELL* answer_template) {
   subprod_fr_ptr producer_sg = SgFr_producer(consumer_sg);
   const int producer_ts = SgFr_prod_timestamp(producer_sg);
   const int consumer_ts = SgFr_timestamp(consumer_sg);
@@ -1048,23 +1048,22 @@ build_next_subsumptive_consumer_return_list(subcons_fr_ptr consumer_sg, CELL* an
   dprintf("Producer ts %d consumer ts %d\n", producer_ts, consumer_ts);
   
   int size = (int)*answer_template;
+  
+  answer_template = hreg-1;
 
 #ifdef FDEBUG  
   printSubgoalTriePath(stdout, SgFr_leaf(consumer_sg), SgFr_tab_ent(consumer_sg));
 
-  CPtr anst = answer_template + 1;
   dprintf("Answer template before collect: ");
-  printAnswerTemplate(stdout, anst, size);
+  printAnswerTemplate(stdout, answer_template, size);
 #endif
-  
-  answer_template += size;
   
   ans_list_ptr first, last;
   if(!tst_collect_relevant_answers((tst_node_ptr)SgFr_answer_trie(producer_sg),
         consumer_ts, size, answer_template, &first, &last)) {
 #ifdef FDEBUG
   dprintf("failed to collect, Answer template after collect: ");
-  printAnswerTemplate(stdout, anst, size);
+  printAnswerTemplate(stdout, answer_template, size);
 #endif
     SgFr_timestamp(consumer_sg) = producer_ts;
     return FALSE;
@@ -1072,7 +1071,7 @@ build_next_subsumptive_consumer_return_list(subcons_fr_ptr consumer_sg, CELL* an
     
 #ifdef FDEBUG
   dprintf("Answer template after collect: ");
-  printAnswerTemplate(stdout, anst, size);
+  printAnswerTemplate(stdout, answer_template, size);
 #endif
   
   if(!SgFr_first_answer(consumer_sg)) {
@@ -1118,7 +1117,7 @@ get_next_answer_continuation(dep_fr_ptr dep_fr) {
            *     are available and no continuation is returned
            */
           subcons_fr_ptr consumer_sg = (subcons_fr_ptr)sg_fr;
-          if(build_next_subsumptive_consumer_return_list(consumer_sg, DEPENDENCY_FRAME_ANSWER_TEMPLATE(dep_fr)))
+          if(build_next_subsumptive_consumer_return_list(consumer_sg, DepFr_H(dep_fr), DEPENDENCY_FRAME_ANSWER_TEMPLATE(dep_fr)))
             return ContPtr_next(last_cont);
           else
             return NULL;
