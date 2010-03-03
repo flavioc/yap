@@ -447,6 +447,7 @@ typedef struct dependency_frame {
 #define DepFr_last_answer(X)             ((X)->last_consumed_answer)
 #define DepFr_sg_fr(X)                   ((X)->sg_fr)
 #define DepFr_next(X)                    ((X)->next)
+#define DepFr_H(X)                       (DepFr_cons_cp(X)->cp_h)
 
 /* ---------------------------------------------------------------------------------------------------- **
    DepFr_lock:                   lock variable to modify the frame fields.
