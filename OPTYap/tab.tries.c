@@ -52,16 +52,21 @@ void subgoal_search(yamop *preg, CELL **Yaddr, CallLookupResults *results) {
     variant_call_search(&call_info, results);
   } else {
     subsumptive_call_search(&call_info, results);
+    
+    sg_fr_ptr sg_fr = CallResults_subgoal_frame(results);
+    if(SgFr_is_sub_consumer(sg_fr)) {
+      if((TabEnt_is_load(tab_ent) && SgFr_state(sg_fr) < complete) ||
+          (TabEnt_is_exec(tab_ent) && SgFr_state(SgFr_producer((subcons_fr_ptr)sg_fr))))
+          fix_answer_template(CallResults_var_vector(results));
+    }
   }
   
-  #ifdef FDEBUG
-      dprintf("SUBGOAL IS: ");
-      printSubgoalTriePath(stdout, SgFr_leaf(CallResults_subgoal_frame(results)), tab_ent);
-      printf("\n");
-  #endif
+#ifdef FDEBUG
+    dprintf("SUBGOAL IS: ");
+    printSubgoalTriePath(stdout, SgFr_leaf(CallResults_subgoal_frame(results)), tab_ent);
+    printf("\n");
+#endif
   
-  fix_answer_template(CallResults_var_vector(results));
-      
   *Yaddr = CallResults_var_vector(results)++;
 }
 
