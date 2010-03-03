@@ -297,10 +297,10 @@
   int arity = (int)*(ANS_TMPLT);                           \
   CELL *sub_answer_template = (ANS_TMPLT) + arity;              \
   dprintf("Subsumptive answer template before: %d\n", arity); \
-  printAnswerTemplate(stdout, sub_answer_template - arity + 1, arity); \
+  /*printAnswerTemplate(stdout, sub_answer_template - arity + 1, arity); */ \
   consume_subsumptive_answer((BTNptr)(ANS_NODE), arity, sub_answer_template); \
   dprintf("Subsumptive variables now:\n"); \
-  printAnswerTemplate(stdout, sub_answer_template - arity + 1, arity);  \
+  /*printAnswerTemplate(stdout, sub_answer_template - arity + 1, arity); */  \
 }
 
 /* Consume a variant answer ANS_NODE using ANS_TMPLT
@@ -544,7 +544,7 @@
   	    /* consumer */
   	    if(TabEnt_is_load(tab_ent)) {
   	      if(SgFr_state(sg_fr) < complete) {
-  	        build_next_subsumptive_consumer_return_list((subcons_fr_ptr)sg_fr, answer_template);
+  	        build_next_subsumptive_consumer_return_list((subcons_fr_ptr)sg_fr, H, answer_template);
             SgFr_state(sg_fr) = complete;
   	      }
   	      if (SgFr_has_no_answers(sg_fr)) {
@@ -706,7 +706,7 @@ exec_compiled_trie_single:
   	    /* consumer */
   	    if(TabEnt_is_load(tab_ent)) {
   	      if(SgFr_state(sg_fr) < complete) {
-  	        build_next_subsumptive_consumer_return_list((subcons_fr_ptr)sg_fr, answer_template);
+  	        build_next_subsumptive_consumer_return_list((subcons_fr_ptr)sg_fr, H, answer_template);
             SgFr_state(sg_fr) = complete;
   	      }
   	      if (SgFr_has_no_answers(sg_fr)) {
@@ -869,7 +869,7 @@ exec_compiled_trie_me:
   	    /* consumer */
   	    if(TabEnt_is_load(tab_ent)) {
   	      if(SgFr_state(sg_fr) < complete) {
-  	        build_next_subsumptive_consumer_return_list((subcons_fr_ptr)sg_fr, answer_template);
+  	        build_next_subsumptive_consumer_return_list((subcons_fr_ptr)sg_fr, H, answer_template);
             SgFr_state(sg_fr) = complete;
   	      }
   	      if (SgFr_has_no_answers(sg_fr)) {
