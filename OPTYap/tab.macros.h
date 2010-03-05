@@ -51,7 +51,7 @@ STD_PROTO(static inline void abolish_incomplete_producer_subgoal, (sg_fr_ptr sg_
 
 STD_PROTO(static inline void abolish_incomplete_subgoals, (choiceptr));
 
-STD_PROTO(static inline int build_next_subsumptive_consumer_return_list, (subcons_fr_ptr, CELL*, CELL *));
+STD_PROTO(static inline int build_next_subsumptive_consumer_return_list, (subcons_fr_ptr));
 STD_PROTO(static inline continuation_ptr get_next_answer_continuation, (dep_fr_ptr dep_fr));
 STD_PROTO(static inline int is_new_generator_call, (CallLookupResults *));
 STD_PROTO(static inline int is_new_consumer_call, (CallLookupResults *));
@@ -362,6 +362,7 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
         new_basic_subgoal_frame(SG_FR, CODE, LEAF, SUBSUMED_CONSUMER_SFT, ALLOC_SUBCONS_SUBGOAL_FRAME);  \
         add_answer_trie_subgoal_frame(SG_FR); \
         SgFr_timestamp(SG_FR) = 0;  \
+        SgFr_answer_template(SG_FR) = NULL; \
         SgFr_producer(SG_FR) = PRODUCER;  \
         SgFr_consumers(SG_FR) = SgFr_prod_consumers(PRODUCER);  \
         if (!SgFr_prod_consumers(PRODUCER))      \
@@ -576,9 +577,15 @@ static inline
 void mark_as_completed(sg_fr_ptr sg_fr) {
   LOCK(SgFr_lock(sg_fr));
   if(SgFr_state(sg_fr) != complete) {
+#ifdef FDEBUG
+    printf("COMPLETED SUBGOAL: ");
+    printSubgoalTriePath(stdout, SgFr_leaf(sg_fr), SgFr_tab_ent(sg_fr));
+    dprintf("\n");
+#endif
     SgFr_state(sg_fr) = complete;
-    if(SgFr_is_sub_producer(sg_fr) && TabEnt_is_exec(SgFr_tab_ent(sg_fr)))
+    if(SgFr_is_sub_producer(sg_fr) && TabEnt_is_exec(SgFr_tab_ent(sg_fr))) {
       free_tst_hash_index((tst_ans_hash_ptr)SgFr_hash_chain(sg_fr));
+    }
     else if(SgFr_is_variant(sg_fr)) {
       free_answer_trie_hash_chain((ans_hash_ptr)SgFr_hash_chain(sg_fr));
       SgFr_hash_chain(sg_fr) = NULL;
@@ -1037,7 +1044,7 @@ void free_tst_hash_index(tst_ans_hash_ptr hash) {
 }
 
 static inline int
-build_next_subsumptive_consumer_return_list(subcons_fr_ptr consumer_sg, CELL* hreg, CELL* answer_template) {
+build_next_subsumptive_consumer_return_list(subcons_fr_ptr consumer_sg) {
   subprod_fr_ptr producer_sg = SgFr_producer(consumer_sg);
   const int producer_ts = SgFr_prod_timestamp(producer_sg);
   const int consumer_ts = SgFr_timestamp(consumer_sg);
@@ -1045,14 +1052,25 @@ build_next_subsumptive_consumer_return_list(subcons_fr_ptr consumer_sg, CELL* hr
   if(producer_ts <= consumer_ts)
     return FALSE; /* no answers were inserted */
     
-  dprintf("Producer ts %d consumer ts %d\n", producer_ts, consumer_ts);
-  
+  //dprintf("Producer ts %d consumer ts %d\n", producer_ts, consumer_ts);
+  dprintf("build_next\n");
+  CELL* answer_template = SgFr_answer_template(consumer_sg);
   int size = (int)*answer_template;
   
-  answer_template = hreg-1;
+  /* skip size */
+  --answer_template;
 
-#ifdef FDEBUG  
+#ifdef FDEBUG
+  if(!SgFr_leaf(consumer_sg))
+    printf("LEAF CANNOT BE NULL\n");
+  
+  dprintf("SUBGOAL: ");
   printSubgoalTriePath(stdout, SgFr_leaf(consumer_sg), SgFr_tab_ent(consumer_sg));
+  dprintf("\n");
+  
+  dprintf("GENERAL SUBGOAL: ");
+  printSubgoalTriePath(stdout, SgFr_leaf(producer_sg), SgFr_tab_ent(consumer_sg));
+  dprintf("\n");
 
   dprintf("Answer template before collect: ");
   printAnswerTemplate(stdout, answer_template, size);
@@ -1117,7 +1135,7 @@ get_next_answer_continuation(dep_fr_ptr dep_fr) {
            *     are available and no continuation is returned
            */
           subcons_fr_ptr consumer_sg = (subcons_fr_ptr)sg_fr;
-          if(build_next_subsumptive_consumer_return_list(consumer_sg, DepFr_H(dep_fr), DEPENDENCY_FRAME_ANSWER_TEMPLATE(dep_fr)))
+          if(build_next_subsumptive_consumer_return_list(consumer_sg))
             return ContPtr_next(last_cont);
           else
             return NULL;

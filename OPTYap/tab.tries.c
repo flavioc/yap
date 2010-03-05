@@ -55,9 +55,15 @@ void subgoal_search(yamop *preg, CELL **Yaddr, CallLookupResults *results) {
     
     sg_fr_ptr sg_fr = CallResults_subgoal_frame(results);
     if(SgFr_is_sub_consumer(sg_fr)) {
-      if((TabEnt_is_load(tab_ent) && SgFr_state(sg_fr) < complete) ||
-          (TabEnt_is_exec(tab_ent) && SgFr_state(SgFr_producer((subcons_fr_ptr)sg_fr))))
-          fix_answer_template(CallResults_var_vector(results));
+      subcons_fr_ptr consumer = (subcons_fr_ptr)sg_fr;
+      
+      if(!CallResults_variant_found(results) &&
+            (SgFr_answer_template(consumer) == NULL ||
+                (SgFr_state(sg_fr) == complete && TabEnt_is_load(tab_ent))))
+      {
+        fix_answer_template(CallResults_var_vector(results));
+        SgFr_answer_template(consumer) = H - 1;
+      }
     }
   }
   
@@ -316,6 +322,8 @@ void private_completion(sg_fr_ptr sg_fr) {
   
   /* adjust freeze registers */
   adjust_freeze_registers();
+  
+  dprintf("completion done\n");
 
   return;
 }

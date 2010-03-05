@@ -190,10 +190,11 @@
         }
         
         
-#define CONSUME_ANSWER(ANS_NODE, ANSWER_TMPLT, SG_FR)       \
-        { if(SgFr_is_variant(SG_FR) || SgFr_is_sub_producer(SG_FR)) { \
-            CONSUME_VARIANT_ANSWER(ANS_NODE, ANSWER_TMPLT); \
-          } else { \
+#define CONSUME_ANSWER(ANS_NODE, ANSWER_TMPLT, SG_FR)                      \
+        { if(SgFr_is_variant(SG_FR) || SgFr_is_sub_producer(SG_FR)) {      \
+            dprintf("Consume variant answer\n");                           \
+            CONSUME_VARIANT_ANSWER(ANS_NODE, ANSWER_TMPLT);                \
+          } else {                                                         \
             CONSUME_SUBSUMPTIVE_ANSWER(ANS_NODE, ANSWER_TMPLT); \
           } \
         }
@@ -296,10 +297,10 @@
 #define CONSUME_SUBSUMPTIVE_ANSWER(ANS_NODE, ANS_TMPLT) {       \
   int arity = (int)*(ANS_TMPLT);                           \
   CELL *sub_answer_template = (ANS_TMPLT) + arity;              \
-  dprintf("Subsumptive answer template before: %d\n", arity); \
+  /*dprintf("Subsumptive answer template before: %d\n", arity);*/ \
   /*printAnswerTemplate(stdout, sub_answer_template - arity + 1, arity); */ \
   consume_subsumptive_answer((BTNptr)(ANS_NODE), arity, sub_answer_template); \
-  dprintf("Subsumptive variables now:\n"); \
+  /*dprintf("Subsumptive variables now:\n");*/ \
   /*printAnswerTemplate(stdout, sub_answer_template - arity + 1, arity); */  \
 }
 
@@ -544,7 +545,7 @@
   	    /* consumer */
   	    if(TabEnt_is_load(tab_ent)) {
   	      if(SgFr_state(sg_fr) < complete) {
-  	        build_next_subsumptive_consumer_return_list((subcons_fr_ptr)sg_fr, H, answer_template);
+  	        build_next_subsumptive_consumer_return_list((subcons_fr_ptr)sg_fr);
             SgFr_state(sg_fr) = complete;
   	      }
   	      if (SgFr_has_no_answers(sg_fr)) {
@@ -706,7 +707,7 @@ exec_compiled_trie_single:
   	    /* consumer */
   	    if(TabEnt_is_load(tab_ent)) {
   	      if(SgFr_state(sg_fr) < complete) {
-  	        build_next_subsumptive_consumer_return_list((subcons_fr_ptr)sg_fr, H, answer_template);
+  	        build_next_subsumptive_consumer_return_list((subcons_fr_ptr)sg_fr);
             SgFr_state(sg_fr) = complete;
   	      }
   	      if (SgFr_has_no_answers(sg_fr)) {
@@ -869,7 +870,7 @@ exec_compiled_trie_me:
   	    /* consumer */
   	    if(TabEnt_is_load(tab_ent)) {
   	      if(SgFr_state(sg_fr) < complete) {
-  	        build_next_subsumptive_consumer_return_list((subcons_fr_ptr)sg_fr, H, answer_template);
+  	        build_next_subsumptive_consumer_return_list((subcons_fr_ptr)sg_fr);
             SgFr_state(sg_fr) = complete;
   	      }
   	      if (SgFr_has_no_answers(sg_fr)) {
@@ -992,9 +993,15 @@ exec_compiled_trie:
 
 
   Op(table_trust, Otapl)
-    dprintf("===> TABLE_TRUST\n");
     
     restore_generator_node(PREG->u.Otapl.s, COMPLETION);
+#ifdef FDEBUG
+    sg_fr_ptr sg_fr = GEN_CP(B)->cp_sg_fr;
+    dprintf("===> TABLE_TRUST ");
+    printSubgoalTriePath(stdout, SgFr_leaf(sg_fr), SgFr_tab_ent(sg_fr));
+    dprintf("\n");
+#endif
+
 #ifdef DETERMINISTIC_TABLING
   if (B_FZ > B && IS_BATCHED_NORM_GEN_CP(B)) {    
       CELL *subs_ptr = (CELL *)(GEN_CP(B) + 1) + PREG->u.Otapl.s;
@@ -1296,13 +1303,15 @@ exec_compiled_trie:
       UNLOCK_OR_FRAME(LOCAL_top_or_fr);
     }
 #endif /* YAPOR */
-
-
-  answer_resolution:
     dprintf("===> TABLE_ANSWER_RESOLUTION\n");
+    
+  answer_resolution:
+    
+    dprintf("JUMP ANSWER_RESOLUTION\n");
   
     INIT_PREFETCH()
     dep_fr_ptr dep_fr;
+    
 
 #ifdef OPTYAP_ERRORS
     if (SCH_top_shared_cp(B)) {
@@ -1591,7 +1600,12 @@ exec_compiled_trie:
 
 
   BOp(table_completion, Otapl)
-    dprintf("===> TABLE_COMPLETION\n");
+#ifdef FDEBUG
+    dprintf("===> TABLE_COMPLETION ");
+      sg_fr_ptr sg_fr = GEN_CP(B)->cp_sg_fr;
+      printSubgoalTriePath(stdout, SgFr_leaf(sg_fr), SgFr_tab_ent(sg_fr));
+      dprintf("\n");
+#endif
     
 #ifdef YAPOR
     if (SCH_top_shared_cp(B)) {
@@ -1917,6 +1931,7 @@ exec_compiled_trie:
       if (IS_BATCHED_GEN_CP(B)) {
         /* batched scheduling -> backtrack */
         B = B->cp_b;
+        dprintf("Backtrack\n");
         SET_BB(PROTECT_FROZEN_B(B));
         goto fail;
       } else {
