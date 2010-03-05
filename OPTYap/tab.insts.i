@@ -559,6 +559,10 @@
   	        SgFr_state(sg_fr) = compiled;
           UNLOCK(SgFr_lock(sg_fr));
   	      sg_fr = (sg_fr_ptr)SgFr_producer((subcons_fr_ptr)sg_fr);
+  	      if(SgFr_has_no_answers(sg_fr)) {
+  	        /* no answers --> fail */
+    	      goto fail;
+  	      }
           goto exec_compiled_trie_single;
   	    }
       }
@@ -721,6 +725,10 @@ exec_compiled_trie_single:
   	        SgFr_state(sg_fr) = compiled;
           UNLOCK(SgFr_lock(sg_fr));
   	      sg_fr = (sg_fr_ptr)SgFr_producer((subcons_fr_ptr)sg_fr);
+  	      if(SgFr_has_no_answers(sg_fr)) {
+  	        /* no answers --> fail */
+    	      goto fail;
+  	      }
           goto exec_compiled_trie_me;
   	    }
       }
@@ -884,6 +892,11 @@ exec_compiled_trie_me:
   	        SgFr_state(sg_fr) = compiled;
           UNLOCK(SgFr_lock(sg_fr));
   	      sg_fr = (sg_fr_ptr)SgFr_producer((subcons_fr_ptr)sg_fr);
+  	      
+  	      if(SgFr_has_no_answers(sg_fr)) {
+  	        /* no answers --> fail */
+    	      goto fail;
+  	      }
           goto exec_compiled_trie;
   	    }
       }
