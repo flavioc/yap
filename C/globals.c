@@ -1285,8 +1285,9 @@ p_nb_getval(void)
     return FALSE;
   }
   ge = FindGlobalEntry(AtomOfTerm(t));
-  if (!ge)
-    return FALSE;
+  if (!ge) {
+    return Yap_unify(TermNil, ARG3);
+  }
   READ_LOCK(ge->GRWLock);
   to = ge->global;
   if (IsVarTerm(to) && IsUnboundVar(VarOfTerm(to))) {
@@ -1309,8 +1310,10 @@ nbdelete(Atom at)
   Prop gp, g0;
 
   ge = FindGlobalEntry(at);
-  if (!ge)
+  if (!ge) {
+    Yap_Error(EXISTENCE_ERROR_VARIABLE,MkAtomTerm(at),"nb_delete");
     return FALSE;
+  }
   WRITE_LOCK(ge->GRWLock);
   ae = ge->AtomOfGE;
   if (GlobalVariables == ge) {
@@ -1375,8 +1378,10 @@ p_nb_create(void)
     return FALSE;
   }
   ge = GetGlobalEntry(AtomOfTerm(t));
-  if (!ge)
+  if (!ge) {
+    Yap_Error(EXISTENCE_ERROR_VARIABLE,t,"nb_create");
     return FALSE;
+  }
   if (IsVarTerm(tarity)) {
     Yap_Error(INSTANTIATION_ERROR,tarity,"nb_create");
     return FALSE;
@@ -1418,8 +1423,10 @@ p_nb_create2(void)
     return FALSE;
   }
   ge = GetGlobalEntry(AtomOfTerm(t));
-  if (!ge)
+  if (!ge) {
+    Yap_Error(EXISTENCE_ERROR_VARIABLE,t,"nb_create");
     return FALSE;
+  }
   if (IsVarTerm(tarity)) {
     Yap_Error(INSTANTIATION_ERROR,tarity,"nb_create");
     return FALSE;
@@ -2605,10 +2612,16 @@ init_current_nb(void)
 {				/* current_atom(?Atom)		 */
   Term t1 = Deref(ARG1);
   if (!IsVarTerm(t1)) {
-    if (IsAtomTerm(t1))
-      cut_succeed();
-    else
+    if (IsAtomTerm(t1)) {
+      if (!FindGlobalEntry(AtomOfTerm(t1))) {
+	  cut_fail();
+      } else {
+	cut_succeed();
+      }
+    } else {
+      Yap_Error(TYPE_ERROR_ATOM,t1,"nb_current");
       cut_fail();
+    }
   }
   READ_LOCK(HashChain[0].AERWLock);
   EXTRA_CBACK_ARG(1,1) =  MkIntegerTerm((Int)GlobalVariables);
@@ -2622,11 +2635,10 @@ void Yap_InitGlobals(void)
   Yap_InitCPred("$allocate_arena", 2, p_allocate_arena, 0);
   Yap_InitCPred("arena_size", 1, p_default_arena_size, 0);
   Yap_InitCPred("b_setval", 2, p_b_setval, SafePredFlag);
-  Yap_InitCPred("b_getval", 2, p_nb_getval, SafePredFlag);
   Yap_InitCPred("nb_setval", 2, p_nb_setval, 0L);
   Yap_InitCPred("nb_set_shared_val", 2, p_nb_set_shared_val, 0L);
   Yap_InitCPred("nb_linkval", 2, p_nb_linkval, 0L);
-  Yap_InitCPred("nb_getval", 2, p_nb_getval, SafePredFlag);
+  Yap_InitCPred("$nb_getval", 3, p_nb_getval, SafePredFlag);
   Yap_InitCPred("nb_setarg", 3, p_nb_setarg, 0L);
   Yap_InitCPred("nb_set_shared_arg", 3, p_nb_set_shared_arg, 0L);
   Yap_InitCPred("nb_linkarg", 3, p_nb_linkarg, 0L);

@@ -208,7 +208,7 @@ void Yap_init_local(void) {
 #ifdef ENV_COPY
   INIT_LOCK(LOCAL_lock_signals);
 #endif /* ENV_COPY */
-  LOCAL_prune_request = NULL;
+  Set_LOCAL_prune_request(NULL);
 #endif /* YAPOR */
   INIT_LOCK(LOCAL_lock);
 #ifdef TABLING
@@ -259,7 +259,7 @@ void make_root_frames(void) {
   SetOrFr_node(or_fr, B_BASE);
   OrFr_nearest_livenode(or_fr) = NULL;
   OrFr_depth(or_fr) = 0;
-  OrFr_pend_prune_cp(or_fr) = NULL;
+  Set_OrFr_pend_prune_cp(or_fr, NULL);
   OrFr_nearest_leftnode(or_fr) = or_fr;
   OrFr_qg_solutions(or_fr) = NULL;
 #ifdef TABLING_INNER_CUTS

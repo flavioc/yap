@@ -123,13 +123,13 @@ double my_rint(double x)
   if (x >= 0) { 
     y = x + 0.5; 
     z = floor(y); 
-    n = (int) z; 
+    n = (Int) z; 
     if (y == z && n % 2)
       return(z-1); 
   } else { 
     y = x - 0.5; 
     z = ceil(y); 
-    n = (int) z; 
+    n = (Int) z; 
     if (y == z && n % 2)
       return(z+1); 
   }
@@ -418,6 +418,26 @@ eval1(Int fi, Term t) {
       RERROR();
 #endif
     }
+ case op_erf:
+   {
+     Float dbl = get_float(t), out;
+#if HAVE_ERF
+     out = erf(dbl);
+     RFLOAT(out);
+#else
+     RERROR();
+#endif
+   }
+ case op_erfc:
+   {
+     Float dbl = get_float(t), out;
+#if HAVE_ERF
+     out = erfc(dbl);
+     RFLOAT(out);
+#else
+     RERROR();
+#endif
+   }
     /*
       floor(x) maximum integer greatest or equal to X
 
@@ -463,11 +483,18 @@ eval1(Int fi, Term t) {
       case db_ref_e:
 	RERROR();
       }
-      if (yap_flags[LANGUAGE_MODE_FLAG] == 1) { /* iso */
-	RBIG_FL(floor(dbl));
-      } else {
-	RFLOAT(floor(dbl));
+#if HAVE_ISNAN
+      if (isnan(dbl)) {
+	return Yap_ArithError(DOMAIN_ERROR_OUT_OF_RANGE, t, "integer(%f)", dbl);
       }
+#endif
+#if HAVE_ISNAN
+      if (isinf(dbl)) {
+	return Yap_ArithError(EVALUATION_ERROR_INT_OVERFLOW, MkFloatTerm(dbl), "integer\
+(%f)",dbl);
+      }
+#endif
+      RBIG_FL(floor(dbl));
     }
   case op_ceiling:
     {
@@ -494,11 +521,18 @@ eval1(Int fi, Term t) {
       case db_ref_e:
 	RERROR();
       }
-      if (yap_flags[LANGUAGE_MODE_FLAG] == 1) { /* iso */
-	RBIG_FL(ceil(dbl));
-      } else {
-	RFLOAT(ceil(dbl));
+#if HAVE_ISNAN
+      if (isnan(dbl)) {
+	return Yap_ArithError(DOMAIN_ERROR_OUT_OF_RANGE, t, "integer(%f)", dbl);
       }
+#endif
+#if HAVE_ISNAN
+      if (isinf(dbl)) {
+	return Yap_ArithError(EVALUATION_ERROR_INT_OVERFLOW, MkFloatTerm(dbl), "integer\
+(%f)",dbl);
+      }
+#endif
+      RBIG_FL(ceil(dbl));
     }
   case op_round:
     {
@@ -507,9 +541,9 @@ eval1(Int fi, Term t) {
       switch (ETypeOfTerm(t)) {
       case long_int_e:
 	if (yap_flags[LANGUAGE_MODE_FLAG] == 1) { /* iso */
-	  return Yap_ArithError(TYPE_ERROR_FLOAT, t, "X is round(%f)", IntegerOfTerm(t));
+	  return Yap_ArithError(TYPE_ERROR_FLOAT, t, "X is round(%ld)", IntegerOfTerm(t));
 	} else {
-	  RFLOAT(IntegerOfTerm(t));
+	  return t;
 	}
       case double_e:
 	dbl = FloatOfTerm(t);
@@ -518,21 +552,25 @@ eval1(Int fi, Term t) {
 #ifdef USE_GMP
 	if (yap_flags[LANGUAGE_MODE_FLAG] == 1) {
 	  return process_iso_error(Yap_BigIntOfTerm(t), t, "round");
-	} else {
-	  dbl = mpz_get_d(Yap_BigIntOfTerm(t));
 	}
+	return t;
 	break;
-#endif
       case db_ref_e:
+#endif
 	RERROR();
       }
-      if (yap_flags[LANGUAGE_MODE_FLAG] == 1) { /* iso */
-	double vl = my_rint(dbl);
-	RBIG_FL(vl);
-      } else {
-	double vl = my_rint(dbl);
-	RFLOAT(vl);
+#if HAVE_ISNAN
+      if (isnan(dbl)) {
+	return Yap_ArithError(DOMAIN_ERROR_OUT_OF_RANGE, t, "integer(%f)", dbl);
       }
+#endif
+#if HAVE_ISNAN
+      if (isinf(dbl)) {
+	return Yap_ArithError(EVALUATION_ERROR_INT_OVERFLOW, MkFloatTerm(dbl), "integer\
+(%f)",dbl);
+      }
+#endif
+      RBIG_FL(my_rint(dbl));
     }
   case op_truncate:
   case op_integer:
@@ -540,21 +578,34 @@ eval1(Int fi, Term t) {
       Float dbl;
       switch (ETypeOfTerm(t)) {
       case long_int_e:
-	RINT(IntegerOfTerm(t));
+	if (yap_flags[LANGUAGE_MODE_FLAG] == 1) { /* iso */
+	  return Yap_ArithError(TYPE_ERROR_FLOAT, t, "X is round(%ld)", IntegerOfTerm(t));
+	}
+	return t;
       case double_e:
 	dbl = FloatOfTerm(t);
 	break;
-      case big_int_e:
 #ifdef USE_GMP
-	{
-	  MP_INT new;
-	  mpz_init_set(&new, Yap_BigIntOfTerm(t));
-	  RBIG(&new);
+      case big_int_e:
+	if (yap_flags[LANGUAGE_MODE_FLAG] == 1) { /* iso */
+	  return Yap_ArithError(TYPE_ERROR_FLOAT, t, "X is round(BIGNUM)");
 	}
-#endif
+	return t;
       case db_ref_e:
+#endif
 	RERROR();
       }
+#if HAVE_ISNAN
+      if (isnan(dbl)) {
+	return Yap_ArithError(DOMAIN_ERROR_OUT_OF_RANGE, t, "integer(%f)", dbl);
+      }
+#endif
+#if HAVE_ISNAN
+      if (isinf(dbl)) {
+	return Yap_ArithError(EVALUATION_ERROR_INT_OVERFLOW, MkFloatTerm(dbl), "integer\
+(%f)",dbl);
+      }
+#endif
       if (dbl <= (Float)Int_MAX && dbl >= (Float)Int_MIN) {
 	RINT((Int) dbl);
       } else {
@@ -783,6 +834,8 @@ static InitUnEntry InitUnTab[] = {
   {"float_integer_part", op_fintp},
   {"sign", op_sign},
   {"lgamma", op_lgamma},
+  {"erf",op_erf},
+  {"erfc",op_erfc},
   {"random", op_random1}
 };
 
@@ -797,8 +850,9 @@ p_unary_is(void)
     return FALSE;
   }
   top = Yap_Eval(Deref(ARG3));
-  if (top == 0L)
+  if (!Yap_FoundArithError(top, ARG3)) {
     return FALSE;
+  }
   if (IsIntTerm(t)) {
     Term tout = Yap_FoundArithError(eval1(IntegerOfTerm(t), top), Deref(ARG3));
     if (!tout)

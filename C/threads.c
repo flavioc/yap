@@ -67,10 +67,11 @@ allocate_new_tid(void)
 }
 
 static int
-store_specs(int new_worker_id, UInt ssize, UInt tsize, UInt sysize, Term tgoal, Term tdetach, Term texit)
+store_specs(int new_worker_id, UInt ssize, UInt tsize, UInt sysize, Term *tpgoal, Term *tpdetach, Term *tpexit)
 {
   UInt pm;	/* memory to be requested         */
   Term tmod;
+  Term tdetach, tgoal;
 
   if (tsize < MinTrailSpace)
     tsize = MinTrailSpace;
@@ -84,9 +85,10 @@ store_specs(int new_worker_id, UInt ssize, UInt tsize, UInt sysize, Term tgoal, 
     return FALSE;
   }
   ThreadHandle[new_worker_id].tgoal =
-    Yap_StoreTermInDB(tgoal,7);
+    Yap_StoreTermInDB(Deref(*tpgoal),7);
   ThreadHandle[new_worker_id].cmod =
     CurrentModule;
+  tdetach = Deref(*tpdetach);
   if (IsVarTerm(tdetach)){
     ThreadHandle[new_worker_id].tdetach =  
       MkAtomTerm(AtomFalse);
@@ -94,7 +96,7 @@ store_specs(int new_worker_id, UInt ssize, UInt tsize, UInt sysize, Term tgoal, 
     ThreadHandle[new_worker_id].tdetach = 
       tdetach;
   }
-  tgoal = Yap_StripModule(texit, &tmod);
+  tgoal = Yap_StripModule(Deref(*tpexit), &tmod);
   ThreadHandle[new_worker_id].texit_mod = tmod;
   ThreadHandle[new_worker_id].texit =
     Yap_StoreTermInDB(tgoal,7);
@@ -227,7 +229,7 @@ p_thread_new_tid(void)
 }
 
 static int
-init_thread_engine(int new_worker_id, UInt ssize, UInt tsize, UInt sysize, Term tgoal, Term tdetach, Term texit)
+init_thread_engine(int new_worker_id, UInt ssize, UInt tsize, UInt sysize, Term *tgoal, Term *tdetach, Term *texit)
 {
   return store_specs(new_worker_id, ssize, tsize, sysize, tgoal, tdetach, texit);
 }
@@ -238,9 +240,6 @@ p_create_thread(void)
   UInt ssize;
   UInt tsize;
   UInt sysize;
-  Term tgoal = Deref(ARG1);
-  Term tdetach = Deref(ARG5);
-  Term texit = Deref(ARG6);
   Term x2 = Deref(ARG2);
   Term x3 = Deref(ARG3);
   Term x4 = Deref(ARG4);
@@ -260,11 +259,11 @@ p_create_thread(void)
     return FALSE;
   }
   /* make sure we can proceed */
-  if (!init_thread_engine(new_worker_id, ssize, tsize, sysize, tgoal, tdetach, texit))
+  if (!init_thread_engine(new_worker_id, ssize, tsize, sysize, &ARG1, &ARG5, &ARG6))
     return FALSE;
   ThreadHandle[new_worker_id].id = new_worker_id;
   ThreadHandle[new_worker_id].ref_count = 1;
-  if ((ThreadHandle[new_worker_id].ret = pthread_create(&ThreadHandle[new_worker_id].handle, NULL, thread_run, (void *)(&(ThreadHandle[new_worker_id].id)))) == 0) {
+  if ((ThreadHandle[new_worker_id].ret = pthread_create(&ThreadHandle[new_worker_id].pthread_handle, NULL, thread_run, (void *)(&(ThreadHandle[new_worker_id].id)))) == 0) {
     /* wait until the client is initialised */
     return TRUE;
   }
@@ -365,15 +364,16 @@ Yap_thread_self(void)
 CELL
 Yap_thread_create_engine(thread_attr *ops)
 {
+  Term t = TermNil;
   int new_id = allocate_new_tid();
   if (new_id == -1) {
     /* YAP ERROR */
     return FALSE;
   }
-  if (!init_thread_engine(new_id, ops->ssize, ops->tsize, ops->sysize, TermNil, TermNil, ops->egoal))
+  if (!init_thread_engine(new_id, ops->ssize, ops->tsize, ops->sysize, &t, &t, &(ops->egoal)))
     return FALSE;
   ThreadHandle[new_id].id = new_id;
-  ThreadHandle[new_id].handle = pthread_self();
+  ThreadHandle[new_id].pthread_handle = pthread_self();
   ThreadHandle[new_id].ref_count = 0;
   setup_engine(new_id);
   return TRUE;
@@ -384,13 +384,12 @@ Yap_thread_attach_engine(int wid)
 {
   DEBUG_TLOCK_ACCESS(7, wid);
   pthread_mutex_lock(&(ThreadHandle[wid].tlock));
-  if (ThreadHandle[wid].ref_count &&
-      ThreadHandle[wid].handle != pthread_self()) {
+  if (ThreadHandle[wid].ref_count ) {
     DEBUG_TLOCK_ACCESS(8, wid);
     pthread_mutex_unlock(&(ThreadHandle[wid].tlock));
     return FALSE;
   }
-  ThreadHandle[wid].handle = pthread_self();
+  ThreadHandle[wid].pthread_handle = pthread_self();
   ThreadHandle[wid].ref_count++;
   worker_id = wid;
   DEBUG_TLOCK_ACCESS(9, wid);
@@ -403,8 +402,6 @@ Yap_thread_detach_engine(int wid)
 {
   DEBUG_TLOCK_ACCESS(10, wid);
   pthread_mutex_lock(&(ThreadHandle[wid].tlock));
-  if (ThreadHandle[wid].handle == pthread_self())
-    ThreadHandle[wid].handle = 0;
   ThreadHandle[wid].ref_count--;
   DEBUG_TLOCK_ACCESS(11, wid);
   pthread_mutex_unlock(&(ThreadHandle[wid].tlock));
@@ -442,7 +439,7 @@ p_thread_join(void)
   }
   UNLOCK(ThreadHandlesLock);
   /* make sure this lock is accessible */
-  if (pthread_join(ThreadHandle[tid].handle, NULL) < 0) {
+  if (pthread_join(ThreadHandle[tid].pthread_handle, NULL) < 0) {
     /* ERROR */
     return FALSE;
   }
@@ -470,7 +467,7 @@ p_thread_detach(void)
   Int tid = IntegerOfTerm(Deref(ARG1));
   pthread_mutex_lock(&(ThreadHandle[tid].tlock));
   DEBUG_TLOCK_ACCESS(14, tid);
-  if (pthread_detach(ThreadHandle[tid].handle) < 0) {
+  if (pthread_detach(ThreadHandle[tid].pthread_handle) < 0) {
     /* ERROR */
     DEBUG_TLOCK_ACCESS(15, tid);
     pthread_mutex_unlock(&(ThreadHandle[tid].tlock));

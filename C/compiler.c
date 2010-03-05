@@ -229,7 +229,7 @@ STATIC_PROTO(void c_arg, (Int, Term, unsigned int, unsigned int, compiler_struct
 STATIC_PROTO(void c_args, (Term, unsigned int, compiler_struct *));
 STATIC_PROTO(void c_eq, (Term, Term, compiler_struct *));
 STATIC_PROTO(void c_test, (Int, Term, compiler_struct *));
-STATIC_PROTO(void c_bifun, (Int, Term, Term, Term, Term, Term, compiler_struct *));
+STATIC_PROTO(void c_bifun, (basic_preds, Term, Term, Term, Term, Term, compiler_struct *));
 STATIC_PROTO(void c_goal, (Term, Term, compiler_struct *));
 STATIC_PROTO(void c_body, (Term, Term, compiler_struct *));
 STATIC_PROTO(void c_head, (Term, compiler_struct *));
@@ -942,7 +942,7 @@ bip_cons	   Op,Xk,Ri,C
 
  */
 static void
-c_bifun(Int Op, Term t1, Term t2, Term t3, Term Goal, Term mod, compiler_struct *cglobs)
+c_bifun(basic_preds Op, Term t1, Term t2, Term t3, Term Goal, Term mod, compiler_struct *cglobs)
 {
   /* compile Z = X Op Y  arithmetic function */
   /* first we fetch the arguments */
@@ -1795,7 +1795,7 @@ c_goal(Term Goal, Term mod, compiler_struct *cglobs)
       return;
     }
     else if (p->PredFlags & AsmPredFlag) {
-      int op = p->PredFlags & 0x7f;
+      basic_preds op = p->PredFlags & 0x7f;
 
       if (profiling)
 	Yap_emit(enter_profiling_op, (CELL)p, Zero, &cglobs->cint);
@@ -2531,6 +2531,7 @@ CheckVoids(compiler_struct *cglobs)
     case get_atom_op:
     case get_num_op:
     case get_float_op:
+    case get_dbterm_op:
     case get_longint_op:
     case get_bigint_op:
     case get_list_op:
@@ -2866,6 +2867,7 @@ c_layout(compiler_struct *cglobs)
     case get_num_op:
     case get_float_op:
     case get_longint_op:
+    case get_dbterm_op:
     case get_bigint_op:
       --cglobs->Uses[rn];
       /* This is not safe if we are in the middle of a disjunction and there
@@ -2943,6 +2945,7 @@ c_layout(compiler_struct *cglobs)
     case put_num_op:
     case put_float_op:
     case put_longint_op:
+    case put_dbterm_op:
     case put_bigint_op:
       rn = checkreg(arg, rn, ic, FALSE, cglobs);
       if (cglobs->Contents[rn] == arg)

@@ -9,7 +9,7 @@ BINDIR = $(ROOTDIR)/bin
 #
 # where YAP should look for binary libraries
 #
-LIBDIR=$(ROOTDIR)/lib/Yap
+LIBDIR=@libdir@/Yap
 #
 # where YAP should look for architecture-independent Prolog libraries
 #
@@ -34,7 +34,7 @@ PROGRAMS= \
 	$(srcdir)/bhash.yap \
 	$(srcdir)/charsio.yap \
 	$(srcdir)/cleanup.yap \
-	$(srcdir)/clpfd.pl \
+	$(srcdir)/clp/clpfd.pl \
 	$(srcdir)/dbqueues.yap \
 	$(srcdir)/dbusage.yap \
 	$(srcdir)/dgraphs.yap \

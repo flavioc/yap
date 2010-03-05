@@ -14,7 +14,7 @@
 ** ------------------ */
 
 #include "Yap.h"
-#ifdef THREADS
+#if defined(THREADS) && defined(YAPOR)
 #ifdef HAVE_STRING_H
 #include <string.h>
 #endif /* HAVE_STRING_H */
@@ -28,6 +28,14 @@
 #endif /* TABLING */
 
 
+#define INCREMENTAL_COPYING 1
+#define COMPUTE_SEGMENTS_TO_COPY_TO(Q)                                   \
+        REMOTE_start_global_copy(Q) = (CELL) (REMOTE_top_cp(Q)->cp_h);   \
+        REMOTE_end_global_copy(Q)   = (CELL) (B->cp_h);                  \
+        REMOTE_start_local_copy(Q)  = (CELL) (B);                        \
+        REMOTE_end_local_copy(Q)    = (CELL) (REMOTE_top_cp(Q));         \
+        REMOTE_start_trail_copy(Q)  = (CELL) (REMOTE_top_cp(Q)->cp_tr);  \
+        REMOTE_end_trail_copy(Q)    = (CELL) (TR)
 
 /* ------------------------------------- **
 **      Local functions declaration      **
@@ -51,16 +59,28 @@ void make_root_choice_point(void) {
     Set_LOCAL_top_cp(B);
     Set_GLOBAL_root_cp(B);
   } else {
+    choiceptr imageB;
+
     Set_LOCAL_top_cp(Get_GLOBAL_root_cp());
     B = Get_GLOBAL_root_cp();
-    B->cp_tr = TR = ((choiceptr) (worker_offset(0) + (CELL)(B)))->cp_tr;
+    /*
+      this is tricky, we need to get the B from some other stack
+      and convert back to our own stack;
+     */
+    OldLCL0 = LCL0;
+    LCL0 = ThreadHandle[0].current_yaam_regs->LCL0_;
+    imageB = Get_GLOBAL_root_cp();
+    /* we know B */
+    B->cp_tr = TR = 
+      (tr_fr_ptr)((CELL)(imageB->cp_tr)+((CELL)OldLCL0-(CELL)LCL0));
+    LCL0 = OldLCL0;
   }
   B->cp_h = H0;
   B->cp_ap = GETWORK;
   B->cp_or_fr = GLOBAL_root_or_fr;
   LOCAL_top_or_fr = GLOBAL_root_or_fr;
   LOCAL_load = 0;
-  LOCAL_prune_request = NULL;
+  Set_LOCAL_prune_request(NULL);
   BRANCH(worker_id, 0) = 0;
 #ifdef TABLING_INNER_CUTS
   LOCAL_pruning_scope = NULL;
@@ -98,6 +118,7 @@ int p_share_work(void) {
     return TRUE;
   }
   /* sharing request accepted */
+  COMPUTE_SEGMENTS_TO_COPY_TO(worker_q);
   REMOTE_q_fase_signal(worker_q) = Q_idle;
   REMOTE_p_fase_signal(worker_q) = P_idle;
 #ifndef TABLING
@@ -109,28 +130,28 @@ int p_share_work(void) {
   share_private_nodes(worker_q);
   REMOTE_reply_signal(worker_q) = nodes_shared;
   while (LOCAL_reply_signal == sharing);
+  while (REMOTE_reply_signal(worker_q) != worker_ready);
   LOCAL_share_request = MAX_WORKERS;
   PUT_IN_REQUESTABLE(worker_id);
 
   return TRUE;
 }
 
-
 int q_share_work(int worker_p) {
   LOCK_OR_FRAME(LOCAL_top_or_fr);
-  if (REMOTE_prune_request(worker_p)) {
+  if (Get_REMOTE_prune_request(worker_p)) {
     /* worker p with prune request */
     UNLOCK_OR_FRAME(LOCAL_top_or_fr);
     return FALSE;
   }
 #ifdef YAPOR_ERRORS
-  if (OrFr_pend_prune_cp(LOCAL_top_or_fr) &&
+  if (Get_OrFr_pend_prune_cp(LOCAL_top_or_fr) &&
       BRANCH_LTT(worker_p, OrFr_depth(LOCAL_top_or_fr)) < OrFr_pend_prune_ltt(LOCAL_top_or_fr))
     YAPOR_ERROR_MESSAGE("prune ltt > worker_p branch ltt (q_share_work)");
 #endif /* YAPOR_ERRORS */
   /* there is no pending prune with worker p at right --> safe move to worker p branch */
   BRANCH(worker_id, OrFr_depth(LOCAL_top_or_fr)) = BRANCH(worker_p, OrFr_depth(LOCAL_top_or_fr));
-  LOCAL_prune_request = NULL;
+  Set_LOCAL_prune_request(NULL);
   UNLOCK_OR_FRAME(LOCAL_top_or_fr);
 
 #ifdef OPTYAP_ERRORS
@@ -164,7 +185,12 @@ int q_share_work(int worker_p) {
   }
   while (LOCAL_reply_signal == sharing);
 
-  Yap_CopyThreadStacks(worker_id, worker_p);
+#if INCREMENTAL_COPYING
+  Yap_CopyThreadStacks(worker_id, worker_p, TRUE);
+#else
+  Yap_CopyThreadStacks(worker_id, worker_p, FALSE);
+#endif
+
 
   /* update registers and return */
 #ifndef TABLING
@@ -328,7 +354,7 @@ void share_private_nodes(int worker_q) {
       INIT_LOCK(OrFr_lock(or_frame));
       SetOrFr_node(or_frame, sharing_node);
       OrFr_alternative(or_frame) = sharing_node->cp_ap;
-      OrFr_pend_prune_cp(or_frame) = NULL;
+      Set_OrFr_pend_prune_cp(or_frame, NULL);
       OrFr_nearest_leftnode(or_frame) = LOCAL_top_or_fr;
       OrFr_qg_solutions(or_frame) = NULL;
 #ifdef TABLING_INNER_CUTS
@@ -546,8 +572,8 @@ void share_private_nodes(int worker_q) {
 #endif /* TABLING_INNER_CUTS */
 
   /* update worker Q prune request */
-  if (LOCAL_prune_request) {
-    CUT_send_prune_request(worker_q, LOCAL_prune_request);
+  if (Get_LOCAL_prune_request()) {
+    CUT_send_prune_request(worker_q, Get_LOCAL_prune_request());
   }
 
   /* update load and return */

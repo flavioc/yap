@@ -8,170 +8,125 @@
 *									 *
 **************************************************************************
 *									 *
-* File:		directives.yap						 *
+* File:		flags.yap						 *
 * Last rev:								 *
 * mods:									 *
-* comments:	directing system execution				 *
+* comments:	controlling YAP						 *
 *									 *
 *************************************************************************/
 
-'$all_directives'(_:G1) :- !,
-	'$all_directives'(G1).
-'$all_directives'((G1,G2)) :- !,
-	'$all_directives'(G1),
-	'$all_directives'(G2).
-'$all_directives'(G) :- !,
-	'$directive'(G).
 
-'$directive'(block(_)).
-'$directive'(char_conversion(_,_)).
-'$directive'(compile(_)).
-'$directive'(consult(_)).
-'$directive'(discontiguous(_)).
-'$directive'(dynamic(_)).
-'$directive'(elif(_)).
-'$directive'(else).
-'$directive'(encoding(_)).
-'$directive'(endif).
-'$directive'(ensure_loaded(_)).
-'$directive'(expects_dialect(_)).
-'$directive'(if(_)).
-'$directive'(include(_)).
-'$directive'(initialization(_)).
-'$directive'(initialization(_,_)).
-'$directive'(meta_predicate(_)).
-'$directive'(module(_,_)).
-'$directive'(module(_,_,_)).
-'$directive'(module_transparent(_)).
-'$directive'(multifile(_)).
-'$directive'(noprofile(_)).
-'$directive'(parallel).
-'$directive'(public(_)).
-'$directive'(op(_,_,_)).
-'$directive'(set_prolog_flag(_,_)).
-'$directive'(reconsult(_)).
-'$directive'(reexport(_)).
-'$directive'(reexport(_,_)).
-'$directive'(sequential).
-'$directive'(sequential(_)).
-'$directive'(thread_initialization(_)).
-'$directive'(thread_local(_)).
-'$directive'(uncutable(_)).
-'$directive'(use_module(_)).
-'$directive'(use_module(_,_)).
-'$directive'(use_module(_,_,_)).
-'$directive'(wait(_)).
+yap_flag(V,Out) :-
+	'$user_defined_flag'(V,_,_,_),
+	(nonvar(V) ->
+	 !
+	;
+	 true
+	),
+	'$user_flag_value'(V, Out).
 
-'$exec_directives'((G1,G2), Mode, M) :- !,
-	'$exec_directives'(G1, Mode, M),
-	'$exec_directives'(G2, Mode, M).
-'$exec_directives'(G, Mode, M) :-
-	'$exec_directive'(G, Mode, M).
+yap_flag(V,Out) :-
+	var(V), !,
+	'$show_yap_flag_opts'(V,Out).
 
-'$exec_directive'(multifile(D), _, M) :-
-	'$system_catch'('$multifile'(D, M), M,
-	      Error,
-	      user:'$LoopError'(Error, top)).
-'$exec_directive'(discontiguous(D), _, M) :-
-	'$discontiguous'(D,M).
-'$exec_directive'(initialization(D), _, M) :-
-	'$initialization'(M:D).
-'$exec_directive'(initialization(D,OPT), _, M) :-
-	'$initialization'(M:D, OPT).
-'$exec_directive'(thread_initialization(D), _, M) :-
-	'$thread_initialization'(M:D).
-'$exec_directive'(expects_dialect(D), _, _) :-
-	'$expects_dialect'(D).
-'$exec_directive'(encoding(Enc), _, _) :-
-        '$set_encoding'(Enc).
-'$exec_directive'(parallel, _, _) :-
-	'$parallel'.
-'$exec_directive'(sequential, _, _) :-
-	'$sequential'.
-'$exec_directive'(sequential(G), _, M) :-
-	'$sequential_directive'(G, M).
-'$exec_directive'(parallel(G), _, M) :-
-	'$parallel_directive'(G, M).
-'$exec_directive'(include(F), Status, _) :-
-	'$include'(F, Status).
-'$exec_directive'(module(N,P), Status, _) :-
-	'$module'(Status,N,P).
-'$exec_directive'(module(N,P,Op), Status, _) :-
-	'$module'(Status,N,P,Op).
-'$exec_directive'(meta_predicate(P), _, M) :-
-	'$meta_predicate'(P, M).
-'$exec_directive'(module_transparent(P), _, M) :-
-	'$module_transparent'(P, M).
-'$exec_directive'(noprofile(P), _, M) :-
-	'$noprofile'(P, M).
-'$exec_directive'(dynamic(P), _, M) :-
-	'$dynamic'(P, M).
-'$exec_directive'(thread_local(P), _, M) :-
-	'$thread_local'(P, M).
-'$exec_directive'(op(P,OPSEC,OP), _, _) :-
-	'$current_module'(M),
-	op(P,OPSEC,M:OP).
-'$exec_directive'(set_prolog_flag(F,V), _, _) :-
-	set_prolog_flag(F,V).
-'$exec_directive'(ensure_loaded(Fs), _, M) :-
-	'$load_files'(M:Fs, [if(changed)], ensure_loaded(Fs)).
-'$exec_directive'(char_conversion(IN,OUT), _, _) :-
-	char_conversion(IN,OUT).
-'$exec_directive'(public(P), _, M) :-
-	'$public'(P, M).
-'$exec_directive'(compile(Fs), _, M) :-
-	'$load_files'(M:Fs, [], compile(Fs)).
-'$exec_directive'(reconsult(Fs), _, M) :-
-	'$load_files'(M:Fs, [], reconsult(Fs)).
-'$exec_directive'(consult(Fs), _, M) :-
-	'$consult'(Fs, M).
-'$exec_directive'(use_module(F), _, M) :-
-	'$load_files'(M:F, [if(not_loaded)],use_module(F)).
-'$exec_directive'(reexport(F), _, M) :-
-	'$reexport'(F, all, M).
-'$exec_directive'(reexport(F,Spec), _, M) :-
-	'$reexport'(F, Spec, M).
-'$exec_directive'(use_module(F,Is), _, M) :-
-	'$load_files'(M:F, [if(not_loaded),imports(Is)],use_module(F,Is)).
-'$exec_directive'(use_module(Mod,F,Is), _, _) :-
-	'$use_module'(Mod,F,Is).
-'$exec_directive'(block(BlockSpec), _, _) :-
-	'$block'(BlockSpec).
-'$exec_directive'(wait(BlockSpec), _, _) :-
-	'$wait'(BlockSpec).
-'$exec_directive'(table(PredSpec), _, M) :-
-	'$table'(PredSpec, M).
-'$exec_directive'(use_variant_tabling(PredSpec), _, M) :-
-  '$use_variant_tabling'(PredSpec, M).
-'$exec_directive'(use_subsumptive_tabling(PredSpec), _, M) :-
-  '$use_subsumptive_tabling'(PredSpec, M).
-'$exec_directive'(uncutable(PredSpec), _, M) :-
-	'$uncutable'(PredSpec, M).
-'$exec_directive'(if(Goal), Context, M) :-
-	'$if'(M:Goal, Context).
-'$exec_directive'(else, Context, _) :-
-	'$else'(Context).
-'$exec_directive'(elif(Goal), Context, M) :-
-	'$elif'(M:Goal, Context).
-'$exec_directive'(endif, Context, _) :-
-	'$endif'(Context).
+% do or do not machine code
+yap_flag(fast,on) :- set_value('$fast',true).
+yap_flag(fast,off) :- !, set_value('$fast',[]).
 
-%                                                                                  
-% allow users to define their own directives.                                      
-%                                                                                  
-user_defined_directive(Dir,_) :-
-        '$directive'(Dir), !.
-user_defined_directive(Dir,Action) :-
-        functor(Dir,Na,Ar),
-        functor(NDir,Na,Ar),
-        '$current_module'(M, prolog),
-	assert_static('$directive'(NDir)),
-	assert_static(('$exec_directive'(Dir, _, _) :- Action)),
-        '$current_module'(_, M).
+% do or do not machine code
+yap_flag(argv,L) :- '$argv'(L).
 
-'$thread_initialization'(M:D) :-
-	eraseall('$thread_initialization'),
-	recorda('$thread_initialization',M:D,_),
+% do or do not machine code
+yap_flag(executable,L) :- '$executable'(L).
+
+% hide/unhide atoms
+yap_flag(hide,Atom) :- !, hide(Atom).
+yap_flag(unhide,Atom) :- !, unhide(Atom).
+
+% hide/unhide atoms
+yap_flag(encoding,DefaultEncoding) :- var(DefaultEncoding), !,
+	'$default_encoding'(DefCode),
+	'$valid_encoding'(DefaultEncoding, DefCode).
+yap_flag(encoding,Encoding) :-
+	'$valid_encoding'(Encoding, EncCode), !,
+	'$default_encoding'(EncCode).
+yap_flag(encoding,Encoding) :-
+	'$do_error'(domain_error(io_mode,encoding(Encoding)),yap_flag(encoding,Encoding)).
+
+% control garbage collection
+yap_flag(gc,V) :-
+	var(V), !,
+	( get_value('$gc',[]) -> V = off ; V = on).
+yap_flag(gc,on) :- !, set_value('$gc',true).
+yap_flag(gc,off) :- !, set_value('$gc',[]).
+
+yap_flag(gc_margin,N) :- 
+	( var(N) -> 
+	    get_value('$gc_margin',N)
+	;
+	  integer(N), N >0  ->
+	    set_value('$gc_margin',N)
+	;
+	    '$do_error'(domain_error(flag_value,gc_margin+X),yap_flag(gc_margin,X))
+	).
+yap_flag(gc_trace,V) :-
+	var(V), !,
+	get_value('$gc_trace',N1),
+	get_value('$gc_verbose',N2),
+	get_value('$gc_very_verbose',N3),
+	'$yap_flag_show_gc_tracing'(N1, N2, N3, V).
+yap_flag(gc_trace,on) :- !,
+	set_value('$gc_trace',true),
+	set_value('$gc_verbose',[]),
+	set_value('$gc_very_verbose',[]).
+yap_flag(gc_trace,verbose) :- !,
+	set_value('$gc_trace',[]),
+	set_value('$gc_verbose',true),
+	set_value('$gc_very_verbose',[]).
+yap_flag(gc_trace,very_verbose) :- !,
+	set_value('$gc_trace',[]),
+	set_value('$gc_verbose',true),
+	set_value('$gc_very_verbose',true).
+yap_flag(gc_trace,off) :-
+	set_value('$gc_trace',[]),
+	set_value('$gc_verbose',[]),
+	set_value('$gc_very_verbose',[]).
+yap_flag(syntax_errors, V) :- var(V), !,
+	'$get_read_error_handler'(V).
+yap_flag(syntax_errors, Option) :-
+	'$set_read_error_handler'(Option).
+% compatibility flag
+yap_flag(enhanced,on) :- !, set_value('$enhanced',true).
+yap_flag(enhanced,off) :- set_value('$enhanced',[]).
+
+%
+% SWI compatibility flag
+%
+yap_flag(generate_debug_info,X) :-
+	var(X), !,
+        '$access_yap_flags'(18,Options),
+	(Options =:= 0 -> X = false ; X = true ).
+yap_flag(generate_debug_info,true) :- !,
+	'$enable_restore_flag_info'(generate_debug_info),
+	'$set_yap_flags'(18,1),
+	source.
+yap_flag(generate_debug_info,false) :- !,
+	'$enable_restore_flag_info'(generate_debug_info),
+	'$set_yap_flags'(18,0),
+	no_source.
+yap_flag(generate_debug_info,X) :-
+	'$do_error'(domain_error(flag_value,generate_debug_info+X),yap_flag(generate_debug_info,X)).
+
+'$enable_restore_flag_info'(_) :-
+	nb_getval('$consulting_file',[]), !.
+'$enable_restore_flag_info'(_) :-
+	nb_getval('$initialization_goals',on), !.
+'$enable_restore_flag_info'(Flag) :-
+	'$show_consult_level'(Level1),
+	yap_flag(Flag, Info),
+	% it will be done after we leave the current consult level.
+	Level is Level1-1,
+	recorda('$initialisation',do(Level,yap_flag(Flag,Info)),_),
 	fail.
 '$enable_restore_flag_info'(_).
 
@@ -250,8 +205,6 @@ yap_flag(tabling_mode,Options) :-
 '$transl_to_tabling_mode'(2,local).
 '$transl_to_tabling_mode'(3,exec_answers).
 '$transl_to_tabling_mode'(4,load_answers).
-'$transl_to_tabling_mode'(5,variant).
-'$transl_to_tabling_mode'(6,subsumptive).
 
 yap_flag(informational_messages,X) :- var(X), !,
 	 get_value('$verbose',X).
@@ -384,18 +337,19 @@ yap_flag(float_min_exponent,X) :-
 	?????
 yap_flag(float_min_exponent,X) :-
 	integer(X), X > 0, !,
-	'$do_error'(permission_error(modify,flag,float_min_exponent),yap_flag(ﬂoat_min_exponent,X)).
+	'$do_error'(permission_error(modify,flag,float_min_exponent),yap_flag(float_min_exponent,X)).
 yap_flag(float_epsilon,X) :-
-	'$do_error'(domain_error(flag_value,float_min_exponent+X),yap_flag(ﬂoat_min_exponent,X)).
+	'$do_error'(domain_error(flag_value,float_min_exponent+X),yap_flag(float_min_exponent,X)).
 
 yap_flag(float_max_exponent,X) :-
 	var(X), !,
 	?????
 yap_flag(float_max_exponent,X) :-
 	integer(X), X > 0, !,
-	'$do_error'(permission_error(modify,flag,float_max_exponent),yap_flag(ﬂoat_max_exponent,X)).
+	'$do_error'(permission_error(modify,flag,float_max_exponent),yap_flag(flo
+									     at_max_exponent,X)).
 yap_flag(float_max_exponent,X) :-
-	'$do_error'(domain_error(flag_value,float_max_exponent+X),yap_flag(ﬂoat_max_exponent,X)).
+	'$do_error'(domain_error(flag_value,float_max_exponent+X),yap_flag(float_max_exponent,X)).
 */
 
 yap_flag(char_conversion,X) :-
@@ -658,6 +612,35 @@ yap_flag(write_strings,off) :- !,
 yap_flag(write_strings,X) :-
 	'$do_error'(domain_error(flag_value,write_strings+X),yap_flag(write_strings,X)).
 
+yap_flag(prompt_alternatives_on,OUT) :-
+	var(OUT), !,
+	'$prompt_alternatives_on'(OUT).
+yap_flag(prompt_alternatives_on,determinism) :- !,
+	'$purge_clauses'('$prompt_alternatives_on'(_),prolog),
+	'$compile'('$prompt_alternatives_on'(determinism),0,'$prompt_alternatives_on'(determinism),prolog).
+yap_flag(prompt_alternatives_on,groundness) :- !,
+	'$purge_clauses'('$prompt_alternatives_on'(_),prolog),
+	'$compile'('$prompt_alternatives_on'(groundness),0,'$prompt_alternatives_on'(groundness),prolog).
+yap_flag(prompt_alternatives_on,X) :-
+	'$do_error'(domain_error(flag_value,prompt_alternatives_on+X),yap_flag(prompt_alternatives_on,X)).
+
+'$user_flags'(error).
+
+yap_flag(user_flags,OUT) :-
+	var(OUT), !,
+	'$user_flags'(OUT).
+yap_flag(user_flags,silent) :- !,
+	'$purge_clauses'('$user_flags'(_),prolog),
+	'$compile'('$user_flags'(silent),0,'$user_flags'(silent),prolog).
+yap_flag(user_flags,warning) :- !,
+	'$purge_clauses'('$user_flags'(_),prolog),
+	'$compile'('$user_flags'(warning),0,'$user_flags'(warning),prolog).
+yap_flag(user_flags,error) :- !,
+	'$purge_clauses'('$user_flags'(_),prolog),
+	'$compile'('$user_flags'(error),0,'$user_flags'(error),prolog).
+yap_flag(user_flags,X) :-
+	'$do_error'(domain_error(flag_value,user_flags+X),yap_flag(user_flags,X)).
+
 yap_flag(stack_dump_on_error,OUT) :-
 	var(OUT), !,
 	'$access_yap_flags'(17,X),
@@ -773,78 +756,90 @@ yap_flag(max_threads,X) :-
 yap_flag(max_threads,X) :-
 	'$do_error'(domain_error(flag_value,max_threads+X),yap_flag(max_threads,X)).
 
+yap_flag(address_bits,X) :-
+	var(X), !,
+	'$address_bits'(X).
+yap_flag(address_bits,X) :-
+	integer(X), X > 0, !,
+	'$do_error'(permission_error(modify,flag,address_bits),yap_flag(address_bits,X)).
+yap_flag(address_bits,X) :-
+	'$do_error'(domain_error(flag_value,address_bits+X),yap_flag(address_bits,X)).
+
 yap_flag(dialect,yap).
 
-'$show_yap_flag_opts'(V,Out) :-
-	(
-		V = answer_format ;
-		V = argv ;
-		V = bounded ;
-		V = char_conversion ;
-		V = character_escapes ;
-		    V = chr_toplevel_show_store ;
-		V = debug ;
-		V = debugger_print_options ;
-		V = dialect ;
-		V = discontiguous_warnings ;
-		V = dollar_as_lower_case ;
-		V = double_quotes ;
-		V = encoding ;
-		V = executable ;
+'$yap_system_flag'(address_bits).
+'$yap_system_flag'(answer_format).
+'$yap_system_flag'(argv).
+'$yap_system_flag'(bounded).
+'$yap_system_flag'(char_conversion).
+'$yap_system_flag'(character_escapes).
+'$yap_system_flag'(chr_toplevel_show_store).
+'$yap_system_flag'(debug).
+'$yap_system_flag'(debugger_print_options).
+'$yap_system_flag'(dialect).
+'$yap_system_flag'(discontiguous_warnings).
+'$yap_system_flag'(dollar_as_lower_case).
+'$yap_system_flag'(double_quotes).
+'$yap_system_flag'(encoding).
+'$yap_system_flag'(executable).
 %		V = fast  ;
-		V = fileerrors  ;
-		V = float_format ;
+'$yap_system_flag'(fileerrors ).
+'$yap_system_flag'(float_format).
 %		V = float_mantissa_digits ;
 %		V = float_epsilon ;
 %		V = float_min_exponent ;
 %		V = float_max_exponent ;
-		V = gc    ;
-		V = gc_margin    ;
-		V = gc_trace     ;
-		V = generate_debug_info     ;
+'$yap_system_flag'(gc   ).
+'$yap_system_flag'(gc_margin   ).
+'$yap_system_flag'(gc_trace    ).
+'$yap_system_flag'(generate_debug_info    ).
 %	    V = hide  ;
-		V = home  ;
-		V = host_type  ;
-		V = index ;
-		V = tabling_mode ;
-		V = informational_messages ;
-		V = integer_rounding_function ;
-		V = language ;
-		V = max_arity ;
-		V = max_integer ;
-		V = max_tagged_integer ;
-		V = max_workers ;
-		V = max_threads ;
-		V = min_integer ;
-		V = min_tagged_integer ;
-		V = n_of_integer_keys_in_db ;
-		V = open_expands_filename ;
-		V = profiling ;
-		V = redefine_warnings ;
-		V = shared_object_search_path ;
-		V = single_var_warnings ;
-		V = stack_dump_on_error ;
-		V = strict_iso ;
-		V = syntax_errors ;
-		V = system_options ;
-		V = to_chars_mode ;
-		V = toplevel_hook ;
-		V = toplevel_print_options ;
-		V = typein_module ;
-		V = unix ;
-		V = unknown ;
-		V = update_semantics ;
-		V = user_error ;
-		V = user_input ;
-		V = user_output ;
-		V = variable_names_may_end_with_quotes ;
-		V = verbose ;
-		V = verbose_auto_load ;
-		V = version ;
-		V = version_data ;
-		V = windows ;
-		V = write_strings
-	),
+'$yap_system_flag'(home ).
+'$yap_system_flag'(host_type ).
+'$yap_system_flag'(index).
+'$yap_system_flag'(tabling_mode).
+'$yap_system_flag'(informational_messages).
+'$yap_system_flag'(integer_rounding_function).
+'$yap_system_flag'(language).
+'$yap_system_flag'(max_arity).
+'$yap_system_flag'(max_integer).
+'$yap_system_flag'(max_tagged_integer).
+'$yap_system_flag'(max_workers).
+'$yap_system_flag'(max_threads).
+'$yap_system_flag'(min_integer).
+'$yap_system_flag'(min_tagged_integer).
+'$yap_system_flag'(n_of_integer_keys_in_db).
+'$yap_system_flag'(open_expands_filename).
+'$yap_system_flag'(profiling).
+'$yap_system_flag'(prompt_alternatives_on).
+'$yap_system_flag'(redefine_warnings).
+'$yap_system_flag'(shared_object_search_path).
+'$yap_system_flag'(single_var_warnings).
+'$yap_system_flag'(stack_dump_on_error).
+'$yap_system_flag'(strict_iso).
+'$yap_system_flag'(syntax_errors).
+'$yap_system_flag'(system_options).
+'$yap_system_flag'(to_chars_mode).
+'$yap_system_flag'(toplevel_hook).
+'$yap_system_flag'(toplevel_print_options).
+'$yap_system_flag'(typein_module).
+'$yap_system_flag'(unix).
+'$yap_system_flag'(unknown).
+'$yap_system_flag'(update_semantics).
+'$yap_system_flag'(user_error).
+'$yap_system_flag'(user_flags).
+'$yap_system_flag'(user_input).
+'$yap_system_flag'(user_output).
+'$yap_system_flag'(variable_names_may_end_with_quotes).
+'$yap_system_flag'(verbose).
+'$yap_system_flag'(verbose_auto_load).
+'$yap_system_flag'(version).
+'$yap_system_flag'(version_data).
+'$yap_system_flag'(windows).
+'$yap_system_flag'(write_strings).
+
+'$show_yap_flag_opts'(V,Out) :-
+	'$yap_system_flag'(V),
 	yap_flag(V, Out).
 
 '$trans_to_lang_flag'(0,cprolog).
@@ -954,8 +949,25 @@ set_prolog_flag(F, Val) :-
 set_prolog_flag(F,V) :-
 	\+ atom(F), !,
 	'$do_error'(type_error(atom,F),set_prolog_flag(F,V)).
+set_prolog_flag(F, Val) :-
+	prolog:'$user_defined_flag'(F,_,_,_), !,
+	yap_flag(F, Val).
 set_prolog_flag(F,V) :-
+	'$yap_system_flag'(F), !,
 	yap_flag(F,V).
+set_prolog_flag(F,V) :-
+	'$user_flags'(UFlag),
+	(
+	 UFlag = silent ->
+	 create_prolog_flag(F, V, [])
+	;
+	 UFlag = warning ->
+	 print_message(warning,existence_error(prolog_flag, F)),
+	 create_prolog_flag(F, V, [])
+	;
+	 UFlag = error ->
+	 '$do_error'(existence_error(prolog_flag, F),set_prolog_flag(F,V))
+	).
 
 prolog_flag(F, Old, New) :-
 	var(F), !,
@@ -1082,15 +1094,5 @@ create_prolog_flag(Name, Value, Options) :-
 '$flag_domain_from_value'(Value, atom) :- atom(Value), !.
 '$flag_domain_from_value'(_, term).
 
-'$thread_initialization'(M:D) :-
-	'$initialization'(M:D).
-
-'$expects_dialect'(swi) :-
-	eraseall('$dialect'),
-	recorda('$dialect',swi,_),
-	load_files(library('dialect/swi'),[silent(true),if(not_loaded)]).
-'$expects_dialect'(yap) :-
-	eraseall('$dialect'),
-	recorda('$dialect',yap,_).
 
 

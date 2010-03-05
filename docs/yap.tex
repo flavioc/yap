@@ -8,9 +8,9 @@ a\input texinfo @c -*- mode: texinfo; coding: latin-1; -*-
 @c @setchapternewpage odd
 @c %**end of header
 
-@set VERSION 6.0.0
-@set EDITION 4.2.5
-@set UPDATED June 2008
+@set VERSION 6.0.3
+@set EDITION 4.2.6
+@set UPDATED Feb 2010
 
 @c Index for C-Prolog compatible predicate
 @defindex cy
@@ -2994,6 +2994,21 @@ goal, and the second @var{M} set to the current module. The predicate
 If @code{user:unknown_predicate_handler/3} succeeds, the system will
 execute @var{NG}. If  @code{user:unknown_predicate_handler/3} fails, the
 system will execute default action as specified by @code{unknown/2}.
+
+@item exception(+@var{Exception}, +@var{Context}, -@var{Action})
+@findex exception/3
+@syindex exception/3
+@cnindex exception/3
+ Dynamic predicate, normally not defined. Called by the Prolog system on run-time exceptions that can be repaired `just-in-time'. The values for @var{Exception} are described below. See also @code{catch/3} and @code{throw/1}.
+If this hook predicate succeeds it must instantiate the @var{Action} argument to the atom @code{fail} to make the operation fail silently, @code{retry} to tell Prolog to retry the operation or @code{error} to make the system generate an exception. The action @code{retry} only makes sense if this hook modified the environment such that the operation can now succeed without error.
+
+@table @code
+@item undefined_predicate
+@var{Context} is instantiated to a predicate-indicator (@var{Module:Name/Arity}). If the predicate fails Prolog will generate an existence_error exception. The hook is intended to implement alternatives to the SWI built-in autoloader, such as autoloading code from a database. Do not use this hook to suppress existence errors on predicates. See also @code{unknown}.
+@item undefined_global_variable
+@var{Context} is instantiated to the name of the missing global variable. The hook must call @code{nb_setval/2} or @code{b_setval/2} before returning with the action retry.
+@end table
+
 @end table
 
 @node Messages, Testing Terms, Undefined Procedures, Top
@@ -3833,6 +3848,12 @@ Hyperbolic arc tangent.
 
 @item lgamma(@var{X})
 gamma function.
+
+@item erf(@var{X})
+gaussian error function.
+
+@item erfc(@var{X})
+complementary gaussian error function.
 
 @item random(@var{X}) [ISO]
 An integer random number between 0 and @var{X}.
@@ -6395,6 +6416,7 @@ Grammar related built-in predicates:
 
 @table @code
 
+@item @var{CurrentModule}:expand_term(@var{T},-@var{X})
 @item user:expand_term(@var{T},-@var{X})
 @findex expand_term/2
 @syindex expand_term/2
@@ -6405,11 +6427,12 @@ Grammar related built-in predicates:
 This predicate is used by YAP for preprocessing each top level
 term read when consulting a file and before asserting or executing it.
 It rewrites a term @var{T} to a term @var{X} according to the following
-rules: first try to use the user defined predicate
+rules: first try @code{term_expansion/2}  in the current module, and then try to use the user defined predicate
 @code{user:term_expansion/2}. If this call fails then the translating process
 for DCG rules is applied, together with the arithmetic optimizer
 whenever the compilation of arithmetic expressions is in progress.
 
+@item @var{CurrentModule}:goal_expansion(+@var{G},+@var{M},-@var{NG})
 @item user:goal_expansion(+@var{G},+@var{M},-@var{NG})
 @findex goal_expansion/3
 @snindex goal_expansion/3
@@ -6544,7 +6567,7 @@ Execute a new shell.
 @snindex alarm/3
 @cnindex alarm/3
 Arranges for YAP to be interrupted in @var{Seconds} seconds, or in
-@var{Seconds.MicroSeconds}. When interrupted, YAP will execute
+@var{[Seconds|MicroSeconds]}. When interrupted, YAP will execute
 @var{Callable} and then return to the previous execution. If
 @var{Seconds} is @code{0}, no new alarm is scheduled. In any event,
 any previously set alarm is canceled.
@@ -6735,7 +6758,7 @@ namespace and values for global variables.
 @end itemize
 
 Currently global variables are scoped globally. We may consider module
-scoping in future versions.  Both @code{b_setval/2} and
+scoping in future versions.   Both @code{b_setval/2} and
 @code{nb_setval/2} implicitly create a variable if the referenced name
 does not already refer to a variable.
 
@@ -6773,6 +6796,8 @@ instantiate the value of the global variable. If this is undesirable
 the normal precautions (double negation or @code{copy_term/2}) must be
 taken. The @code{b_getval/2} predicate generates errors if @var{Name} is not
 an atom or the requested variable does not exist. 
+
+Notice that for compatibility with other systems @var{Name} @emph{must} be already associated with a term: otherwise the system will generate an error.
 
 @item nb_setval(+@var{Name}, +@var{Value}) 
 @findex nb_setval/2
@@ -7766,6 +7791,11 @@ procedures. If @code{on} compile predicates so that they will output
 profiling information. Profiling data can be read through the
 @code{profile_data/3} built-in.
 
+@item  prompt_alternatives_on(atom, changeable)
+@findex  prompt_alternatives_on  (yap_flag/2 option)
+SWI-Compatible opttion, determines prompting for alternatives in the Prolog toplevel. Default is @t{groundness}, YAP prompts for alternatives if and only if the query contains variables. The alternative, default in SWI-Prolog is @t{determinism} which implies the system prompts for alternatives if the goal succeeded while leaving choicepoints.
+
+
 @item redefine_warnings
 @findex discontiguous_warnings (yap_flag/2 option)
 @*
@@ -7935,6 +7965,11 @@ prompts from the system were redirected to the stream
 @code{mauri_tripa}. Last, we close the stream. At this point, YAP
 automatically redirects the @code{user_error} alias to the original
 @code{stderr}.
+
+@item user_flags
+@findex user_flags  (yap_flag/2 option)
+@*
+Define the behaviour of @code{set_prolog_flag/2} if the flag is not known. Values are @code{silent}, @code{warning} and @code{error}. The first two create the flag on-the-fly, with @code{warning} printing a message. The value @code{error} is consistent with ISO: it raises an existence error and does not create the flag. See also @code{create_prolog_flag/3}. The default is@code{error}, and developers are encouraged to use @code{create_prolog_flag/3} to create flags for their library.
 
 @item user_input
 @findex user_input (yap_flag/2 option)
@@ -8141,14 +8176,27 @@ Stream currently being read in.
 Stream position at the stream currently being read in.
 @end table
 
-
-@end table
-
 @item source_location(?@var{FileName}, ?@var{Line})
 @findex source_location/2
 @syindex source_location/2
 @cnindex source_location/2
 SWI-compatible predicate. If the last term has been read from a physical file (i.e., not from the file user or a string), unify File with an absolute path to the file and Line with the line-number in the file. Please use @code{prolog_load_context/2}.
+
+@item source_file(?@var{File})
+@findex source_file/1
+@syindex source_file/1
+@cnindex source_file/1
+SWI-compatible predicate. True if @var{File} is a loaded Prolog source file.
+
+@item source_file(?@var{ModuleAndPred},?@var{File})
+@findex source_file/2
+@syindex source_file/2
+@cnindex source_file/2
+SWI-compatible predicate. True if the predicate specified by @var{ModuleAndPred} was loaded from file @var{File}, where @var{File} is an absolute path name (see @code{absolute_file_name/2}).
+
+
+
+@end table
 
 @node Library, SWI-Prolog, Built-ins, Top
 
@@ -10550,6 +10598,13 @@ Convert the number @var{Number} to the string of character codes
 Convert the atom @var{Number} to the difference list of character codes
 @var{Result-Result0}.
 
+@item atom_to_term(+@var{Atom}, -@var{Term}, -@var{Bindings})
+@findex atom_to_term/3
+@syindex atom_to_term/3
+@cnindex atom_to_term/3
+Use @var{Atom} as input to @code{read_term/2} using the option @code{variable_names} and return the read term in @var{Term} and the variable bindings in @var{Bindings}. @var{Bindings} is a list of @code{Name = Var} couples, thus providing access to the actual variable names. See also @code{read_term/2}. If Atom has no valid syntax, a syntax_error exception is raised.
+
+
 @item read_from_chars(+@var{Chars}, -@var{Term})
 @findex read_from_chars/2
 @syindex read_from_chars/2
@@ -11347,7 +11402,7 @@ available with the @code{use_module(library(timeout))} command.
 Execute goal @var{Goal} with time limited @var{Timeout}, where
 @var{Timeout} is measured in milliseconds. If the goal succeeds, unify
 @var{Result} with success. If the timer expires before the goal
-terminates, unify @var{Result} with @t{timeout}.
+terminates, unify @var{Result} with @t{time_out}.
 
 This command is implemented by activating an alarm at procedure
 entry. If the timer expires before the goal completes, the alarm will

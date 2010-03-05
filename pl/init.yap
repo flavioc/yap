@@ -45,7 +45,8 @@ otherwise.
 :- [	 'utils.yap',
 	 'control.yap',
 	 'arith.yap',
-	 'directives.yap'].
+	 'directives.yap',
+	 'flags.yap'].
 
 :- compile_expressions.
 
@@ -115,7 +116,7 @@ lists:member(X,[_|L]) :-
 
 :-	 ['protect.yap'].
 
-version(yap,[5,1]).
+version(yap,[6,0]).
 
 system_mode(verbose,on)  :- set_value('$verbose',on).
 system_mode(verbose,off) :- set_value('$verbose',off).
@@ -200,6 +201,10 @@ yap_hacks:cut_by(CP) :- '$$cut_by'(CP).
 :- dynamic user:message_hook/3.
 
 :- multifile user:portray_message/2.
+
+:- multifile user:exception/3.
+
+:- dynamic user:exception/3.
 
 file_search_path(library, Dir) :-
 	library_directory(Dir).

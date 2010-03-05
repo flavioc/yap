@@ -4631,6 +4631,7 @@ p_instance(void)
 	if (IsVarTerm(t2)) {
 	  Yap_unify(ARG2, (t2 = Yap_MkNewApplTerm(f,arity)));
 	} else if (!IsApplTerm(t2) || FunctorOfTerm(t2) != f) {
+	  UNLOCK(ap->PELock);
 	  return FALSE;
 	}
 	ptr = RepAppl(t2)+1;
@@ -4950,7 +4951,8 @@ Term
 Yap_PopTermFromDB(DBTerm *ref)
 {
   Term t = GetDBTerm(ref);
-  ReleaseTermFromDB(ref);
+  if (t != 0L)
+    ReleaseTermFromDB(ref);
   return t;
 }
 

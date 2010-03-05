@@ -67,12 +67,12 @@ A	CurrentModule		F	"$current_module"
 A	Cut			N	"!"
 A	CutBy			F	"$cut_by"
 A	DAbort			F	"$abort"
-A	DBREF			A	"DBRef"
+A	DBREF			N	"DBRef"
 A	DBReference		N	"db_reference"
 A	DBTerm			N	"db_term"
 A	DBref			F	"$dbref"
 A	DInteger		F	"$integer"
-A	DOUBLE			A	"Double"
+A	DOUBLE			F	"Double"
 A	Dec10			N	"dec10"
 A	Default			N	"default"
 A	DevNull			N	"/dev/null"
@@ -264,7 +264,8 @@ A	StackFree		N	"stackfree"
 A	StaticClause		F	"$static_clause"
 A	StaticProcedure		N	"static_procedure"
 A	Stream			F	"$stream"
-A	Streams			F	"streams"
+A	VStream			N	"stream"
+A	Streams			N	"streams"
 A	StreamOrAlias		N	"stream_or_alias"
 A	StreamPos		F	"$stream_position"
 A	StreamPosition		N	"stream_position"
@@ -404,6 +405,7 @@ F	Stream			Stream		1
 F	StreamEOS		EndOfStream	1
 F	StreamPos		StreamPos	5
 F	SyntaxError		SyntaxError	7
+F	ShortSyntaxError	SyntaxError	1
 F	ThreadRun		TopThreadGoal	2
 F	Throw			Throw		1
 F	TimeoutError		TimeoutError	2

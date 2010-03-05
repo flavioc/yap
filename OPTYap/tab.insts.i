@@ -1103,7 +1103,7 @@ exec_compiled_trie:
                 UNLOCK_TABLE(ans_node);
 #endif /* TABLE_LOCK_LEVEL */
                 LOCK_OR_FRAME(leftmost_or_fr);
-                if (LOCAL_prune_request) {
+                if (Get_LOCAL_prune_request()) {
                   UNLOCK_OR_FRAME(leftmost_or_fr);
                   SCHEDULER_GET_WORK();
                 } else {
@@ -1187,7 +1187,7 @@ exec_compiled_trie:
       }
 
       /* check for prune requests */
-      if (LOCAL_prune_request) {
+      if (Get_LOCAL_prune_request()) {
 #if defined(TABLE_LOCK_AT_ENTRY_LEVEL)
         UNLOCK(SgFr_lock(sg_fr));
 #elif defined(TABLE_LOCK_AT_NODE_LEVEL)
@@ -1441,7 +1441,7 @@ exec_compiled_trie:
                 end_or_fr = OrFr_next(end_or_fr);
 	      }
     	    } while (start_or_fr != end_or_fr);
-            if (LOCAL_prune_request)
+            if (Get_LOCAL_prune_request())
               pruning_over_tabling_data_structures(); 	
           }
 #endif /* YAPOR */
@@ -1526,7 +1526,7 @@ exec_compiled_trie:
 #endif /* TABLING_INNER_CUTS */
             start_or_fr = OrFr_next(start_or_fr);
   	  }
-          if (LOCAL_prune_request)
+          if (Get_LOCAL_prune_request())
             pruning_over_tabling_data_structures(); 
         }
       }

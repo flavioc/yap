@@ -3334,7 +3334,7 @@ compile_index(struct intermediates *cint)
 
 
 yamop *
-Yap_PredIsIndexable(PredEntry *ap, UInt NSlots)
+Yap_PredIsIndexable(PredEntry *ap, UInt NSlots, yamop *next_pc)
 {
   yamop *indx_out;
   int setjres;
@@ -3348,7 +3348,7 @@ Yap_PredIsIndexable(PredEntry *ap, UInt NSlots)
   if ((setjres = setjmp(cint.CompilerBotch)) == 3) {
     restore_machine_regs();
     recover_from_failed_susp_on_cls(&cint, 0);
-    if (!Yap_gcl(Yap_Error_Size, ap->ArityOfPE+NSlots, ENV, CP)) {
+    if (!Yap_gcl(Yap_Error_Size, ap->ArityOfPE+NSlots, ENV, next_pc)) {
       Yap_Error(OUT_OF_STACK_ERROR, TermNil, Yap_ErrorMessage);
       return FAILCODE;
     }
@@ -3452,15 +3452,17 @@ install_clause(ClauseDef *cls, PredEntry *ap, istack_entry *stack)
 	    if (cls->u.t_ptr != sp->extra) break;
 	  } else {
 	    CELL *pt = RepAppl(sp->extra);
-	    CELL *pt1 = RepAppl(cls->u.t_ptr);
+	    if (cls->u.t_ptr) {
+	      CELL *pt1 = RepAppl(cls->u.t_ptr);
 #if SIZEOF_DOUBLE == 2*SIZEOF_LONG_INT
-	    Term t = MkIntTerm(pt[1]^pt[2]),
-	      t1 = MkIntTerm(pt1[1]^pt1[2]);
+	      Term t = MkIntTerm(pt[1]^pt[2]),
+		t1 = MkIntTerm(pt1[1]^pt1[2]);
 #else
-	    Term t = MkIntTerm(pt[1]),
-	      t1 = MkIntTerm(pt1[1]);
+	      Term t = MkIntTerm(pt[1]),
+		t1 = MkIntTerm(pt1[1]);
 #endif
 	      if (t != t1) break;
+	    }
 	  }
 	}
       }
@@ -4402,7 +4404,7 @@ expand_index(struct intermediates *cint) {
 
 
 static yamop *
-ExpandIndex(PredEntry *ap, int ExtraArgs) {
+ExpandIndex(PredEntry *ap, int ExtraArgs, yamop *nextop) {
   yamop *indx_out, *expand_clauses;
   yamop **labp;
   int cb;
@@ -4413,7 +4415,7 @@ ExpandIndex(PredEntry *ap, int ExtraArgs) {
     restore_machine_regs();
     /* grow stack */
     recover_from_failed_susp_on_cls(&cint, 0);
-    Yap_gcl(Yap_Error_Size, ap->ArityOfPE+ExtraArgs, ENV, CP);
+    Yap_gcl(Yap_Error_Size, ap->ArityOfPE+ExtraArgs, ENV, nextop);
   } else if (cb == 2) {
     restore_machine_regs();
     Yap_Error_Size = recover_from_failed_susp_on_cls(&cint, Yap_Error_Size);
@@ -4596,7 +4598,7 @@ ExpandIndex(PredEntry *ap, int ExtraArgs) {
 
 yamop *
 Yap_ExpandIndex(PredEntry *ap, UInt nargs) {
-  return ExpandIndex(ap, nargs);
+  return ExpandIndex(ap, nargs, CP);
 }
 
 static path_stack_entry *
@@ -6906,6 +6908,7 @@ Yap_FollowIndexingCode(PredEntry *ap, yamop *ipc, Term Terms[3], yamop *ap_pc, y
 	ipc = ipc->u.ollll.l1;
 	S = s_reg = RepPair(t);
       } else if (t == TermNil) {
+	unbounded = FALSE;
 	jlbl = &(ipc->u.ollll.l2);
 	ipc = ipc->u.ollll.l2;
       } else {
@@ -7032,7 +7035,7 @@ Yap_FollowIndexingCode(PredEntry *ap, yamop *ipc, Term Terms[3], yamop *ap_pc, y
 	break;
       }
 #endif
-      ipc = ExpandIndex(ap, 5);
+      ipc = ExpandIndex(ap, 5, cp_pc);
       s_reg = (CELL *)XREGS[ap->ArityOfPE+1];
       t = XREGS[ap->ArityOfPE+2];
       Terms[0] = XREGS[ap->ArityOfPE+3];
@@ -7063,7 +7066,7 @@ Yap_FollowIndexingCode(PredEntry *ap, yamop *ipc, Term Terms[3], yamop *ap_pc, y
       XREGS[ap->ArityOfPE+3] = Terms[0];
       XREGS[ap->ArityOfPE+4] = Terms[1];
       XREGS[ap->ArityOfPE+5] = Terms[2];
-      Yap_IPred(ap, 5);
+      Yap_IPred(ap, 5, cp_pc);
       start_pc = ipc = ap->cs.p_code.TrueCodeOfPred;
       s_reg = (CELL *)XREGS[ap->ArityOfPE+1];
       t = XREGS[ap->ArityOfPE+2];
@@ -7307,7 +7310,7 @@ Yap_NthClause(PredEntry *ap, Int ncls)
 	break;
       }
 #endif
-      ipc = ExpandIndex(ap, 0);
+      ipc = ExpandIndex(ap, 0, CP);
 
       break;
     case _op_fail:
@@ -7316,7 +7319,7 @@ Yap_NthClause(PredEntry *ap, Int ncls)
     case _lock_pred:
     case _index_pred:
     case _spy_pred:
-      Yap_IPred(ap, 0);
+      Yap_IPred(ap, 0, CP);
       ipc = ap->cs.p_code.TrueCodeOfPred;
       break;
     case _undef_p:

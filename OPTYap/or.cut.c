@@ -102,14 +102,14 @@ void prune_shared_branch(choiceptr prune_cp) {
     } while (Get_LOCAL_top_cp() != prune_cp);
 
 #ifdef YAPOR_ERRORS
-    if (LOCAL_prune_request && EQUAL_OR_YOUNGER_CP(LOCAL_prune_request, LOCAL_top_cp))
+    if (Get_LOCAL_prune_request() && EQUAL_OR_YOUNGER_CP(Get_LOCAL_prune_request(), Get_LOCAL_top_cp()))
       YAPOR_ERROR_MESSAGE("EQUAL_OR_YOUNGER_CP(LOCAL_prune_request, LOCAL_top_cp) (prune_shared_branch)");
 #endif /* YAPOR_ERRORS */
     /* store answers not pruned */
     if (qg_solutions)
       CUT_join_answers_in_an_unique_frame(qg_solutions);
     LOCK_OR_FRAME(leftmost_or_fr);
-    if (LOCAL_prune_request) {
+    if (Get_LOCAL_prune_request()) {
       UNLOCK_OR_FRAME(leftmost_or_fr);
       if (qg_solutions)
         CUT_free_solution_frame(qg_solutions);
@@ -154,7 +154,7 @@ void prune_shared_branch(choiceptr prune_cp) {
     while (Get_LOCAL_top_cp() != leftmost_cp) {
       ltt = BRANCH_LTT(worker_id, OrFr_depth(LOCAL_top_or_fr));
       LOCK_OR_FRAME(LOCAL_top_or_fr);
-      if (OrFr_pend_prune_cp(LOCAL_top_or_fr))
+      if (Get_OrFr_pend_prune_cp(LOCAL_top_or_fr))
         prune_more = 0;
       aux_qg_solutions = OrFr_qg_solutions(LOCAL_top_or_fr);
 #ifdef TABLING_INNER_CUTS
@@ -192,14 +192,14 @@ void prune_shared_branch(choiceptr prune_cp) {
     }
 
 #ifdef YAPOR_ERRORS
-    if (LOCAL_prune_request && EQUAL_OR_YOUNGER_CP(LOCAL_prune_request, Get_LOCAL_top_cp()))
+    if (Get_LOCAL_prune_request() && EQUAL_OR_YOUNGER_CP(Get_LOCAL_prune_request(), Get_LOCAL_top_cp()))
       YAPOR_ERROR_MESSAGE("EQUAL_OR_YOUNGER_CP(LOCAL_prune_request, Get_LOCAL_top_cp()) (prune_shared_branch)");
 #endif /* YAPOR_ERRORS */
     /* store answers not pruned */
     if (qg_solutions)
       CUT_join_answers_in_an_unique_frame(qg_solutions);
     LOCK_OR_FRAME(leftmost_or_fr);
-    if (LOCAL_prune_request) {
+    if (Get_LOCAL_prune_request()) {
       UNLOCK_OR_FRAME(leftmost_or_fr);
       if (qg_solutions)
         CUT_free_solution_frame(qg_solutions);
@@ -214,10 +214,10 @@ void prune_shared_branch(choiceptr prune_cp) {
       if (tg_solutions)
         tg_solutions = CUT_store_tg_answers(leftmost_or_fr, tg_solutions, ltt);
 #endif /* TABLING_INNER_CUTS */
-      if (OrFr_pend_prune_cp(leftmost_or_fr))
+      if (Get_OrFr_pend_prune_cp(leftmost_or_fr))
         prune_more = 0;
       OrFr_alternative(leftmost_or_fr) = NULL;
-      OrFr_pend_prune_cp(leftmost_or_fr) = prune_cp;
+      Set_OrFr_pend_prune_cp(leftmost_or_fr, prune_cp);
       OrFr_pend_prune_ltt(leftmost_or_fr) = ltt;
       UNLOCK_OR_FRAME(leftmost_or_fr);
 #ifdef TABLING_INNER_CUTS

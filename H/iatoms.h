@@ -58,10 +58,12 @@
   AtomCut = Yap_LookupAtom("!");
   AtomCutBy = Yap_FullLookupAtom("$cut_by");
   AtomDAbort = Yap_FullLookupAtom("$abort");
+  AtomDBREF = Yap_LookupAtom("DBRef");
   AtomDBReference = Yap_LookupAtom("db_reference");
   AtomDBTerm = Yap_LookupAtom("db_term");
   AtomDBref = Yap_FullLookupAtom("$dbref");
   AtomDInteger = Yap_FullLookupAtom("$integer");
+  AtomDOUBLE = Yap_FullLookupAtom("Double");
   AtomDec10 = Yap_LookupAtom("dec10");
   AtomDefault = Yap_LookupAtom("default");
   AtomDevNull = Yap_LookupAtom("/dev/null");
@@ -253,7 +255,8 @@
   AtomStaticClause = Yap_FullLookupAtom("$static_clause");
   AtomStaticProcedure = Yap_LookupAtom("static_procedure");
   AtomStream = Yap_FullLookupAtom("$stream");
-  AtomStreams = Yap_FullLookupAtom("streams");
+  AtomVStream = Yap_LookupAtom("stream");
+  AtomStreams = Yap_LookupAtom("streams");
   AtomStreamOrAlias = Yap_LookupAtom("stream_or_alias");
   AtomStreamPos = Yap_FullLookupAtom("$stream_position");
   AtomStreamPosition = Yap_LookupAtom("stream_position");
@@ -393,6 +396,7 @@
   FunctorStreamEOS = Yap_MkFunctor(AtomEndOfStream,1);
   FunctorStreamPos = Yap_MkFunctor(AtomStreamPos,5);
   FunctorSyntaxError = Yap_MkFunctor(AtomSyntaxError,7);
+  FunctorShortSyntaxError = Yap_MkFunctor(AtomSyntaxError,1);
   FunctorThreadRun = Yap_MkFunctor(AtomTopThreadGoal,2);
   FunctorThrow = Yap_MkFunctor(AtomThrow,1);
   FunctorTimeoutError = Yap_MkFunctor(AtomTimeoutError,2);

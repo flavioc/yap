@@ -186,7 +186,6 @@ typedef struct worker_local_struct {
   Term global_delay_arena;
   yamop trust_lu_code[3];
 #if (defined(YAPOR) || defined(TABLING) ) && defined(THREADS)
-  struct local_data *local;
 #ifdef YAPOR
   struct worker worker;
 #endif /* YAPOR */
@@ -209,7 +208,7 @@ typedef struct thandle {
   REGSTORE *default_yaam_regs;
   REGSTORE *current_yaam_regs;
   struct pred_entry *local_preds;
-  pthread_t handle;
+  pthread_t pthread_handle;
   int ref_count;
 #ifdef LOW_LEVEL_TRACER
   long long int thread_inst_count;
@@ -218,7 +217,7 @@ typedef struct thandle {
 #endif
   pthread_mutex_t tlock;
   pthread_mutex_t tlock_status;
-#if HAVE_GETRUSAGE
+#if HAVE_GETRUSAGE||defined(_WIN32)
   struct timeval *start_of_timesp;
   struct timeval *last_timep;
 #endif
@@ -370,7 +369,6 @@ extern struct various_codes *Yap_heap_regs;
 #define  GLOBAL		          Yap_heap_regs->global
 #define  REMOTE                   Yap_heap_regs->remote
 #ifdef THREADS
-#define  LOCAL		          Yap_heap_regs->WL.local
 #define  WORKER                   Yap_heap_regs->WL.worker
 #endif
 #endif /* YAPOR || TABLING */

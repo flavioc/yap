@@ -849,6 +849,7 @@ p_char_code(void)
       Yap_Error(INSTANTIATION_ERROR,t0,"char_code/2");
       return(FALSE);
     } else if (!IsIntegerTerm(t1)) {
+      fprintf(stderr,"hello\n"),
       Yap_Error(TYPE_ERROR_INTEGER,t1,"char_code/2");
       return(FALSE);
     } else {
@@ -1905,6 +1906,20 @@ gen_syntax_error(Atom InpAtom, char *s)
   return(Yap_MkApplTerm(FunctorSyntaxError,7,ts));
 }
 
+static Term
+gen_syntax_type_error(void)
+{
+  Term ts[7], ti[2];
+  ti[0] = ARG1;
+  ti[1] = ARG2;
+  ts[0] = Yap_MkApplTerm(Yap_MkFunctor(Yap_LookupAtom("number_chars"),2),2,ti);
+  ts[1] = ts[4] = ts[5] = MkIntTerm(0);
+  ts[2] = MkAtomTerm(AtomExpectedNumber);
+  ts[3] = TermNil;
+  ts[6] = ARG2;
+  return(Yap_MkApplTerm(FunctorSyntaxError,7,ts));
+}
+
 static Int 
 p_number_chars(void)
 {
@@ -1923,7 +1938,7 @@ p_number_chars(void)
       return FALSE;
     }
   }
-  if (IsNonVarTerm(t1)) {
+  if (IsNonVarTerm(t1) && IsVarTerm(t)) {
     Term            NewT;
     if (!IsNumTerm(t1)) {
       Yap_Error(TYPE_ERROR_NUMBER, t1, "number_chars/2");
@@ -1969,15 +1984,15 @@ p_number_chars(void)
       register Int    i;
       Head = HeadOfTerm(t);
       if (IsVarTerm(Head)) {
-	Yap_Error(INSTANTIATION_ERROR,Head,"number_chars/2");
+	Yap_Error(SYNTAX_ERROR,gen_syntax_type_error(),"number_chars/2");
 	return(FALSE);
       } else if (!IsIntTerm(Head)) {
-	Yap_Error(REPRESENTATION_ERROR_CHARACTER_CODE,Head,"number_chars/2");
+	Yap_Error(SYNTAX_ERROR,gen_syntax_type_error(),"number_chars/2");
 	return(FALSE);		
       }
       i = IntOfTerm(Head);
       if (i < 0 || i > 255) {
-	Yap_Error(REPRESENTATION_ERROR_CHARACTER_CODE,Head,"number_chars/2");
+	Yap_Error(SYNTAX_ERROR,gen_syntax_type_error(),"number_chars/2");
 	return(FALSE);		
       }
       if (s+1024 > (char *)AuxSp) {
@@ -1993,10 +2008,10 @@ p_number_chars(void)
       *s++ = i;
       t = TailOfTerm(t);
       if (IsVarTerm(t)) {
-	Yap_Error(INSTANTIATION_ERROR,t,"number_chars/2");
+	Yap_Error(SYNTAX_ERROR,gen_syntax_type_error(),"number_chars/2");
 	return(FALSE);
       } else if (!IsPairTerm(t) && t != TermNil) {
-	Yap_Error(TYPE_ERROR_LIST, t, "number_chars/2");
+	Yap_Error(SYNTAX_ERROR,gen_syntax_type_error(),"number_chars/2");
 	return(FALSE);
       }
     }
@@ -2008,15 +2023,15 @@ p_number_chars(void)
       
       Head = HeadOfTerm(t);
       if (IsVarTerm(Head)) {
-	Yap_Error(INSTANTIATION_ERROR,Head,"number_chars/2");
+	Yap_Error(SYNTAX_ERROR,gen_syntax_type_error(),"number_chars/2");
 	return(FALSE);
       } else if (!IsAtomTerm(Head)) {
-	Yap_Error(TYPE_ERROR_CHARACTER,Head,"number_chars/2");
+	Yap_Error(SYNTAX_ERROR,gen_syntax_type_error(),"number_chars/2");
 	return(FALSE);		
       }
       is = RepAtom(AtomOfTerm(Head))->StrOfAE;
       if (is[1] != '\0') {
-	Yap_Error(TYPE_ERROR_CHARACTER,Head,"number_chars/2");
+	Yap_Error(SYNTAX_ERROR,gen_syntax_type_error(),"number_chars/2");
 	return(FALSE);		
       }
       if (s+1 == (char *)AuxSp) {
@@ -2031,10 +2046,10 @@ p_number_chars(void)
       *s++ = is[0];
       t = TailOfTerm(t);
       if (IsVarTerm(t)) {
-	Yap_Error(INSTANTIATION_ERROR,t,"number_chars/2");
+	Yap_Error(SYNTAX_ERROR,gen_syntax_type_error(),"number_chars/2");
 	return(FALSE);
       } else if (!IsPairTerm(t) && t != TermNil) {
-	Yap_Error(TYPE_ERROR_LIST, t, "number_chars/2");
+	Yap_Error(SYNTAX_ERROR,gen_syntax_type_error(),"number_chars/2");
 	return(FALSE);
       }
     }
@@ -2133,7 +2148,7 @@ p_number_codes(void)
       return FALSE;
     }
   }
-  if (IsNonVarTerm(t1)) {
+  if (IsNonVarTerm(t1) && IsVarTerm(t)) {
     if (IsIntTerm(t1)) {
 #if SHORT_INTS
       sprintf(String, "%ld", IntOfTerm(t1));
@@ -2943,6 +2958,22 @@ Yap_IsOp(Atom at)
 {
   OpEntry *op = NextOp(RepOpProp((Prop)(RepAtom(at)->PropsOfAE)));
   return (!EndOfPAEntr(op));
+}
+
+int
+Yap_IsOpMaxPrio(Atom at)
+{
+  OpEntry *op = NextOp(RepOpProp((Prop)(RepAtom(at)->PropsOfAE)));
+  int max;
+
+  if (EndOfPAEntr(op))
+    return 0;
+  max = (op->Prefix & 0xfff);
+  if ((op->Infix & 0xfff) > max)
+    max = op->Infix & 0xfff;
+  if ((op->Posfix & 0xfff) > max)
+    max = op->Posfix & 0xfff;
+  return max;
 }
 
 static Int

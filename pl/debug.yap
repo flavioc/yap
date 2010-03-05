@@ -123,21 +123,21 @@
 	recorded('$spy','$spy'(G,M),_), !.
 
 spy Spec :-
-	prolog:debug_action_hook(spy(Spec)), !.
+	'$notrace'(prolog:debug_action_hook(spy(Spec))), !.
 spy L :-
 	'$current_module'(M),
 	'$suspy'(L, spy, M), fail.
 spy _ :- debug.
 
 nospy Spec :-
-	prolog:debug_action_hook(nospy(Spec)), !.
+	'$notrace'(prolog:debug_action_hook(nospy(Spec))), !.
 nospy L :-
 	'$current_module'(M),
 	'$suspy'(L, nospy, M), fail.
 nospy _.
 
 nospyall :-
-	prolog:debug_action_hook(nospyall), !.
+	'$notrace'(prolog:debug_action_hook(nospyall)), !.
 nospyall :-
 	recorded('$spy','$spy'(T,M),_), functor(T,F,N), '$suspy'(F/N,nospy,M), fail.
 nospyall.
@@ -145,6 +145,7 @@ nospyall.
 % debug mode -> debug flag = 1
 
 debug :-
+	( nb_getval('$spy_gn',L) -> true ; nb_setval('$spy_gn',1) ),
 	'$start_debugging'(on),
 	print_message(informational,debug(debug)).
 
@@ -333,7 +334,7 @@ debugging :-
 	L1 is L+1,			/* bump it			*/
 	nb_setval('$spy_gn',L1),	/* and save it globaly		*/
         b_getval('$spy_glist',History),	/* get goal list		*/
-	b_setval('$spy_glist',[info(L,Module,G,_Retry,_Det)|History]),	/* and update it		*/
+	b_setval('$spy_glist',[info(L,Module,G,_Retry,_Det,_HasFoundAnswers)|History]),	/* and update it		*/
 	'$loop_spy'(L, G, Module, CalledFromDebugger).	/* set creep on		*/
 
 % we are skipping, so we can just call the goal,
@@ -393,7 +394,8 @@ debugging :-
 	   ;
 	     G = G0
 	   ),
-	   b_getval('$spy_glist',[info(_,_,_,Retry,Det)|_]),	/* get goal list		*/
+	   b_getval('$spy_glist',[Info|_]),	/* get goal list		*/
+	   Info = info(_,_,_,Retry,Det,false),
 	   (
 	    /* call port */
 	    '$enter_goal'(GoalNumber, G, Module),
@@ -408,6 +410,8 @@ debugging :-
 	/* go execute the predicate	*/
 	    (
 	      Retry = false ->
+	       /* found an answer, so it can redo */
+	       nb_setarg(6, Info, true),
 	      '$show_trace'(exit,G,Module,GoalNumber,Det),	/* output message at exit	*/
 	       /* exit port */
 	       /* get rid of deterministic computations */
@@ -424,8 +428,15 @@ debugging :-
 	        /* we get here when we want to redo a goal		*/
 		/* redo port */
 	     '$disable_docreep',
-	     '$show_trace'(redo,G,Module,GoalNumber,_), /* inform user_error		*/
-	    '$continue_debugging'(CalledFromDebugger),
+	      (
+	       arg(6, Info, true)
+	      ->
+	        '$show_trace'(redo,G,Module,GoalNumber,_), /* inform user_error		*/
+	        nb_setarg(6, Info, false)
+	       ;
+	         true
+	      ),
+	     '$continue_debugging'(CalledFromDebugger),
 	     fail			/* to backtrack to spycalls	*/
 	     )
 	  ;
@@ -578,6 +589,9 @@ debugging :-
 '$debugger_write'(Stream, G) :-
 	writeq(Stream, G).
 
+'$action'(13,P,CallNumber,G,Module,Zip) :- !,	% newline 	creep
+	get0(user_input,C),
+	'$action'(C,P,CallNumber,G,Module,Zip).
 %'$action'(10,_,_,_,_,on) :-			% newline 	creep
 %	nb_setval('$debug_jump',false).
 '$action'(10,_,_,_,_,on) :- !,			% newline 	creep
@@ -743,7 +757,7 @@ debugging :-
 
 '$show_ancestors'([],_).
 '$show_ancestors'([_|_],0) :- !.
-'$show_ancestors'([info(L,M,G,Retry,Det)|History],HowMany) :-
+'$show_ancestors'([info(L,M,G,Retry,Det,_Exited)|History],HowMany) :-
 	'$show_ancestor'(L,M,G,Retry,Det,HowMany,HowMany1),
 	'$show_ancestors'(History,HowMany1).
 

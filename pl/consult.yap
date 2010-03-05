@@ -32,12 +32,36 @@
 load_files(Files,Opts) :-
 	'$load_files'(Files,Opts,load_files(Files,Opts)).
 
-'$load_files'(Files,Opts,Call) :-		    
+'$load_files'(Files,Opts,Call) :-
+	'$check_files'(Files,load_files(Files,Opts)),
 	'$process_lf_opts'(Opts,Silent,InfLevel,Expand,Changed,CompilationMode,Imports,Stream,Encoding,SkipUnixComments,CompMode,Reconsult,Files,Call),
 	'$check_use_module'(Call,UseModule),
         '$current_module'(M0),
 	'$lf'(Files,M0,Call,InfLevel,Expand,Changed,CompilationMode,Imports,Stream,Encoding,SkipUnixComments,CompMode,Reconsult,UseModule),
 	'$close_lf'(Silent).
+
+'$check_files'(Files,Call) :-
+	var(Files), !,
+	'$do_error'(instantiation_error,Call).
+'$check_files'(M:Files,Call) :-
+	(var(M)
+	->
+	'$do_error'(instantiation_error,Call)
+	;
+	 atom(M)
+	->
+	 '$check_files'(Files,Call)
+	;
+	'$do_error'(type_error(atom,M),Call)
+	).
+'$check_files'(Files,Call) :-
+	(ground(Files)
+	->
+	 true
+	;
+	'$do_error'(instantiation_error,Call)
+	).
+	 
 
 '$process_lf_opts'(V,_,_,_,_,_,_,_,_,_,_,_,_,Call) :-
 	var(V), !,
@@ -129,7 +153,7 @@ load_files(Files,Opts) :-
 	'$do_lf'(Mod, user_input, InfLevel, CompilationMode,Imports,SkipUnixComments,CompMode,Reconsult,UseModule).
 '$lf'(X, Mod, Call, InfLevel,_,Changed,CompilationMode,Imports,_,Enc,SkipUnixComments,CompMode,Reconsult,UseModule) :-
 	'$find_in_path'(X, Y, Call),
-	'$open'(Y, '$csult', Stream, 0, Enc), !,
+	'$open'(Y, '$csult', Stream, 0, Enc, X), !,
 	'$set_changed_lfmode'(Changed),
 	'$start_lf'(X, Mod, Stream, InfLevel, CompilationMode, Imports, Changed,SkipUnixComments,CompMode,Reconsult,UseModule),
 	'$close'(Stream).
@@ -172,9 +196,9 @@ consult(Fs) :-
 '$consult'(Fs,Module) :-
 	'$access_yap_flags'(8, 2), % SICStus Prolog compatibility
 	!,
-	'$load_files'(Module:Fs,[],Fs).
+	'$load_files'(Module:Fs,[],consult(Fs)).
 '$consult'(Fs, Module) :-
-	'$load_files'(Module:Fs,[consult(consult)],Fs).
+	'$load_files'(Module:Fs,[consult(consult)],consult(Fs)).
 
 reconsult(Fs) :-
 	'$load_files'(Fs, [], reconsult(Fs)).
@@ -214,7 +238,7 @@ use_module(M,F,Is) :-
 	nb_getval('$consulting_file',OldF),
 	'$set_consulting_file'(Stream),
 	H0 is heapused, '$cputime'(T0,_),
-	'$current_stream'(File,_,Stream),
+	'$file_name'(Stream,File),
 	'$fetch_stream_alias'(OldStream,'$loop_stream'),
 	'$change_alias_to_stream'('$loop_stream',Stream),
 	nb_getval('$consulting',Old),
@@ -396,7 +420,7 @@ use_module(M,F,Is) :-
 	'$current_module'(Mod),
 	H0 is heapused, '$cputime'(T0,_),
 	'$default_encoding'(Encoding),
-	( '$open'(Y,'$csult',Stream,0,Encoding), !,
+	( '$open'(Y, '$csult', Stream, 0, Encoding, X), !,
 		print_message(Verbosity, loading(including, Y)),
 		'$loop'(Stream,Status), '$close'(Stream)
 	;
@@ -424,6 +448,23 @@ use_module(M,F,Is) :-
 	'$skip_unix_comments'(Stream).
 '$skip_unix_comments'(_).
 
+
+source_file(FileName) :-
+	recorded('$lf_loaded','$lf_loaded'(FileName,Mod,_,_),_), Mod \= prolog.
+
+source_file(Mod:Pred, FileName) :-
+	current_module(Mod),
+	Mod \= prolog,
+	'$current_predicate_no_modules'(Mod,_,Pred),
+	'$owned_by'(Pred, Mod, FileName).
+
+'$owned_by'(T, Mod, FileName) :-
+	'$is_multifile'(T, Mod),
+	functor(T, Name, Arity),
+	setof(FileName, Ref^recorded('$multifile_defs','$defined'(FileName,Name,Arity,Mod), Ref), L),
+	lists:member(FileName, L).
+'$owned_by'(T, Mod, FileName) :-
+	'$owner_file'(T, Mod, FileName).
 
 source_location(FileName, Line) :-
 	prolog_load_context(file, FileName),
@@ -838,10 +879,9 @@ absolute_file_name(File,Opts,TrueFileName) :-
 '$system_library_directories'(Dir) :-
 	getenv('YAPSHAREDIR', Dir).
 '$system_library_directories'(Dir) :-
-	get_value(system_library_directory,Dir).
-
-'$system_library_directories'(Dir) :-
 	getenv('YAPCOMMONSDIR', Dir).
+'$system_library_directories'(Dir) :-
+	get_value(system_library_directory,Dir).
 '$system_library_directories'(Dir) :-
 	get_value(prolog_commons_directory,Dir).
 

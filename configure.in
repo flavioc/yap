@@ -17,9 +17,6 @@ AC_SUBST(GCC)
 AC_SUBST(C_INTERF_FLAGS)
 AC_SUBST(C_PARSER_FLAGS)
 
-AC_ARG_ENABLE(cut-c,
-	[ --enable-cut-c             support for executing c code when a cut occurs ],
-	cutc="$enableval", cutc=no)
 AC_ARG_ENABLE(tabling,
 	[ --enable-tabling           support tabling ],
 	tabling="$enableval", tabling=no)
@@ -511,13 +508,16 @@ dnl Check for libraries.
 dnl mingw does not get along well with libm
 dnl cygnus and mingw32 also need wsock32 to use sockets.
 dnl
-if test "$target_os" = "cygwin"
+if test "$target_os" = "cygwin"  -o "$target_os" = "mingw32"
 then
   INSTALL_COMMAND=install_win32
-  if test "$cygwin" = "no"
+  if test "$cygwin" = "no" -o "$target_os" = "mingw32"
   then
-    CC="gcc  -mno-cygwin"
-    CXX="g++  -mno-cygwin"
+    if test "$target_os" = "cygwin"
+    then
+      CC="${CC}  -mno-cygwin"
+      CXX="${CXX}  -mno-cygwin"
+    fi
     AC_CHECK_LIB(wsock32,main)
     AC_CHECK_LIB(psapi,main)
     yap_cv_readline=no
@@ -530,17 +530,6 @@ then
     ENABLE_WINCONSOLE="#"   
     LIBS="-lcygwin"
    fi
-elif test "$target_os" = "mingw32" 
-then
-  yap_cv_readline=no
-  INSTALL_COMMAND=install_win32
-  ENABLE_WINCONSOLE=""   
-  AC_CHECK_LIB(wsock32,main)
-  AC_CHECK_LIB(psapi,main)
-    if test "$prefix" = "NONE"
-    then
-      prefix="\${SYSTEMDRIVE}/Yap"
-    fi
 else
   INSTALL_COMMAND="install_unix"
   ENABLE_WINCONSOLE="#"
@@ -623,25 +612,6 @@ then
 	    	echo "-------------------------------"
 	    	exit
 	fi
-
-	if test "$cutc" = no
-	then
-		echo
-		echo
-		echo "********************************************************"
-		echo
-		echo
-		echo "!!!!!! WARNING !!!!!!"
-		echo "The MYDDAS interface makes no sense without cut-c"
-		echo "Please contact tiagosoares@ncc.up.pt for help"
-		echo 
-		echo "Enabling cut-c"
-		echo
-		echo "********************************************************"
-		echo
-		echo
-		cutc="yes"
-	fi
 fi	
 
 if test "$myddasstats" = "yes"
@@ -701,6 +671,9 @@ elif test -e "$srcdir"/packages/jpl/Makefile.in; then
 	JAVA_HOME="$yap_cv_jpl"
 	if test "x$JAVALIBS" = "x"; then
 	  case "$target_os" in
+	    *cygwin*|*mingw*)
+	       JAVALIBS="\"$JAVA_HOME\"/lib/jvm.lib -lpthread  ../PLStream/plstream.dll"
+	       	  ;;
 	       *darwin*)
 	       JAVALIBS="-Wl,-framework,JavaVM"
 	       	  ;;
@@ -989,6 +962,8 @@ dnl Linux has both elf and a.out, in this case we found elf
       *cyg*|*mingw*)
 	# gcc on cygwin seems to have trouble with longjmp
         # and -fomit-frame-point -DBP_FREE
+	JAVALIBPATH=""
+	JAVAINCPATH="-I\"$JAVA_HOME\"/include -I\"$JAVA_HOME\"/include/win32"
 	YAPLIB="libWYap.a"
 	SHLIB_CFLAGS=""
         SHLIB_LD="\$(CC) -shared -Wl,--export-all-symbols ../../yap.dll"
@@ -1028,16 +1003,18 @@ esac
 
 if test "$dynamic_loading" = "yes"
 then 
+  DYNLIB_LD="$SHLIB_LD"
   YAP_EXTRAS="$SHLIB_CFLAGS $YAP_EXTRAS"
   case "$target_os" in
-  *cygwin*!*mingw32*)
+  *cygwin*|*mingw*)
+    DYNLIB_LD="\$(CC) -shared -Wl,--export-all-symbols"
     EXTEND_DYNLOADER_PATH=""
     PRE_DYNLOADER_PATH=""
     ;;
   *darwin*)
     DYNYAPLIB=libYap"$SHLIB_SUFFIX"
     YAPLIB="$DYNYAPLIB"
-    DYNLIB_LD="$CC -dynamiclib"
+    DYNLIB_LD="$CC -dynamiclib -Wl,-install_name,$prefix/lib/libYap.dylib"
     PRE_DYNLOADER_PATH="DYLD_LIBRARY_PATH=\$(abs_top_builddir)"
     EXTEND_DYNLOADER_PATH="DYLD_LIBRARY_PATH=\$(DESTDIR)\$(LIBDIR): YAPSHAREDIR=\$(DESTDIR)\$(SHAREDIR) YAPBOOTDIR=\$(DESTDIR)\$(SHAREDIR)/pl  YAPLIBDIR=\$(DESTDIR)\$(YAPLIBDIR)"
 #    CROSS_SIMULATOR="DYLD_LIBRARY_PATH=."
@@ -1056,10 +1033,9 @@ then
        esac
     EXTEND_DYNLOADER_PATH="LD_LIBRARY_PATH=\$(DESTDIR)\$(LIBDIR): YAPSHAREDIR=\$(DESTDIR)\$(SHAREDIR) YAPBOOTDIR=\$(DESTDIR)\$(SHAREDIR)/pl YAPLIBDIR=\$(DESTDIR)\$(YAPLIBDIR)"
     PRE_DYNLOADER_PATH="LD_LIBRARY_PATH=\$(abs_top_builddir)"
-    LDFLAGS="$LDFLAGS -Wl,-R,$prefix/lib  -Wl,-R,$JAVA_HOME/jre/lib/$JAVA_TARGET"
+    LDFLAGS="$LDFLAGS -Wl,-R,$JAVA_HOME/jre/lib/$JAVA_TARGET"
     DYNYAPLIB=libYap"$SHLIB_SUFFIX"
     YAPLIB="$DYNYAPLIB"
-    DYNLIB_LD="$SHLIB_LD"
     ;;
   esac
 else
@@ -1165,7 +1141,7 @@ if test ! "$yap_cv_cplint" = "no"
 	AC_SEARCH_LIBS([array_do_alloc], [glu], [CPLINT_LIBS="-lglu "$CPLINT_LIBS], [AC_MSG_ERROR([This package needs glu.], [1])], [])
 	AC_SEARCH_LIBS([Cudd_Init], [cu], [CPLINT_LIBS="-lcu "$CPLINT_LIBS], [AC_MSG_ERROR([This package needs glu.], [1])], [-lglu -lm])
 	ENABLE_CPLINT=""
-	if test "$target_os" = "cygwin" -o "$target_os" = "mingw32" 
+	if test "$target_os" = "cygwin" -o "$target_os" = "mingw32"
 	then
 		CPLINT_SHLIB_LD="gcc -shared ../yap.dll"
 	else
@@ -1503,7 +1479,7 @@ dnl Checks for library functions.
 AC_TYPE_SIGNAL
 AC_CHECK_FUNCS(access)
 AC_CHECK_FUNCS(acosh asinh atanh chdir ctime dlopen dup2)
-AC_CHECK_FUNCS(feclearexcept)
+AC_CHECK_FUNCS(erf feclearexcept)
 AC_CHECK_FUNCS(fesettrapenable fgetpos finite fpclass ftime getcwd getenv)
 AC_CHECK_FUNCS(gethostbyname gethostid gethostname)
 AC_CHECK_FUNCS(gethrtime getpagesize)

@@ -513,3 +513,19 @@ Yap_unify_constant(register Term a, register Term cons)
 #define LT_OK_IN_CMP 2
 #define GT_OK_IN_CMP 4
 
+static inline int
+do_cut(int i) {
+#ifdef CUT_C
+  while (POP_CHOICE_POINT(B->cp_b)) {
+    cut_c_pop();
+  }
+#endif
+  Yap_TrimTrail();
+  B = B->cp_b;
+  return i;
+}
+
+#define cut_succeed() return do_cut(TRUE)
+
+#define cut_fail() return do_cut(FALSE)
+

@@ -295,6 +295,7 @@ unix_upd_stream_info (StreamDesc * s)
       s->status |= Tty_Stream_f|Reset_Eof_Stream_f|Promptable_Stream_f;
       /* make all console descriptors unbuffered */
       setvbuf(s->u.file.file, NULL, _IONBF, 0);
+      return;
     }
 #if _MSC_VER
     /* standard error stream should never be buffered */
@@ -302,6 +303,7 @@ unix_upd_stream_info (StreamDesc * s)
       setvbuf(s->u.file.file, NULL, _IONBF, 0);      
     }
 #endif
+    s->status |= Seekable_Stream_f;
     return;
   }
 #else
@@ -522,8 +524,10 @@ InitPlIO (void)
 {
   Int i;
 
-  for (i = 0; i < MaxStreams; ++i)
+  for (i = 0; i < MaxStreams; ++i) {
+    INIT_LOCK(Stream[i].streamlock);    
     Stream[i].status = Free_Stream_f;
+  }
   /* alloca alias array */
   if (!FileAliases)
     FileAliases = (AliasDesc)Yap_AllocCodeSpace(sizeof(struct AliasDescS)*ALIASES_BLOCK_SIZE);
@@ -2162,8 +2166,13 @@ check_bom(int sno, StreamDesc *st)
   int ch;
 
   ch = st->stream_getc(sno);
-  if (ch == EOFCHAR)
+  if (ch == EOFCHAR) {
+    st->och = ch;
+    st->stream_getc = PlUnGetc;
+    st->stream_wgetc = get_wchar;
+    st->stream_gets = DefaultGets;
     return TRUE;
+  }
   switch(ch) {
   case 0xFE:
     {
@@ -2261,6 +2270,34 @@ p_access(void)
 }
 
 static Int
+p_exists_directory(void)
+{
+  Term tname = Deref(ARG1);
+  char *file_name;
+
+  if (IsVarTerm(tname)) {
+    Yap_Error(INSTANTIATION_ERROR, tname, "exists_directory/1");
+    return FALSE;
+  } else if (!IsAtomTerm (tname)) {
+    Yap_Error(TYPE_ERROR_ATOM, tname, "exists_directory/1");
+    return FALSE;
+  } else {
+#if HAVE_STAT
+    struct SYSTEM_STAT ss;
+
+    file_name = RepAtom(AtomOfTerm(tname))->StrOfAE;
+    if (SYSTEM_STAT(file_name, &ss) != 0) {
+    /* ignore errors while checking a file */
+      return FALSE;
+    }
+    return (S_ISDIR(ss.st_mode));
+#else
+    return FALSE;
+#endif
+  }
+}
+
+static Int
 p_open (void)
 {				/* '$open'(+File,+Mode,?Stream,-ReturnCode)      */
   Term file_name, t, t2, topts, tenc;
@@ -2330,12 +2367,12 @@ p_open (void)
       if (open_mode == AtomCsult)
 	{
 	  if (!find_csult_file (Yap_FileNameBuf, Yap_FileNameBuf2, st, io_mode))
-	    return (PlIOError (EXISTENCE_ERROR_SOURCE_SINK, file_name, "open/3"));
+	    return (PlIOError (EXISTENCE_ERROR_SOURCE_SINK, ARG6, "open/3"));
 	  strncpy (Yap_FileNameBuf, Yap_FileNameBuf2, YAP_FILENAME_MAX);
 	}
       else {
 	if (errno == ENOENT)
-	  return (PlIOError(EXISTENCE_ERROR_SOURCE_SINK,file_name,"open/3"));
+	  return (PlIOError(EXISTENCE_ERROR_SOURCE_SINK,ARG6,"open/3"));
 	else
 	  return (PlIOError(PERMISSION_ERROR_OPEN_SOURCE_SINK,file_name,"open/3"));
       }
@@ -2349,9 +2386,12 @@ p_open (void)
   st->status = s;
   st->charcount = 0;
   st->linecount = 1;
-  st->u.file.name = Yap_LookupAtom (Yap_FileNameBuf);
-  st->u.file.user_name = file_name;
   st->linepos = 0;
+  st->u.file.name = Yap_LookupAtom (Yap_FileNameBuf);
+  if (IsAtomTerm(Deref(ARG6)))
+    st->u.file.user_name = Deref(ARG6);
+  else
+    st->u.file.user_name = file_name;
   st->stream_putc = FilePutc;
   st->stream_wputc = put_wchar;
   st->stream_getc = PlGetc;
@@ -3166,10 +3206,7 @@ StreamName(int i)
     if (Stream[i].status & InMemory_Stream_f)
       return(MkAtomTerm(AtomCharsio));
     else {
-      if (yap_flags[LANGUAGE_MODE_FLAG] == ISO_CHARACTER_ESCAPES) {
-	return(Stream[i].u.file.user_name);
-      } else
-	return(MkAtomTerm(Stream[i].u.file.name));
+      return(Stream[i].u.file.user_name);
     }
 }
 
@@ -3334,8 +3371,10 @@ p_close (void)
   Int sno = CheckStream (ARG1, (Input_Stream_f | Output_Stream_f | Socket_Stream_f), "close/2");
   if (sno < 0)
     return (FALSE);
-  if (sno <= StdErrStream)
-    return (TRUE);
+  if (sno <= StdErrStream) {
+    UNLOCK(Stream[sno].streamlock);
+    return TRUE;
+  }
   CloseStream(sno);
   UNLOCK(Stream[sno].streamlock);
   return (TRUE);
@@ -3364,7 +3403,7 @@ p_peek_mem_write_stream (void)
 	Yap_Error(OUT_OF_STACK_ERROR, TermNil, Yap_ErrorMessage);
 	return(FALSE);
       }
-      i = 0;
+      i = Stream[sno].u.mem_string.pos;
       tf = ARG2;
       LOCK(Stream[sno].streamlock);
       goto restart;
@@ -3723,6 +3762,8 @@ syntax_error (TokEntry * tokptr, int sno, Term *outp)
   Term *error = tf+3;
   CELL *Hi = H;
 
+  /* make sure to globalise variable */
+  Yap_unify(*outp, MkVarTerm());
   start = tokptr->TokPos;
   clean_vars(Yap_VarTable);
   clean_vars(Yap_AnonVarTable);
@@ -3808,7 +3849,11 @@ syntax_error (TokEntry * tokptr, int sno, Term *outp)
     }
     tokptr = tokptr->TokNext;
   }
-  tf[0] = Yap_MkApplTerm(Yap_MkFunctor(AtomRead,1),1,outp);
+  if (IsVarTerm(*outp) && (VarOfTerm(*outp) > H || VarOfTerm(*outp) < H0)) {
+    tf[0] = Yap_MkNewApplTerm(Yap_MkFunctor(AtomRead,1),1);
+  } else {
+    tf[0] = Yap_MkApplTerm(Yap_MkFunctor(AtomRead,1),1,outp);
+  }
   {
     Term t[3];
 
@@ -4001,7 +4046,7 @@ static Int
        and floats */
     old_H = H;
     if (Stream[inp_stream].status & Eof_Stream_f) {
-      if (Yap_eot_before_eof) {
+      if (Yap_eot_before_eof || (Stream[inp_stream].status & InMemory_Stream_f)) {
 	/* next read should give out an end of file */
 	Stream[inp_stream].status |= Push_Eof_Stream_f;
       } else {
@@ -5862,13 +5907,10 @@ p_char_conversion(void)
 	return(FALSE);
     }
     for (i = 0; i < NUMBER_OF_CHARS; i++) 
-      CharConversionTable2[i] = '\0';
+      CharConversionTable2[i] = i;
   }
   /* just add the new entry */
-  if (s0[0] == s1[0])
-    CharConversionTable2[(int)s0[0]] = '\0';
-  else
-    CharConversionTable2[(int)s0[0]] = s1[0];
+  CharConversionTable2[(int)s0[0]] = s1[0];
   /* done */
   return(TRUE);
 }
@@ -6256,7 +6298,8 @@ Yap_InitIOPreds(void)
   Yap_InitCPred ("$get0_line_codes", 2, p_get0_line_codes, SafePredFlag|SyncPredFlag|HiddenPredFlag);
   Yap_InitCPred ("$get_byte", 2, p_get_byte, SafePredFlag|SyncPredFlag|HiddenPredFlag);
   Yap_InitCPred ("$access", 1, p_access, SafePredFlag|SyncPredFlag|HiddenPredFlag);
-  Yap_InitCPred ("$open", 5, p_open, SafePredFlag|SyncPredFlag|HiddenPredFlag);
+  Yap_InitCPred ("exists_directory", 1, p_exists_directory, SafePredFlag|SyncPredFlag);
+  Yap_InitCPred ("$open", 6, p_open, SafePredFlag|SyncPredFlag|HiddenPredFlag);
   Yap_InitCPred ("$file_expansion", 2, p_file_expansion, SafePredFlag|SyncPredFlag|HiddenPredFlag);
   Yap_InitCPred ("$open_null_stream", 1, p_open_null_stream, SafePredFlag|SyncPredFlag|HiddenPredFlag);
   Yap_InitCPred ("$open_pipe_stream", 2, p_open_pipe_stream, SafePredFlag|SyncPredFlag|HiddenPredFlag);
