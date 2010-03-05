@@ -106,6 +106,15 @@ PtoLocAdjust (CELL * ptr)
 }
 
 
+inline EXTERN struct cut_c_str *CutCAdjust (struct cut_c_str *);
+
+inline EXTERN struct cut_c_str *
+CutCAdjust (struct  cut_c_str * ptr)
+{
+  return (struct cut_c_str *) (CharP (ptr) + LDiff);
+}
+
+
 
 inline EXTERN choiceptr ChoicePtrAdjust (choiceptr);
 
@@ -674,6 +683,14 @@ inline EXTERN opentry *
 OpRTableAdjust (opentry * ptr)
 {
   return (opentry *) (((opentry *) (CharP (ptr) + HDiff)));
+}
+
+inline EXTERN OpEntry *OpEntryAdjust (OpEntry *);
+
+inline EXTERN OpEntry *
+OpEntryAdjust (OpEntry * ptr)
+{
+  return (OpEntry *) (((OpEntry *) (CharP (ptr) + HDiff)));
 }
 
 inline EXTERN PredEntry *PtoPredAdjust (PredEntry *);

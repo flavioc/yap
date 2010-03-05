@@ -773,7 +773,7 @@ Yap_Error(yap_error_number type, Term where, char *format,...)
       Term ti[2];
 
       i = strlen(tmpbuf);
-      ti[0] = MkAtomTerm(AtomStream);
+      ti[0] = MkAtomTerm(AtomVStream);
       ti[1] = where;
       nt[0] = Yap_MkApplTerm(FunctorDomainError, 2, ti);
       tp = tmpbuf+i;
@@ -893,7 +893,22 @@ Yap_Error(yap_error_number type, Term where, char *format,...)
       Term ti[2];
 
       i = strlen(tmpbuf);
-      ti[0] = MkAtomTerm(AtomStream);
+      ti[0] = MkAtomTerm(AtomVStream);
+      ti[1] = where;
+      nt[0] = Yap_MkApplTerm(FunctorExistenceError, 2, ti);
+      tp = tmpbuf+i;
+      psize -= i;
+      fun = FunctorError;
+      serious = TRUE;
+    }
+    break;
+  case EXISTENCE_ERROR_VARIABLE:
+    {
+      int i;
+      Term ti[2];
+
+      i = strlen(tmpbuf);
+      ti[0] = MkAtomTerm(AtomVariable);
       ti[1] = where;
       nt[0] = Yap_MkApplTerm(FunctorExistenceError, 2, ti);
       tp = tmpbuf+i;
@@ -1172,7 +1187,7 @@ Yap_Error(yap_error_number type, Term where, char *format,...)
 
       i = strlen(tmpbuf);
       ti[0] = MkAtomTerm(AtomInput);
-      ti[1] = MkAtomTerm(AtomStream);
+      ti[1] = MkAtomTerm(AtomVStream);
       ti[2] = where;
       nt[0] = Yap_MkApplTerm(FunctorPermissionError, 3, ti);
       tp = tmpbuf+i;
@@ -1268,7 +1283,7 @@ Yap_Error(yap_error_number type, Term where, char *format,...)
 
       i = strlen(tmpbuf);
       ti[0] = MkAtomTerm(AtomOutput);
-      ti[1] = MkAtomTerm(AtomStream);
+      ti[1] = MkAtomTerm(AtomVStream);
       ti[2] = where;
       nt[0] = Yap_MkApplTerm(FunctorPermissionError, 3, ti);
       tp = tmpbuf+i;
@@ -1300,7 +1315,7 @@ Yap_Error(yap_error_number type, Term where, char *format,...)
 
       i = strlen(tmpbuf);
       ti[0] = MkAtomTerm(AtomReposition);
-      ti[1] = MkAtomTerm(AtomStream);
+      ti[1] = MkAtomTerm(AtomVStream);
       ti[2] = where;
       nt[0] = Yap_MkApplTerm(FunctorPermissionError, 3, ti);
       tp = tmpbuf+i;
@@ -1427,8 +1442,10 @@ Yap_Error(yap_error_number type, Term where, char *format,...)
     {
       int i;
 
+      Term ti[1];
       i = strlen(tmpbuf);
-      nt[0] = where;
+      ti[0] = where;
+      nt[0] = Yap_MkApplTerm(FunctorShortSyntaxError, 1, ti);
       tp = tmpbuf+i;
       psize -= i;
       fun = FunctorError;

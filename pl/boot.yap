@@ -56,7 +56,7 @@ true :- true.
 	(
 	 retractall(user:library_directory(_)),
 	 '$system_library_directories'(D),
-	 assert(user:library_directory(D)),
+	 assertz(user:library_directory(D)),
 	 fail
 	;
 	 true
@@ -65,17 +65,12 @@ true :- true.
 	'$stream_representation_error'(user_output, 512),
 	'$stream_representation_error'(user_error, 512),
 	'$enter_system_mode',
+	'$init_globals',
 	set_value(fileerrors,1),
-	'$init_consult',
 	set_value('$gc',on),
 	('$exit_undefp' -> true ; true),
 	prompt('  ?- '),
-	nb_setval('$break',0),
-	% '$set_read_error_handler'(error), let the user do that
-	nb_setval('$open_expands_filename',true),
 	'$debug_on'(false),
-	nb_setval('$trace',off),
-	b_setval('$spy_glist',[]),
 	% simple trick to find out if this is we are booting from Prolog.
 	get_value('$user_module',V),
 	(
@@ -98,6 +93,18 @@ true :- true.
 	'$set_input'(user_input),'$set_output'(user),
 	'$init_or_threads',
 	'$run_at_thread_start'.
+
+
+'$init_globals' :-
+	'$init_consult',
+	nb_setval('$chr_toplevel_show_store',false),
+	nb_setval('$break',0),
+	% '$set_read_error_handler'(error), let the user do that
+	nb_setval('$open_expands_filename',true),
+	nb_setval('$trace',off),
+	nb_setval('$assert_all',off),
+	nb_setval('$if_skip_mode',no_skip),
+	b_setval('$spy_glist',[]).
 
 '$init_consult' :-
 	nb_setval('$lf_verbose',informational),
@@ -154,10 +161,10 @@ true :- true.
 	'$system_catch'('$do_yes_no'((G->true),user),user,Error,user:'$Error'(Error)),
 	fail.
 '$enter_top_level' :-
-	nb_getval('$break',BreakLevel),
+	'$nb_getval'('$break',BreakLevel,fail),
 	 '$debug_on'(DBON),
 	(
-	 nb_getval('$trace',on)
+	 '$nb_getval'('$trace', on, fail)
 	->
 	 TraceDebug = trace
 	;
@@ -342,7 +349,7 @@ true :- true.
 	 '$do_error'(type_error(callable,R),meta_call(Source)).
  '$execute_command'(end_of_file,_,_,_,_) :- !.
  '$execute_command'(Command,_,_,_,_) :-
-	 nb_getval('$if_skip_mode',skip),
+	 '$nb_getval'('$if_skip_mode', skip, fail),
 	 \+ '$if_directive'(Command),
 	 !.
  '$execute_command'((:-G),_,_,Option,_) :- !,
@@ -390,7 +397,9 @@ true :- true.
  % but YAP and SICStus does.
  %
  '$process_directive'(G, _, M) :-
-	 ( '$notrace'(M:G) -> true ; format(user_error,':- ~w:~w failed.~n',[M,G]) ).
+	 '$exit_system_mode',
+	 ( '$notrace'(M:G) -> true ; format(user_error,':- ~w:~w failed.~n',[M,G]) ),
+	 '$enter_system_mode'.
 
  '$continue_with_command'(reconsult,V,Pos,G,Source) :-
 	 '$go_compile_clause'(G,V,Pos,5,Source),
@@ -473,7 +482,9 @@ true :- true.
 	X == '$', !,
 	( recorded('$reconsulting',_,R) -> erase(R) ).
 
- /* Executing a query */
+'$prompt_alternatives_on'(groundness).
+
+/* Executing a query */
 
 '$query'(end_of_file,_).
 
@@ -491,21 +502,31 @@ true :- true.
 
  % end of YAPOR
 
- '$query'(G,[]) :- !,
+ '$query'(G,[]) :-
+	 '$prompt_alternatives_on'(groundness), !,
 	 '$yes_no'(G,(?-)).
  '$query'(G,V) :-
 	 (
 	   '$exit_system_mode',
+	  yap_hacks:current_choice_point(CP),
 	   '$execute'(G),
-	   ( '$enter_system_mode' ; '$exit_system_mode', fail),
-	   '$output_frozen'(G, V, LGs),
-	   '$write_answer'(V, LGs, Written),
-	   '$write_query_answer_true'(Written),
+	  yap_hacks:current_choice_point(NCP),
+	  ( '$enter_system_mode' ; '$exit_system_mode', fail),
+	  '$output_frozen'(G, V, LGs),
+	  '$write_answer'(V, LGs, Written),
+	  '$write_query_answer_true'(Written),
+	  (
+	   '$prompt_alternatives_on'(determinism), CP = NCP ->
+	   nl(user_error),
+	   !
+	  ;
 	   '$another',
-	   !, fail
+	   !
+	  ),
+	  fail	 
 	 ;
-	   '$enter_system_mode',
-           '$out_neg_answer'
+	  '$enter_system_mode',
+	  '$out_neg_answer'
 	 ).
 
  '$yes_no'(G,C) :-
@@ -569,6 +590,9 @@ true :- true.
 '$another' :-
 	format(user_error,' ? ',[]),
 	get0(user_input,C),
+	'$do_another'(C).
+
+'$do_another'(C) :-
 	(   C== 0'; ->  '$skip'(user_input,10), %'
 	    '$add_nl_outside_console',
 	    fail
@@ -579,6 +603,10 @@ true :- true.
 	        ;
 		   print_message(help,yes)
 		)
+	;
+	    C== 13 -> 
+	    get0(user_input,NC),
+	    '$do_another'(NC)	    
 	;
 	    C== -1 -> halt
 	;
@@ -870,6 +898,7 @@ not(G) :-    \+ '$execute'(G).
 	    '$call'(B,CP,G0,M)
 	).
 '$call'(\+ X, _CP, _G0, M) :- !,
+	yap_hacks:current_choicepoint(CP),
 	\+  '$call'(X,CP,G0,M).
 '$call'(not(X), _CP, _G0, M) :- !,
 	\+  '$call'(X,CP,G0,M).
@@ -911,8 +940,6 @@ not(G) :-    \+ '$execute'(G).
 '$check_callable'(_,_).
 
 % Called by the abstract machine, if no clauses exist for a predicate
-'$undefp'([M|expand_goal(G,GEx)]) :- !,
-	G = GEx.
 '$undefp'([M|G]) :-
 	% make sure we do not loop on undefined predicates
         % for undefined_predicates.
@@ -938,6 +965,25 @@ not(G) :-    \+ '$execute'(G).
 	   '$execute0'(G, CurMod)
 	  ).
 
+'$find_undefp_handler'(G,M,NG,user) :-
+	functor(G, Na, Ar),
+	user:exception(undefined_predicate,M:Na/Ar,Action), !,
+	'$exit_undefp',
+	(
+	 Action == fail
+	->
+	 NG = fail
+	;
+	 Action == retry
+	->
+	 NG = G
+	;
+	 Action = error
+	->
+	 '$unknown_error'(M:G)
+	;
+	 '$do_error'(type_error(atom, Action),M:G)
+	).
 '$find_undefp_handler'(G,M,NG,user) :-
 	\+ '$undefined'(unknown_predicate_handler(_,_,_), user),
 	'$system_catch'(unknown_predicate_handler(G,M,NG), user, Error, '$leave_undefp'(Error)), !,
@@ -983,7 +1029,7 @@ break :-
 	nb_setval('$system_mode',SystemMode).
 
 '$silent_bootstrap'(F) :-
-	'$init_consult',
+	'$init_globals',
 	nb_setval('$if_level',0),
 	nb_getval('$lf_verbose',OldSilent),
 	nb_setval('$lf_verbose',silent),
@@ -991,8 +1037,8 @@ break :-
 	nb_setval('$lf_verbose', OldSilent).
 
 bootstrap(F) :-
-	'$open'(F,'$csult',Stream,0,0),
-	'$current_stream'(File,_,Stream),
+	'$open'(F, '$csult', Stream, 0, 0, F),
+	'$file_name'(Stream,File),
 	'$start_consult'(consult, File, LC),
 	file_directory_name(File, Dir),
 	getcwd(OldD),
@@ -1074,7 +1120,7 @@ access_file(F,Mode) :-
 	set_value(fileerrors,0),
 	system:true_file_name(F, F1),
 	(
-	 '$open'(F1,Mode,S,0,1)
+	 '$open'(F1, Mode, S, 0, 1, F)
 	->
 	 '$close'(S),
 	 set_value(fileerrors,V)
@@ -1103,12 +1149,14 @@ access_file(F,Mode) :-
 	
 
 expand_term(Term,Expanded) :-
-	( \+ '$undefined'(term_expansion(_,_), user),
+	( '$current_module'(Mod), \+ '$undefined'(term_expansion(_,_), Mod),
+	  '$notrace'(Mod:term_expansion(Term,Expanded))
+        ; \+ '$undefined'(term_expansion(_,_), user),
 	  '$notrace'(user:term_expansion(Term,Expanded))
         ;
 	  '$expand_term_grammar'(Term,Expanded)
 	),
-!.
+	!.
 
 
 %
@@ -1193,7 +1241,7 @@ throw(Ball) :-
 	    throw(Ball)
 	).
 
-'catch_ball'('$abort', _) :- !, fail.
+'catch_ball'(Abort, _) :- Abort == '$abort', !, fail.
 % system defined throws should be ignored by used, unless the
 % user is hacking away.
 'catch_ball'(Ball, V) :-
@@ -1246,7 +1294,7 @@ throw(Ball) :-
 '$notrace'(G) :-
 	'$execute'(G).
 
-'$oncenotrace'(M:G) :-
+'$oncenotrace'(G) :-
 	'$disable_creep', !,
 	(
 	 '$execute'(G)
@@ -1267,3 +1315,28 @@ throw(Ball) :-
 '$run_at_thread_start'.
 
 
+nb_getval(GlobalVariable, Val) :-
+	'$nb_getval'(GlobalVariable, Val, Error),
+	(var(Error)
+	->
+	 true
+	;
+	 '$getval_exception'(GlobalVariable, Val, nb_getval(GlobalVariable, Val)) ->
+	 nb_getval(GlobalVariable, Val)
+	;
+	 '$do_error'(existence_error(variable, GlobalVariable),nb_getval(GlobalVariable, Val))
+	).
+		    
+
+b_getval(GlobalVariable, Val) :-
+	'$nb_getval'(GlobalVariable, Val, Error),
+	(var(Error)
+	->
+	 true
+	;
+	 '$getval_exception'(GlobalVariable, Val, b_getval(GlobalVariable, Val)) ->
+	 true
+	;
+	 '$do_error'(existence_error(variable, GlobalVariable),b_getval(GlobalVariable, Val))
+	).
+		    

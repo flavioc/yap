@@ -806,6 +806,12 @@ Yap_InitCPredBackCut(char *Name, unsigned long int Arity,
 		     CPredicate Cont,CPredicate Cut, UInt flags){
   Yap_InitCPredBack_(Name,Arity,Extra,Start,Cont,Cut,flags);
 }
+#else
+Yap_InitCPredBackCut(char *Name, unsigned long int Arity,
+		     unsigned int Extra, CPredicate Start,
+		     CPredicate Cont,CPredicate Cut, UInt flags){
+  Yap_InitCPredBack(Name,Arity,Extra,Start,Cont,flags);
+}
 #endif /* CUT_C */
 
 void
@@ -961,7 +967,7 @@ InitFlags(void)
   yap_flags[YAP_MIN_INTEGER_FLAG] = (Int)(((CELL)1 << (sizeof(Int)*8-1)));
   yap_flags[CHAR_CONVERSION_FLAG] = 1;
   yap_flags[YAP_DOUBLE_QUOTES_FLAG] = 1;
-  yap_flags[YAP_TO_CHARS_FLAG] = QUINTUS_TO_CHARS;
+  yap_flags[YAP_TO_CHARS_FLAG] = ISO_TO_CHARS;
   yap_flags[LANGUAGE_MODE_FLAG] = 0;
   yap_flags[STRICT_ISO_FLAG] = FALSE;
   yap_flags[SOURCE_MODE_FLAG] = FALSE;
@@ -1135,8 +1141,8 @@ InitThreadHandles(void)
   Yap_heap_regs->thread_handle[0].in_use = TRUE;
   Yap_heap_regs->thread_handle[0].default_yaam_regs = 
     &Yap_standard_regs;
-  Yap_heap_regs->thread_handle[0].handle = pthread_self();
-  Yap_heap_regs->thread_handle[0].handle = pthread_self();
+  Yap_heap_regs->thread_handle[0].pthread_handle = pthread_self();
+  Yap_heap_regs->thread_handle[0].pthread_handle = pthread_self();
   pthread_mutex_init(&ThreadHandle[0].tlock, NULL);
   pthread_mutex_init(&ThreadHandle[0].tlock_status, NULL);
   Yap_heap_regs->thread_handle[0].tdetach = MkAtomTerm(AtomFalse);
@@ -1177,8 +1183,8 @@ InitCodes(void)
       Yap_heap_regs->wl[i].consultbase = Yap_heap_regs->wl[i].consultsp =
 	Yap_heap_regs->wl[i].consultlow + Yap_heap_regs->wl[i].consultcapacity;
       Yap_heap_regs->wl[i].Gc_timestamp = 0;
+      Yap_heap_regs->wl[i].ball_term = NULL;
     }
-    Yap_heap_regs->wl[i].ball_term = NULL;
   }
 #else
   Yap_heap_regs->wl.dynamic_arrays = NULL;

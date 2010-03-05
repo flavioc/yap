@@ -298,18 +298,7 @@ module(N) :-
 	'$module_expansion'(G,G1,GO,M,M,HM,HVars).
 '$module_expansion'(G, G1, GO, CurMod, MM, HM, HVars) :-
 	'$pred_goal_expansion_on',
-	( user:goal_expansion(G, CurMod, GI)
-	->
-	  true
-	;
-	  (
-	   '$pred_exists'(goal_expansion(G,GI), CurMod)
-	  ->
-	   call(CurMod:goal_expansion(G, GI))
-	  )
-	;
-	  user:goal_expansion(G, GI)
-	), !,
+	'$do_expand'(G, CurMod, GI), !,
 	'$module_expansion'(GI, G1, GO, CurMod, MM, HM, HVars).
 '$module_expansion'(G, G1, GO, CurMod, MM, HM,HVars) :-
 	% is this imported from some other module M1?
@@ -321,6 +310,29 @@ module(N) :-
 	'$complete_goal_expansion'(GI, CurMod, MM, HM, G1, GO, HVars).
 '$module_expansion'(G, G1, GO, CurMod, MM, HM, HVars) :-
 	'$complete_goal_expansion'(G, CurMod, MM, HM, G1, GO, HVars).
+
+expand_goal(G, G) :-
+	var(G), !.
+expand_goal(M:G, M:NG) :-
+	'$do_expand'(G, M, NG), !.
+expand_goal(G, NG) :- 
+	'$current_module'(Mod),
+	'$do_expand'(G, M, NG), !.
+expand_goal(G, G).
+	
+'$do_expand'(G, CurMod, GI) :-
+	(
+	 '$pred_exists'(goal_expansion(G,GI), CurMod),
+	 call(CurMod:goal_expansion(G, GI))
+	->
+	 true
+	;
+	 user:goal_expansion(G, CurMod, GI)
+	->
+	  true
+	;
+	  user:goal_expansion(G, GI)
+	).
 
 % args are:
 %       goal to expand

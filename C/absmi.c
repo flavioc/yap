@@ -1058,6 +1058,9 @@ Yap_absmi(int inp)
 	LOCK(PREG->u.OtaLl.d->ClPred->StatisticsForPred.lock);
 	PREG->u.OtaLl.d->ClPred->StatisticsForPred.NOfRetries++;
 	UNLOCK(PREG->u.OtaLl.d->ClPred->StatisticsForPred.lock);
+#ifdef THREADS
+	PP = PREG->u.OtaLl.d->ClPred;
+#endif
 	PREG = PREG->u.OtaLl.d->ClCode;
 #ifdef FROZEN_STACKS
 	S_YREG = (CELL *) PROTECT_FROZEN_B(B_YREG);
@@ -1342,6 +1345,9 @@ Yap_absmi(int inp)
 	LOCK(PREG->u.OtaLl.d->ClPred->StatisticsForPred.lock);
 	PREG->u.OtaLl.d->ClPred->StatisticsForPred.NOfRetries++;
 	UNLOCK(PREG->u.OtaLl.d->ClPred->StatisticsForPred.lock);
+#ifdef THREADS
+	PP = PREG->u.OtaLl.d->ClPred;
+#endif
 	PREG = PREG->u.OtaLl.d->ClCode;
 #ifdef FROZEN_STACKS
 	S_YREG = (CELL *) PROTECT_FROZEN_B(B_YREG);
@@ -7707,13 +7713,6 @@ Yap_absmi(int inp)
       setregs();
       Yap_PrologMode = UserMode;
       if (!SREG) {
-#ifdef CUT_C
-	/* Removes the cut functions from the stack
-	 without executing them because we have fail 
-	 and not cuted the predicate*/
-	while(POP_CHOICE_POINT(B))
-	  cut_c_pop();
-#endif 
 	FAIL();
       }
       if ((CELL *) B == YREG && ASP != (CELL *) B) {
@@ -7815,7 +7814,7 @@ Yap_absmi(int inp)
 	    ASP = (CELL *) PROTECT_FROZEN_B(B);
 	  }
 	  saveregs();
-	  Yap_IPred(ap, 0);
+	  Yap_IPred(ap, 0, CP);
 	  /* IPred can generate errors, it thus must get rid of the lock itself */
 	  setregs();
 	  CACHE_A1();
@@ -7853,7 +7852,7 @@ Yap_absmi(int inp)
 	  ASP = (CELL *) PROTECT_FROZEN_B(B);
 	}
 	saveregs();
-	Yap_IPred(ap, 0);
+	Yap_IPred(ap, 0, CP);
       /* IPred can generate errors, it thus must get rid of the lock itself */
 	setregs();
 	CACHE_A1();
@@ -8042,7 +8041,7 @@ Yap_absmi(int inp)
 	    ASP = (CELL *) PROTECT_FROZEN_B(B);
 	  }
 	  saveregs();
-	  Yap_IPred(pe, 0);
+	  Yap_IPred(pe, 0, CP);
 	  /* IPred can generate errors, it thus must get rid of the lock itself */
 	  setregs();
 	}
@@ -8053,6 +8052,7 @@ Yap_absmi(int inp)
 	  UNLOCK(pe->StatisticsForPred.lock);
 	  ReductionsCounter--;
 	  if (ReductionsCounter == 0 && ReductionsCounterOn) {
+	    UNLOCK(pe->PELock);
 	    saveregs();
 	    Yap_Error(CALL_COUNTER_UNDERFLOW,TermNil,"");
 	    setregs();
@@ -8060,6 +8060,7 @@ Yap_absmi(int inp)
 	  } 
 	  PredEntriesCounter--;
 	  if (PredEntriesCounter == 0 && PredEntriesCounterOn) {
+	    UNLOCK(pe->PELock);
 	    saveregs();
 	    Yap_Error(PRED_ENTRY_COUNTER_UNDERFLOW,TermNil,"");
 	    setregs();
@@ -8068,6 +8069,7 @@ Yap_absmi(int inp)
 	  if ((pe->PredFlags & (CountPredFlag|ProfiledPredFlag|SpiedPredFlag)) == 
 	    CountPredFlag) {
 	    PREG = pe->cs.p_code.TrueCodeOfPred;
+	    UNLOCK(pe->PELock);
 	    JMPNext();
 	  }
 	}
@@ -8078,6 +8080,7 @@ Yap_absmi(int inp)
 	  UNLOCK(pe->StatisticsForPred.lock);
 	  if (!(pe->PredFlags & SpiedPredFlag)) {
 	    PREG = pe->cs.p_code.TrueCodeOfPred;
+	    UNLOCK(pe->PELock);
 	    JMPNext();
 	  }
 	}
@@ -8140,7 +8143,6 @@ Yap_absmi(int inp)
 	PREG = pt0->CodeOfPred;
 	/* for profiler */
 #ifdef THREADS
-	pthread_mutex_lock(&(ThreadHandle[worker_id].tlock));
 	UNLOCK(ThreadHandlesLock);
 #endif
 	save_pc();
@@ -8404,6 +8406,9 @@ Yap_absmi(int inp)
 #ifdef YAPOR
 	SCH_set_load(B_YREG);
 #endif	/* YAPOR */
+#ifdef YAPOR
+	PP = PREG->u.OtaLl.d->ClPred;
+#endif	/* YAPOR */
 	if (!VALID_TIMESTAMP(timestamp, PREG->u.OtaLl.d)) {
 	  /* jump to next alternative */
 	  PREG=PREG->u.OtaLl.n;
@@ -8437,6 +8442,9 @@ Yap_absmi(int inp)
 	}
 	restore_yaam_regs(PREG->u.OtaLl.n);
 	restore_at_least_one_arg(PREG->u.OtaLl.s);
+#ifdef THREADS
+	PP = PREG->u.OtaLl.d->ClPred;
+#endif
 	PREG = PREG->u.OtaLl.d->ClCode;
 #ifdef FROZEN_STACKS
 	S_YREG = (CELL *) PROTECT_FROZEN_B(B_YREG);
@@ -9696,8 +9704,12 @@ Yap_absmi(int inp)
 	saveregs();
 	d0 = p_plus(Yap_Eval(d0), Yap_Eval(d1));
 	setregs();
-	if (PREG == (yamop *)FAILCODE)
+	if (d0 == 0L) {
+	  saveregs();
+	  Yap_Error(Yap_Error_TYPE, Yap_Error_Term, Yap_ErrorMessage);
+	  setregs();
 	  FAIL();
+	}
       }
       XREG(PREG->u.xxx.x) = d0;
       PREG = NEXTOP(PREG, xxx);
@@ -9737,8 +9749,12 @@ Yap_absmi(int inp)
 	  saveregs();
 	  d0 = p_plus(Yap_Eval(d0), MkIntegerTerm(d1));
 	  setregs();
-	  if (PREG == (yamop *)FAILCODE)
+	  if (d0 == 0L) {
+	    saveregs();
+	    Yap_Error(Yap_Error_TYPE, Yap_Error_Term, Yap_ErrorMessage);
+	    setregs();
 	    FAIL();
+	  }
 	}
       }
       XREG(PREG->u.xxn.x) = d0;
@@ -9774,8 +9790,12 @@ Yap_absmi(int inp)
 	saveregs();
 	d0 = p_plus(Yap_Eval(d0), Yap_Eval(d1));
 	setregs();
-	if (PREG == (yamop *)FAILCODE)
+	if (d0 == 0L) {
+	  saveregs();
+	  Yap_Error(Yap_Error_TYPE, Yap_Error_Term, Yap_ErrorMessage);
+	  setregs();
 	  FAIL();
+	}
       }
       BEGP(pt0);
       pt0 = YREG + PREG->u.yxx.y;
@@ -9822,8 +9842,12 @@ Yap_absmi(int inp)
 	  saveregs();
 	  d0 = p_plus(Yap_Eval(d0), MkIntegerTerm(d1));
 	  setregs();
-	  if (PREG == (yamop *)FAILCODE)
+	  if (d0 == 0L) {
+	    saveregs();
+	    Yap_Error(Yap_Error_TYPE, Yap_Error_Term, Yap_ErrorMessage);
+	    setregs();
 	    FAIL();
+	  }
 	}
       }
       BEGP(pt0);
@@ -9866,8 +9890,12 @@ Yap_absmi(int inp)
 	saveregs();
 	d0 = p_minus(Yap_Eval(d0), Yap_Eval(d1));
 	setregs();
-	if (PREG == (yamop *)FAILCODE)
+	if (d0 == 0L) {
+	  saveregs();
+	  Yap_Error(Yap_Error_TYPE, Yap_Error_Term, Yap_ErrorMessage);
+	  setregs();
 	  FAIL();
+	}
       }
       XREG(PREG->u.xxx.x) = d0;
       PREG = NEXTOP(PREG, xxx);
@@ -9907,8 +9935,12 @@ Yap_absmi(int inp)
 	  saveregs();
 	  d0 = p_minus(MkIntegerTerm(d1),Yap_Eval(d0));
 	  setregs();
-	  if (PREG == (yamop *)FAILCODE)
+	  if (d0 == 0L) {
+	    saveregs();
+	    Yap_Error(Yap_Error_TYPE, Yap_Error_Term, Yap_ErrorMessage);
+	    setregs();
 	    FAIL();
+	  }
 	}
       }
       XREG(PREG->u.xxn.x) = d0;
@@ -9944,8 +9976,12 @@ Yap_absmi(int inp)
 	saveregs();
 	d0 = p_minus(Yap_Eval(d0), Yap_Eval(d1));
 	setregs();
-	if (PREG == (yamop *)FAILCODE)
+	if (d0 == 0L) {
+	  saveregs();
+	  Yap_Error(Yap_Error_TYPE, Yap_Error_Term, Yap_ErrorMessage);
+	  setregs();
 	  FAIL();
+	}
       }
       BEGP(pt0);
       pt0 = YREG + PREG->u.yxx.y;
@@ -9992,8 +10028,12 @@ Yap_absmi(int inp)
 	  saveregs();
 	  d0 = p_minus(MkIntegerTerm(d1), Yap_Eval(d0));
 	  setregs();
-	  if (PREG == (yamop *)FAILCODE)
+	  if (d0 == 0L) {
+	    saveregs();
+	    Yap_Error(Yap_Error_TYPE, Yap_Error_Term, Yap_ErrorMessage);
+	    setregs();
 	    FAIL();
+	  }
 	}
       }
       BEGP(pt0);
@@ -10036,8 +10076,12 @@ Yap_absmi(int inp)
 	saveregs();
 	d0 = p_times(Yap_Eval(d0), Yap_Eval(d1));
 	setregs();
-	if (PREG == (yamop *)FAILCODE)
+	if (d0 == 0L) {
+	  saveregs();
+	  Yap_Error(Yap_Error_TYPE, Yap_Error_Term, Yap_ErrorMessage);
+	  setregs();
 	  FAIL();
+	}
       }
       XREG(PREG->u.xxx.x) = d0;
       PREG = NEXTOP(PREG, xxx);
@@ -10077,8 +10121,12 @@ Yap_absmi(int inp)
 	  saveregs();
 	  d0 = p_times(Yap_Eval(d0), MkIntegerTerm(d1));
 	  setregs();
-	  if (PREG == (yamop *)FAILCODE)
+	  if (d0 == 0L) {
+	    saveregs();
+	    Yap_Error(Yap_Error_TYPE, Yap_Error_Term, Yap_ErrorMessage);
+	    setregs();
 	    FAIL();
+	  }
 	}
       }
       XREG(PREG->u.xxn.x) = d0;
@@ -10114,8 +10162,12 @@ Yap_absmi(int inp)
 	saveregs();
 	d0 = p_times(Yap_Eval(d0), Yap_Eval(d1));
 	setregs();
-	if (PREG == (yamop *)FAILCODE)
+	if (d0 == 0L) {
+	  saveregs();
+	  Yap_Error(Yap_Error_TYPE, Yap_Error_Term, Yap_ErrorMessage);
+	  setregs();
 	  FAIL();
+	}
       }
       BEGP(pt0);
       pt0 = YREG + PREG->u.yxx.y;
@@ -10162,8 +10214,12 @@ Yap_absmi(int inp)
 	  saveregs();
 	  d0 = p_times(Yap_Eval(d0), MkIntegerTerm(d1));
 	  setregs();
-	  if (PREG == (yamop *)FAILCODE)
+	  if (d0 == 0L) {
+	    saveregs();
+	    Yap_Error(Yap_Error_TYPE, Yap_Error_Term, Yap_ErrorMessage);
+	    setregs();
 	    FAIL();
+	  }
 	}
       }
       BEGP(pt0);
@@ -10213,8 +10269,12 @@ Yap_absmi(int inp)
 	saveregs();
 	d0 = p_div(Yap_Eval(d0), Yap_Eval(d1));
 	setregs();
-	if (PREG == (yamop *)FAILCODE)
+	if (d0 == 0L) {
+	  saveregs();
+	  Yap_Error(Yap_Error_TYPE, Yap_Error_Term, Yap_ErrorMessage);
+	  setregs();
 	  FAIL();
+	}
       }
       XREG(PREG->u.xxx.x) = d0;
       PREG = NEXTOP(PREG, xxx);
@@ -10254,8 +10314,12 @@ Yap_absmi(int inp)
 	  saveregs();
 	  d0 = p_div(Yap_Eval(d0),MkIntegerTerm(d1));
 	  setregs();
-	  if (PREG == (yamop *)FAILCODE)
+	  if (d0 == 0L) {
+	    saveregs();
+	    Yap_Error(Yap_Error_TYPE, Yap_Error_Term, Yap_ErrorMessage);
+	    setregs();
 	    FAIL();
+	  }
 	}
       }
       XREG(PREG->u.xxn.x) = d0;
@@ -10293,8 +10357,12 @@ Yap_absmi(int inp)
 	else {
 	  saveregs();
 	  d0 = p_div(MkIntegerTerm(d1),Yap_Eval(d0));
-	  if (PREG == (yamop *)FAILCODE)
+	  if (d0 == 0L) {
+	    saveregs();
+	    Yap_Error(Yap_Error_TYPE, Yap_Error_Term, Yap_ErrorMessage);
+	    setregs();
 	    FAIL();
+	  }
 	}
       }
       XREG(PREG->u.xxn.x) = d0;
@@ -10337,8 +10405,12 @@ Yap_absmi(int inp)
 	saveregs();
 	d0 = p_div(Yap_Eval(d0), Yap_Eval(d1));
 	setregs();
-	if (PREG == (yamop *)FAILCODE)
+	if (d0 == 0L) {
+	  saveregs();
+	  Yap_Error(Yap_Error_TYPE, Yap_Error_Term, Yap_ErrorMessage);
+	  setregs();
 	  FAIL();
+	}
       }
       BEGP(pt0);
       pt0 = YREG + PREG->u.yxx.y;
@@ -10385,8 +10457,12 @@ Yap_absmi(int inp)
 	  saveregs();
 	  d0 = p_div(Yap_Eval(d0),MkIntegerTerm(d1));
 	  setregs();
-	  if (PREG == (yamop *)FAILCODE)
+	  if (d0 == 0L) {
+	    saveregs();
+	    Yap_Error(Yap_Error_TYPE, Yap_Error_Term, Yap_ErrorMessage);
+	    setregs();
 	    FAIL();
+	  }
 	}
       }
       BEGP(pt0);
@@ -10432,8 +10508,12 @@ Yap_absmi(int inp)
 	  saveregs();
 	  d0 = p_div(MkIntegerTerm(d1), Yap_Eval(d0));
 	  setregs();
-	  if (PREG == (yamop *)FAILCODE)
+	  if (d0 == 0L) {
+	    saveregs();
+	    Yap_Error(Yap_Error_TYPE, Yap_Error_Term, Yap_ErrorMessage);
+	    setregs();
 	    FAIL();
+	  }
 	}
       }
       BEGP(pt0);
@@ -10477,8 +10557,12 @@ Yap_absmi(int inp)
 	saveregs();
 	d0 = p_and(Yap_Eval(d0), Yap_Eval(d1));
 	setregs();
-	if (PREG == (yamop *)FAILCODE)
+	if (d0 == 0L) {
+	  saveregs();
+	  Yap_Error(Yap_Error_TYPE, Yap_Error_Term, Yap_ErrorMessage);
+	  setregs();
 	  FAIL();
+	}
       }
       XREG(PREG->u.xxx.x) = d0;
       PREG = NEXTOP(PREG, xxx);
@@ -10518,8 +10602,12 @@ Yap_absmi(int inp)
 	  saveregs();
 	  d0 = p_and(Yap_Eval(d0), MkIntegerTerm(d1));
 	  setregs();
-	  if (PREG == (yamop *)FAILCODE)
+	  if (d0 == 0L) {
+	    saveregs();
+	    Yap_Error(Yap_Error_TYPE, Yap_Error_Term, Yap_ErrorMessage);
+	    setregs();
 	    FAIL();
+	  }
 	}
       }
       XREG(PREG->u.xxn.x) = d0;
@@ -10555,8 +10643,12 @@ Yap_absmi(int inp)
 	saveregs();
 	d0 = p_and(Yap_Eval(d0), Yap_Eval(d1));
 	setregs();
-	if (PREG == (yamop *)FAILCODE)
+	if (d0 == 0L) {
+	  saveregs();
+	  Yap_Error(Yap_Error_TYPE, Yap_Error_Term, Yap_ErrorMessage);
+	  setregs();
 	  FAIL();
+	}
       }
       BEGP(pt0);
       pt0 = YREG + PREG->u.yxx.y;
@@ -10603,8 +10695,12 @@ Yap_absmi(int inp)
 	  saveregs();
 	  d0 = p_and(Yap_Eval(d0), MkIntegerTerm(d1));
 	  setregs();
-	  if (PREG == (yamop *)FAILCODE)
+	  if (d0 == 0L) {
+	    saveregs();
+	    Yap_Error(Yap_Error_TYPE, Yap_Error_Term, Yap_ErrorMessage);
+	    setregs();
 	    FAIL();
+	  }
 	}
       }
       BEGP(pt0);
@@ -10648,8 +10744,12 @@ Yap_absmi(int inp)
 	saveregs();
 	d0 = p_or(Yap_Eval(d0), Yap_Eval(d1));
 	setregs();
-	if (PREG == (yamop *)FAILCODE)
+	if (d0 == 0L) {
+	  saveregs();
+	  Yap_Error(Yap_Error_TYPE, Yap_Error_Term, Yap_ErrorMessage);
+	  setregs();
 	  FAIL();
+	}
       }
       XREG(PREG->u.xxx.x) = d0;
       PREG = NEXTOP(PREG, xxx);
@@ -10688,8 +10788,12 @@ Yap_absmi(int inp)
 	else {
 	  saveregs();
 	  d0 = p_or(Yap_Eval(d0), MkIntegerTerm(d1));
-	  if (PREG == (yamop *)FAILCODE)
+	  if (d0 == 0L) {
+	    saveregs();
+	    Yap_Error(Yap_Error_TYPE, Yap_Error_Term, Yap_ErrorMessage);
+	    setregs();
 	    FAIL();
+	  }
 	}
       }
       XREG(PREG->u.xxn.x) = d0;
@@ -10725,8 +10829,12 @@ Yap_absmi(int inp)
 	saveregs();
 	d0 = p_or(Yap_Eval(d0), Yap_Eval(d1));
 	setregs();
-	if (PREG == (yamop *)FAILCODE)
+	if (d0 == 0L) {
+	  saveregs();
+	  Yap_Error(Yap_Error_TYPE, Yap_Error_Term, Yap_ErrorMessage);
+	  setregs();
 	  FAIL();
+	}
       }
       BEGP(pt0);
       pt0 = YREG + PREG->u.yxx.y;
@@ -10773,8 +10881,12 @@ Yap_absmi(int inp)
 	  saveregs();
 	  d0 = p_or(Yap_Eval(d0), MkIntegerTerm(d1));
 	  setregs();
-	  if (PREG == (yamop *)FAILCODE)
+	  if (d0 == 0L) {
+	    saveregs();
+	    Yap_Error(Yap_Error_TYPE, Yap_Error_Term, Yap_ErrorMessage);
+	    setregs();
 	    FAIL();
+	  }
 	}
       }
       BEGP(pt0);
@@ -10822,8 +10934,12 @@ Yap_absmi(int inp)
 	d0 = p_sll(Yap_Eval(d0), Yap_Eval(d1));
 	setregs();
       }
-      if (PREG == (yamop *)FAILCODE)
+      if (d0 == 0L) {
+	saveregs();
+	Yap_Error(Yap_Error_TYPE, Yap_Error_Term, Yap_ErrorMessage);
+	setregs();
 	FAIL();
+      }
       XREG(PREG->u.xxx.x) = d0;
       PREG = NEXTOP(PREG, xxx);
       GONext();
@@ -10864,8 +10980,12 @@ Yap_absmi(int inp)
 	  setregs();
 	}
       }
-      if (PREG == (yamop *)FAILCODE)
+      if (d0 == 0L) {
+	saveregs();
+	Yap_Error(Yap_Error_TYPE, Yap_Error_Term, Yap_ErrorMessage);
+	setregs();
 	FAIL();
+      }
       XREG(PREG->u.xxn.x) = d0;
       PREG = NEXTOP(PREG, xxn);
       GONext();
@@ -10901,8 +11021,12 @@ Yap_absmi(int inp)
 	  setregs();
 	}
       }
-      if (PREG == (yamop *)FAILCODE)
+      if (d0 == 0L) {
+	saveregs();
+	Yap_Error(Yap_Error_TYPE, Yap_Error_Term, Yap_ErrorMessage);
+	setregs();
 	FAIL();
+      }
       XREG(PREG->u.xxn.x) = d0;
       PREG = NEXTOP(PREG, xxn);
       GONext();
@@ -10941,8 +11065,12 @@ Yap_absmi(int inp)
 	d0 = p_sll(Yap_Eval(d0), Yap_Eval(d1));
 	setregs();
       }
-      if (PREG == (yamop *)FAILCODE)
+      if (d0 == 0L) {
+	saveregs();
+	Yap_Error(Yap_Error_TYPE, Yap_Error_Term, Yap_ErrorMessage);
+	setregs();
 	FAIL();
+      }
       BEGP(pt0);
       pt0 = YREG + PREG->u.yxx.y;
       PREG = NEXTOP(PREG, yxx);
@@ -10990,8 +11118,12 @@ Yap_absmi(int inp)
 	  setregs();
 	}
       }
-      if (PREG == (yamop *)FAILCODE)
+      if (d0 == 0L) {
+	saveregs();
+	Yap_Error(Yap_Error_TYPE, Yap_Error_Term, Yap_ErrorMessage);
+	setregs();
 	FAIL();
+      }
       BEGP(pt0);
       pt0 = YREG + PREG->u.yxn.y;
       PREG = NEXTOP(PREG, yxn);
@@ -11035,8 +11167,12 @@ Yap_absmi(int inp)
 	  setregs();
 	}
       }
-      if (PREG == (yamop *)FAILCODE)
+      if (d0 == 0L) {
+	saveregs();
+	Yap_Error(Yap_Error_TYPE, Yap_Error_Term, Yap_ErrorMessage);
+	setregs();
 	FAIL();
+      }
       BEGP(pt0);
       pt0 = YREG + PREG->u.yxn.y;
       PREG = NEXTOP(PREG, yxn);
@@ -11082,8 +11218,12 @@ Yap_absmi(int inp)
 	d0 = p_slr(Yap_Eval(d0), Yap_Eval(d1));
 	setregs();
       }
-      if (PREG == (yamop *)FAILCODE)
+      if (d0 == 0L) {
+	saveregs();
+	Yap_Error(Yap_Error_TYPE, Yap_Error_Term, Yap_ErrorMessage);
+	setregs();
 	FAIL();
+      }
       XREG(PREG->u.xxx.x) = d0;
       PREG = NEXTOP(PREG, xxx);
       GONext();
@@ -11122,8 +11262,12 @@ Yap_absmi(int inp)
 	  saveregs();
 	  d0 = p_slr(Yap_Eval(d0), MkIntegerTerm(d1));
 	  setregs();
-	  if (PREG == (yamop *)FAILCODE)
+	  if (d0 == 0L) {
+	    saveregs();
+	    Yap_Error(Yap_Error_TYPE, Yap_Error_Term, Yap_ErrorMessage);
+	    setregs();
 	    FAIL();
+	  }
 	}
       }
       XREG(PREG->u.xxn.x) = d0;
@@ -11161,8 +11305,12 @@ Yap_absmi(int inp)
 	  setregs();
 	}
       }
-      if (PREG == (yamop *)FAILCODE)
+      if (d0 == 0L) {
+	saveregs();
+	Yap_Error(Yap_Error_TYPE, Yap_Error_Term, Yap_ErrorMessage);
+	setregs();
 	FAIL();
+      }
       XREG(PREG->u.xxn.x) = d0;
       PREG = NEXTOP(PREG, xxn);
       GONext();
@@ -11202,8 +11350,12 @@ Yap_absmi(int inp)
 	setregs();
       }
       BEGP(pt0);
-      if (PREG == (yamop *)FAILCODE)
+      if (d0 == 0L) {
+	saveregs();
+	Yap_Error(Yap_Error_TYPE, Yap_Error_Term, Yap_ErrorMessage);
+	setregs();
 	FAIL();
+      }
       pt0 = YREG + PREG->u.yxx.y;
       PREG = NEXTOP(PREG, yxx);
 #if defined(SBA) && defined(FROZEN_STACKS)
@@ -11248,8 +11400,12 @@ Yap_absmi(int inp)
 	  saveregs();
 	  d0 = p_slr(Yap_Eval(d0), MkIntegerTerm(d1));
 	  setregs();
-	  if (PREG == (yamop *)FAILCODE)
+	  if (d0 == 0L) {
+	    saveregs();
+	    Yap_Error(Yap_Error_TYPE, Yap_Error_Term, Yap_ErrorMessage);
+	    setregs();
 	    FAIL();
+	  }
 	}
       }
       BEGP(pt0);
@@ -11293,8 +11449,12 @@ Yap_absmi(int inp)
 	  setregs();
 	}
       }
-      if (PREG == (yamop *)FAILCODE)
+      if (d0 == 0L) {
+	saveregs();
+	Yap_Error(Yap_Error_TYPE, Yap_Error_Term, Yap_ErrorMessage);
+	setregs();
 	FAIL();
+      }
       BEGP(pt0);
       pt0 = YREG + PREG->u.yxn.y;
       PREG = NEXTOP(PREG, yxn);
@@ -14136,11 +14296,11 @@ Yap_absmi(int inp)
 	  goto creep;
 	}
 	UNLOCK(SignalLock);
-	saveregs();
+	saveregs_and_ycache();
 	if (!Yap_gc(((PredEntry *)SREG)->ArityOfPE, ENV, NEXTOP(PREG, Osbpp))) {
 	  Yap_Error(OUT_OF_STACK_ERROR,TermNil,Yap_ErrorMessage);
 	}
-	setregs();
+	setregs_and_ycache();
 	goto execute_after_comma;
 	ENDCACHE_Y_AS_ENV();
 

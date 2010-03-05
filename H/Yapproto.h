@@ -206,7 +206,7 @@ int     STD_PROTO(Yap_growtrail,     (long, int));
 int     STD_PROTO(Yap_growglobal,    (CELL **));
 CELL  **STD_PROTO(Yap_shift_visit,   (CELL **, CELL ***));
 #ifdef THREADS
-void   STD_PROTO(Yap_CopyThreadStacks, (int, int));
+void   STD_PROTO(Yap_CopyThreadStacks, (int, int, int));
 #endif
 
 /* heapgc.c */
@@ -228,8 +228,8 @@ void	STD_PROTO(Yap_InitCPred,(char *, unsigned long int, CPredicate, UInt));
 void	STD_PROTO(Yap_InitAsmPred,(char *, unsigned long int, int, CPredicate, UInt));
 void	STD_PROTO(Yap_InitCmpPred,(char *, unsigned long int, CmpPredicate, UInt));
 void	STD_PROTO(Yap_InitCPredBack,(char *, unsigned long int, unsigned int, CPredicate,CPredicate,UInt));
-#ifdef CUT_C
 void	STD_PROTO(Yap_InitCPredBackCut,(char *, unsigned long int, unsigned int, CPredicate,CPredicate,CPredicate,UInt));
+#ifdef CUT_C
 void    STD_PROTO(Yap_InitCPredBack_,(char *, unsigned long int, unsigned int, CPredicate,CPredicate,CPredicate,UInt));
 #endif
 void	STD_PROTO(Yap_InitWorkspace,(UInt,UInt,UInt,UInt,UInt,int,int,int));
@@ -316,6 +316,7 @@ void	STD_PROTO(Yap_InitCPreds,(void));
 void	STD_PROTO(Yap_show_statistics,(void));
 void	STD_PROTO(Yap_signal,(yap_signals));
 void	STD_PROTO(Yap_undo_signal,(yap_signals));
+int	STD_PROTO(Yap_IsOpMaxPrio,(Atom));
 
 /* sysbits.c */
 void	STD_PROTO(Yap_set_fpu_exceptions,(int));
@@ -368,6 +369,7 @@ Term	STD_PROTO(Yap_CopyTerm,(Term));
 int	STD_PROTO(Yap_IsListTerm,(Term));
 Term	STD_PROTO(Yap_CopyTermNoShare,(Term));
 int	STD_PROTO(Yap_SizeGroundTerm,(Term, int));
+int	STD_PROTO(Yap_IsGroundTerm,(Term));
 void	STD_PROTO(Yap_InitUtilCPreds,(void));
 
 /* yap.c */

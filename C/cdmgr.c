@@ -931,7 +931,7 @@ split_megaclause(PredEntry *ap)
 /* Index a prolog pred, given its predicate entry */
 /* ap is already locked. */
 static void 
-IPred(PredEntry *ap, UInt NSlots)
+IPred(PredEntry *ap, UInt NSlots, yamop *next_pc)
 {
   yamop          *BaseAddr;
 
@@ -976,7 +976,7 @@ IPred(PredEntry *ap, UInt NSlots)
     Yap_Error(SYSTEM_ERROR,TermNil,"trying to index a dynamic predicate");
     return;
   }
-  if ((BaseAddr = Yap_PredIsIndexable(ap, NSlots)) != NULL) {
+  if ((BaseAddr = Yap_PredIsIndexable(ap, NSlots, next_pc)) != NULL) {
     ap->cs.p_code.TrueCodeOfPred = BaseAddr;
     ap->PredFlags |= IndexedPredFlag;
   }
@@ -1000,9 +1000,9 @@ IPred(PredEntry *ap, UInt NSlots)
 }
 
 void 
-Yap_IPred(PredEntry *p, UInt NSlots)
+Yap_IPred(PredEntry *p, UInt NSlots, yamop *next_pc)
 {
-  IPred(p, NSlots);
+  IPred(p, NSlots, next_pc);
 }
 
 #define GONEXT(TYPE)      code_p = ((yamop *)(&(code_p->u.TYPE.next)))
@@ -2763,7 +2763,7 @@ p_setspy(void)
     for (i = 0; i < pred->ArityOfPE; i++) {
       XREGS[i+1] = MkVarTerm();
     }
-    IPred(pred, 0);
+    IPred(pred, 0, CP);
     goto restart_spy;
   }
   fg = pred->PredFlags;
@@ -2973,6 +2973,29 @@ p_is_source(void)
   out = (pe->PredFlags & SourcePredFlag);
   UNLOCK(pe->PELock);
   return(out);
+}
+
+static Int 
+p_owner_file(void)
+{				/* '$owner_file'(+P,M,F)	 */
+  PredEntry      *pe;
+  Atom            owner;
+
+  pe = get_pred(Deref(ARG1),  Deref(ARG2), "$is_source");
+  if (EndOfPAEntr(pe))
+    return FALSE;
+  LOCK(pe->PELock);
+  if (pe->ModuleOfPred == IDB_MODULE) {
+    UNLOCK(pe->PELock);
+    return FALSE;
+  }
+  if (pe->PredFlags & MultiFileFlag) {
+    UNLOCK(pe->PELock);
+    return FALSE;
+  }
+  owner =  pe->src.OwnerFile;
+  UNLOCK(pe->PELock);
+  return Yap_unify(ARG3, MkAtomTerm(owner));
 }
 
 static Int 
@@ -5026,7 +5049,7 @@ p_nth_clause(void)
       XREGS[2] = MkVarTerm();
   }
   if(pe->OpcodeOfPred == INDEX_OPCODE) {
-    IPred(pe, 0);
+    IPred(pe, 0, CP);
   }
   cl = Yap_NthClause(pe, ncls);
   if (cl == NULL) {
@@ -5593,6 +5616,7 @@ Yap_InitCdMgr(void)
   Yap_InitCPred("$is_expand_goal_or_meta_predicate", 2, p_is_expandgoalormetapredicate, TestPredFlag | SafePredFlag|HiddenPredFlag);
   Yap_InitCPred("$is_log_updatable", 2, p_is_log_updatable, TestPredFlag | SafePredFlag|HiddenPredFlag);
   Yap_InitCPred("$is_source", 2, p_is_source, TestPredFlag | SafePredFlag|HiddenPredFlag);
+  Yap_InitCPred("$owner_file", 3, p_owner_file, SafePredFlag|HiddenPredFlag);
   Yap_InitCPred("$mk_d", 2, p_mk_d, SafePredFlag|HiddenPredFlag);
   Yap_InitCPred("$pred_exists", 2, p_pred_exists, TestPredFlag | SafePredFlag|HiddenPredFlag);
   Yap_InitCPred("$number_of_clauses", 3, p_number_of_clauses, SafePredFlag|SyncPredFlag|HiddenPredFlag);

@@ -37,10 +37,10 @@ op(P,T,V) :-
 	 '$do_error'(type_error(atom,T),G)
 	;
 	 P < 0 ->
-	 '$do_error'(domain_error(out_of_range,P),G)
+	 '$do_error'(domain_error(operator_priority,P),G)
 	;
 	 P > 1200 ->
-	 '$do_error'(domain_error(out_of_range,P),G)
+	 '$do_error'(domain_error(operator_priority,P),G)
 	;
 	 \+ '$associativity'(T) ->
 	 '$do_error'(domain_error(operator_specifier,T),G)
@@ -116,6 +116,10 @@ current_op(X,Y,Z) :-
 
 
 '$current_opm'(X,Y,Z,M) :-
+	nonvar(Y),
+	\+ '$associativity'(Y),
+	'$do_error'(domain_error(operator_specifier,Y),current_op(X,Y,M:Z)).
+'$current_opm'(X,Y,Z,M) :-
 	var(Z), !,
 	'$do_current_op'(X,Y,Z,M).
 '$current_opm'(X,Y,M:Z,_) :- !,
@@ -123,6 +127,10 @@ current_op(X,Y,Z) :-
 '$current_opm'(X,Y,Z,M) :-
 	'$do_current_op'(X,Y,Z,M).
 
+'$do_current_op'(X,Y,Z,M) :-
+	nonvar(Y),
+	\+ '$associativity'(Y),
+	'$do_error'(domain_error(operator_specifier,Y),current_op(X,Y,M:Z)).
 '$do_current_op'(X,Y,Z,M) :-
 	atom(Z), !,
 	'$current_atom_op'(Z, M1, Prefix, Infix, Posfix),
@@ -319,7 +327,7 @@ atom_concat(X,Y,At) :-
 	  var(At) ->
 	  '$do_error'(instantiation_error,atom_concat(X,Y,At))
 	;
-	  '$do_error'(type_error(atom,At),atomic_concant(X,Y,At))
+	  '$do_error'(type_error(atom,At),atomic_concat(X,Y,At))
 	).
 
 '$atom_contact_split'(At,X,Y) :-
@@ -360,7 +368,7 @@ atomic_concat(X,Y,At) :-
 	  var(At) ->
 	  '$do_error'(instantiation_error,atomic_concat(X,Y,At))
 	;
-	  '$do_error'(type_error(atomic,At),atomic_concant(X,Y,At))
+	  '$do_error'(type_error(atomic,At),atomic_concat(X,Y,At))
 	).
 
 '$number_contact_split'(At,X,Y) :-
@@ -538,6 +546,13 @@ sub_atom(At, Bef, Size, After, SubAt) :-
 '$subtract_lists_of_variables'([V1|VL1],[V2|VL2],[V2|VL]) :-
 	'$subtract_lists_of_variables'([V1|VL1],VL2,VL).
 	
+atom_to_term(Atom, Term, Bindings) :-
+	atom_codes(Atom, Chars),
+	charsio:open_mem_read_stream(Chars, Stream),
+	read_term(Stream, T, [variable_names(Bindings)]),
+	close(Stream),
+	T = Term.
+
 simple(V) :- var(V), !.
 simple(A) :- atom(A), !.
 simple(N) :- number(N).
@@ -562,9 +577,26 @@ nth_instance(Key,Index,T,Ref) :-
 	instance(Ref,T).
 
 nb_current(GlobalVariable, Val) :-
-	var(GlobalVariable), !,
 	'$nb_current'(GlobalVariable),
 	nb_getval(GlobalVariable, Val).
-nb_current(GlobalVariable, Val) :-
-	nb_getval(GlobalVariable, Val).
+
+'$getval_exception'(GlobalVariable, Val, Caller) :-
+	user:exception(undefined_global_variable, GlobalVariable, Action),
+	!,
+	(
+	 Action == fail
+	->
+	 fail
+	;
+	 Action == retry
+	->
+	 b_getval(GlobalVariable, Val)
+	;
+	 Action == error
+	->
+	 '$do_error'(existence_error(variable, GlobalVariable),Caller)
+	;
+	 '$do_error'(type_error(atom, Action),Caller)
+	).
+
 

@@ -36,7 +36,7 @@
 '$do_signal'(sig_creep, [M|G]) :-
 	'$creep_allowed', !,
 	(
-	 ( G = '$notrace'(G0) ;  G = '$oncenotrace'(G0) ; G = '$execute0'(G0) ; '$system_module'(M), G = G0 )
+	 ( G = '$notrace'(G0) ;  G = '$oncenotrace'(G0) ; G = '$execute0'(G0,M) ; '$system_module'(M), G = G0 )
 	->
 	 (
 	  '$execute_nonstop'(G0,M),
@@ -50,7 +50,7 @@
 	).
 % 
 '$do_signal'(sig_creep, [M|G]) :-
-	( G = '$notrace'(G0) ;  G = '$oncenotrace'(G0) ; G = '$execute0'(G0) ; '$system_module'(M), G = G0 ),
+	( G = '$notrace'(G0) ;  G = '$oncenotrace'(G0) ; G = '$execute0'(G0,M) ; '$system_module'(M), G = G0 ),
 	!,
 	(
 	 '$execute_nonstop'(G0,M),
@@ -247,6 +247,12 @@ alarm(Interval, Goal, Left) :-
 	Left = Left0.
 alarm(Interval, Goal, Left) :-
 	integer(Interval), !,
+	on_signal(sig_alarm, _, Goal),
+	'$alarm'(Interval, 0, Left, _).
+alarm(Number, Goal, Left) :-
+	float(Number), !,
+	Secs is integer(Number),
+	USecs is integer((Number-Secs)*1000000) mod 1000000,
 	on_signal(sig_alarm, _, Goal),
 	'$alarm'(Interval, 0, Left, _).
 alarm(Interval.USecs, Goal, Left.LUSecs) :-

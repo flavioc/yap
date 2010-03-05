@@ -113,12 +113,6 @@ STATIC_PROTO (int chdir, (char *));
 char yap_pwd[YAP_FILENAME_MAX];
 #endif
 
-#if HAVE_SIGNAL
-
-static int             snoozing = FALSE;
-
-#endif
-
 STD_PROTO (void exit, (int));
 
 #ifdef _WIN32
@@ -1492,6 +1486,13 @@ Yap_ProcessSIGINT(void)
   return ProcessSIGINT();
 }
 
+
+#if !_MSC_VER && !defined(__MINGW32__)
+
+#if HAVE_SIGNAL
+static int             snoozing = FALSE;
+#endif
+
 /* This function is called from the signal handler to process signals.
    We assume we are within the context of the signal handler, whatever
    that might be
@@ -1543,6 +1544,7 @@ HandleSIGINT (int sig)
   ProcessSIGINT();
   UNLOCK(SignalLock);
 }
+#endif
 
 #if !defined(_WIN32)
 /* this routine is called if the system activated the alarm */
@@ -2970,6 +2972,16 @@ p_ld_path(void)
   return Yap_unify(ARG1,MkAtomTerm(Yap_LookupAtom(YAP_LIBDIR)));
 }
 
+static Int
+p_address_bits(void)
+{
+#if SIZEOF_INT_P==4
+  return Yap_unify(ARG1,MkIntTerm(32));
+#else
+  return Yap_unify(ARG1,MkIntTerm(64));
+#endif
+}
+
 
 
 #ifdef _WIN32
@@ -3113,7 +3125,10 @@ p_win_registry_get_value(void)
     case REG_DWORD:
       recover_space(k, KeyAt);
       recover_space(name, NameAt);
-      return Yap_unify(MkIntegerTerm(*((DWORD *)data)),ARG3);
+      {
+	DWORD *d = (DWORD *)data;
+	return Yap_unify(MkIntegerTerm((Int)d[0]),ARG3);
+      }
     default:
       recover_space(k, KeyAt);
       recover_space(name, NameAt);
@@ -3188,6 +3203,7 @@ Yap_InitSysPreds(void)
   Yap_InitCPred ("$unix", 0, p_unix, SafePredFlag);
   Yap_InitCPred ("$win32", 0, p_win32, SafePredFlag);
   Yap_InitCPred ("$ld_path", 1, p_ld_path, SafePredFlag);
+  Yap_InitCPred ("$address_bits", 1, p_address_bits, SafePredFlag);
 #ifdef _WIN32
   Yap_InitCPred ("win_registry_get_value", 3, p_win_registry_get_value,0);
 #endif
@@ -3334,7 +3350,7 @@ rw_lock_voodoo(void) {
 #endif /* sparc */
 
 
-#if defined(i386) || defined(__x86_64__)
+#if (defined(i386) || defined(__x86_64__) ) && !defined(__APPLE__) && !defined(__CYGWIN__)
 asm(
 
 ".align	4\n"

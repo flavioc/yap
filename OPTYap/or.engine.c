@@ -41,6 +41,8 @@ static void share_private_nodes(int worker_q);
 **      Local macros      **
 ** ---------------------- */
 
+#define INCREMENTAL_COPY 1
+#if INCREMENTAL_COPY
 #define COMPUTE_SEGMENTS_TO_COPY_TO(Q)                                   \
         REMOTE_start_global_copy(Q) = (CELL) (REMOTE_top_cp(Q)->cp_h);   \
         REMOTE_end_global_copy(Q)   = (CELL) (B->cp_h);                  \
@@ -48,6 +50,15 @@ static void share_private_nodes(int worker_q);
         REMOTE_end_local_copy(Q)    = (CELL) (REMOTE_top_cp(Q));         \
         REMOTE_start_trail_copy(Q)  = (CELL) (REMOTE_top_cp(Q)->cp_tr);  \
         REMOTE_end_trail_copy(Q)    = (CELL) (TR)
+#else
+#define COMPUTE_SEGMENTS_TO_COPY_TO(Q)                                   \
+        REMOTE_start_global_copy(Q) = (CELL) (H0);   \
+        REMOTE_end_global_copy(Q)   = (CELL) (H);                  \
+        REMOTE_start_local_copy(Q)  = (CELL) (B);                        \
+        REMOTE_end_local_copy(Q)    = (CELL) (LCL0);         \
+        REMOTE_start_trail_copy(Q)  = (CELL) (Yap_TrailBase);  \
+        REMOTE_end_trail_copy(Q)    = (CELL) (TR)
+#endif
 
 #define P_COPY_GLOBAL_TO(Q)                                                         \
         memcpy((void *) (worker_offset(Q) + REMOTE_start_global_copy(Q)),           \
@@ -94,7 +105,7 @@ void make_root_choice_point(void) {
   B->cp_or_fr = GLOBAL_root_or_fr;
   LOCAL_top_or_fr = GLOBAL_root_or_fr;
   LOCAL_load = 0;
-  LOCAL_prune_request = NULL;
+  Set_LOCAL_prune_request(NULL);
   BRANCH(worker_id, 0) = 0;
 #ifdef TABLING_INNER_CUTS
   LOCAL_pruning_scope = NULL;
@@ -117,7 +128,7 @@ void free_root_choice_point(void) {
 }
 
 
-void p_share_work(void) {
+int p_share_work(void) {
   int worker_q = LOCAL_share_request;
 
   if (! BITMAP_member(OrFr_members(REMOTE_top_or_fr(worker_q)), worker_id) ||
@@ -127,7 +138,7 @@ void p_share_work(void) {
     REMOTE_reply_signal(LOCAL_share_request) = no_sharing;
     LOCAL_share_request = MAX_WORKERS;
     PUT_OUT_REQUESTABLE(worker_id);
-    return;
+    return 0;
   }
   /* sharing request accepted */
   COMPUTE_SEGMENTS_TO_COPY_TO(worker_q);
@@ -135,7 +146,7 @@ void p_share_work(void) {
   REMOTE_p_fase_signal(worker_q) = P_idle;
 #ifndef TABLING
   /* wait for incomplete installations */
-  while (LOCAL_reply_signal != ready);
+  while (LOCAL_reply_signal != worker_ready);
 #endif /* TABLING */
   LOCAL_reply_signal = sharing;
   REMOTE_reply_signal(worker_q) = sharing;
@@ -172,10 +183,11 @@ void p_share_work(void) {
 sync_with_q:
   REMOTE_reply_signal(worker_q) = copy_done;
   while (LOCAL_reply_signal == sharing);
+  while (REMOTE_reply_signal(worker_q) != worker_ready);
   LOCAL_share_request = MAX_WORKERS;
   PUT_IN_REQUESTABLE(worker_id);
 
-  return;
+  return 1;
 }
 
 
@@ -190,7 +202,7 @@ int q_share_work(int worker_p) {
     return FALSE;
   }
 #ifdef YAPOR_ERRORS
-  if (OrFr_pend_prune_cp(LOCAL_top_or_fr) &&
+  if (Get_OrFr_pend_prune_cp(LOCAL_top_or_fr) &&
       BRANCH_LTT(worker_p, OrFr_depth(LOCAL_top_or_fr)) < OrFr_pend_prune_ltt(LOCAL_top_or_fr))
     YAPOR_ERROR_MESSAGE("prune ltt > worker_p branch ltt (q_share_work)");
 #endif /* YAPOR_ERRORS */
@@ -256,10 +268,10 @@ int q_share_work(int worker_p) {
   UNLOCK_WORKER(worker_p);
 
   /* wait for an answer */
-  while (LOCAL_reply_signal == ready);
+  while (LOCAL_reply_signal == worker_ready);
   if (LOCAL_reply_signal == no_sharing) {
     /* sharing request refused */
-    LOCAL_reply_signal = ready;
+    LOCAL_reply_signal = worker_ready;
     return FALSE;
   }
 
@@ -302,8 +314,10 @@ sync_with_p:
 #endif /* TABLING */
   while (LOCAL_reply_signal != copy_done);
 
+#if INCREMENTAL_COPY
   /* install fase --> TR and LOCAL_top_cp->cp_tr are equal */
   aux_tr = ((choiceptr) LOCAL_start_local_copy)->cp_tr;
+  TR = ((choiceptr) LOCAL_end_local_copy)->cp_tr;
   Yap_NEW_MAHASH((ma_h_inner_struct *)H);
   while (TR != aux_tr) {
     aux_cell = TrailTerm(--aux_tr);
@@ -347,12 +361,13 @@ sync_with_p:
 #endif /* MULTI_ASSIGNMENT_VARIABLES */
     }
   }
+#endif /* incremental */
 
   /* update registers and return */
 #ifndef TABLING
-  REMOTE_reply_signal(worker_p) = ready;
+  REMOTE_reply_signal(worker_p) = worker_ready;
 #endif /* TABLING */
-  LOCAL_reply_signal = ready;
+  LOCAL_reply_signal = worker_ready;
   PUT_IN_REQUESTABLE(worker_id);
   TR = (tr_fr_ptr) LOCAL_end_trail_copy;
 #ifdef TABLING

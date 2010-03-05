@@ -3,6 +3,7 @@
 # (EROOT for architecture-dependent files)
 #
 prefix = @prefix@
+exec_prefix = @exec_prefix@
 ROOTDIR = $(prefix)
 EROOTDIR = @exec_prefix@
 #
@@ -12,8 +13,8 @@ BINDIR = $(EROOTDIR)/bin
 #
 # where YAP should look for binary libraries
 #
-LIBDIR=$(EROOTDIR)/lib
-YAPLIBDIR=$(EROOTDIR)/lib/Yap
+LIBDIR=@libdir@
+YAPLIBDIR=@libdir@/Yap
 #
 # where YAP should look for architecture-independent Prolog libraries
 #
@@ -29,7 +30,7 @@ INFODIR=$(SHAREDIR)/info
 #
 # where to store documentaion files
 #
-DOCSDIR=$(SHAREDIR)/docs/yap
+DOCSDIR=$(SHAREDIR)/docs/Yap
 
 #
 # Add this flag to YAP_EXTRAS if you need the extension:
@@ -59,7 +60,7 @@ YAPSTARTUP=startup.yss
 #
 CC=@CC@
 MPI_CC=@MPI_CC@
-CPPFLAGS=@CPPFLAGS@  -I. -I$(srcdir)/H -I$(srcdir)/OPTYap -I$(srcdir)/BEAM -I$(srcdir)/packages/MYDDAS
+CPPFLAGS=@CPPFLAGS@  -I. -I$(srcdir)/H -I$(srcdir)/OPTYap -I$(srcdir)/BEAM -I$(srcdir)/MYDDAS
 CFLAGS= @CFLAGS@ $(YAP_EXTRAS) $(DEFS) $(CPPFLAGS)
 C_INTERF_FLAGS= @C_INTERF_FLAGS@ $(YAP_EXTRAS) $(DEFS) $(CPPFLAGS) -I$(srcdir)/include
 C_PARSER_FLAGS= @C_PARSER_FLAGS@ $(YAP_EXTRAS) $(DEFS) $(CPPFLAGS)
@@ -98,7 +99,7 @@ YAPLIB=@YAPLIB@
 #4.1VPATH=@srcdir@:@srcdir@/OPTYap
 CWD=$(PWD)
 #
-VERSION=6.0.0
+VERSION=6.0.3
 MYDDAS_VERSION=MYDDAS-0.9.1
 #
 
@@ -219,7 +220,9 @@ PL_SOURCES= \
 	$(srcdir)/pl/directives.yap \
 	$(srcdir)/pl/eam.yap \
 	$(srcdir)/pl/eval.yap \
-	$(srcdir)/pl/errors.yap	$(srcdir)/pl/grammar.yap \
+	$(srcdir)/pl/errors.yap	\
+	$(srcdir)/pl/flags.yap	\
+	$(srcdir)/pl/grammar.yap \
 	$(srcdir)/pl/ground.yap \
 	$(srcdir)/pl/hacks.yap \
 	$(srcdir)/pl/init.yap \
@@ -314,64 +317,64 @@ parms.h:	Makefile
 
 #special rule for this one: we cannot use -fomit-frame-pointer because this will
 # interface with the outside world.
-c_interface.o: $(srcdir)/C/c_interface.c $(srcdir)/include/c_interface.h
+c_interface.o: $(srcdir)/C/c_interface.c $(srcdir)/include/c_interface.h config.h
 	$(CC) $(C_INTERF_FLAGS) -c $(srcdir)/C/c_interface.c -o c_interface.o
 
-clause_list.o: $(srcdir)/C/clause_list.c $(srcdir)/include/clause_list.h
+clause_list.o: $(srcdir)/C/clause_list.c $(srcdir)/include/clause_list.h config.h
 	$(CC) $(C_INTERF_FLAGS) -c $(srcdir)/C/clause_list.c -o clause_list.o
 
-init.o: $(srcdir)/C/init.c
+init.o: $(srcdir)/C/init.c config.h
 	$(CC) -c $(CFLAGS) $(srcdir)/C/init.c -o $@
 
-load_foreign.o: $(srcdir)/C/load_foreign.c
+load_foreign.o: $(srcdir)/C/load_foreign.c config.h
 	$(CC) -c $(CFLAGS) $(srcdir)/C/load_foreign.c -o $@
 
-save.o: $(srcdir)/C/save.c
+save.o: $(srcdir)/C/save.c config.h
 	$(CC) -c $(CFLAGS) $(srcdir)/C/save.c -o $@
 
-sysbits.o: $(srcdir)/C/sysbits.c
+sysbits.o: $(srcdir)/C/sysbits.c config.h
 	$(CC) -c $(CFLAGS) $(srcdir)/C/sysbits.c -o $@
 
-udi.o: $(srcdir)/C/udi.c
+udi.o: $(srcdir)/C/udi.c config.h
 	$(CC) -c $(C_INTERF_FLAGS) $(srcdir)/C/udi.c -o $@
 
-rtree.o: $(srcdir)/packages/udi/rtree.c
+rtree.o: $(srcdir)/packages/udi/rtree.c config.h
 	$(CC) -c $(C_INTERF_FLAGS) $(srcdir)/packages/udi/rtree.c -o $@
 
-rtree_udi.o: $(srcdir)/packages/udi/rtree_udi.c
+rtree_udi.o: $(srcdir)/packages/udi/rtree_udi.c config.h
 	$(CC) -c $(C_INTERF_FLAGS) $(srcdir)/packages/udi/rtree_udi.c -o $@
 
-yap.o: $(srcdir)/console/yap.c parms.h
+yap.o: $(srcdir)/console/yap.c config.h
 	$(CC) -c $(CFLAGS) -I$(srcdir)/include $(srcdir)/console/yap.c -o $@
 
-mpi.o: $(srcdir)/library/mpi/mpi.c
+mpi.o: $(srcdir)/library/mpi/mpi.c config.h
 	$(MPI_CC) -c $(CFLAGS) $(srcdir)/library/mpi/mpi.c -o $@
 
-mpe.o: $(srcdir)/library/mpi/mpe.c
+mpe.o: $(srcdir)/library/mpi/mpe.c config.h
 	$(MPI_CC) -c $(CFLAGS) $(srcdir)/library/mpi/mpe.c -o $@
 
-myddas_mysql.o: $(srcdir)/MYDDAS/myddas_mysql.c
+myddas_mysql.o: $(srcdir)/MYDDAS/myddas_mysql.c config.h
 	$(CC) -c $(CFLAGS) $(srcdir)/MYDDAS/myddas_mysql.c -o $@
 
-myddas_odbc.o: $(srcdir)/MYDDAS/myddas_odbc.c
+myddas_odbc.o: $(srcdir)/MYDDAS/myddas_odbc.c config.h
 	$(CC) -c $(CFLAGS) $(srcdir)/MYDDAS/myddas_odbc.c -o $@
 
-myddas_shared.o: $(srcdir)/MYDDAS/myddas_shared.c
+myddas_shared.o: $(srcdir)/MYDDAS/myddas_shared.c config.h
 	$(CC) -c $(CFLAGS) $(srcdir)/MYDDAS/myddas_shared.c -o $@
 
-myddas_util.o: $(srcdir)/MYDDAS/myddas_util.c
+myddas_util.o: $(srcdir)/MYDDAS/myddas_util.c config.h
 	$(CC) -c $(CFLAGS) $(srcdir)/MYDDAS/myddas_util.c -o $@
 
-myddas_initialization.o: $(srcdir)/MYDDAS/myddas_initialization.c
+myddas_initialization.o: $(srcdir)/MYDDAS/myddas_initialization.c config.h
 	$(CC) -c $(CFLAGS) $(srcdir)/MYDDAS/myddas_initialization.c -o $@
 
-myddas_top_level.o: $(srcdir)/MYDDAS/myddas_top_level.c
+myddas_top_level.o: $(srcdir)/MYDDAS/myddas_top_level.c config.h
 	$(CC) -c $(CFLAGS) $(srcdir)/MYDDAS/myddas_top_level.c -o $@
 
-myddas_wkb2prolog.o: $(srcdir)/MYDDAS/myddas_wkb2prolog.c
+myddas_wkb2prolog.o: $(srcdir)/MYDDAS/myddas_wkb2prolog.c config.h
 	$(CC) -c $(CFLAGS) $(srcdir)/MYDDAS/myddas_wkb2prolog.c -o $@
 
-myddas_statistics.o: $(srcdir)/MYDDAS/myddas_statistics.c
+myddas_statistics.o: $(srcdir)/MYDDAS/myddas_statistics.c config.h
 	$(CC) -c $(CFLAGS) $(srcdir)/MYDDAS/myddas_statistics.c -o $@
 
 opt.memory.o: $(srcdir)/OPTYap/opt.memory.c $(srcdir)/OPTYap/opt.config.h
@@ -398,7 +401,7 @@ or.cowengine.o: $(srcdir)/OPTYap/or.cowengine.c $(srcdir)/OPTYap/opt.config.h
 or.sbaengine.o: $(srcdir)/OPTYap/or.sbaengine.c $(srcdir)/OPTYap/opt.config.h
 	$(CC) -c $(CFLAGS) $(srcdir)/OPTYap/or.sbaengine.c -o $@
 
-or.threadengine.o: $(srcdir)/OPTYap/or.threadengine.c
+or.threadengine.o: $(srcdir)/OPTYap/or.threadengine.c config.h
 	$(CC) -c $(CFLAGS) $(srcdir)/OPTYap/or.threadengine.c -o $@
 
 or.scheduler.o: $(srcdir)/OPTYap/or.scheduler.c $(srcdir)/OPTYap/opt.config.h
@@ -421,40 +424,40 @@ tab.suspend.o: $(srcdir)/OPTYap/tab.suspend.c \
 	$(srcdir)/OPTYap/opt.config.h
 	$(CC) -c $(CFLAGS) $(srcdir)/OPTYap/tab.suspend.c -o $@
 
-eam_showcode.o:  $(srcdir)/BEAM/eam_showcode.c
+eam_showcode.o:  $(srcdir)/BEAM/eam_showcode.c config.h
 	$(CC) -c $(CFLAGS) $(srcdir)/BEAM/eam_showcode.c -o $@
 
-eam_am.o:  $(srcdir)/BEAM/eam_am.c
+eam_am.o:  $(srcdir)/BEAM/eam_am.c config.h
 	$(CC) -c $(CFLAGS) $(srcdir)/BEAM/eam_am.c -o $@
 
-eamamasm.o:  $(srcdir)/BEAM/eamamasm.c
+eamamasm.o:  $(srcdir)/BEAM/eamamasm.c config.h
 	$(CC) -c $(CFLAGS) $(srcdir)/BEAM/eamamasm.c -o $@
 
-eamindex.o:  $(srcdir)/BEAM/eamindex.c
+eamindex.o:  $(srcdir)/BEAM/eamindex.c config.h
 	$(CC) -c $(CFLAGS) $(srcdir)/BEAM/eamindex.c -o $@
 
-sys.o: $(srcdir)/library/system/sys.c
+sys.o: $(srcdir)/library/system/sys.c config.h
 	$(CC) -c $(CFLAGS) -I$(srcdir)/include $(srcdir)/library/system/sys.c  -o $@
 
-yap2swi.o: $(srcdir)/library/yap2swi/yap2swi.c
+yap2swi.o: $(srcdir)/library/yap2swi/yap2swi.c config.h
 	$(CC) -c $(CFLAGS) -I$(srcdir)/include  $(srcdir)/library/yap2swi/yap2swi.c  -o $@
 
-random.o: $(srcdir)/library/random/random.c
+random.o: $(srcdir)/library/random/random.c config.h
 	$(CC) -c $(CFLAGS) -I$(srcdir)/include  $(srcdir)/library/random/random.c  -o $@
 
-regexp.o: $(srcdir)/library/regex/regexp.c  @NO_BUILTIN_REGEXP@ $(srcdir)/library/regex/regex2.h  $(srcdir)/library/regex/engine.c
+regexp.o: $(srcdir)/library/regex/regexp.c  @NO_BUILTIN_REGEXP@ $(srcdir)/library/regex/regex2.h  $(srcdir)/library/regex/engine.c config.h
 	$(CC) -c $(CFLAGS) -I$(srcdir)/include -I$(srcdir)/library/regex $(srcdir)/library/regex/regexp.c -o regexp.o
 
-regcomp.o: $(srcdir)/library/regex/regcomp.c $(srcdir)/library/regex/regex2.h
+regcomp.o: $(srcdir)/library/regex/regcomp.c $(srcdir)/library/regex/regex2.h config.h
 	$(CC) -c $(CFLAGS) -I$(srcdir)/include -I$(srcdir)/library/regex $(srcdir)/library/regex/regcomp.c -o regcomp.o
 
-regerror.o: $(srcdir)/library/regex/regerror.c
+regerror.o: $(srcdir)/library/regex/regerror.c config.h
 	$(CC) -c $(CFLAGS) -I$(srcdir)/include -I$(srcdir)/library/regex $(srcdir)/library/regex/regerror.c -o regerror.o
 
-regfree.o: $(srcdir)/library/regex/regfree.c $(srcdir)/library/regex/regex2.h
+regfree.o: $(srcdir)/library/regex/regfree.c $(srcdir)/library/regex/regex2.h config.h
 	$(CC) -c $(CFLAGS) -I$(srcdir)/include -I$(srcdir)/library/regex $(srcdir)/library/regex/regfree.c -o regfree.o
 
-regexec.o: $(srcdir)/library/regex/regexec.c
+regexec.o: $(srcdir)/library/regex/regexec.c config.h
 	$(CC) -c $(CFLAGS) -I$(srcdir)/include -I$(srcdir)/library/regex $(srcdir)/library/regex/regexec.c -o regexec.o
 
 absmi.o: $(srcdir)/C/absmi.c \
@@ -470,7 +473,7 @@ absmi.o: $(srcdir)/C/absmi.c \
 	$(CC) -c $(CFLAGS) $< -o $@
 
 # default rule
-%.o : $(srcdir)/C/%.c
+%.o : $(srcdir)/C/%.c config.h
 	$(CC) -c $(CFLAGS) $< -o $@
 
 # dependencies for header files
@@ -511,7 +514,7 @@ all: startup.yss
 	@ENABLE_CPLINT@ (cd cplint; $(MAKE))
 	@USE_CUDD@ (cd packages/ProbLog/simplecudd; $(MAKE))
 
-startup.yss: yap@EXEC_SUFFIX@ $(PL_SOURCES) parms.h
+startup.yss: yap@EXEC_SUFFIX@ $(PL_SOURCES)
 	-rm -f startup.yss
 	echo "bootstrap('$(srcdir)/pl/init.yap'). module(user). save_program('startup.yss')." |  @PRE_DYNLOADER_PATH@ ./yap -b $(srcdir)/pl/boot.yap
 
@@ -524,7 +527,7 @@ libYap.a: $(LIB_OBJECTS)
 	$(RANLIB) libYap.a
 
 @DYNYAPLIB@: $(LIB_OBJECTS)
-	@DYNLIB_LD@ -o @YAPLIB@ $(LIB_OBJECTS) $(LIBS) $(LDFLGS)
+	@DYNLIB_LD@ -o @YAPLIB@ $(LIB_OBJECTS) $(LIBS) $(LDFLAGS)
 
 install: install_bin install_data
 
@@ -538,6 +541,10 @@ install_unix: startup.yss libYap.a
 	@INSTALL_DLLS@ $(INSTALL_DATA) -m 755 @YAPLIB@ $(DESTDIR)$(LIBDIR)
 	mkdir -p $(DESTDIR)$(SHAREDIR)/Yap
 	mkdir -p $(DESTDIR)$(SHAREDIR)/Yap/pl
+	mkdir -p $(DESTDIR)$(DOCSDIR)
+	$(INSTALL) $(srcdir)/Artistic $(DESTDIR)$(DOCSDIR)
+	$(INSTALL) $(srcdir)/README $(DESTDIR)$(DOCSDIR)
+	$(INSTALL) $(srcdir)/COPYING $(DESTDIR)$(DOCSDIR)
 	for f in $(PL_SOURCES); do $(INSTALL) $$f $(DESTDIR)$(SHAREDIR)/Yap/pl; done
 	@INSTALL_DLLS@ (cd packages/PLStream; $(MAKE) install)
 	@INSTALL_DLLS@ (cd packages/plunit; $(MAKE) install)
@@ -573,6 +580,10 @@ install_win32: startup.yss
 	mkdir -p $(DESTDIR)$(SHAREDIR)/Yap
 	mkdir -p $(DESTDIR)$(SHAREDIR)/Yap/pl
 	mkdir -p $(DESTDIR)$(SHAREDIR)/Yap/swi
+	mkdir -p $(DESTDIR)$(DOCSDIR)
+	$(INSTALL) $(srcdir)/Artistic $(DESTDIR)$(DOCSDIR)
+	$(INSTALL) $(srcdir)/README $(DESTDIR)$(DOCSDIR)/README.TXT
+	$(INSTALL) $(srcdir)/COPYING $(DESTDIR)$(DOCSDIR)/COPYING.TXT
 	for f in $(PL_SOURCES); do $(INSTALL) $$f $(DESTDIR)$(SHAREDIR)/Yap/pl; done
 	$(INSTALL) $(HEADERS) $(DESTDIR)$(INCLUDEDIR)
 	for h in $(INTERFACE_HEADERS); do $(INSTALL) $$h $(DESTDIR)$(INCLUDEDIR); done

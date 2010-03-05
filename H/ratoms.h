@@ -255,6 +255,7 @@
   AtomStaticClause = AtomAdjust(AtomStaticClause);
   AtomStaticProcedure = AtomAdjust(AtomStaticProcedure);
   AtomStream = AtomAdjust(AtomStream);
+  AtomVStream = AtomAdjust(AtomVStream);
   AtomStreams = AtomAdjust(AtomStreams);
   AtomStreamOrAlias = AtomAdjust(AtomStreamOrAlias);
   AtomStreamPos = AtomAdjust(AtomStreamPos);
@@ -395,6 +396,7 @@
   FunctorStreamEOS = FuncAdjust(FunctorStreamEOS);
   FunctorStreamPos = FuncAdjust(FunctorStreamPos);
   FunctorSyntaxError = FuncAdjust(FunctorSyntaxError);
+  FunctorShortSyntaxError = FuncAdjust(FunctorShortSyntaxError);
   FunctorThreadRun = FuncAdjust(FunctorThreadRun);
   FunctorThrow = FuncAdjust(FunctorThrow);
   FunctorTimeoutError = FuncAdjust(FunctorTimeoutError);

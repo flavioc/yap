@@ -435,7 +435,8 @@ TrNode core_trie_load(TrEngine engine, FILE *file, void (*load_function)(TrNode,
   fpos_t curpos;
 
   fscanf(file, "%14s", version);
-  if (fgetpos(file, &curpos) ) return NULL;
+  if (fgetpos(file, &curpos))
+    return NULL;
 
   if (!strcmp(version, "BEGIN_TRIE_v2")) {
     fseek(file, -11, SEEK_END);
@@ -444,7 +445,8 @@ TrNode core_trie_load(TrEngine engine, FILE *file, void (*load_function)(TrNode,
       trie_core_print_error("trie file corrupted");
       return NULL;
     }
-    if (fsetpos(file, &curpos) ) return NULL;
+    if (fsetpos(file, &curpos))
+      return NULL;
     CURRENT_LOAD_VERSION = 2;
   } else if (!strcmp(version, "BEGIN_TRIE")) {
     fseek(file, -8, SEEK_END);
@@ -453,7 +455,8 @@ TrNode core_trie_load(TrEngine engine, FILE *file, void (*load_function)(TrNode,
       trie_core_print_error("trie file corrupted");
       return NULL;
     }
-    if (fsetpos(file, &curpos) )  return NULL;
+    if (fsetpos(file, &curpos))
+      return NULL;
     CURRENT_LOAD_VERSION = 1;
   } else {
     trie_core_print_error("invalid trie file"); 

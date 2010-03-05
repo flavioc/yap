@@ -712,7 +712,7 @@ p_execute0(void)
 #endif
     }
   } else {
-    Yap_Error(TYPE_ERROR_CALLABLE,ARG3,"call/1");    
+    Yap_Error(TYPE_ERROR_CALLABLE,ARG1,"call/1");    
     return FALSE;
   }
   /*	N = arity; */
@@ -729,8 +729,14 @@ p_execute_nonstop(void)
   Prop            pe;
 
  restart_exec:
+  if (IsVarTerm(mod)) {
+    mod = CurrentModule;
+  } else if (!IsAtomTerm(mod)) {
+    Yap_Error(TYPE_ERROR_ATOM, ARG2, "call/1");
+    return FALSE;
+  }
   if (IsVarTerm(t)) {
-    Yap_Error(INSTANTIATION_ERROR,ARG3,"call/1");    
+    Yap_Error(INSTANTIATION_ERROR,ARG1,"call/1");    
     return FALSE;
   } else if (IsAtomTerm(t)) {
     Atom a = AtomOfTerm(t);
@@ -782,25 +788,23 @@ p_execute_nonstop(void)
   }
   /*	N = arity; */
   /* call may not define new system predicates!! */
-  if (ActiveSignals & YAP_CREEP_SIGNAL  && !Yap_InterruptsDisabled) {
-    Yap_signal(YAP_CREEP_SIGNAL);
-  }
   if (RepPredProp(pe)->PredFlags & SpiedPredFlag) {
+    if (ActiveSignals & YAP_CREEP_SIGNAL  && !Yap_InterruptsDisabled) {
+      Yap_signal(YAP_CREEP_SIGNAL);
+    }
+#if defined(YAPOR) || defined(THREADS)
+    if (RepPredProp(pe)->PredFlags & LogUpdatePredFlag) {
+      PP = RepPredProp(pe);
+      LOCK(PP->PELock);
+    }
+#endif
     return CallPredicate(RepPredProp(pe), B, RepPredProp(pe)->cs.p_code.TrueCodeOfPred);
-  }  else if ((RepPredProp(pe)->PredFlags & (AsmPredFlag|CPredFlag)) &&
-	      RepPredProp(pe)->OpcodeOfPred != Yap_opcode(_call_bfunc_xx)) {
-    /* USER C-Code may walk over registers */
-    if (RepPredProp(pe)->PredFlags & UserCPredFlag) {
-      save_machine_regs();
+  }  else { if (ActiveSignals & YAP_CREEP_SIGNAL  && 
+		!Yap_InterruptsDisabled &&
+		(!(RepPredProp(pe)->PredFlags & (AsmPredFlag|CPredFlag)) ||
+		  RepPredProp(pe)->OpcodeOfPred == Yap_opcode(_call_bfunc_xx))) {
+      Yap_signal(YAP_CREEP_SIGNAL);
     }
-    if (RepPredProp(pe)->PredFlags & UserCPredFlag) {
-      Int out = RepPredProp(pe)->cs.f_code();
-      restore_machine_regs();
-      return out;
-    } else {
-      return RepPredProp(pe)->cs.f_code();
-    }
-  } else {
     return CallPredicate(RepPredProp(pe), B, RepPredProp(pe)->CodeOfPred);
   }
 }

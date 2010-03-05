@@ -99,6 +99,16 @@ SWIAtomToAtom(atom_t at)
   return (Atom)at;
 }
 
+static inline Term
+SWIModuleToModule(module_t m)
+{
+  if (m)
+    return (CELL)m;
+  if (CurrentModule)
+    return CurrentModule;
+  return USER_MODULE;
+}
+
 static inline functor_t
 FunctorToSWIFunctor(Functor at)
 {
@@ -171,11 +181,11 @@ PL_agc_hook(PL_agc_hook_t entry)
    YAP: char* AtomName(Atom) */
 X_API char* PL_atom_chars(atom_t a)	 /* SAM check type */
 {
-  return AtomName(SWIAtomToAtom(a));
+  return RepAtom(SWIAtomToAtom(a))->StrOfAE;
 }
 
 X_API int
-PL_chars_to_term(term_t term,const char *s) { 
+PL_chars_to_term(const char *s, term_t term) { 
   YAP_Term t,error;
   if ( (t=YAP_ReadBuffer(s,&error))==0L ) {
     Yap_PutInSlot(term, error); 
@@ -263,7 +273,7 @@ X_API int PL_get_intptr(term_t ts, intptr_t *a)
    YAP: char* AtomName(Atom) */
 X_API int PL_get_atom_chars(term_t ts, char **a)  /* SAM check type */
 {
-  YAP_Term t = Yap_GetFromSlot(ts);
+  Term t = Yap_GetFromSlot(ts);
   if (!IsAtomTerm(t))
     return 0;
   *a = RepAtom(AtomOfTerm(t))->StrOfAE;
@@ -574,7 +584,11 @@ X_API int PL_get_int64(term_t ts, int64_t *i)
 	return 0;
       }
       mpz_get_str (s, 10, &g);
+#ifdef _WIN32
+      sscanf(s, "%I64d", (long long int *)i);
+#else
       sscanf(s, "%lld", (long long int *)i);
+#endif
       return 1;
 #endif
     }
@@ -897,7 +911,13 @@ X_API int PL_put_int64(term_t t, int64_t n)
   char s[64];
   MP_INT rop;
 
+#ifdef _WIN32
+  snprintf(s, 64, "%I64d", (long long int)n);
+#elif HAVE_SNPRINTF
+  snprintf(s, 64, "%lld", (long long int)n);
+#else
   sprintf(s, "%lld", (long long int)n);
+#endif
   mpz_init_set_str (&rop, s, 10);
   Yap_PutInSlot(t,YAP_MkBigNumTerm((void *)&rop));
   return TRUE;
@@ -1277,8 +1297,8 @@ X_API int PL_unify_float(term_t t, double f)
    YAP long int  unify(YAP_Term* a, Term* b) */
 X_API int PL_unify_integer(term_t t, long n)
 {	
-  YAP_Term iterm = YAP_MkIntTerm(n);
-  return YAP_Unify(Yap_GetFromSlot(t),iterm);
+  Term iterm = MkIntegerTerm(n);
+  return Yap_unify(Yap_GetFromSlot(t),iterm);
 }
 
 /* SWI: int PL_unify_integer(term_t ?t, long n)
@@ -1305,7 +1325,13 @@ X_API int PL_unify_int64(term_t t, int64_t n)
   char s[64];
   MP_INT rop;
 
+#ifdef _WIN32
+  snprintf(s, 64, "%I64d", (long long int)n);
+#elif HAVE_SNPRINTF
+  snprintf(s, 64, "%lld", (long long int)n);
+#else
   sprintf(s, "%lld", (long long int)n);
+#endif
   mpz_init_set_str (&rop, s, 10);
   iterm = YAP_MkBigNumTerm((void *)&rop);
   return YAP_Unify(Yap_GetFromSlot(t),iterm);
@@ -1327,9 +1353,36 @@ X_API int PL_unify_list(term_t tt, term_t h, term_t tail)
   } else if (!IsPairTerm(t)) {
     return FALSE;
   }
-  Yap_PutInSlot(h,HeadOfTerm(t));
-  Yap_PutInSlot(tail,TailOfTerm(t));
-  return TRUE;
+  return 
+    Yap_unify(Yap_GetFromSlot(h),HeadOfTerm(t)) &&
+    Yap_unify(Yap_GetFromSlot(tail),TailOfTerm(t));
+}
+
+/* SWI: int PL_unify_list(term_t ?t, term_t +h, term_t -t)
+   YAP long int  unify(YAP_Term* a, Term* b) */
+X_API int PL_unify_arg(int index, term_t tt, term_t arg)
+{
+  Term t = Deref(Yap_GetFromSlot(tt)), to;
+  if (index < 0)
+    return FALSE;
+  if (IsVarTerm(t) || IsAtomOrIntTerm(t)) {
+    return FALSE;
+  } else if (IsPairTerm(t)) {
+    if (index == 1)
+      to = HeadOfTerm(t);
+    else if (index == 2)
+      to = TailOfTerm(t);
+    else
+      return FALSE;
+  } else {
+    Functor f = FunctorOfTerm(t);
+    if (IsExtensionFunctor(f)) 
+      return FALSE;
+    if (index > ArityOfFunctor(f))
+      return FALSE;
+    to = ArgOfTerm(index, t);
+  }
+  return Yap_unify(Yap_GetFromSlot(t),to);
 }
 
 /* SWI: int PL_unify_list(term_t ?t, term_t +h, term_t -t)
@@ -1565,7 +1618,13 @@ X_API int PL_unify_term(term_t l,...)
 	  char s[64];
 	  MP_INT rop;
 
+#ifdef _WIN32
+	  snprintf(s, 64, "%I64d", va_arg(ap, long long int));
+#elif HAVE_SNPRINTF
+	  snprintf(s, 64, "%lld", va_arg(ap, long long int));
+#else
 	  sprintf(s, "%lld", va_arg(ap, long long int));
+#endif	  
 	  mpz_init_set_str (&rop, s, 10);
 	  *pt++ = YAP_MkBigNumTerm((void *)&rop);
 	}
@@ -1706,6 +1765,11 @@ X_API int PL_is_atom(term_t t)
   return IsAtomTerm(Yap_GetFromSlot(t));
 }
 
+X_API int PL_is_ground(term_t t)
+{
+  return Yap_IsGroundTerm(Yap_GetFromSlot(t));
+}
+
 X_API int PL_is_atomic(term_t ts)
 {
   YAP_Term t = Yap_GetFromSlot(ts);
@@ -1794,11 +1858,14 @@ PL_record(term_t ts)
   return (record_t)Yap_StoreTermInDB(t, 0);
 }
 
-X_API void
+X_API int
 PL_recorded(record_t db, term_t ts)
 {
   Term t = Yap_FetchTermFromDB((DBTerm *)db);
+  if (t == 0L)
+    return FALSE;
   Yap_PutInSlot(ts,t);
+  return TRUE;
 }
 
 X_API void
@@ -1895,17 +1962,21 @@ PL_exception(qid_t q)
   }
 }
 
+X_API void
+PL_clear_exception(void)
+{
+  EX = 0L;
+}
+
 X_API int
 PL_initialise(int myargc, char **myargv)
 {
   YAP_init_args init_args;
 
+  memset((void *)&init_args,0,sizeof(init_args));
   init_args.Argv = myargv;
   init_args.Argc = myargc;
   init_args.SavedState = "startup.yss";
-  init_args.HeapSize = 0;
-  init_args.StackSize = 0;
-  init_args.TrailSize = 0;
   init_args.YapLibDir = NULL;
   init_args.YapPrologBootFile = NULL;
   init_args.HaltAfterConsult = FALSE;
@@ -1951,20 +2022,24 @@ X_API atom_t PL_module_name(module_t m)
 X_API predicate_t PL_pred(functor_t f, module_t m)
 {
   Functor ff = SWIFunctorToFunctor(f);
+  Term mod = SWIModuleToModule(m);
+
   if (IsAtomTerm((Term)f)) {
-    return YAP_Predicate(YAP_AtomOfTerm((Term)f),0,(YAP_Module)m);
+    return YAP_Predicate(YAP_AtomOfTerm((Term)f),0,mod);
   } else {
-    return YAP_Predicate((YAP_Atom)NameOfFunctor(ff),ArityOfFunctor(ff),(YAP_Module)m);
+    return YAP_Predicate((YAP_Atom)NameOfFunctor(ff),ArityOfFunctor(ff),mod);
   }
 }
 
 X_API predicate_t PL_predicate(const char *name, int arity, const char *m)
 {
-  int mod;
-  if (m == NULL)
-    mod = YAP_CurrentModule();
-  else
+  Term mod;
+  if (m == NULL) {
+    mod = CurrentModule;
+    if (!mod) mod = USER_MODULE;
+  } else {
     mod = MkAtomTerm(Yap_LookupAtom((char *)m));
+  }
   return YAP_Predicate(YAP_LookupAtom((char *)name),
 		       arity,
 		       mod);
@@ -2001,8 +2076,7 @@ X_API qid_t PL_open_query(module_t ctx, int flags, predicate_t p, term_t t0)
 {
   Atom yname;
   unsigned long int  arity;
-  Term  m;
-  Term t[2];
+  Term t[2], m;
 
   /* ignore flags  and module for now */
   if (execution.open != 0) {
@@ -2011,14 +2085,14 @@ X_API qid_t PL_open_query(module_t ctx, int flags, predicate_t p, term_t t0)
   execution.open=1;
   execution.state=0;
   PredicateInfo((PredEntry *)p, &yname, &arity, &m);
-  t[0] = YAP_ModuleName(m);
+  t[0] = SWIModuleToModule(ctx);
   if (arity == 0) {
     t[1] = MkAtomTerm(yname);
   } else {
     Functor f = Yap_MkFunctor(yname, arity);
     t[1] = Yap_MkApplTerm(f,arity,Yap_AddressFromSlot(t0));
   }
-  execution.g = Yap_MkApplTerm(Yap_MkFunctor(Yap_LookupAtom(":"),2),2,t);
+  execution.g = Yap_MkApplTerm(FunctorModule,2,t);
   return &execution;
 }
 
@@ -2041,6 +2115,7 @@ X_API int PL_next_solution(qid_t qi)
 
 X_API void PL_cut_query(qid_t qi)
 {
+  if (qi->open != 1) return;
   YAP_PruneGoal();
   qi->open = 0;
 }
@@ -2070,11 +2145,20 @@ X_API int PL_toplevel(void)
 
 X_API int PL_call(term_t tp, module_t m)
 {
-  YAP_Term t[2], g;
-  t[0] = YAP_ModuleName((YAP_Module)m);
+  int out;
+
+  BACKUP_B();
+  BACKUP_H();
+
+  Term t[2], g;
+  t[0] = SWIModuleToModule(m);
   t[1] = Yap_GetFromSlot(tp);
-  g = YAP_MkApplTerm(YAP_MkFunctor(YAP_LookupAtom(":"),2),2,t);
-  return YAP_RunGoal(g);
+  g = Yap_MkApplTerm(FunctorModule,2,t);
+  out =  YAP_RunGoal(g);
+
+  RECOVER_H();
+  RECOVER_B();
+  return out;
 }
 
 X_API void PL_register_foreign_in_module(const char *module, const char *name, int arity, foreign_t (*function)(void), int flags)
@@ -2108,6 +2192,11 @@ X_API void PL_register_foreign_in_module(const char *module, const char *name, i
 X_API void PL_register_extensions(const PL_extension *ptr)
 {
   PL_load_extensions(ptr);
+}
+
+X_API void PL_register_foreign(const char *name, int arity, foreign_t (*function)(void), int flags)
+{
+  PL_register_foreign_in_module(NULL, name, arity, function, flags);
 }
 
 X_API void PL_load_extensions(const PL_extension *ptr)
@@ -2278,7 +2367,11 @@ PL_eval_expression_to_int64_ex(term_t t, int64_t *val)
       return PL_error(NULL,0,NULL, ERR_EVALUATION, AtomToSWIAtom(Yap_LookupAtom("int_overflow")));
     }
     mpz_get_str (s, 10, &g);
+#ifdef _WIN32
+    sscanf(s, "%I64d", (long long int *)val);
+#else
     sscanf(s, "%lld", (long long int *)val);
+#endif
     return 1;
 #endif
   }
