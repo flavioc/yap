@@ -144,7 +144,7 @@
         copy_arity_stack()
         
 #define really_pop_trie_node()                        \
-        dprintf("really_pop_trie_node\n");             \
+        dprintf("really_pop_trie_node\n");            \
         YENV = (CELL *) PROTECT_FROZEN_B((B + 1));    \
         H = PROTECT_FROZEN_H(B);                      \
         pop_yaam_reg_cpdepth(B);                      \
@@ -430,7 +430,6 @@ dprintf("stack_trie_atom_instr\n");                                    \
             Bind_Global((CELL *) *aux_stack_ptr, TrNode_entry(node));  \
           } else {                                                  \
             if(term != TrNode_entry(node)) {                        \
-              dprintf("No match\n");                                 \
               goto fail;                                            \
             }                                                       \
           }                                                         \
@@ -1722,7 +1721,7 @@ dprintf("stack_trie_float_longint_instr\n");     \
         if(heap_arity)                                \
           aux_stack_ptr--;                            \
         else                                          \
-          aux_stack_ptr -= 2 + subs_arity;            \
+          aux_stack_ptr -= (2 + subs_arity);          \
         copy_arity_stack()
   
 #define restore_hash_node()                               \
@@ -1741,7 +1740,8 @@ dprintf("stack_trie_float_longint_instr\n");     \
     copy_arity_stack()
     
 #define pop_hash_node()                                   \
-    YENV = (CELL *) PROTECT_FROZEN_B((choiceptr)(hash_cp + 1));    \
+    hash_cp++;                                            \
+    YENV = (CELL *) PROTECT_FROZEN_B((choiceptr)(hash_cp));    \
     H = PROTECT_FROZEN_H(B);                              \
     pop_yaam_reg_cpdepth(B);                              \
     CPREG = B->cp_cp;                                     \
@@ -1751,12 +1751,13 @@ dprintf("stack_trie_float_longint_instr\n");     \
     HBREG = PROTECT_FROZEN_H(B);                          \
     SET_BB(PROTECT_FROZEN_B(B));                          \
     if ((choiceptr) YENV == B_FZ) {                       \
-      register CELL *aux_stack_ptr = YENV;                \
+      dprintf("Loop!\n");                                 \
+    } else {                                              \
+      CELL *aux_stack_ptr = YENV;                         \
       int heap_arity = *aux_stack_ptr;                    \
       int vars_arity = *(aux_stack_ptr + heap_arity + 1); \
       int subs_arity = *(aux_stack_ptr + heap_arity + 2); \
-      dprintf("Copy stack\n");                             \
-      copy_arity_stack();                                 \
+      YENV += CALCULATE_STACK_SIZE();                     \
     }
   
   BOp(trie_do_hash, e)
@@ -1765,6 +1766,8 @@ dprintf("stack_trie_float_longint_instr\n");     \
     int heap_arity = *aux_stack_ptr;
     int vars_arity = *(aux_stack_ptr + heap_arity + 1);
     int subs_arity = *(aux_stack_ptr + heap_arity + 2);
+    
+    dprintf("trie_do_hash\n");
     
     if(heap_arity)
       aux_stack_ptr++;
@@ -1787,6 +1790,8 @@ dprintf("stack_trie_float_longint_instr\n");     \
       hash_cp->is_variable = TRUE;
       hash_cp->hash = hash;
       
+      dprintf("trie_do_hash is variable\n");
+      
       next_node_instruction(*(hash_cp->last_bucket));
     } else {
       switch(cell_tag(term)) {
@@ -1803,15 +1808,20 @@ dprintf("stack_trie_float_longint_instr\n");     \
           break;
       }
       
+      dprintf("trie_do_hash other\n");
+      
       tst_node_ptr *bucket_ptr = Hash_bucket(hash, HASH_ENTRY(term, Hash_seed(hash)));
       tst_node_ptr *var_bucket_ptr = Hash_bucket(hash, TRIEVAR_BUCKET);
       tst_node_ptr bucket = *bucket_ptr;
       tst_node_ptr var_bucket = *var_bucket_ptr;
       
-      if(bucket == NULL && var_bucket == NULL)
+      if(bucket == NULL && var_bucket == NULL) {
+        dprintf("trie_do_hash all null\n");
         goto fail;
+      }
       
       if(bucket != NULL && var_bucket != NULL) {
+        dprintf("trie_do_hash two\n");
         store_hash_node();
 
         hash_cp_ptr hash_cp = HASH_CP(B);
@@ -1823,17 +1833,24 @@ dprintf("stack_trie_float_longint_instr\n");     \
       }
       
       /* run the valid bucket */
-      if(bucket)
-        next_node_instruction(bucket)
-      else
-        next_node_instruction(var_bucket)
+      if(bucket) {
+        dprintf("trie_do_hash concrete\n");
+        next_node_instruction(bucket);
+      }
+      else {
+        dprintf("trie_do_hash var\n");
+        next_node_instruction(var_bucket);
+      }
     }
   ENDBOp();
   
   BOp(trie_retry_hash, e)
     hash_cp_ptr hash_cp = HASH_CP(B);
+    
+  dprintf("trie_retry_hash\n");
   
     if(hash_cp->is_variable) {
+      dprintf("is variable\n");
       tst_ans_hash_ptr hash = hash_cp->hash;
       tst_node_ptr *last_bucket = TSTHT_buckets(hash) + TSTHT_num_buckets(hash);
       
@@ -1841,6 +1858,7 @@ dprintf("stack_trie_float_longint_instr\n");     \
         hash_cp->last_bucket++;
         
         if(last_bucket == hash_cp->last_bucket) {
+          dprintf("No more items in hash table\n");
           pop_hash_node();
           goto fail; /* it is over */
         }
@@ -1851,6 +1869,7 @@ dprintf("stack_trie_float_longint_instr\n");     \
         }
       } while(TRUE);
     } else {
+      dprintf("is other\n");
       /* consume the var bucket */
       pop_hash_node();
         
