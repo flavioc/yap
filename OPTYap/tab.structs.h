@@ -389,7 +389,7 @@ struct subsumed_consumer_subgoal_frame {
   variant_sf var_sf;
   time_stamp ts;
   subprod_fr_ptr producer;
-  CELL* answer_template;
+  CELL *answer_template;
   subsumptive_consumer_sf *consumers; /* Chain link for properly subsumed subgoals */
 };
 
@@ -397,9 +397,10 @@ typedef subsumptive_consumer_sf *subcons_fr_ptr;
 
 #define CAST_SUBCONSSF(X)   ((subcons_fr_ptr)(X))
 
-#define SgFr_timestamp(X)   ((X)->ts)
-#define SgFr_producer(X)    ((X)->producer)
-#define SgFr_consumers(X)   ((X)->consumers)
+#define SgFr_timestamp(X)       ((X)->ts)
+#define SgFr_producer(X)        ((X)->producer)
+#define SgFr_consumers(X)       ((X)->consumers)
+#define SgFr_cons_cp(X)          ((X)->cons_cp)
 #define SgFr_answer_template(X) ((X)->answer_template)
 
 /* ------------------------------- **
