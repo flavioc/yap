@@ -360,7 +360,6 @@ void tstnHashifyChildren(CTXTdeclc TSTNptr parent, TSTNptr root, xsbBool createT
     MakeHashedNode(tstn);
     if( createTSI )
       TSTN_SetTSIN(tstn, tsiOrderedInsert(CTXTc ht, tstn));
-    dprintf("Created hash table\n");
   }
 }
 
@@ -487,7 +486,7 @@ TSTNptr tst_insert(CTXTdeclc TSTNptr tstRoot, TSTNptr lastMatch, Cell firstSymbo
   Cell symbol;
   int std_var_num,
       trieType;
-      
+
   symbol = firstSymbol;
   std_var_num = Trail_NumBindings;
   trieType = TSTN_TrieType(tstRoot);
