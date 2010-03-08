@@ -785,6 +785,9 @@ fix_answer_template(CELL *ans_tmplt)
     *H++ = term;
   }
   
+  /* put total */
+  *H++ = MkIntegerTerm(size);
+  
   Trail_Unwind_All;
 }
 
