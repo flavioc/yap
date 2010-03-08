@@ -155,10 +155,12 @@ sg_node_ptr subgoal_trie_node_check_insert(tab_ent_ptr tab_ent, sg_node_ptr pare
     if (count_nodes >= MAX_NODES_PER_TRIE_LEVEL) {
       /* alloc a new hash */
       sg_node_ptr chain_node, next_node, *bucket;
+      int entry;
       new_subgoal_trie_hash(hash, count_nodes, tab_ent);
       chain_node = child_node;
       do {
-        bucket = Hash_bucket(hash, HASH_ENTRY(TrNode_entry(chain_node), BASE_HASH_BUCKETS - 1));
+        entry = HASH_ENTRY(TrNode_entry(chain_node), BASE_HASH_BUCKETS - 1);
+        bucket = Hash_bucket(hash, entry);
         next_node = TrNode_next(chain_node);
         TrNode_node_type(chain_node) |= HASHED_INTERIOR_NT;
         TrNode_next(chain_node) = *bucket;
@@ -366,11 +368,9 @@ ans_node_ptr answer_trie_node_check_insert(sg_fr_ptr sg_fr, ans_node_ptr parent_
     UNLOCK_NODE(parent_node);
     return child_node;
   }
-  dprintf("Hash this\n");
 
   hash = (ans_hash_ptr) child_node;
 answer_trie_hash:
-  dprintf("Trie Nodes with hashing\n");
   { /* trie nodes with hashing */
     ans_node_ptr *bucket, first_node;
     int seed, count_nodes = 0;
@@ -579,10 +579,12 @@ sg_node_ptr subgoal_trie_node_check_insert(tab_ent_ptr tab_ent, sg_node_ptr pare
       /* alloc a new hash */
       sg_hash_ptr hash;
       sg_node_ptr chain_node, next_node, *bucket;
+      int entry;
       new_subgoal_trie_hash(hash, count_nodes, tab_ent);
       chain_node = child_node;
       do {
-        bucket = Hash_bucket(hash, HASH_ENTRY(TrNode_entry(chain_node), BASE_HASH_BUCKETS - 1));
+        entry = HASH_ENTRY(TrNode_entry(chain_node), BASE_HASH_BUCKETS - 1);
+        bucket = Hash_bucket(hash, entry);
         next_node = TrNode_next(chain_node);
         TrNode_node_type(chain_node) |= HASHED_INTERIOR_NT;
         TrNode_next(chain_node) = *bucket;
@@ -682,7 +684,6 @@ ans_node_ptr answer_trie_node_check_insert(sg_fr_ptr sg_fr, ans_node_ptr parent_
     count_nodes++;
     if (count_nodes >= MAX_NODES_PER_TRIE_LEVEL) {
       /* alloc a new hash */
-      dprintf("Creating a new hash...\n");
       ans_hash_ptr hash;
       ans_node_ptr chain_node, next_node, *bucket;
       new_answer_trie_hash(hash, count_nodes, sg_fr);
