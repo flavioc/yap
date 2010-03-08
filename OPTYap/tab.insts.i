@@ -499,13 +499,14 @@
       choiceptr leader_cp;
       int leader_dep_on_stack;
       
-      if(SgFr_is_sub_consumer(sg_fr) && SgFr_state(sg_fr) < evaluating) 
-        init_sub_consumer_subgoal_frame((subcons_fr_ptr)sg_fr);
-      
       find_dependency_node(sg_fr, leader_cp, leader_dep_on_stack);
       UNLOCK(SgFr_lock(sg_fr));
       find_leader_node(leader_cp, leader_dep_on_stack);
       store_consumer_node(tab_ent, sg_fr, leader_cp, leader_dep_on_stack);
+      
+      if(SgFr_is_sub_consumer(sg_fr) && SgFr_state(sg_fr) < evaluating) 
+        init_sub_consumer_subgoal_frame((subcons_fr_ptr)sg_fr);
+        
 #ifdef OPTYAP_ERRORS
       if (PARALLEL_EXECUTION_MODE) {
 	      choiceptr aux_cp;
@@ -559,8 +560,10 @@
   	        SgFr_state(sg_fr) = compiled;
           UNLOCK(SgFr_lock(sg_fr));
   	      sg_fr = (sg_fr_ptr)SgFr_producer((subcons_fr_ptr)sg_fr);
+  	      LOCK(SgFr_lock(sg_fr));
   	      if(SgFr_has_no_answers(sg_fr)) {
   	        /* no answers --> fail */
+  	        UNLOCK(SgFr_lock(sg_fr));
     	      goto fail;
   	      }
           goto exec_compiled_trie_single;
@@ -665,13 +668,14 @@ exec_compiled_trie_single:
       choiceptr leader_cp;
       int leader_dep_on_stack;
       
-      if(SgFr_is_sub_consumer(sg_fr) && SgFr_state(sg_fr) < evaluating) 
-        init_sub_consumer_subgoal_frame((subcons_fr_ptr)sg_fr);
-      
       find_dependency_node(sg_fr, leader_cp, leader_dep_on_stack);
       UNLOCK(SgFr_lock(sg_fr));
       find_leader_node(leader_cp, leader_dep_on_stack);
       store_consumer_node(tab_ent, sg_fr, leader_cp, leader_dep_on_stack);
+      
+      if(SgFr_is_sub_consumer(sg_fr) && SgFr_state(sg_fr) < evaluating) 
+        init_sub_consumer_subgoal_frame((subcons_fr_ptr)sg_fr);
+        
 #ifdef OPTYAP_ERRORS
       if (PARALLEL_EXECUTION_MODE) {
 	      choiceptr aux_cp;
@@ -725,8 +729,10 @@ exec_compiled_trie_single:
   	        SgFr_state(sg_fr) = compiled;
           UNLOCK(SgFr_lock(sg_fr));
   	      sg_fr = (sg_fr_ptr)SgFr_producer((subcons_fr_ptr)sg_fr);
+          LOCK(SgFr_lock(sg_fr));
   	      if(SgFr_has_no_answers(sg_fr)) {
   	        /* no answers --> fail */
+            UNLOCK(SgFr_lock(sg_fr));
     	      goto fail;
   	      }
           goto exec_compiled_trie_me;
@@ -832,13 +838,14 @@ exec_compiled_trie_me:
       choiceptr leader_cp;
       int leader_dep_on_stack;
       
-      if(SgFr_is_sub_consumer(sg_fr) && SgFr_state(sg_fr) < evaluating) 
-        init_sub_consumer_subgoal_frame((subcons_fr_ptr)sg_fr);
-      
       find_dependency_node(sg_fr, leader_cp, leader_dep_on_stack);
       UNLOCK(SgFr_lock(sg_fr));
       find_leader_node(leader_cp, leader_dep_on_stack);
       store_consumer_node(tab_ent, sg_fr, leader_cp, leader_dep_on_stack);
+      
+      if(SgFr_is_sub_consumer(sg_fr) && SgFr_state(sg_fr) < evaluating) 
+        init_sub_consumer_subgoal_frame((subcons_fr_ptr)sg_fr);
+        
 #ifdef OPTYAP_ERRORS
       if (PARALLEL_EXECUTION_MODE) {
 	      choiceptr aux_cp;
@@ -892,9 +899,10 @@ exec_compiled_trie_me:
   	        SgFr_state(sg_fr) = compiled;
           UNLOCK(SgFr_lock(sg_fr));
   	      sg_fr = (sg_fr_ptr)SgFr_producer((subcons_fr_ptr)sg_fr);
-  	      
+  	      LOCK(SgFr_lock(sg_fr));
   	      if(SgFr_has_no_answers(sg_fr)) {
   	        /* no answers --> fail */
+  	        UNLOCK(SgFr_lock(sg_fr));
     	      goto fail;
   	      }
           goto exec_compiled_trie;
