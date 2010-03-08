@@ -678,7 +678,7 @@ While_TermStack_NotEmpty:
               BTHT_BucketArray((BTHTptr)pCurrentBTN)[TRIEVAR_BUCKET];
           else
             variableChain = pCurrentBTN;
-          
+            
           if(!PrologVar_IsMarked(subterm)) {
             AnsVarCtr++;
             /*
@@ -938,6 +938,7 @@ void subsumptive_call_search(TabledCallInfo *call_info, CallLookupResults *resul
   if(path_type == NO_PATH) { /* new producer */
     dprintf("No path found... new producer\n");
     Trail_Unwind_All;
+    
     CallResults_subsumer(results) = NULL;
     CallResults_variant_found(results) = NO;
     CallResults_leaf(results) = variant_call_cont_insert(tab_ent, (sg_node_ptr)stl_restore_variant_cont(),
@@ -959,11 +960,11 @@ void subsumptive_call_search(TabledCallInfo *call_info, CallLookupResults *resul
       answer_template = extract_template_from_lookup(answer_template);
       Trail_Unwind_All;
       subsumer = sg_fr;
-      dprintf("Consume from producer\n");
+      //dprintf("Consume from producer\n");
     } else {
       subcons_fr_ptr first_consumer = (subcons_fr_ptr)sg_fr;
       subsumer = (sg_fr_ptr)SgFr_producer(first_consumer);
-      dprintf("Super subsumption call found\n");
+      //dprintf("Super subsumption call found\n");
       Trail_Unwind_All;
       answer_template = reconstruct_template_for_producer(call_info,
           (subprod_fr_ptr)subsumer, answer_template);
@@ -986,9 +987,9 @@ void subsumptive_call_search(TabledCallInfo *call_info, CallLookupResults *resul
       dprintf("New variant path\n");
     }
     
-    //dprintf("TEMPLATE: ");
-    //int tmplt_size = (int)*answer_template;
-    //printAnswerTemplate(stdout, answer_template+1, tmplt_size);
+    dprintf("TEMPLATE: ");
+    int tmplt_size = (int)*answer_template;
+    printAnswerTemplate(stdout, answer_template+tmplt_size, tmplt_size);
     
     /*
     if(path_type == VARIANT_PATH) {
