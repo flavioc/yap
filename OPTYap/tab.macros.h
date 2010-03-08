@@ -479,7 +479,7 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
 #define MAX_NODES_PER_TRIE_LEVEL           8
 #define MAX_NODES_PER_BUCKET               (MAX_NODES_PER_TRIE_LEVEL / 2)
 #define BASE_HASH_BUCKETS                  64
-#define HASH_ENTRY(ENTRY, SEED)            ((((unsigned long int) ENTRY) >> NumberOfLowTagBits) & (SEED))
+#define HASH_ENTRY(ENTRY, SEED)            (IsVarTerm(ENTRY) ? 0 : (((unsigned long int) ENTRY) >> NumberOfLowTagBits) & (SEED))
 #ifdef GLOBAL_TRIE
 #define GLOBAL_TRIE_HASH_MARK              ((Term) MakeTableVarTerm(MAX_TABLE_VARS))
 #define IS_GLOBAL_TRIE_HASH(NODE)          (TrNode_entry(NODE) == GLOBAL_TRIE_HASH_MARK)
@@ -1055,7 +1055,7 @@ build_next_subsumptive_consumer_return_list(subcons_fr_ptr consumer_sg) {
   //dprintf("Producer ts %d consumer ts %d\n", producer_ts, consumer_ts);
   dprintf("build_next\n");
   CELL* answer_template = SgFr_answer_template(consumer_sg);
-  int size = (int)*answer_template;
+  int size = IntOfTerm(*answer_template);
   
   /* skip size */
   --answer_template;
@@ -1083,9 +1083,11 @@ build_next_subsumptive_consumer_return_list(subcons_fr_ptr consumer_sg) {
   dprintf("failed to collect, Answer template after collect: ");
   printAnswerTemplate(stdout, answer_template, size);
 #endif
+    
     SgFr_timestamp(consumer_sg) = producer_ts;
     return FALSE;
   }
+  
     
 #ifdef FDEBUG
   dprintf("Answer template after collect: ");
