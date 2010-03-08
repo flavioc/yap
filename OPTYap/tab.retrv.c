@@ -112,7 +112,7 @@ static CPtr orig_hbreg;
 	
 #define Bind_and_Conditionally_Trail(Addr,Val) Trie_bind_copy(Addr,Val)
 
-#ifdef SUBSUMPTION_XSB	
+#ifdef SUBSUMPTION_XSB
 /*
  *  Create a binding and trail it.
  */
