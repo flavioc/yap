@@ -460,6 +460,7 @@ tab.tst.o: $(srcdir)/OPTYap/tab.tst.c \
 	$(srcdir)/OPTYap/tab.tst.h \
 	$(srcdir)/OPTYap/tab.utils.h \
 	$(srcdir)/OPTYap/tab.structs.h \
+	$(srcdir)/OPTYap/tab.macros.h \
 	$(srcdir)/OPTYap/tab.xsb.h
 	$(CC) -c $(CFLAGS) $(srcdir)/OPTYap/tab.tst.c -o $@
 
