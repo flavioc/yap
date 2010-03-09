@@ -69,6 +69,7 @@ typedef Functor Psc;
 #define BTN_Symbol(NODE)        TrNode_entry(NODE)
 #define BTN_Sibling(NODE)       TrNode_next(NODE)
 #define BTN_Parent(NODE)        TrNode_parent(NODE)
+#define BTN_NodeType(NODE)      TrNode_node_type(NODE)
 
 #define IsHashHeader(NODE)      (TrNode_node_type(NODE) & HASH_HEADER_NT)
 #define IsHashedNode(NODE)		(TrNode_node_type(NODE) & HASHED_INTERIOR_NT)
