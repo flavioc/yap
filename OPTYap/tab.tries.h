@@ -13,7 +13,7 @@ static void update_answer_trie_branch(ans_node_ptr current_node, int position);
 #endif /* YAPOR */
 static void traverse_subgoal_trie(sg_node_ptr current_node, char *str, int str_index, int *arity, int mode, int position, tab_ent_ptr tab_ent);
 static void traverse_answer_trie(ans_node_ptr current_node, char *str, int str_index, int *arity, int var_index, int mode, int position);
-static void traverse_trie_node(Term t, char *str, int *str_index_ptr, int *arity, int *mode_ptr, int type);
+static void traverse_trie_node(Term t, int flags, char *str, int *str_index_ptr, int *arity, int *mode_ptr, int type);
 #ifdef GLOBAL_TRIE
 static void free_global_trie_branch(gt_node_ptr current_node);
 static void traverse_global_trie(gt_node_ptr current_node, char *str, int str_index, int *arity, int mode, int position);
@@ -26,8 +26,6 @@ static void traverse_global_trie_for_answer(gt_node_ptr current_node, char *str,
 /* ----------------------- **
 **      Local inlines      **
 ** ----------------------- */
-
-#define IS_LONG_INT_FLAG(FLAG) ((FLAG) & LONG_INT_NT)
 
 #ifdef GLOBAL_TRIE
 STD_PROTO(static inline gt_node_ptr global_trie_node_check_insert, (gt_node_ptr, Term));
@@ -570,6 +568,20 @@ gt_node_ptr global_trie_node_check_insert(gt_node_ptr parent_node, Term t) {
 
 static inline sg_node_ptr
 find_subgoal_node(sg_node_ptr child_node, sg_node_ptr parent_node, int *count_nodes, Term t, int flags) {
+  if(IS_LONG_INT_FLAG(flags)) {
+    printf("New long int\n");
+    while(child_node) {
+      if(IS_LONG_INT_FLAG(TrNode_node_type(child_node)) && TrNode_entry(child_node) == t) {
+        return child_node;
+      }
+      
+      *count_nodes++;
+      child_node = TrNode_next(child_node);
+    }
+    
+    return NULL;
+  }
+  
   while(child_node) {
     if(TrNode_entry(child_node) == t) {
       UNLOCK_NODE(parent_node);

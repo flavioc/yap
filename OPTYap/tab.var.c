@@ -90,7 +90,7 @@ variant_call_cont_insert(tab_ent_ptr tab_ent, sg_node_ptr current_node, int coun
     if (IsVarTerm(t)) {
       if (IsTableVarTerm(t)) {
         t = MakeTableVarTerm(VarIndexOfTerm(t));
-        SUBGOAL_TOKEN_CHECK_INSERT(tab_ent, current_node, t);
+        SUBGOAL_TOKEN_CHECK_INSERT(tab_ent, current_node, t, INTERIOR_NT);
       } else {
         if (count_vars == MAX_TABLE_VARS)
           Yap_Error(INTERNAL_ERROR, TermNil, "MAX_TABLE_VARS exceeded (subgoal_search)");
@@ -98,33 +98,35 @@ variant_call_cont_insert(tab_ent_ptr tab_ent, sg_node_ptr current_node, int coun
         *((CELL *)t) = GLOBAL_table_var_enumerator(count_vars);
         t = MakeNewTableVarTerm(count_vars); /* new variable */
         count_vars++;
-        SUBGOAL_TOKEN_CHECK_INSERT(tab_ent, current_node, t);
+        SUBGOAL_TOKEN_CHECK_INSERT(tab_ent, current_node, t, INTERIOR_NT);
       }
     } else if (IsAtomOrIntTerm(t)) {
-      SUBGOAL_TOKEN_CHECK_INSERT(tab_ent, current_node, t);
+      SUBGOAL_TOKEN_CHECK_INSERT(tab_ent, current_node, t, INTERIOR_NT);
     } else if (IsPairTerm(t)) {
-      SUBGOAL_TOKEN_CHECK_INSERT(tab_ent, current_node, AbsPair(NULL));
+      SUBGOAL_TOKEN_CHECK_INSERT(tab_ent, current_node, AbsPair(NULL), INTERIOR_NT);
 
       TermStack_Push(*(RepPair(t) + 1));
       TermStack_Push(*(RepPair(t)));
     } else if (IsApplTerm(t)) {
       Functor f = FunctorOfTerm(t);
-      SUBGOAL_TOKEN_CHECK_INSERT(tab_ent, current_node, AbsAppl((Term *)f));
+      
       if (f == FunctorDouble) {
         volatile Float dbl = FloatOfTerm(t);
         volatile Term *t_dbl = (Term *)((void *) &dbl);
+        SUBGOAL_TOKEN_CHECK_INSERT(tab_ent, current_node, AbsAppl((Term *)f), INTERIOR_NT);
 #if SIZEOF_DOUBLE == 2 * SIZEOF_INT_P
-        SUBGOAL_TOKEN_CHECK_INSERT(tab_ent, current_node, *(t_dbl + 1));
+        SUBGOAL_TOKEN_CHECK_INSERT(tab_ent, current_node, *(t_dbl + 1), INTERIOR_NT);
 #endif /* SIZEOF_DOUBLE x SIZEOF_INT_P */
-        SUBGOAL_TOKEN_CHECK_INSERT(tab_ent, current_node, *t_dbl);
+        SUBGOAL_TOKEN_CHECK_INSERT(tab_ent, current_node, *t_dbl, INTERIOR_NT);
       } else if (f == FunctorLongInt) {
         Int li = LongIntOfTerm(t);
-        SUBGOAL_TOKEN_CHECK_INSERT(tab_ent, current_node, li);
+        SUBGOAL_TOKEN_CHECK_INSERT(tab_ent, current_node, li, INTERIOR_NT | LONG_INT_NT);
       } else if (f == FunctorDBRef) {
         Yap_Error(INTERNAL_ERROR, TermNil, "unsupported type tag (FunctorDBRef in subgoal_search)");
       } else if (f == FunctorBigInt) {
         Yap_Error(INTERNAL_ERROR, TermNil, "unsupported type tag (FunctorBigInt in subgoal_search)");	  
       } else {
+        SUBGOAL_TOKEN_CHECK_INSERT(tab_ent, current_node, AbsAppl((Term *)f), INTERIOR_NT);
         for (j = ArityOfFunctor(f); j >= 1; j--)
           TermStack_Push(*(RepAppl(t) + j));
       }

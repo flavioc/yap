@@ -541,12 +541,6 @@ void show_table(tab_ent_ptr tab_ent, int show_mode) {
     TrStat_ans_nodes = 0;
   }
   
-  /*
-  fprintf(Yap_stdout, "Table %s for predicate '%s/%d' [%s]\n",
-    (show_mode == SHOW_MODE_STATISTICS ? "statistics" : "structure"),
-    AtomName(TabEnt_atom(tab_ent)), TabEnt_arity(tab_ent),
-    IsMode_Subsumptive(TabEnt_mode(tab_ent)) ? "SUBSUMPTIVE" : "VARIANT");
-    */
   fprintf(Yap_stdout, "Table %s for predicate '%s/%d'\n",
     (show_mode == SHOW_MODE_STATISTICS ? "statistics" : "structure"),
     AtomName(TabEnt_atom(tab_ent)), TabEnt_arity(tab_ent));
@@ -784,7 +778,7 @@ void traverse_subgoal_trie(sg_node_ptr current_node, char *str, int str_index, i
 #ifdef GLOBAL_TRIE
   traverse_global_trie_for_subgoal(TrNode_entry(current_node), str, &str_index, arity, &mode);
 #else
-  traverse_trie_node(TrNode_entry(current_node), str, &str_index, arity, &mode, TRAVERSE_TYPE_SUBGOAL);
+  traverse_trie_node(TrNode_entry(current_node), TrNode_node_type(current_node), str, &str_index, arity, &mode, TRAVERSE_TYPE_SUBGOAL);
 #endif /* GLOBAL_TRIE */
 
   /* continue with child node ... */
@@ -800,12 +794,6 @@ void traverse_subgoal_trie(sg_node_ptr current_node, char *str, int str_index, i
       TrStat_ans_nodes++;
       
       SHOW_TABLE_STRUCTURE("%s.\n", str);
-      /*
-      if(SgFr_is_sub_producer(sg_fr)) {
-        SHOW_TABLE_STRUCTURE("%s. [PRODUCER]\n", str);
-      } else {
-        SHOW_TABLE_STRUCTURE("%s.\n", str);
-      }*/
       
       if (SgFr_has_no_answers(sg_fr)) {
         if (SgFr_state(sg_fr) < complete) {
@@ -832,12 +820,6 @@ void traverse_subgoal_trie(sg_node_ptr current_node, char *str, int str_index, i
       subprod_fr_ptr prod_sg = SgFr_producer(cons_sg);
       
       SHOW_TABLE_STRUCTURE("%s.\n", str);
-      
-      /*if(TrStat_show == SHOW_MODE_STRUCTURE) {
-        fprintf(Yap_stdout, "%s. [CONSUMES FROM ", str);
-        printSubgoalTriePath(Yap_stdout, SgFr_leaf(prod_sg), tab_ent);
-        fprintf(Yap_stdout, "]\n");
-      }*/
       
       if(SgFr_has_no_answers(sg_fr)) {
         if(SgFr_state(sg_fr) < complete) {
@@ -972,7 +954,7 @@ void traverse_answer_trie(ans_node_ptr current_node, char *str, int str_index, i
 #ifdef GLOBAL_TRIE
   traverse_global_trie_for_answer(TrNode_entry(current_node), str, &str_index, arity, &mode);
 #else
-  traverse_trie_node(TrNode_entry(current_node), str, &str_index, arity, &mode, TRAVERSE_TYPE_ANSWER);
+  traverse_trie_node(TrNode_entry(current_node), TrNode_node_type(current_node), str, &str_index, arity, &mode, TRAVERSE_TYPE_ANSWER);
 #endif /* GLOBAL_TRIE */
 
   /* show answer .... */
@@ -1017,7 +999,7 @@ void traverse_answer_trie(ans_node_ptr current_node, char *str, int str_index, i
 
 
 static
-void traverse_trie_node(Term t, char *str, int *str_index_ptr, int *arity, int *mode_ptr, int type) {
+void traverse_trie_node(Term t, int flags, char *str, int *str_index_ptr, int *arity, int *mode_ptr, int type) {
   int mode = *mode_ptr;
   int str_index = *str_index_ptr;
 
@@ -1072,7 +1054,7 @@ void traverse_trie_node(Term t, char *str, int *str_index_ptr, int *arity, int *
       mode = TRAVERSE_MODE_FLOAT_END;
   } else if (mode == TRAVERSE_MODE_FLOAT_END) {
     mode = TRAVERSE_MODE_NORMAL;
-  } else if (mode == TRAVERSE_MODE_LONG) {
+  } else if (mode == TRAVERSE_MODE_LONG || IS_LONG_INT_FLAG(flags)) {
     Int li = (Int) t;
     str_index += sprintf(& str[str_index], LongIntFormatString, li);
     while (arity[0]) {
@@ -1324,7 +1306,7 @@ void traverse_global_trie(gt_node_ptr current_node, char *str, int str_index, in
 
   /* process current trie node */
   TrStat_gt_nodes++;
-  traverse_trie_node(TrNode_entry(current_node), str, &str_index, arity, &mode, TRAVERSE_TYPE_SUBGOAL);
+  traverse_trie_node(TrNode_entry(current_node), TrNode_node_type(current_node), str, &str_index, arity, &mode, TRAVERSE_TYPE_SUBGOAL);
 
   /* continue with child node ... */
   if (arity[0] != 0)
@@ -1364,7 +1346,7 @@ static
 void traverse_global_trie_for_subgoal(gt_node_ptr current_node, char *str, int *str_index, int *arity, int *mode) {
   if (TrNode_parent(current_node) != GLOBAL_root_gt)
     traverse_global_trie_for_subgoal(TrNode_parent(current_node), str, str_index, arity, mode);
-  traverse_trie_node(TrNode_entry(current_node), str, str_index, arity, mode, TRAVERSE_TYPE_SUBGOAL);
+  traverse_trie_node(TrNode_entry(current_node), TrNode_node_type(current_node), str, str_index, arity, mode, TRAVERSE_TYPE_SUBGOAL);
   return;
 }
 
@@ -1373,7 +1355,7 @@ static
 void traverse_global_trie_for_answer(gt_node_ptr current_node, char *str, int *str_index, int *arity, int *mode) {
   if (TrNode_parent(current_node) != GLOBAL_root_gt)
     traverse_global_trie_for_answer(TrNode_parent(current_node), str, str_index, arity, mode);
-  traverse_trie_node(TrNode_entry(current_node), str, str_index, arity, mode, TRAVERSE_TYPE_ANSWER);
+  traverse_trie_node(TrNode_entry(current_node), TrNode_node_type(current_node), str, str_index, arity, mode, TRAVERSE_TYPE_ANSWER);
   return;
 }
 #endif /* GLOBAL_TRIE */

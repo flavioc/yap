@@ -528,18 +528,16 @@ While_TermStack_NotEmpty:
         break;
       case TAG_LONG_INT:
         if(search_mode == MATCH_SYMBOL_EXACTLY) {
-          symbol = EncodeTrieFunctor(subterm);
-          Set_Matching_and_TrieVar_Chains(symbol, pCurrentBTN, variableChain);
-          
           Int li = LongIntOfTerm(subterm);
           
-          /* first match the functor node, then the long int itself */
+          Set_Matching_and_TrieVar_Chains(li, pCurrentBTN, variableChain);
+          
           while(IsNonNULL(pCurrentBTN)) {
-            if(symbol == BTN_Symbol(pCurrentBTN)) {
-              BTNptr child = BTN_Child(pCurrentBTN);
-              
-              Set_Hash_Match(child, li);
-              NonVarSearchChain_ExactMatch(li, child, variableChain, TermStack_NOOP);
+            if(IS_LONG_INT_FLAG(BTN_NodeType(pCurrentBTN)) &&
+                  li == BTN_Symbol(pCurrentBTN))
+            {
+              Conditionally_Create_ChoicePoint(variableChain)
+              Descend_In_Trie_and_Continue(pCurrentBTN);
             }
             pCurrentBTN = BTN_Sibling(pCurrentBTN);
           }

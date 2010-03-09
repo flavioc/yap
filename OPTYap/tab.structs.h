@@ -125,8 +125,11 @@ enum Types_of_Trie_Nodes {
   LEAF_NT = 0x02,
   HASHED_LEAF_NT = 0x03,
   INTERIOR_NT = 0x00,
-  HASHED_INTERIOR_NT = 0x01
+  HASHED_INTERIOR_NT = 0x01,
+  LONG_INT_NT = 0x10
 };
+
+#define IS_LONG_INT_FLAG(FLAG) ((FLAG) & LONG_INT_NT)
 
 typedef unsigned long time_stamp;
 
