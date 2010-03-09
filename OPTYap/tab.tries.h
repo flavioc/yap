@@ -27,12 +27,14 @@ static void traverse_global_trie_for_answer(gt_node_ptr current_node, char *str,
 **      Local inlines      **
 ** ----------------------- */
 
+#define IS_LONG_INT_FLAG(FLAG) ((FLAG) & LONG_INT_NT)
+
 #ifdef GLOBAL_TRIE
 STD_PROTO(static inline gt_node_ptr global_trie_node_check_insert, (gt_node_ptr, Term));
 STD_PROTO(static inline sg_node_ptr subgoal_trie_node_check_insert, (tab_ent_ptr, sg_node_ptr, gt_node_ptr));
 STD_PROTO(static inline ans_node_ptr answer_trie_node_check_insert, (sg_fr_ptr, ans_node_ptr, gt_node_ptr, int));
 #else
-STD_PROTO(static inline sg_node_ptr subgoal_trie_node_check_insert, (tab_ent_ptr, sg_node_ptr, Term));
+STD_PROTO(static inline sg_node_ptr subgoal_trie_node_check_insert, (tab_ent_ptr, sg_node_ptr, Term, int));
 STD_PROTO(static inline ans_node_ptr answer_trie_node_check_insert, (sg_fr_ptr, ans_node_ptr, Term, int));
 #endif /* GLOBAL_TRIE */
 
@@ -55,16 +57,66 @@ STD_PROTO(static inline ans_node_ptr answer_trie_node_check_insert, (sg_fr_ptr, 
 #define ANSWER_TOKEN_CHECK_INSERT(SG_FR, NODE, TOKEN, INSTR)            \
         NODE = global_trie_node_check_insert(NODE, TOKEN)
 #else
-#define SUBGOAL_TOKEN_CHECK_INSERT(TAB_ENT, NODE, TOKEN)                \
-        NODE = subgoal_trie_node_check_insert(TAB_ENT, NODE, TOKEN)
+#define SUBGOAL_TOKEN_CHECK_INSERT(TAB_ENT, NODE, TOKEN, FLAGS)         \
+        NODE = subgoal_trie_node_check_insert(TAB_ENT, NODE, TOKEN, FLAGS)
 #define ANSWER_TOKEN_CHECK_INSERT(SG_FR, NODE, TOKEN, INSTR)	        \
         NODE = answer_trie_node_check_insert(SG_FR, NODE, TOKEN, INSTR)
 #endif /* GLOBAL_TRIE */
 
 
 #ifdef TABLE_LOCK_AT_WRITE_LEVEL
+
+static inline sg_node_ptr
+find_subgoal_node(sg_node_ptr chain_node, sg_node_ptr child_node, sg_node_ptr parent_node, Term t, int flags) {
+  do {
+    if (TrNode_entry(chain_node) == t) {
+#ifdef ALLOC_BEFORE_CHECK
+      FREE_SUBGOAL_TRIE_NODE(child_node);
+#endif /* ALLOC_BEFORE_CHECK */
+      UNLOCK_NODE(parent_node);
+      return chain_node;
+    }
+    chain_node = TrNode_next(chain_node);
+  } while (chain_node);
+
+  return NULL;
+}
+
+static inline sg_node_ptr
+find_subgoal_node_and_count(sg_node_ptr chain_node, sg_node_ptr first_node,
+      sg_node_ptr child_node, sg_node_ptr parent_node, int *count, Term t, int flags)
+{
+  do {
+    if (TrNode_entry(chain_node) == t) {
+#ifdef ALLOC_BEFORE_CHECK
+      FREE_SUBGOAL_TRIE_NODE(child_node);
+#endif /* ALLOC_BEFORE_CHECK */
+      UNLOCK_NODE(parent_node);
+      return chain_node;
+    }
+    *count++;
+    chain_node = TrNode_next(chain_node);
+  } while (chain_node != first_node);
+
+  return NULL;
+}
+
+static inline sg_node_ptr
+find_subgoal_node_count_simple(sg_node_ptr chain_node, int *count, Term t, int flags) {
+  while(chain_node) {
+    if (TrNode_entry(chain_node) == t) {
+      return chain_node;
+    }
+    *count++;
+    chain_node = TrNode_next(chain_node);
+  }
+
+  return NULL;
+}
+
+
 static inline
-sg_node_ptr subgoal_trie_node_check_insert(tab_ent_ptr tab_ent, sg_node_ptr parent_node, Term t) {
+sg_node_ptr subgoal_trie_node_check_insert(tab_ent_ptr tab_ent, sg_node_ptr parent_node, Term t, int flags) {
   sg_node_ptr child_node;
   sg_hash_ptr hash;
 
@@ -72,7 +124,7 @@ sg_node_ptr subgoal_trie_node_check_insert(tab_ent_ptr tab_ent, sg_node_ptr pare
 
   if (child_node == NULL) {
 #ifdef ALLOC_BEFORE_CHECK
-    new_subgoal_trie_node(child_node, t, NULL, parent_node, NULL, INTERIOR_NT);
+    new_subgoal_trie_node(child_node, t, NULL, parent_node, NULL, flags);
 #endif /* ALLOC_BEFORE_CHECK */
     LOCK_NODE(parent_node);
     if (TrNode_child(parent_node)) {
@@ -85,22 +137,15 @@ sg_node_ptr subgoal_trie_node_check_insert(tab_ent_ptr tab_ent, sg_node_ptr pare
         hash = (sg_hash_ptr) chain_node;
         goto subgoal_trie_hash;
       }
-      do {
-        if (TrNode_entry(chain_node) == t) {
-#ifdef ALLOC_BEFORE_CHECK
-          FREE_SUBGOAL_TRIE_NODE(child_node);
-#endif /* ALLOC_BEFORE_CHECK */
-          UNLOCK_NODE(parent_node);
-          return chain_node;
-        }
-        chain_node = TrNode_next(chain_node);
-      } while (chain_node);
+      chain_node = find_subgoal_node(chain_node, child_node, parent_node, t, flags);
+      if(chain_node)
+        return chain_node;
 #ifdef ALLOC_BEFORE_CHECK
       TrNode_next(child_node) = TrNode_child(parent_node);
 #else
-      new_subgoal_trie_node(child_node, t, NULL, parent_node, TrNode_child(parent_node), INTERIOR_NT);
+      new_subgoal_trie_node(child_node, t, NULL, parent_node, TrNode_child(parent_node), flags);
     } else {
-      new_subgoal_trie_node(child_node, t, NULL, parent_node, NULL, INTERIOR_NT);
+      new_subgoal_trie_node(child_node, t, NULL, parent_node, NULL, flags);
 #endif /* ALLOC_BEFORE_CHECK */
     }
     TrNode_child(parent_node) = child_node;
@@ -111,15 +156,12 @@ sg_node_ptr subgoal_trie_node_check_insert(tab_ent_ptr tab_ent, sg_node_ptr pare
   if (! IS_SUBGOAL_TRIE_HASH(child_node)) {
     sg_node_ptr first_node = child_node;
     int count_nodes = 0;
-    do {
-      if (TrNode_entry(child_node) == t) {
-        return child_node;
-      }
-      count_nodes++;
-      child_node = TrNode_next(child_node);
-    } while (child_node);
+    child_node = find_subgoal_node_count_simple(child_node, &count_nodes, t, flags);
+    if(child_node)
+      return child_node;
+    
 #ifdef ALLOC_BEFORE_CHECK
-    new_subgoal_trie_node(child_node, t, NULL, parent_node, first_node, INTERIOR_NT);
+    new_subgoal_trie_node(child_node, t, NULL, parent_node, first_node, flags);
 #endif /* ALLOC_BEFORE_CHECK */
     LOCK_NODE(parent_node);
     if (first_node != TrNode_child(parent_node)) {
@@ -132,23 +174,15 @@ sg_node_ptr subgoal_trie_node_check_insert(tab_ent_ptr tab_ent, sg_node_ptr pare
         hash = (sg_hash_ptr) chain_node;
         goto subgoal_trie_hash;
       }
-      do {
-        if (TrNode_entry(chain_node) == t) {
-#ifdef ALLOC_BEFORE_CHECK
-          FREE_SUBGOAL_TRIE_NODE(child_node);
-#endif /* ALLOC_BEFORE_CHECK */
-          UNLOCK_NODE(parent_node);
-          return chain_node;
-        }
-        count_nodes++;
-        chain_node = TrNode_next(chain_node);
-      } while (chain_node != first_node);
+      chain_node = find_subgoal_node_and_count(chain_node, first_node, child_node, parent_node, &count_nodes, t, flags);
+      if(chain_node)
+        return chain_node;
 #ifdef ALLOC_BEFORE_CHECK
       TrNode_next(child_node) = TrNode_child(parent_node);
 #else
-      new_subgoal_trie_node(child_node, t, NULL, parent_node, TrNode_child(parent_node), INTERIOR_NT);
+      new_subgoal_trie_node(child_node, t, NULL, parent_node, TrNode_child(parent_node), flags);
     } else {
-      new_subgoal_trie_node(child_node, t, NULL, parent_node, first_node, INTERIOR_NT);
+      new_subgoal_trie_node(child_node, t, NULL, parent_node, first_node, flags);
 #endif /* ALLOC_BEFORE_CHECK */
     }
     count_nodes++;
@@ -184,15 +218,13 @@ subgoal_trie_hash:
     seed = Hash_seed(hash);
     bucket = Hash_bucket(hash, HASH_ENTRY(t, seed));
     first_node = child_node = *bucket;
-    while (child_node) {
-      if (TrNode_entry(child_node) == t) {
-        return child_node;
-      }
-      count_nodes++;
-      child_node = TrNode_next(child_node);
-    }
+    child_node = find_subgoal_node_count_simple(child_node, &count_nodes, t, flags);
+    
+    if(child_node)
+      return child_node;
+      
 #ifdef ALLOC_BEFORE_CHECK
-    new_subgoal_trie_node(child_node, t, NULL, parent_node, first_node, HASHED_INTERIOR_NT);
+    new_subgoal_trie_node(child_node, t, NULL, parent_node, first_node, HASHED_INTERIOR_NT | flags);
 #endif /* ALLOC_BEFORE_CHECK */
     LOCK_NODE(parent_node);
     if (seed != Hash_seed(hash)) {
@@ -205,23 +237,15 @@ subgoal_trie_hash:
     }
     if (first_node != *bucket) {
       sg_node_ptr chain_node = *bucket;
-      do {
-        if (TrNode_entry(chain_node) == t) {
-#ifdef ALLOC_BEFORE_CHECK
-          FREE_SUBGOAL_TRIE_NODE(child_node);
-#endif /* ALLOC_BEFORE_CHECK */
-          UNLOCK_NODE(parent_node);
-          return chain_node;
-        }
-        count_nodes++;
-        chain_node = TrNode_next(chain_node);
-      } while (chain_node != first_node);
+      chain_node = find_subgoal_node_and_count(chain_node, first_node, child_node, parent_node, &count_nodes, t, flags);
+      if(chain_node)
+        return chain_node;
 #ifdef ALLOC_BEFORE_CHECK
       TrNode_next(child_node) = *bucket;
 #else
-      new_subgoal_trie_node(child_node, t, NULL, parent_node, *bucket, HASHED_INTERIOR_NT);
+      new_subgoal_trie_node(child_node, t, NULL, parent_node, *bucket, HASHED_INTERIOR_NT | flags);
     } else {
-      new_subgoal_trie_node(child_node, t, NULL, parent_node, first_node, HASHED_INTERIOR_NT);
+      new_subgoal_trie_node(child_node, t, NULL, parent_node, first_node, HASHED_INTERIOR_NT | flags);
 #endif /* ALLOC_BEFORE_CHECK */
     }
     *bucket = child_node;
@@ -544,20 +568,34 @@ gt_node_ptr global_trie_node_check_insert(gt_node_ptr parent_node, Term t) {
 }
 #endif /* GLOBAL_TRIE */
 
+static inline sg_node_ptr
+find_subgoal_node(sg_node_ptr child_node, sg_node_ptr parent_node, int *count_nodes, Term t, int flags) {
+  while(child_node) {
+    if(TrNode_entry(child_node) == t) {
+      UNLOCK_NODE(parent_node);
+      return child_node;
+    }
+    
+    *count_nodes++;
+    child_node = TrNode_next(child_node);
+  }
+  
+  return NULL;
+}
 
 static inline
 #ifdef GLOBAL_TRIE
 sg_node_ptr subgoal_trie_node_check_insert(tab_ent_ptr tab_ent, sg_node_ptr parent_node, gt_node_ptr t) {
 #else
-sg_node_ptr subgoal_trie_node_check_insert(tab_ent_ptr tab_ent, sg_node_ptr parent_node, Term t) {
+sg_node_ptr subgoal_trie_node_check_insert(tab_ent_ptr tab_ent, sg_node_ptr parent_node, Term t, int flags) {
 #endif /* GLOBAL_TRIE */
   sg_node_ptr child_node;
-
+  
   LOCK_NODE(parent_node);
   child_node = TrNode_child(parent_node);
 
   if (child_node == NULL) {
-    new_subgoal_trie_node(child_node, t, NULL, parent_node, NULL, INTERIOR_NT);
+    new_subgoal_trie_node(child_node, t, NULL, parent_node, NULL, flags);
     TrNode_child(parent_node) = child_node;
     UNLOCK_NODE(parent_node);
     return child_node;
@@ -565,15 +603,10 @@ sg_node_ptr subgoal_trie_node_check_insert(tab_ent_ptr tab_ent, sg_node_ptr pare
 
   if (! IS_SUBGOAL_TRIE_HASH(child_node)) {
     int count_nodes = 0;
-    do {
-      if (TrNode_entry(child_node) == t) {
-        UNLOCK_NODE(parent_node);
-        return child_node;
-      }
-      count_nodes++;
-      child_node = TrNode_next(child_node);
-    } while (child_node);
-    new_subgoal_trie_node(child_node, t, NULL, parent_node, TrNode_child(parent_node), INTERIOR_NT);
+    child_node = find_subgoal_node(child_node, parent_node, &count_nodes, t, flags);
+    if(child_node)
+      return child_node;
+    new_subgoal_trie_node(child_node, t, NULL, parent_node, TrNode_child(parent_node), flags);
     count_nodes++;
     if (count_nodes >= MAX_NODES_PER_TRIE_LEVEL) {
       /* alloc a new hash */
@@ -606,15 +639,10 @@ sg_node_ptr subgoal_trie_node_check_insert(tab_ent_ptr tab_ent, sg_node_ptr pare
     hash = (sg_hash_ptr) child_node;
     bucket = Hash_bucket(hash, HASH_ENTRY(t, Hash_seed(hash)));
     child_node = *bucket;
-    while (child_node) {
-      if (TrNode_entry(child_node) == t) {
-        UNLOCK_NODE(parent_node);
-        return child_node;
-      }
-      count_nodes++;
-      child_node = TrNode_next(child_node);
-    }
-    new_subgoal_trie_node(child_node, t, NULL, parent_node, *bucket, HASHED_INTERIOR_NT);
+    child_node = find_subgoal_node(child_node, parent_node, &count_nodes, t, flags);
+    if(child_node)
+      return child_node;
+    new_subgoal_trie_node(child_node, t, NULL, parent_node, *bucket, HASHED_INTERIOR_NT | flags);
     *bucket = child_node;
     Hash_num_nodes(hash)++;
     count_nodes++;
