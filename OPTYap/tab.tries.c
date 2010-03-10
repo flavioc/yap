@@ -132,7 +132,7 @@ process_next:
     
     old_node = node;
     node = parent;
-    FREE_SUBGOAL_TRIE_NODE(old_node);
+    free_subgoal_trie_node(old_node);
     dprintf("Freeing one subgoal trie node %x\n", (void*)old_node);
     
     hash = NULL;
@@ -417,7 +417,7 @@ void free_subgoal_trie_branch(sg_node_ptr current_node, int nodes_left, int node
   if (position == TRAVERSE_POSITION_FIRST) {
     sg_node_ptr next_node = TrNode_next(current_node);
     DECREMENT_GLOBAL_TRIE_REFS(TrNode_entry(current_node));
-    FREE_SUBGOAL_TRIE_NODE(current_node);
+    free_subgoal_trie_node(current_node);
 #ifndef GLOBAL_TRIE
     /* restore the initial state */
     nodes_left = current_nodes_left;
@@ -434,7 +434,7 @@ void free_subgoal_trie_branch(sg_node_ptr current_node, int nodes_left, int node
     }
   } else {
     DECREMENT_GLOBAL_TRIE_REFS(TrNode_entry(current_node));
-    FREE_SUBGOAL_TRIE_NODE(current_node);
+    free_subgoal_trie_node(current_node);
   }
   return;
 }
@@ -778,7 +778,7 @@ void traverse_subgoal_trie(sg_node_ptr current_node, char *str, int str_index, i
 #ifdef GLOBAL_TRIE
   traverse_global_trie_for_subgoal(TrNode_entry(current_node), str, &str_index, arity, &mode);
 #else
-  traverse_trie_node(TrNode_entry(current_node), TrNode_node_type(current_node), str, &str_index, arity, &mode, TRAVERSE_TYPE_SUBGOAL);
+  traverse_trie_node(current_node, str, &str_index, arity, &mode, TRAVERSE_TYPE_SUBGOAL);
 #endif /* GLOBAL_TRIE */
 
   /* continue with child node ... */
@@ -954,7 +954,7 @@ void traverse_answer_trie(ans_node_ptr current_node, char *str, int str_index, i
 #ifdef GLOBAL_TRIE
   traverse_global_trie_for_answer(TrNode_entry(current_node), str, &str_index, arity, &mode);
 #else
-  traverse_trie_node(TrNode_entry(current_node), TrNode_node_type(current_node), str, &str_index, arity, &mode, TRAVERSE_TYPE_ANSWER);
+  traverse_trie_node(current_node, str, &str_index, arity, &mode, TRAVERSE_TYPE_ANSWER);
 #endif /* GLOBAL_TRIE */
 
   /* show answer .... */
@@ -999,9 +999,11 @@ void traverse_answer_trie(ans_node_ptr current_node, char *str, int str_index, i
 
 
 static
-void traverse_trie_node(Term t, int flags, char *str, int *str_index_ptr, int *arity, int *mode_ptr, int type) {
+void traverse_trie_node(void* node, char *str, int *str_index_ptr, int *arity, int *mode_ptr, int type) {
   int mode = *mode_ptr;
   int str_index = *str_index_ptr;
+  Term t = TrNode_entry((sg_node_ptr)node);
+  int flags = TrNode_node_type((sg_node_ptr)node);
 
   /* test the node type */
   if (mode == TRAVERSE_MODE_FLOAT) {
@@ -1054,36 +1056,45 @@ void traverse_trie_node(Term t, int flags, char *str, int *str_index_ptr, int *a
       mode = TRAVERSE_MODE_FLOAT_END;
   } else if (mode == TRAVERSE_MODE_FLOAT_END) {
     mode = TRAVERSE_MODE_NORMAL;
-  } else if (mode == TRAVERSE_MODE_LONG || IS_LONG_INT_FLAG(flags)) {
-    Int li = (Int) t;
+  } else if (IS_LONG_INT_FLAG(flags) || mode == TRAVERSE_MODE_LONG) {
+    Int li;
+    
+    if(IS_LONG_INT_FLAG(flags)) {
+      if(TrNode_is_call((sg_node_ptr)node))
+        li = TrNode_long_int((long_sg_node_ptr)node);
+      else
+        li = TSTN_long_int((long_tst_node_ptr)node);
+    } else
+      li = (Int) t;
+      
     str_index += sprintf(& str[str_index], LongIntFormatString, li);
     while (arity[0]) {
       if (arity[arity[0]] > 0) {
-	arity[arity[0]]--;
-	if (arity[arity[0]] == 0) {
-	  str_index += sprintf(& str[str_index], ")");
-	  arity[0]--;
-	} else {
-	  str_index += sprintf(& str[str_index], ",");
-	  break;
-	}
+	      arity[arity[0]]--;
+	      if (arity[arity[0]] == 0) {
+	        str_index += sprintf(& str[str_index], ")");
+	        arity[0]--;
+	      } else {
+	        str_index += sprintf(& str[str_index], ",");
+	        break;
+	      }
       } else {
-	if (arity[arity[0]] == -2) {
+	      if (arity[arity[0]] == -2) {
 #ifdef TRIE_COMPACT_PAIRS
-	  str_index += sprintf(& str[str_index], ",");
+	        str_index += sprintf(& str[str_index], ",");
 #else
-	  str_index += sprintf(& str[str_index], "|");
-	  arity[arity[0]] = -1;
+	        str_index += sprintf(& str[str_index], "|");
+	        arity[arity[0]] = -1;
 #endif /* TRIE_COMPACT_PAIRS */
-	  break;
-	} else {
-	  str_index += sprintf(& str[str_index], "]");
-	  arity[0]--;
-	}
+	        break;
+	      } else {
+	        str_index += sprintf(& str[str_index], "]");
+	        arity[0]--;
+	      }
       }
     }
 #ifndef GLOBAL_TRIE
-    if (type == TRAVERSE_TYPE_SUBGOAL)
+    if (type == TRAVERSE_TYPE_SUBGOAL || IS_LONG_INT_FLAG(flags))
       mode = TRAVERSE_MODE_NORMAL;
     else  /* type == TRAVERSE_TYPE_ANSWER */
 #endif /* GLOBAL_TRIE */
@@ -1306,7 +1317,7 @@ void traverse_global_trie(gt_node_ptr current_node, char *str, int str_index, in
 
   /* process current trie node */
   TrStat_gt_nodes++;
-  traverse_trie_node(TrNode_entry(current_node), TrNode_node_type(current_node), str, &str_index, arity, &mode, TRAVERSE_TYPE_SUBGOAL);
+  traverse_trie_node(current_node, str, &str_index, arity, &mode, TRAVERSE_TYPE_SUBGOAL);
 
   /* continue with child node ... */
   if (arity[0] != 0)
@@ -1346,7 +1357,7 @@ static
 void traverse_global_trie_for_subgoal(gt_node_ptr current_node, char *str, int *str_index, int *arity, int *mode) {
   if (TrNode_parent(current_node) != GLOBAL_root_gt)
     traverse_global_trie_for_subgoal(TrNode_parent(current_node), str, str_index, arity, mode);
-  traverse_trie_node(TrNode_entry(current_node), TrNode_node_type(current_node), str, str_index, arity, mode, TRAVERSE_TYPE_SUBGOAL);
+  traverse_trie_node(current_node, str, str_index, arity, mode, TRAVERSE_TYPE_SUBGOAL);
   return;
 }
 
@@ -1355,7 +1366,7 @@ static
 void traverse_global_trie_for_answer(gt_node_ptr current_node, char *str, int *str_index, int *arity, int *mode) {
   if (TrNode_parent(current_node) != GLOBAL_root_gt)
     traverse_global_trie_for_answer(TrNode_parent(current_node), str, str_index, arity, mode);
-  traverse_trie_node(TrNode_entry(current_node), TrNode_node_type(current_node), str, str_index, arity, mode, TRAVERSE_TYPE_ANSWER);
+  traverse_trie_node(current_node, str, str_index, arity, mode, TRAVERSE_TYPE_ANSWER);
   return;
 }
 #endif /* GLOBAL_TRIE */
