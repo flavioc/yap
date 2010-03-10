@@ -13,7 +13,7 @@ static void update_answer_trie_branch(ans_node_ptr current_node, int position);
 #endif /* YAPOR */
 static void traverse_subgoal_trie(sg_node_ptr current_node, char *str, int str_index, int *arity, int mode, int position, tab_ent_ptr tab_ent);
 static void traverse_answer_trie(ans_node_ptr current_node, char *str, int str_index, int *arity, int var_index, int mode, int position);
-static void traverse_trie_node(Term t, int flags, char *str, int *str_index_ptr, int *arity, int *mode_ptr, int type);
+static void traverse_trie_node(void *node, char *str, int *str_index_ptr, int *arity, int *mode_ptr, int type);
 #ifdef GLOBAL_TRIE
 static void free_global_trie_branch(gt_node_ptr current_node);
 static void traverse_global_trie(gt_node_ptr current_node, char *str, int str_index, int *arity, int mode, int position);
@@ -69,7 +69,7 @@ find_subgoal_node(sg_node_ptr chain_node, sg_node_ptr child_node, sg_node_ptr pa
   do {
     if (TrNode_entry(chain_node) == t) {
 #ifdef ALLOC_BEFORE_CHECK
-      FREE_SUBGOAL_TRIE_NODE(child_node);
+      free_subgoal_trie_node(child_node);
 #endif /* ALLOC_BEFORE_CHECK */
       UNLOCK_NODE(parent_node);
       return chain_node;
@@ -87,7 +87,7 @@ find_subgoal_node_and_count(sg_node_ptr chain_node, sg_node_ptr first_node,
   do {
     if (TrNode_entry(chain_node) == t) {
 #ifdef ALLOC_BEFORE_CHECK
-      FREE_SUBGOAL_TRIE_NODE(child_node);
+      free_subgoal_trie_node(child_node);
 #endif /* ALLOC_BEFORE_CHECK */
       UNLOCK_NODE(parent_node);
       return chain_node;
@@ -129,7 +129,7 @@ sg_node_ptr subgoal_trie_node_check_insert(tab_ent_ptr tab_ent, sg_node_ptr pare
       sg_node_ptr chain_node = TrNode_child(parent_node);
       if (IS_SUBGOAL_TRIE_HASH(chain_node)) {
 #ifdef ALLOC_BEFORE_CHECK
-        FREE_SUBGOAL_TRIE_NODE(child_node);
+        free_subgoal_trie_node(child_node);
 #endif /* ALLOC_BEFORE_CHECK */
         UNLOCK_NODE(parent_node);
         hash = (sg_hash_ptr) chain_node;
@@ -166,7 +166,7 @@ sg_node_ptr subgoal_trie_node_check_insert(tab_ent_ptr tab_ent, sg_node_ptr pare
       sg_node_ptr chain_node = TrNode_child(parent_node);
       if (IS_SUBGOAL_TRIE_HASH(chain_node)) {
 #ifdef ALLOC_BEFORE_CHECK
-        FREE_SUBGOAL_TRIE_NODE(child_node);
+        free_subgoal_trie_node(child_node);
 #endif /* ALLOC_BEFORE_CHECK */
         UNLOCK_NODE(parent_node);
         hash = (sg_hash_ptr) chain_node;
@@ -228,7 +228,7 @@ subgoal_trie_hash:
     if (seed != Hash_seed(hash)) {
       /* the hash has been expanded */ 
 #ifdef ALLOC_BEFORE_CHECK
-      FREE_SUBGOAL_TRIE_NODE(child_node);
+      free_subgoal_trie_node(child_node);
 #endif /* ALLOC_BEFORE_CHECK */
       UNLOCK_NODE(parent_node);
       goto subgoal_trie_hash;
@@ -571,7 +571,7 @@ find_subgoal_node(sg_node_ptr child_node, sg_node_ptr parent_node, int *count_no
   if(IS_LONG_INT_FLAG(flags)) {
     printf("New long int\n");
     while(child_node) {
-      if(IS_LONG_INT_FLAG(TrNode_node_type(child_node)) && TrNode_entry(child_node) == t) {
+      if(TrNode_is_long(child_node) && TrNode_long_int((long_sg_node_ptr)child_node) == t) {
         return child_node;
       }
       
@@ -649,7 +649,7 @@ sg_node_ptr subgoal_trie_node_check_insert(tab_ent_ptr tab_ent, sg_node_ptr pare
     sg_node_ptr *bucket;
     int count_nodes = 0;
     hash = (sg_hash_ptr) child_node;
-    bucket = Hash_bucket(hash, HASH_ENTRY(t, Hash_seed(hash)));
+    bucket = Hash_bucket(hash, HASH_ENTRY(GET_HASH_SYMBOL(t, flags), Hash_seed(hash)));
     child_node = *bucket;
     child_node = find_subgoal_node(child_node, parent_node, &count_nodes, t, flags);
     if(child_node)
