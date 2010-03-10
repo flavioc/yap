@@ -424,6 +424,12 @@ extern int Yap_page_size;
 #define ALLOC_SUBGOAL_TRIE_NODE(STR)   ALLOC_STRUCT(STR, GLOBAL_PAGES_sg_node, struct subgoal_trie_node)
 #define FREE_SUBGOAL_TRIE_NODE(STR)    FREE_STRUCT(STR, GLOBAL_PAGES_sg_node, struct subgoal_trie_node)
 
+#define ALLOC_LONG_SUBGOAL_TRIE_NODE(STR) ALLOC_STRUCT(STR, GLOBAL_PAGES_long_sg_node, struct long_subgoal_trie_node)
+#define FREE_LONG_SUBGOAL_TRIE_NODE(STR)  FREE_STRUCT(STR, GLOBAL_PAGES_long_sg_node, struct long_subgoal_trie_node)
+
+#define ALLOC_FLOAT_SUBGOAL_TRIE_NODE(STR)  ALLOC_STRUCT(STR, GLOBAL_PAGES_float_sg_node, struct float_subgoal_trie_node)
+#define FREE_FLOAT_SUBGOAL_TRIE_NODE(STR)   FREE_STRUCT(STR, GLOBAL_PAGES_float_sg_node, struct float_subgoal_trie_node)
+
 
 /* --------------------- **
 ** Subgoal frame pages   **
@@ -440,14 +446,22 @@ extern int Yap_page_size;
 
 
 #ifdef YAPOR
+
 #define ALLOC_ANSWER_TRIE_NODE(STR)     ALLOC_NEXT_FREE_STRUCT(STR, GLOBAL_PAGES_ans_node, struct answer_trie_node)
 #define ALLOC_TST_ANSWER_TRIE_NODE(STR) ALLOC_NEXT_FREE_STRUCT(STR, GLOBAL_PAGES_tst_ans_node, struct time_stamped_trie_node)
+#define ALLOC_LONG_TST_NODE(STR)        ALLOC_NEXT_FREE_STRUCT(STR, GLOBAL_PAGES_long_tst_node, struct long_tst_node)
+
 #else /* TABLING */
+
 #define ALLOC_ANSWER_TRIE_NODE(STR)     ALLOC_STRUCT(STR, GLOBAL_PAGES_ans_node, struct answer_trie_node)
 #define ALLOC_TST_ANSWER_TRIE_NODE(STR) ALLOC_STRUCT(STR, GLOBAL_PAGES_tst_ans_node, struct time_stamped_trie_node)
+#define ALLOC_LONG_TST_NODE(STR)        ALLOC_STRUCT(STR, GLOBAL_PAGES_long_tst_node, struct long_tst_node)
+
 #endif /* YAPOR - TABLING */
+
 #define FREE_ANSWER_TRIE_NODE(STR)      FREE_STRUCT(STR, GLOBAL_PAGES_ans_node, struct answer_trie_node)
 #define FREE_TST_ANSWER_TRIE_NODE(STR)  FREE_STRUCT(STR, GLOBAL_PAGES_tst_ans_node, struct time_stamped_trie_node)
+#define FREE_LONG_TST_NODE(STR)         FREE_STRUCT(STR, GLOBAL_PAGES_long_tst_node, struct long_tst_node)
 
 #define ALLOC_TST_INDEX_NODE(STR)       ALLOC_STRUCT(STR, GLOBAL_PAGES_tst_index_node, struct tst_index_node)
 #define FREE_TST_INDEX_NODE(STR)        FREE_STRUCT(STR, GLOBAL_PAGES_tst_index_node, struct tst_index_node)
@@ -474,7 +488,7 @@ extern int Yap_page_size;
 #define FREE_ANSWER_TRIE_HASH(STR)     FREE_STRUCT(STR, GLOBAL_PAGES_ans_hash, struct answer_trie_hash)
 
 #define ALLOC_TST_ANSWER_TRIE_HASH(STR)   ALLOC_STRUCT(STR, GLOBAL_PAGES_tst_answer_trie_hash, struct tst_answer_trie_hash)
-#define FREE_TST_ANSWER_TRIE_HASH(STR)    FREE_STRUCT(STR, GLOBAL_PAGES_tst_answer_trie_hash, struc tst_answer_trie_hash)
+#define FREE_TST_ANSWER_TRIE_HASH(STR)    FREE_STRUCT(STR, GLOBAL_PAGES_tst_answer_trie_hash, struct tst_answer_trie_hash)
 
 
 /* ------------------------------------- **
