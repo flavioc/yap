@@ -806,8 +806,10 @@ restore_opcodes(yamop *pc, yamop *max)
     case _trie_do_atom_in_new_pair:
     case _trie_do_extension:
     case _trie_do_float:
+    case _trie_do_float_val:
     case _trie_do_hash:
     case _trie_do_long:
+    case _trie_do_long_int:
     case _trie_do_null:
     case _trie_do_null_in_new_pair:
     case _trie_do_pair:
@@ -821,8 +823,10 @@ restore_opcodes(yamop *pc, yamop *max)
     case _trie_retry_atom_in_new_pair:
     case _trie_retry_extension:
     case _trie_retry_float:
+    case _trie_retry_float_val:
     case _trie_retry_hash:
     case _trie_retry_long:
+    case _trie_retry_long_int:
     case _trie_retry_null:
     case _trie_retry_null_in_new_pair:
     case _trie_retry_pair:
@@ -836,7 +840,9 @@ restore_opcodes(yamop *pc, yamop *max)
     case _trie_trust_atom_in_new_pair:
     case _trie_trust_extension:
     case _trie_trust_float:
+    case _trie_trust_float_val:
     case _trie_trust_long:
+    case _trie_trust_long_int:
     case _trie_trust_null:
     case _trie_trust_null_in_new_pair:
     case _trie_trust_pair:
@@ -850,7 +856,9 @@ restore_opcodes(yamop *pc, yamop *max)
     case _trie_try_atom_in_new_pair:
     case _trie_try_extension:
     case _trie_try_float:
+    case _trie_try_float_val:
     case _trie_try_long:
+    case _trie_try_long_int:
     case _trie_try_null:
     case _trie_try_null_in_new_pair:
     case _trie_try_pair:
