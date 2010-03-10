@@ -195,8 +195,8 @@
             dprintf("Consume variant answer\n");                           \
             CONSUME_VARIANT_ANSWER(ANS_NODE, ANSWER_TMPLT);                \
           } else {                                                         \
-            CONSUME_SUBSUMPTIVE_ANSWER(ANS_NODE, ANSWER_TMPLT); \
-          } \
+            CONSUME_SUBSUMPTIVE_ANSWER(ANS_NODE, ANSWER_TMPLT);            \
+          }                                                                \
         }
 
 
