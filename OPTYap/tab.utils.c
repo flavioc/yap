@@ -12,10 +12,10 @@
 #include "tab.utils.h"
 #include "Yatom.h"
 #include "tab.macros.h"
+#include "tab.tst.h"
 
 #ifdef TABLING_CALL_SUBSUMPTION
 
-static void printTrieSymbol(FILE* fp, Cell symbol);
 static inline void fix_functor(Term t, CELL* placeholder);
 static inline void fix_list(Term t, CELL* placeholder);
 static inline void fix_rec(Term t, CELL* placeholder);
@@ -29,16 +29,16 @@ CellTag cell_tag(Term t)
 {
   if(IsVarTerm(t))
     return TAG_REF;
-    
+  
   if(IsAtomTerm(t))
     return TAG_ATOM;
-    
+  
   if(IsIntTerm(t))
     return TAG_INT;
-    
+  
   if(IsPairTerm(t))
     return TAG_LIST;
-    
+  
   if (IsApplTerm(t)) {
     Functor f = FunctorOfTerm(t);
     
@@ -75,14 +75,23 @@ CellTag TrieSymbolType(Term t)
     return TAG_LIST;
   
   if(IsApplTerm(t)) {
-    Functor f = (Functor) RepAppl(t);
-    if (f == FunctorDouble)
-      return TAG_FLOAT;
+    Functor f = (Functor)RepAppl(t);
     
-    if(f == FunctorLongInt)
-      return TAG_LONG_INT;
-    
-    return TAG_STRUCT;
+    switch ((CELL)f) {
+      case (CELL)FunctorDouble: return TAG_FLOAT;
+      case (CELL)FunctorLongInt: return TAG_LONG_INT;
+      case (CELL)FunctorDBRef: return TAG_DB_REF;
+      case (CELL)FunctorBigInt: return TAG_BIG_INT;
+      default: /* functor maybe somewhere else */
+        f = (Functor)*(CELL *)f;
+        switch((CELL)f) {
+          case (CELL)FunctorDouble: return TAG_FLOAT;
+          case (CELL)FunctorLongInt: return TAG_LONG_INT;
+          case (CELL)FunctorDBRef: return TAG_DB_REF;
+          case (CELL)FunctorBigInt: return TAG_BIG_INT;
+          default: return TAG_STRUCT;
+        }
+    }
   }
   
   return TAG_UNKNOWN;
@@ -153,7 +162,7 @@ void printTrieNode(FILE *fp, BTNptr pTN)
   printTrieSymbol(fp, BTN_Symbol(pTN));
 }
 
-static void printTrieSymbol(FILE* fp, Cell symbol)
+void printTrieSymbol(FILE* fp, Cell symbol)
 {
   switch(TrieSymbolType(symbol)) {
     case XSB_INT:
@@ -191,6 +200,7 @@ static void printTrieSymbol(FILE* fp, Cell symbol)
 static
 void symstkPrintNextTrieTerm(CTXTdeclc FILE *fp, xsbBool list_recursion)
 {
+  BTNptr node;
   Cell symbol;
   
   if(SymbolStack_IsEmpty) {
@@ -198,9 +208,21 @@ void symstkPrintNextTrieTerm(CTXTdeclc FILE *fp, xsbBool list_recursion)
     return;
   }
   
-  SymbolStack_Pop(symbol);
+  SymbolStack_Pop(node);
+  symbol = BTN_Symbol(node);
   
-  if(IsIntTerm(symbol)) {
+  if(TrNode_is_long(node)) {
+    Int li;
+    if(TrNode_is_call(node))
+      li = TrNode_long_int((long_sg_node_ptr)node);
+    else
+      li = TSTN_long_int((long_tst_node_ptr)node);
+      
+    if(list_recursion)
+      fprintf(fp, "|" LongIntFormatString "]", li);
+    else
+      fprintf(fp, LongIntFormatString, li);
+  } else if(IsIntTerm(symbol)) {
     if(list_recursion)
       fprintf(fp, "|" IntegerFormatString "]", int_val(symbol));
     else
@@ -319,7 +341,7 @@ void printTriePath(CTXTdeclc FILE *fp, BTNptr pLeaf, xsbBool print_address)
   BTNptr pRoot;
   
   SymbolStack_ResetTOS;
-  SymbolStack_PushPathRoot(pLeaf, pRoot);
+  SymbolStack_PushPathRootNodes(pLeaf, pRoot);
   
   fprintf(fp, "(");
   symstkPrintNextTrieTerm(CTXTc fp, FALSE);
@@ -339,9 +361,9 @@ void printSubgoalTriePath(CTXTdeclc FILE *fp, BTNptr pLeaf, tab_ent_ptr tab_entr
 
 void printAnswerTriePath(FILE *fp, ans_node_ptr leaf)
 {
-  #ifdef FDEBUG
+#ifdef FDEBUG
   SymbolStack_ResetTOS;
-  SymbolStack_PushPath(leaf);
+  SymbolStack_PushPathNodes(leaf);
   
   fprintf(fp, "{");
   symstkPrintNextTrieTerm(CTXTc fp, FALSE);
@@ -350,7 +372,7 @@ void printAnswerTriePath(FILE *fp, ans_node_ptr leaf)
     symstkPrintNextTrieTerm(CTXTc fp, FALSE);
   }
   fprintf(fp, "}");
-  #endif
+#endif
 }
 
 static int variable_counter = 0;
@@ -506,10 +528,15 @@ static void
 recursive_construct_subgoal(CELL* trie_vars, CELL* placeholder)
 {
   CELL symbol;
+  tst_node_ptr node;
   
-  SymbolStack_Pop(symbol);
+  SymbolStack_Pop(node);
+  symbol = TSTN_entry(node);
   
-  if(IsAtomOrIntTerm(symbol)) {
+  if(TrNode_is_long(node)) {
+    Int li = TrNode_long_int((long_sg_node_ptr)node);
+    *placeholder = MkLongIntTerm(li);
+  } else if(IsAtomOrIntTerm(symbol)) {
     dprintf("New constant\n");
     *placeholder = symbol;
   } else if(IsVarTerm(symbol)) {
@@ -530,8 +557,6 @@ recursive_construct_subgoal(CELL* trie_vars, CELL* placeholder)
     Functor f = DecodeTrieFunctor(symbol);
 
     if(f == FunctorDouble) {
-      // XXX IMPLEMENT
-    } else if(f == FunctorLongInt) {
       // XXX IMPLEMENT
     } else {
       int i, arity = ArityOfFunctor(f);
@@ -576,7 +601,7 @@ CELL* construct_subgoal_heap(BTNptr pLeaf, CPtr* var_pointer, int arity)
   
   TermStack_ResetTOS;
   SymbolStack_ResetTOS;
-  SymbolStack_PushPath(pLeaf);
+  SymbolStack_PushPathNodes(pLeaf);
   
   CELL *arguments = H;
   H += arity;
@@ -678,7 +703,17 @@ fix_functor(Term t, CELL* placeholder)
   if(f == FunctorDouble) {
     printf("DOUBLE!\n");
   } else if(f == FunctorLongInt) {
-    printf("LONG INT!\n");
+    if(placeholder)
+      *placeholder = AbsAppl(H);
+    else {
+      TermStack_Push(H);
+      *H = AbsAppl(H + 1);
+      ++H;
+    }
+    
+    *H++ = (CELL)FunctorLongInt;
+    *H++ = (CELL)(LongIntOfTerm(t));
+    *H++ = EndSpecials;
   } else {
     if(placeholder)
       *placeholder = AbsAppl(H);

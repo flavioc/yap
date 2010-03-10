@@ -225,6 +225,20 @@ extern DynamicStack tstSymbolStack;
     SymbolStack_PushPathRoot(Leaf, root); \
 }
 
+#define SymbolStack_PushPathRootNodes(Leaf, Root) {  \
+    BTNptr btn = (BTNptr)Leaf;  \
+    while(!IsTrieRoot(btn)) { \
+      SymbolStack_Push(btn);  \
+      btn = BTN_Parent(btn);  \
+    } \
+    Root = (void*)btn;  \
+}
+
+#define SymbolStack_PushPathNodes(Leaf) {  \
+    BTNptr root;  \
+    SymbolStack_PushPathRootNodes(Leaf, root); \
+}
+
 /* ------------------------------------------------------------------------- */
 
 /*
@@ -268,10 +282,11 @@ extern DynamicStack tstTrail;
 
 /* --------------------------------------------- */
 
-#define ProcessNextSubtermFromTrieStacks(Symbol,StdVarNum) {  \
+#define ProcessNextSubtermFromTrieStacks(Symbol,NodeType,StdVarNum) {  \
   Cell subterm; \
   TermStack_Pop(subterm); \
   XSB_Deref(subterm); \
+  NodeType = INTERIOR_NT; \
   switch(cell_tag(subterm)) { \
     case XSB_REF: \
       if(!IsStandardizedVariable(subterm)) {  \
@@ -294,6 +309,11 @@ extern DynamicStack tstTrail;
     case XSB_LIST:  \
       Symbol = EncodeTrieList(subterm); \
       TermStack_PushListArgs(subterm);  \
+      break;  \
+    case TAG_LONG_INT:                  \
+      printf("Long int ...\n");         \
+      Symbol = LongIntOfTerm(subterm);  \
+      NodeType |= LONG_INT_NT;          \
       break;  \
     default:  \
       Symbol = 0; \
@@ -380,6 +400,7 @@ typedef enum {
 CellTag cell_tag(Term t);
 CellTag TrieSymbolType(Term t);
 xsbBool are_identical_terms(Cell term1, Cell term2);
+void printTrieSymbol(FILE* fp, Cell symbol);
 void printTriePath(CTXTdeclc FILE *fp, BTNptr pLeaf, xsbBool print_address);
 void printSubgoalTriePath(CTXTdeclc FILE *fp, BTNptr pLeaf, tab_ent_ptr tab_entry);
 void printAnswerTriePath(FILE *fp, ans_node_ptr leaf);
@@ -409,7 +430,7 @@ extern int AnsVarCtr;
  }
 
 // deactivate to test
-//#define FDEBUG
+#define FDEBUG
 #ifdef FDEBUG
 #define dprintf(MESG, ARGS...) printf(MESG, ##ARGS)
 #else
