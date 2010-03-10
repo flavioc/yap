@@ -43,6 +43,7 @@ STATIC_PROTO(void mark_regs, (tr_fr_ptr));
 STATIC_PROTO(void mark_trail, (tr_fr_ptr, tr_fr_ptr, CELL *, choiceptr));
 STATIC_PROTO(void mark_environments, (CELL *, OPREG, CELL *));
 STATIC_PROTO(void mark_choicepoints, (choiceptr, tr_fr_ptr, int));
+STATIC_PROTO(void mark_answer_templates, (sg_fr_ptr));
 STATIC_PROTO(void into_relocation_chain, (CELL *, CELL *));
 STATIC_PROTO(void sweep_trail, (choiceptr, tr_fr_ptr));
 STATIC_PROTO(void sweep_environments, (CELL *, OPREG, CELL *));
@@ -2136,6 +2137,14 @@ mark_choicepoints(register choiceptr gc_B, tr_fr_ptr saved_TR, int very_verbose)
       case _trie_retry_long:
       case _trie_do_hash:
       case _trie_retry_hash:
+      case _trie_try_long_int:
+      case _trie_retry_long_int:
+      case _trie_trust_long_int:
+      case _trie_do_long_int:
+      case _trie_try_float_val:
+      case _trie_retry_float_val:
+      case _trie_trust_float_val:
+      case _trie_do_float_val:
 	{
 	  CELL *vars_ptr;
 	  int heap_arity, vars_arity, subs_arity;
@@ -2295,7 +2304,34 @@ mark_choicepoints(register choiceptr gc_B, tr_fr_ptr saved_TR, int very_verbose)
   }
 }
 
+#ifdef TABLING
+static void
+mark_answer_templates(sg_fr_ptr sg_fr)
+{
+  subprod_fr_ptr prod;
+  subcons_fr_ptr cons;
+  int size;
+  CELL *at;
 
+  while(sg_fr) {
+    if(SgFr_is_sub_producer(sg_fr)) {
+      prod = (subprod_fr_ptr)sg_fr;
+      cons = SgFr_prod_consumers(prod);
+
+      while(cons) {
+        at = SgFr_answer_template(cons);
+        size = IntOfTerm(*at);
+        for(; size >= 0; --size, --at)
+          mark_variable(at);
+
+        cons = SgFr_consumers(cons);
+      }
+    }
+
+    sg_fr = SgFr_next(sg_fr);
+  }
+}
+#endif /* TABLING */
 
 
 /*
@@ -2719,7 +2755,6 @@ sweep_trail(choiceptr gc_B, tr_fr_ptr old_TR)
   CleanDeadClauses();
 }
 
-
 /*
  * insert cells of a chain of environments which point to heap objects into
  * relocation chains 
@@ -2798,7 +2833,7 @@ sweep_slots(CELL *ptr)
     if (MARKED_PTR(ptr)) {
       UNMARK(ptr);
       if (HEAP_PTR(cp_cell)) {
-	into_relocation_chain(ptr, GET_NEXT(cp_cell));
+	      into_relocation_chain(ptr, GET_NEXT(cp_cell));
       }
     }
     ptr++;
@@ -3148,9 +3183,6 @@ sweep_choicepoints(choiceptr gc_B)
   }
 }
 
-
-
-
 /* update a relocation chain to point all its cells to new location of object */
 static void
 update_relocation_chain(CELL_PTR current, CELL_PTR dest)
@@ -3233,7 +3265,6 @@ compact_heap(void)
   dep_fr_ptr depfr = LOCAL_top_dep_fr;
 #endif /* TABLING */
 
-
   /*
    * upward phase - scan heap from high to low, setting marked upward
    * ptrs to point to what will be the new locations of the
@@ -3254,58 +3285,58 @@ compact_heap(void)
 		    , &depfr
 #endif /* TABLING */
 		    );
+		    
   for (current = H - 1; current >= start_from; current--) {
     if (MARKED_PTR(current)) {
       CELL ccell = UNMARK_CELL(*current);
 
       if (in_garbage > 0) {
-	current[1] = in_garbage;
-	in_garbage = 0;
+	      current[1] = in_garbage;
+	      in_garbage = 0;
       }
 
       if (current <= next_hb) {
-	gc_B = update_B_H(gc_B, current, dest, dest+1
+	      gc_B = update_B_H(gc_B, current, dest, dest+1
 #ifdef TABLING
 			  , &depfr
 #endif /* TABLING */
 			  );
-	next_hb = set_next_hb(gc_B);
+	      next_hb = set_next_hb(gc_B);
       }
 
       if (ccell == EndSpecials) {
-	/* oops, we found a blob */
-	CELL *ptr = current-1;
-	UInt nofcells;
+	      /* oops, we found a blob */
+	      CELL *ptr = current-1;
+	      UInt nofcells;
 
-	while (!MARKED_PTR(ptr)) ptr--;
-	nofcells = current-ptr;
-	ptr++;
-	MARK(ptr);
+	      while (!MARKED_PTR(ptr)) ptr--;
+	      nofcells = current-ptr;
+	      ptr++;
+	      MARK(ptr);
 #ifdef DEBUG
-	found_marked+=nofcells;
+	      found_marked+=nofcells;
 #endif
-	/* first swap the tag so that it will be seen by the next step */
-	current[0] = ptr[0];
-	ptr[0] = EndSpecials;
-	dest -= nofcells;
-	current = ptr;
-	continue;
-	/* process the functor on a separate cycle */
+	      /* first swap the tag so that it will be seen by the next step */
+	      current[0] = ptr[0];
+	      ptr[0] = EndSpecials;
+	      dest -= nofcells;
+	      current = ptr;
+	      continue;
+	      /* process the functor on a separate cycle */
       }
 #ifdef DEBUG
       found_marked++;
 #endif /* DEBUG */
+      
       update_relocation_chain(current, dest);
       if (HEAP_PTR(*current)) {
-	next = GET_NEXT(*current);
-	if (next < current)	/* push into reloc.
-				 * chain */
-	  into_relocation_chain(current, next);
-	else if (current == next)	{ /* cell pointing to
-					 * itself */
-	  UNRMARK(current);
-	  *current = (CELL) dest;	/* no tag */
-	}
+	      next = GET_NEXT(*current);
+	      if (next < current)	/* push into reloc. chain */
+	        into_relocation_chain(current, next);
+	      else if (current == next)	{ /* cell pointing to itself */
+	        UNRMARK(current);
+	        *current = (CELL) dest;	/* no tag */
+	      }
       }
       dest--;
     } else {
@@ -3342,19 +3373,19 @@ compact_heap(void)
     if (MARKED_PTR(current)) {
       CELL uccur = UNMARK_CELL(ccur);
       if (uccur == EndSpecials) {
-	CELL *old_dest = dest;
+	      CELL *old_dest = dest;
 
-	dest++;
-	current++;
-	while (!MARKED_PTR(current)) {
-	  *dest++ = *current++;
-	}
-	*old_dest = *current;
-	*dest++ = EndSpecials;
+	      dest++;
+	      current++;
+	      while (!MARKED_PTR(current)) {
+	        *dest++ = *current++;
+	      }
+	      *old_dest = *current;
+	      *dest++ = EndSpecials;
 #ifdef DEBUG
-	found_marked += (dest-old_dest);
+	      found_marked += (dest-old_dest);
 #endif
-	continue;
+	      continue;
       }
 #ifdef DEBUG
       found_marked++;
@@ -3363,15 +3394,15 @@ compact_heap(void)
       ccur = *current;
       next = GET_NEXT(ccur);
       if (HEAP_PTR(ccur) &&
-	  (next = GET_NEXT(ccur)) < H && /* move current cell &
+	      (next = GET_NEXT(ccur)) < H && /* move current cell &
 				 * push */
-	  next > current) {	/* into relocation chain  */
-	*dest = ccur;
-	into_relocation_chain(dest, next);
-	UNMARK(dest);
+	      next > current) {	/* into relocation chain  */
+	        *dest = ccur;
+	        into_relocation_chain(dest, next);
+	        UNMARK(dest);
       } else {
-	/* just move current cell */
-	*dest = ccur = UNMARK_CELL(ccur);
+	      /* just move current cell */
+	      *dest = ccur = UNMARK_CELL(ccur);
       }
       /* next cell, please */
       dest++;
@@ -3619,6 +3650,9 @@ marking_phase(tr_fr_ptr old_TR, CELL *current_env, yamop *curp, CELL *max)
   /* active environments */
   mark_delays((attvar_record *)max, (attvar_record *)H0);
   mark_environments(current_env, EnvSize(curp), EnvBMap(curp));
+#ifdef TABLING
+  mark_answer_templates(LOCAL_top_sg_fr);
+#endif
   mark_choicepoints(B, old_TR, is_gc_very_verbose());	/* choicepoints, and environs  */
 #ifdef EASY_SHUNTING
   set_conditionals(sTR);
