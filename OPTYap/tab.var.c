@@ -269,88 +269,93 @@ void consume_variant_answer(ans_node_ptr current_ans_node, int subs_arity, CELL 
     current_node = TrNode_parent(current_node);
 #else
   {
-    t = TrNode_entry(current_node);
-    current_node = TrNode_parent(current_node);
 #endif /* GLOBAL_TRIE */
-    do {
-      if (IsVarTerm(t)) {
-	int var_index = VarIndexOfTableTerm(t);
-	STACK_CHECK_EXPAND(stack_terms, stack_vars_base + var_index + 1, stack_terms_base);
-	if (var_index >= vars_arity) {
-	  while (vars_arity < var_index)
-	    stack_vars_base[vars_arity++] = 0; 
-	  stack_vars_base[vars_arity++] = MkVarTerm(); 
-	  stack_vars = stack_vars_base + vars_arity;
-	} else if (stack_vars_base[var_index] == 0)
-	  stack_vars_base[var_index] = MkVarTerm(); 
-	STACK_PUSH_UP(stack_vars_base[var_index], stack_terms);
-      } else if (IsAtomOrIntTerm(t)) {
-	STACK_CHECK_EXPAND(stack_terms, stack_vars, stack_terms_base);
-	STACK_PUSH_UP(t, stack_terms);
-      } else if (IsPairTerm(t)) {
-#ifdef TRIE_COMPACT_PAIRS
-	if (t == CompactPairInit) { 
-	  Term *stack_aux = stack_terms_base - stack_terms_pair_offset;
-	  Term head, tail = STACK_POP_UP(stack_aux);
-	  while (STACK_NOT_EMPTY(stack_aux, stack_terms)) {
-	    head = STACK_POP_UP(stack_aux);
-	    tail = MkPairTerm(head, tail);
-	}
-	  stack_terms = stack_terms_base - stack_terms_pair_offset;
-	  stack_terms_pair_offset = (int) STACK_POP_DOWN(stack_terms);
-	  STACK_PUSH_UP(tail, stack_terms);
-	} else {  /* CompactPairEndList / CompactPairEndTerm */
-	  Term last;
-	  STACK_CHECK_EXPAND(stack_terms, stack_vars + 1, stack_terms_base);
-	  last = STACK_POP_DOWN(stack_terms);
-	  STACK_PUSH_UP(stack_terms_pair_offset, stack_terms);
-	  stack_terms_pair_offset = (int) (stack_terms_base - stack_terms);
-	  if (t == CompactPairEndList)
-	    STACK_PUSH_UP(TermNil, stack_terms);
-	  STACK_PUSH_UP(last, stack_terms);
-	}
-#else
-	Term head = STACK_POP_DOWN(stack_terms);
-	Term tail = STACK_POP_DOWN(stack_terms);
-	t = MkPairTerm(head, tail);
-	STACK_PUSH_UP(t, stack_terms);
-#endif /* TRIE_COMPACT_PAIRS */
-      } else if (IsApplTerm(t)) {
-	Functor f = (Functor) RepAppl(t);
-	if (f == FunctorDouble) {
-	  volatile Float dbl;
-	  volatile Term *t_dbl = (Term *)((void *) &dbl);
-	  t = TrNode_entry(current_node);
-	  current_node = TrNode_parent(current_node);
-	  *t_dbl = t;
-#if SIZEOF_DOUBLE == 2 * SIZEOF_INT_P
-	  t = TrNode_entry(current_node);
-	  current_node = TrNode_parent(current_node);
-	  *(t_dbl + 1) = t;
-#endif /* SIZEOF_DOUBLE x SIZEOF_INT_P */
-	  current_node = TrNode_parent(current_node);
-	  t = MkFloatTerm(dbl);
-	  STACK_CHECK_EXPAND(stack_terms, stack_vars, stack_terms_base);
-	  STACK_PUSH_UP(t, stack_terms);
-	} else if (f == FunctorLongInt) {
-	  Int li = TrNode_entry(current_node);
-	  current_node = TrNode_parent(current_node);
-	  current_node = TrNode_parent(current_node);
-	  t = MkLongIntTerm(li);
-	  STACK_CHECK_EXPAND(stack_terms, stack_vars, stack_terms_base);
-	  STACK_PUSH_UP(t, stack_terms);
-        } else {
-	  int f_arity = ArityOfFunctor(f);
-	  t = Yap_MkApplTerm(f, f_arity, stack_terms);
-	  stack_terms += f_arity;
-	  STACK_CHECK_EXPAND(stack_terms, stack_vars, stack_terms_base);
-	  STACK_PUSH_UP(t, stack_terms);
-	}
-      }
+    while(!TrNode_is_root(current_node)) {
       t = TrNode_entry(current_node);
-      current_node = TrNode_parent(current_node);
-    } while (current_node);
-  }
+      
+      if(TrNode_is_long(current_node)) {
+        t = MkLongIntTerm(TSTN_long_int((long_tst_node_ptr)current_node));
+    	  STACK_CHECK_EXPAND(stack_terms, stack_vars, stack_terms_base);
+    	  STACK_PUSH_UP(t, stack_terms);
+      } else if (IsVarTerm(t)) {
+        int var_index = VarIndexOfTableTerm(t);
+        STACK_CHECK_EXPAND(stack_terms, stack_vars_base + var_index + 1, stack_terms_base);
+        if (var_index >= vars_arity) {
+          while (vars_arity < var_index)
+            stack_vars_base[vars_arity++] = 0; 
+          stack_vars_base[vars_arity++] = MkVarTerm(); 
+          stack_vars = stack_vars_base + vars_arity;
+          } else if (stack_vars_base[var_index] == 0)
+            stack_vars_base[var_index] = MkVarTerm(); 
+          STACK_PUSH_UP(stack_vars_base[var_index], stack_terms);
+        } else if (IsAtomOrIntTerm(t)) {
+          STACK_CHECK_EXPAND(stack_terms, stack_vars, stack_terms_base);
+          STACK_PUSH_UP(t, stack_terms);
+        } else if (IsPairTerm(t)) {
+#ifdef TRIE_COMPACT_PAIRS
+          if (t == CompactPairInit) { 
+            Term *stack_aux = stack_terms_base - stack_terms_pair_offset;
+            Term head, tail = STACK_POP_UP(stack_aux);
+            while (STACK_NOT_EMPTY(stack_aux, stack_terms)) {
+              head = STACK_POP_UP(stack_aux);
+              tail = MkPairTerm(head, tail);
+            }
+            stack_terms = stack_terms_base - stack_terms_pair_offset;
+            stack_terms_pair_offset = (int) STACK_POP_DOWN(stack_terms);
+            STACK_PUSH_UP(tail, stack_terms);
+          } else {  /* CompactPairEndList / CompactPairEndTerm */
+            Term last;
+            STACK_CHECK_EXPAND(stack_terms, stack_vars + 1, stack_terms_base);
+            last = STACK_POP_DOWN(stack_terms);
+            STACK_PUSH_UP(stack_terms_pair_offset, stack_terms);
+            stack_terms_pair_offset = (int) (stack_terms_base - stack_terms);
+            if (t == CompactPairEndList)
+              STACK_PUSH_UP(TermNil, stack_terms);
+            STACK_PUSH_UP(last, stack_terms);
+          }
+#else
+          Term head = STACK_POP_DOWN(stack_terms);
+          Term tail = STACK_POP_DOWN(stack_terms);
+          t = MkPairTerm(head, tail);
+          STACK_PUSH_UP(t, stack_terms);
+#endif /* TRIE_COMPACT_PAIRS */
+        } else if (IsApplTerm(t)) {
+          printf("ApplTerm\n");
+          Functor f = (Functor) RepAppl(t);
+          if (f == FunctorDouble) {
+            volatile Float dbl;
+            volatile Term *t_dbl = (Term *)((void *) &dbl);
+            t = TrNode_entry(current_node);
+            current_node = TrNode_parent(current_node);
+            *t_dbl = t;
+#if SIZEOF_DOUBLE == 2 * SIZEOF_INT_P
+            t = TrNode_entry(current_node);
+            current_node = TrNode_parent(current_node);
+            *(t_dbl + 1) = t;
+#endif /* SIZEOF_DOUBLE x SIZEOF_INT_P */
+            current_node = TrNode_parent(current_node);
+            t = MkFloatTerm(dbl);
+            STACK_CHECK_EXPAND(stack_terms, stack_vars, stack_terms_base);
+            STACK_PUSH_UP(t, stack_terms);
+          } else if (f == FunctorLongInt) {
+            Int li = TrNode_entry(current_node);
+            current_node = TrNode_parent(current_node);
+            current_node = TrNode_parent(current_node);
+            t = MkLongIntTerm(li);
+            STACK_CHECK_EXPAND(stack_terms, stack_vars, stack_terms_base);
+            STACK_PUSH_UP(t, stack_terms);
+          } else {
+            int f_arity = ArityOfFunctor(f);
+            t = Yap_MkApplTerm(f, f_arity, stack_terms);
+            stack_terms += f_arity;
+            STACK_CHECK_EXPAND(stack_terms, stack_vars, stack_terms_base);
+            STACK_PUSH_UP(t, stack_terms);
+          }
+        }
+        
+        current_node = TrNode_parent(current_node);
+      }
+    }
 
   for (i = subs_arity - 1; i >= 0; i--) {
     CELL *subs_var = (CELL *) *(subs_ptr + i);
