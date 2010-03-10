@@ -203,6 +203,8 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
 #define CompactPairEndList  AbsPair((Term *) (2*(LowTagBits + 1)))
 #endif /* TRIE_COMPACT_PAIRS */
 
+#define EncodedLongFunctor AbsAppl((Term *)FunctorLongInt)
+#define GET_HASH_SYMBOL(TERM, FLAGS) (IS_LONG_INT_FLAG(FLAGS) ? EncodedLongFunctor : (TERM))
 
 #define HASH_TABLE_LOCK(NODE)  ((((unsigned long int) NODE) >> 5) & (TABLE_LOCK_BUCKETS - 1))
 #define LOCK_TABLE(NODE)         LOCK(GLOBAL_table_lock(HASH_TABLE_LOCK(NODE)))
@@ -443,10 +445,19 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
 #define new_root_subgoal_trie_node(NODE)                                  \
         ALLOC_SUBGOAL_TRIE_NODE(NODE);                                    \
         init_subgoal_trie_node(NODE, 0, NULL, NULL, NULL, TRIE_ROOT_NT)
-#define new_subgoal_trie_node(NODE, ENTRY, CHILD, PARENT, NEXT, TYPE)     \
-        INCREMENT_GLOBAL_TRIE_REFS(ENTRY);                                \
-        ALLOC_SUBGOAL_TRIE_NODE(NODE);                                    \
-        init_subgoal_trie_node(NODE, ENTRY, CHILD, PARENT, NEXT, TYPE)
+
+#define new_subgoal_trie_node(NODE, ENTRY, CHILD, PARENT, NEXT, TYPE)               \
+        INCREMENT_GLOBAL_TRIE_REFS(ENTRY);                                          \
+        if(IS_LONG_INT_FLAG(TYPE)) {                                                \
+          ALLOC_LONG_SUBGOAL_TRIE_NODE(NODE);                                       \
+          init_subgoal_trie_node(NODE, FunctorLongInt, CHILD, PARENT, NEXT, TYPE);  \
+          TrNode_long_int((long_sg_node_ptr)(NODE)) = ENTRY;                        \
+        } else {                                                                    \
+          ALLOC_SUBGOAL_TRIE_NODE(NODE);                                            \
+          init_subgoal_trie_node(NODE, ENTRY, CHILD, PARENT, NEXT, TYPE);           \
+        }
+        
+        
 #define init_subgoal_trie_node(NODE, ENTRY, CHILD, PARENT, NEXT, TYPE)  \
         TrNode_entry(NODE) = ENTRY;                                     \
         TrNode_init_lock_field(NODE);                                   \
@@ -455,7 +466,13 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
         TrNode_next(NODE) = NEXT;                                       \
         TrNode_trie_type(NODE) = CALL_TRIE_TT;                          \
         TrNode_node_type(NODE) = TYPE
-
+        
+#define free_subgoal_trie_node(NODE)                                    \
+        if(TrNode_is_long(NODE))  {                                     \
+          FREE_LONG_SUBGOAL_TRIE_NODE(NODE);                            \
+        } else {                                                        \
+          FREE_SUBGOAL_TRIE_NODE(NODE);                                 \
+        }
 
 #define new_root_answer_trie_node(NODE)                                 \
         ALLOC_ANSWER_TRIE_NODE(NODE);                                   \
@@ -779,10 +796,14 @@ TABLING_ERROR_MESSAGE("rebind_tr < end_tr (function restore_bindings)");
 
 static inline void
 free_answer_trie_node(ans_node_ptr node) {
-  if(TrNode_trie_type(node) == BASIC_ANSWER_TRIE_TT) {
+  if(TrNode_trie_type(node) & BASIC_ANSWER_TRIE_TT) {
     FREE_ANSWER_TRIE_NODE(node);
   } else {
-    FREE_TST_ANSWER_TRIE_NODE(node);
+    if(TrNode_is_long(node)) {
+      FREE_LONG_TST_NODE(node);
+    } else {
+      FREE_TST_ANSWER_TRIE_NODE(node);
+    }
   }
 }
 
