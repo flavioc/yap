@@ -400,9 +400,9 @@ stl_restore_variant_cont(CTXTdecl) {
  */
 
 #define NonVarSearchChain_UnboundTrieVar(Subterm, VarChain) { \
-    int trievar_index; \
-      \
-    while(IsNonNULL(VarChain)) {  \
+    int trievar_index;                                        \
+                                                              \
+    while(IsNonNULL(VarChain)) {                              \
       if(IsTrieVar(BTN_Symbol(VarChain)) && \
         IsNewTrieVar(BTN_Symbol(VarChain))) { \
         trievar_index = DecodeTrieVar(BTN_Symbol(VarChain));  \
@@ -529,18 +529,32 @@ While_TermStack_NotEmpty:
       case TAG_LONG_INT:
         if(search_mode == MATCH_SYMBOL_EXACTLY) {
           Int li = LongIntOfTerm(subterm);
-          
+          printf("Long int found %ld\n", li);
           Set_Matching_and_TrieVar_Chains(li, pCurrentBTN, variableChain);
           
           while(IsNonNULL(pCurrentBTN)) {
-            if(IS_LONG_INT_FLAG(BTN_NodeType(pCurrentBTN)) &&
-                  li == BTN_Symbol(pCurrentBTN))
+            if(TrNode_is_long(pCurrentBTN))
             {
-              Conditionally_Create_ChoicePoint(variableChain)
-              Descend_In_Trie_and_Continue(pCurrentBTN);
+              int go = FALSE;
+              
+              if(TrNode_is_call(pCurrentBTN)) {
+                printf("Call trie...\n");
+                go = (li == TrNode_long_int((long_sg_node_ptr)pCurrentBTN));
+              } else {
+                printf("Answer trie...\n");
+                go = (li == TSTN_long_int((long_tst_node_ptr)pCurrentBTN));
+              }
+              
+              if(go) {
+                printf("Find one matching long int\n");
+                Conditionally_Create_ChoicePoint(variableChain)
+                Descend_In_Trie_and_Continue(pCurrentBTN);
+              }
             }
             pCurrentBTN = BTN_Sibling(pCurrentBTN);
           }
+          
+          printf("Found no matching long int\n");
           
           /* failed to find a long int */
           pCurrentBTN = variableChain;
