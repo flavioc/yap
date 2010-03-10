@@ -124,10 +124,13 @@ struct global_pages {
 #endif /* TABLING_ANSWER_LIST */
   
   struct pages subgoal_trie_node_pages;
+  struct pages long_subgoal_trie_node_pages;
+  struct pages float_subgoal_trie_node_pages;
   struct pages answer_trie_node_pages;
   struct pages subgoal_trie_hash_pages;
   struct pages answer_trie_hash_pages;
   struct pages time_stamp_trie_node_pages;
+  struct pages long_tst_node_pages;
   struct pages tst_index_node_pages;
   struct pages tst_answer_trie_hash_pages;
   
@@ -251,10 +254,13 @@ struct global_data{
 #define GLOBAL_PAGES_subprod_sg_fr              (GLOBAL.pages.subsumptive_producer_subgoal_frame_pages)
 #define GLOBAL_PAGES_subcons_sg_fr              (GLOBAL.pages.subsumed_consumer_subgoal_frame_pages)
 #define GLOBAL_PAGES_sg_node                    (GLOBAL.pages.subgoal_trie_node_pages)
+#define GLOBAL_PAGES_long_sg_node               (GLOBAL.pages.long_subgoal_trie_node_pages)
+#define GLOBAL_PAGES_float_sg_node              (GLOBAL.pages.float_subgoal_trie_node_pages)
 #define GLOBAL_PAGES_ans_node                   (GLOBAL.pages.answer_trie_node_pages)
 #define GLOBAL_PAGES_sg_hash                    (GLOBAL.pages.subgoal_trie_hash_pages)
 #define GLOBAL_PAGES_ans_hash                   (GLOBAL.pages.answer_trie_hash_pages)
 #define GLOBAL_PAGES_tst_ans_node               (GLOBAL.pages.time_stamp_trie_node_pages)
+#define GLOBAL_PAGES_long_tst_node              (GLOBAL.pages.long_tst_node_pages)
 #define GLOBAL_PAGES_tst_index_node             (GLOBAL.pages.tst_index_node_pages)
 #define GLOBAL_PAGES_tst_answer_trie_hash       (GLOBAL.pages.tst_answer_trie_hash_pages)
 #define GLOBAL_PAGES_dep_fr                     (GLOBAL.pages.dependency_frame_pages)
