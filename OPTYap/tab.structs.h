@@ -111,12 +111,9 @@ typedef struct table_entry {
 ** ------------------------- */
 
 enum Types_of_Tries {
- CALL_TRIE_TT              = 0x06,     /* binary:  0110 */
- BASIC_ANSWER_TRIE_TT      = 0x05,     /* binary:  0101 */
+ CALL_TRIE_TT              = 0x01,     /* binary:  0110 */
+ BASIC_ANSWER_TRIE_TT      = 0x02,     /* binary:  0101 */
  TS_ANSWER_TRIE_TT         = 0x04,     /* binary:  0100 */
- DELAY_TRIE_TT             = 0x03,     /* binary:  0011 */
- ASSERT_TRIE_TT            = 0x02,     /* binary:  0010 */
- INTERN_TRIE_TT            = 0x01      /* binary:  0001 */
 };
 
 enum Types_of_Trie_Nodes {
@@ -170,6 +167,16 @@ typedef struct subgoal_trie_node {
 
 } *sg_node_ptr;
 
+typedef struct long_subgoal_trie_node {
+  struct subgoal_trie_node base;
+  Int long_int;
+} *long_sg_node_ptr;
+
+typedef struct float_subgoal_trie_node {
+  struct subgoal_trie_node base;
+  Float float_val;
+} *float_sg_node_ptr;
+
 typedef struct answer_trie_node {
   struct basic_trie_info basic_info;
   
@@ -204,6 +211,10 @@ typedef struct answer_trie_node {
 #define TrNode_next(X)         ((X)->next)
 #define TrNode_is_hash(X)      (TrNode_node_type(X) & HASH_HEADER_NT)
 #define TrNode_is_hashed(X)    (TrNode_node_type(X) & HASHED_INTERIOR_NT)
+#define TrNode_is_long(X)      (IS_LONG_INT_FLAG(TrNode_node_type(X)))
+#define TrNode_long_int(X)     ((X)->long_int)
+#define TrNode_is_call(X)      (TrNode_trie_type(X) & CALL_TRIE_TT)
+#define TrNode_is_root(X)      (TrNode_node_type(X) & TRIE_ROOT_NT)
 
 /* -------------------------------------------------------------------------- **
 **      Structs global_trie_hash, subgoal_trie_hash and answer_trie_hash      **
