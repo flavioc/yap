@@ -69,39 +69,38 @@ STD_PROTO(static inline TSTHTptr New_BTHT, (int));
     case XSB_LIST:  \
       TN_Instr(pTN) = _trie_retry_pair; \
       break;  \
+    case TAG_LONG_INT:  \
+      TN_Instr(pTN) = _trie_retry_long_int; \
+      break;  \
     default:  \
       xsb_abort("Trie Node creation: Bad tag in symbol %lx", \
                   Symbol);  \
   }
   /// XXX: float e long int
   
-#define TN_ResetInstrCPs(pHead, pSibling) // XXX
-  
-#define TN_ForceInstrCPtoNOCP(pTN)  // XXX
-#define TN_ForceInstrCPtoTRY(pTN) // XXX
-#define TN_UpgradeInstrTypeToSUCCESS(pTN,SymbolTag) /// XXX
-
-/* XXX : not sure about instrs */
-/* try -> retry : do -> trust */
-#define TN_RotateInstrCPtoRETRYorTRUST(pTN) /// XXX
+#define TN_ResetInstrCPs(pHead, pSibling)
+#define TN_ForceInstrCPtoNOCP(pTN)
+#define TN_ForceInstrCPtoTRY(pTN)
+#define TN_UpgradeInstrTypeToSUCCESS(pTN,SymbolTag)
+#define TN_RotateInstrCPtoRETRYorTRUST(pTN)
 
 #define TSTRoot_SetHTList(pTST,pTSTHT) TSTN_Sibling(pTST) = (TSTNptr)pTSTHT
 #define TSTRoot_GetHTList(pTST) ((TSTHTptr)TSTN_Sibling(pTST))
 
 #define TSTN_SetHashHdr(pTSTN,pTSTHT) TN_SetHashHdr(pTSTN,pTSTHT)
 
-#define TrieHT_InsertNode(pBucketArray,HashSeed,pTN) {  \
-  void **pBucket; \
-    \
+#define TrieHT_InsertNode(pBucketArray,HashSeed,pTN) {                  \
+  void **pBucket;                                                       \
+                                                                        \
   pBucket = (void**)(pBucketArray + TrieHash(TN_Symbol(pTN),HashSeed)); \
-  if(IsNonNULL(*pBucket)) { \
-    TN_ForceInstrCPtoTRY(pTN); \
-    TN_RotateInstrCPtoRETRYorTRUST((BTNptr)*pBucket); \
-  } \
-  else  \
-    TN_ForceInstrCPtoNOCP(pTN);  \
-  TN_Sibling(pTN) = *pBucket; \
-  *pBucket = pTN; \
+  if(IsNonNULL(*pBucket)) {                                             \
+    TN_ForceInstrCPtoTRY(pTN);                                          \
+    TN_RotateInstrCPtoRETRYorTRUST((BTNptr)*pBucket);                   \
+  }                                                                     \
+  else                                                                  \
+    TN_ForceInstrCPtoNOCP(pTN);                                         \
+  TN_Sibling(pTN) = *pBucket;                                           \
+  *pBucket = pTN;                                                       \
 }
 
 /* for indices */
@@ -144,8 +143,18 @@ TSTNptr new_tstn(CTXTdeclc int trie_t, int node_t, Cell symbol, TSTNptr parent,
     TSTNptr sibling) {
   void * tstn;
   
-  ALLOC_TST_ANSWER_TRIE_NODE(tstn);
-  TN_Init(((TSTNptr)tstn),trie_t,node_t,symbol,parent,sibling);
+  printf("TrieType %d\n", trie_t);
+  
+  if(IS_LONG_INT_FLAG(node_t)) {
+    ALLOC_LONG_TST_NODE(tstn);
+    TSTN_long_int((long_tst_node_ptr)tstn) = symbol;
+    TN_Init(((TSTNptr)tstn),trie_t,node_t,EncodedLongFunctor,parent,sibling);
+    printf("New tst long int %ld\n", symbol);
+  } else {
+    printf("new normal tst node\n");
+    ALLOC_TST_ANSWER_TRIE_NODE(tstn);
+    TN_Init(((TSTNptr)tstn),trie_t,node_t,symbol,parent,sibling);
+  }
   TSTN_TimeStamp(((TSTNptr)tstn)) = TSTN_DEFAULT_TIMESTAMP;
   return (TSTNptr)tstn;        
 }
@@ -155,10 +164,10 @@ TSTNptr new_tstn(CTXTdeclc int trie_t, int node_t, Cell symbol, TSTNptr parent,
  * no children.
  */
 inline static
-TSTNptr tstnAddSymbol(CTXTdeclc TSTNptr parent, Cell symbol, int trieType) {
+TSTNptr tstnAddSymbol(CTXTdeclc TSTNptr parent, Cell symbol, int trieType, int nodeType) {
   TSTNptr newTSTN;
   
-  New_TSTN(newTSTN, trieType, INTERIOR_NT, symbol, parent, NULL);
+  New_TSTN(newTSTN, trieType, nodeType, symbol, parent, NULL);
   TSTN_Child(parent) = newTSTN;
   return newTSTN;
 }
@@ -371,16 +380,20 @@ void tstnHashifyChildren(CTXTdeclc TSTNptr parent, TSTNptr root, xsbBool createT
  */
 inline static
 TSTNptr tsthtInsertSymbol(CTXTdeclc TSTNptr parent, Cell symbol, int trieType,
-  xsbBool maintainsTSI) {
+  int nodeType, xsbBool maintainsTSI) {
   
   TSTHTptr ht;
   TSTNptr tstn, chain, *bucket;
   int chain_length;
   
   ht = TSTN_GetHashHdr(parent);
+#ifdef SUBSUMPTION_YAP
+  bucket = CalculateBucketForSymbol(ht, GET_HASH_SYMBOL(symbol, nodeType));
+#else
   bucket = CalculateBucketForSymbol(ht, symbol);
+#endif
   chain = *bucket;
-  New_TSTN(tstn,trieType,HASHED_INTERIOR_NT,symbol,parent,chain);
+  New_TSTN(tstn,trieType,HASHED_INTERIOR_NT | nodeType,symbol,parent,chain);
   *bucket = tstn;
   TSTHT_NumContents(ht)++;
   if(maintainsTSI)
@@ -403,12 +416,12 @@ TSTNptr tsthtInsertSymbol(CTXTdeclc TSTNptr parent, Cell symbol, int trieType,
  */
 inline static
 TSTNptr tstnInsertSymbol(CTXTdeclc TSTNptr parent, Cell symbol, int trieType,
-  TSTNptr root, xsbBool createTSI) {
+  int nodeType, TSTNptr root, xsbBool createTSI) {
   TSTNptr tstn, chain;
   int chain_length;
   
   chain = TSTN_Child(parent);
-  New_TSTN(tstn,trieType,INTERIOR_NT,symbol,parent,chain);
+  New_TSTN(tstn,trieType,nodeType,symbol,parent,chain);
   TSTN_Child(parent) = tstn;
   chain_length = 1;
   while(IsNonNULL(chain)) {
@@ -485,7 +498,8 @@ TSTNptr tst_insert(CTXTdeclc TSTNptr tstRoot, TSTNptr lastMatch, Cell firstSymbo
         xsbBool maintainTSI) {
   Cell symbol;
   int std_var_num,
-      trieType;
+      trieType,
+      nodeType;
 
   symbol = firstSymbol;
   std_var_num = Trail_NumBindings;
@@ -494,20 +508,20 @@ TSTNptr tst_insert(CTXTdeclc TSTNptr tstRoot, TSTNptr lastMatch, Cell firstSymbo
   /* Insert initial symbol
      --------------------- */
   if ( symbol == NO_INSERT_SYMBOL )
-    ProcessNextSubtermFromTrieStacks(symbol, std_var_num);
+    ProcessNextSubtermFromTrieStacks(symbol, nodeType, std_var_num);
   
   if(IsNULL(TSTN_Child(lastMatch)))
-    lastMatch = tstnAddSymbol(CTXTc lastMatch, symbol, trieType);
+    lastMatch = tstnAddSymbol(CTXTc lastMatch, symbol, trieType, nodeType);
   else if(IsHashHeader(TSTN_Child(lastMatch)))
-    lastMatch = tsthtInsertSymbol(CTXTc lastMatch, symbol, trieType, maintainTSI);
+    lastMatch = tsthtInsertSymbol(CTXTc lastMatch, symbol, trieType, nodeType, maintainTSI);
   else
-    lastMatch = tstnInsertSymbol(CTXTc lastMatch, symbol, trieType, tstRoot,
-          maintainTSI);
+    lastMatch = tstnInsertSymbol(CTXTc lastMatch, symbol, trieType, nodeType,
+          tstRoot, maintainTSI);
   
   /* insert remaining symbols */
   while(!TermStack_IsEmpty) {
-    ProcessNextSubtermFromTrieStacks(symbol,std_var_num);
-    lastMatch = tstnAddSymbol(CTXTc lastMatch,symbol,trieType);
+    ProcessNextSubtermFromTrieStacks(symbol,nodeType,std_var_num);
+    lastMatch = tstnAddSymbol(CTXTc lastMatch,symbol,trieType,nodeType);
   }
   update_timestamps(lastMatch,tstRoot,maintainTSI);
   MakeLeafNode(lastMatch);
