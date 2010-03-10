@@ -180,7 +180,6 @@
 ** ------------------- */
 
 #define stack_trie_null_instr()                              \
-dprintf("stack_trie_null_instr\n");    \
         next_trie_instruction(node)
 
 #ifdef TRIE_COMPACT_PAIRS
@@ -220,7 +219,6 @@ dprintf("stack_trie_null_instr\n");    \
 
 // OK
 #define stack_trie_var_instr()                                   \
-dprintf("stack_trie_var_instr\n");                                 \
         if (heap_arity) {                                        \
           CELL term;                                              \
           int i;                                                 \
@@ -344,7 +342,6 @@ dprintf("stack_trie_var_instr\n");                                 \
   }
 
 #define stack_trie_val_instr()                                                              \
-dprintf("stack_trie_val_instr\n");                                                           \
         if (heap_arity) {                                                                   \
           CELL aux_sub, aux_var, *vars_ptr;				                                          \
           YENV = ++aux_stack_ptr;                                                           \
@@ -419,36 +416,60 @@ dprintf("stack_trie_val_instr\n");                                              
 **      trie_atom      **
 ** ------------------- */
 
+#define UNIFY_LONG_INT()  \
+  CELL term = Deref(*aux_stack_ptr);    \
+  switch(cell_tag(term)) {  \
+    case TAG_REF:                           \
+      Bind_Global((CELL*)term, AbsAppl(H)); \
+      *H++ = (CELL)FunctorLongInt; \
+      *H++ = (CELL)(TSTN_long_int((long_tst_node_ptr)node)); \
+      *H++ = EndSpecials;  \
+      break;              \
+    case TAG_LONG_INT:          \
+      if(LongIntOfTerm(term) != TSTN_long_int((long_tst_node_ptr)node))  \
+        goto fail;    \
+      break;    \
+    default:        \
+      goto fail;        \
+  }
+
+#define stack_trie_long_instr()                                     \
+  if(heap_arity) {  \
+    YENV = ++aux_stack_ptr;             \
+    UNIFY_LONG_INT();         \
+    INC_HEAP_ARITY(-1);       \
+    next_instruction(heap_arity - 1 || subs_arity, node);         \
+  } else {  \
+    aux_stack_ptr += 2; \
+    *aux_stack_ptr = subs_arity - 1;  \
+    aux_stack_ptr += subs_arity;  \
+    UNIFY_LONG_INT(); \
+    ALIGN_STACK_LEFT();     \
+    next_instruction(subs_arity - 1, node); \
+  }
+  
+#define UNIFY_ATOM()  \
+  CELL term = Deref(*aux_stack_ptr);                         \
+  if(IsVarTerm(term)) {                                        \
+    Bind_Global((CELL *)term, TrNode_entry(node));  \
+  } else {                                                  \
+    if(term != TrNode_entry(node)) {                        \
+      goto fail;                                            \
+    }                                                       \
+  }
+  
 // OK
-#define stack_trie_atom_instr()                                      \
-dprintf("stack_trie_atom_instr\n");                                    \
-        dprintf("Heap arity: %d\n", heap_arity); \
+#define stack_trie_atom_instr()                                      \      
         if (heap_arity) {                                            \
           YENV = ++aux_stack_ptr;                                    \
-          CELL term = Deref(*aux_stack_ptr);                         \
-          if(IsVarTerm(term)) {                                        \
-            Bind_Global((CELL *) *aux_stack_ptr, TrNode_entry(node));  \
-          } else {                                                  \
-            if(term != TrNode_entry(node)) {                        \
-              goto fail;                                            \
-            }                                                       \
-          }                                                         \
+          UNIFY_ATOM();                                              \
           INC_HEAP_ARITY(-1);                                        \
           next_instruction(heap_arity - 1 || subs_arity, node);      \
         } else {                                                     \
           aux_stack_ptr += 2;                                        \
           *aux_stack_ptr = subs_arity - 1;                           \
           aux_stack_ptr += subs_arity;                               \
-          CELL term = Deref(*aux_stack_ptr);                         \
-          if(IsVarTerm(term)) {                                      \
-            dprintf("aux_stack_ptr is var\n");                        \
-            Bind((CELL *) term, TrNode_entry(node));       \
-          } else {                                                   \
-            if(term != TrNode_entry(node)) {               \
-              dprintf("No match\n");                                  \
-              goto fail;                                             \
-            }                                                        \
-          }                                                          \
+          UNIFY_ATOM();                                              \
           ALIGN_STACK_LEFT();                                        \
           next_instruction(subs_arity - 1, node);                    \
         }
@@ -526,7 +547,6 @@ dprintf("stack_trie_atom_instr\n");                                    \
         next_trie_instruction(node)
 #else
 #define stack_trie_pair_instr()                              \
-        dprintf("stack_trie_pair_instr\n");                    \
         if (heap_arity) {                                    \
           aux_stack_ptr++;                                   \
           Term term = Deref(*aux_stack_ptr);                 \
@@ -626,7 +646,6 @@ dprintf("stack_trie_atom_instr\n");                                    \
 ** --------------------- */
 
 #define stack_trie_struct_instr()                                \
-dprintf("stack_trie_struct_instr\n");                            \
         if (heap_arity) {                                        \
           dprintf("struct heap arity %d\n", heap_arity); \
           aux_stack_ptr++;                                       \
@@ -742,7 +761,6 @@ dprintf("stack_trie_struct_instr\n");                            \
 ** ------------------------ */
 
 #define stack_trie_extension_instr()                               \
-dprintf("stack_trie_extension_instr\n");       \
         *aux_stack_ptr-- = 0;  /* float/longint extension mark */  \
         *aux_stack_ptr-- = TrNode_entry(node);                     \
         *aux_stack_ptr = heap_arity + 2;                           \
@@ -756,7 +774,6 @@ dprintf("stack_trie_extension_instr\n");       \
 ** ---------------------------- */
 
 #define stack_trie_float_longint_instr()                         \
-dprintf("stack_trie_float_longint_instr\n");     \
         if (heap_arity) {                                        \
           YENV = ++aux_stack_ptr;                                \
           Bind_Global((CELL *) *aux_stack_ptr, t);               \
@@ -1661,11 +1678,25 @@ dprintf("stack_trie_float_longint_instr\n");     \
     Yap_Error(INTERNAL_ERROR, TermNil, "invalid instruction (trie_try_float)");
   ENDBOp();
 
-
   BOp(trie_retry_float, e)
     Yap_Error(INTERNAL_ERROR, TermNil, "invalid instruction (trie_retry_float)");
   ENDBOp();
-
+  
+  BOp(trie_do_float_val, e)
+    Yap_Error(INTERNAL_ERROR, TermNil, "invalid instruction (trie_do_float_val)");
+  ENDBOp();
+  
+  BOp(trie_trust_float_val, e)
+    Yap_Error(INTERNAL_ERROR, TermNil, "invalid instruction (trie_trust_float_val)");
+  ENDBOp();
+  
+  BOp(trie_try_float_val, e)
+    Yap_Error(INTERNAL_ERROR, TermNil, "invalid instruction (trie_try_float_val)");
+  ENDBOp();
+  
+  BOp(trie_retry_float_val, e)
+    Yap_Error(INTERNAL_ERROR, TermNil, "invalid instruction (trie_retry_float_val)");
+  ENDBOp();
 
   PBOp(trie_do_long, e)
     dprintf("trie_do_long\n");
@@ -1691,14 +1722,61 @@ dprintf("stack_trie_float_longint_instr\n");     \
     Yap_Error(INTERNAL_ERROR, TermNil, "invalid instruction (trie_trust_long)");
   ENDBOp();
 
-
   BOp(trie_try_long, e)
     Yap_Error(INTERNAL_ERROR, TermNil, "invalid instruction (trie_try_long)");
   ENDBOp();
 
-
   BOp(trie_retry_long, e)
     Yap_Error(INTERNAL_ERROR, TermNil, "invalid instruction (trie_retry_long)");
+  ENDBOp();
+  
+  BOp(trie_do_long_int, e)
+    dprintf("trie_do_atom\n");
+    register tst_node_ptr node = (tst_node_ptr) PREG;
+    register CELL *aux_stack_ptr = YENV;
+    int heap_arity = *aux_stack_ptr;
+    int vars_arity = *(aux_stack_ptr + heap_arity + 1);
+    int subs_arity = *(aux_stack_ptr + heap_arity + 2);
+
+    stack_trie_long_instr();
+  ENDBOp();
+  
+  BOp(trie_trust_long_int, e)
+    dprintf("trie_trust_long_int\n");
+    register tst_node_ptr node = (tst_node_ptr) PREG;
+    register CELL *aux_stack_ptr = (CELL *) (B + 1);
+    int heap_arity = *aux_stack_ptr;
+    int vars_arity = *(aux_stack_ptr + heap_arity + 1);
+    int subs_arity = *(aux_stack_ptr + heap_arity + 2);
+    
+    pop_trie_node();
+    
+    stack_trie_long_instr();
+  ENDBOp();
+  
+  BOp(trie_try_long_int, e)
+    dprintf("trie_try_long_int\n");
+    register tst_node_ptr node = (tst_node_ptr) PREG;
+    register CELL *aux_stack_ptr = YENV;
+    int heap_arity = *aux_stack_ptr;
+    int vars_arity = *(aux_stack_ptr + heap_arity + 1);
+    int subs_arity = *(aux_stack_ptr + heap_arity + 2);
+    store_trie_node(TrNode_next(node));
+    
+    stack_trie_long_instr();
+  ENDBOp();
+  
+  BOp(trie_retry_long_int, e)
+    dprintf("trie_retry_long_int\n");
+    register tst_node_ptr node = (tst_node_ptr) PREG;
+    register CELL *aux_stack_ptr = (CELL *) (B + 1);
+    int heap_arity = *aux_stack_ptr;
+    int vars_arity = *(aux_stack_ptr + heap_arity + 1);
+    int subs_arity = *(aux_stack_ptr + heap_arity + 2);
+    
+    restore_trie_node(TrNode_next(node));
+    
+    stack_trie_long_instr();
   ENDBOp();
   
 #define store_hash_node()                             \
@@ -1739,9 +1817,8 @@ dprintf("stack_trie_float_longint_instr\n");     \
     int subs_arity = *(aux_stack_ptr + heap_arity + 2);   \
     copy_arity_stack()
     
-#define pop_hash_node()                                   \
-    hash_cp++;                                            \
-    YENV = (CELL *) PROTECT_FROZEN_B((choiceptr)(hash_cp));    \
+#define pop_hash_node()                                          \
+    YENV = (CELL *) PROTECT_FROZEN_B((choiceptr)(hash_cp+1));    \
     H = PROTECT_FROZEN_H(B);                              \
     pop_yaam_reg_cpdepth(B);                              \
     CPREG = B->cp_cp;                                     \
@@ -1757,7 +1834,7 @@ dprintf("stack_trie_float_longint_instr\n");     \
       int heap_arity = *aux_stack_ptr;                    \
       int vars_arity = *(aux_stack_ptr + heap_arity + 1); \
       int subs_arity = *(aux_stack_ptr + heap_arity + 2); \
-      YENV += CALCULATE_STACK_SIZE();                     \
+      /* XXX       */                                     \
     }
   
   BOp(trie_do_hash, e)
@@ -1767,7 +1844,7 @@ dprintf("stack_trie_float_longint_instr\n");     \
     int vars_arity = *(aux_stack_ptr + heap_arity + 1);
     int subs_arity = *(aux_stack_ptr + heap_arity + 2);
     
-    dprintf("trie_do_hash\n");
+    dprintf("trie_do_hash %d %d %d\n", heap_arity, vars_arity, subs_arity);
     
     if(heap_arity)
       aux_stack_ptr++;
@@ -1804,13 +1881,19 @@ dprintf("stack_trie_float_longint_instr\n");     \
         case TAG_LIST:
           term = EncodeTrieList(term);
           break;
+        case TAG_LONG_INT:
+          term = EncodedLongFunctor;
+          break;
         default:
+          printf("NOT RECOGNIZED DO HASH!!!\n");
           break;
       }
       
-      dprintf("trie_do_hash other\n");
+      dprintf("trie_do_hash other term %d\n", (int)term);
       
-      tst_node_ptr *bucket_ptr = Hash_bucket(hash, HASH_ENTRY(term, Hash_seed(hash)));
+      int bucket_entry = HASH_ENTRY(term, Hash_seed(hash));
+      
+      tst_node_ptr *bucket_ptr = Hash_bucket(hash, bucket_entry);
       tst_node_ptr *var_bucket_ptr = Hash_bucket(hash, TRIEVAR_BUCKET);
       tst_node_ptr bucket = *bucket_ptr;
       tst_node_ptr var_bucket = *var_bucket_ptr;
@@ -1819,6 +1902,9 @@ dprintf("stack_trie_float_longint_instr\n");     \
         dprintf("trie_do_hash all null\n");
         goto fail;
       }
+      
+      if(var_bucket == bucket)
+        var_bucket = NULL; /* skip duplicate buckets */
       
       if(bucket != NULL && var_bucket != NULL) {
         dprintf("trie_do_hash two\n");
@@ -1872,6 +1958,8 @@ dprintf("stack_trie_float_longint_instr\n");     \
       dprintf("is other\n");
       /* consume the var bucket */
       pop_hash_node();
+      
+      dprintf("is other popped\n");
         
       next_node_instruction(*(hash_cp->last_bucket));
     }
