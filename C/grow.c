@@ -1232,8 +1232,9 @@ fix_tabling_info(void)
 {
   /* we must fix the dependency frames and the subgoal frames, as they are
      pointing back to the global stack. */
-  struct dependency_frame *df;
-  struct subgoal_frame *sg;
+  dep_fr_ptr df;
+  sg_fr_ptr sg;
+  subcons_fr_ptr cons;
 
   df = LOCAL_top_dep_fr;
   while (df) {
@@ -1246,6 +1247,14 @@ fix_tabling_info(void)
   sg = LOCAL_top_sg_fr;
   while (sg) {
     SgFr_gen_cp(sg) = GeneratorChoicePtrAdjust(SgFr_gen_cp(sg));
+    if(SgFr_is_sub_producer(sg)) {
+      cons = SgFr_prod_consumers((subprod_fr_ptr)sg);
+      
+      while(cons) {
+        SgFr_cons_cp(cons) = ConsumerChoicePtrAdjust(SgFr_cons_cp(cons));
+        cons = SgFr_consumers(cons);
+      }
+    }
     sg = SgFr_next(sg);
   }
 }

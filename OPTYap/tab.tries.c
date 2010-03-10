@@ -57,12 +57,8 @@ void subgoal_search(yamop *preg, CELL **Yaddr, CallLookupResults *results) {
     if(SgFr_is_sub_consumer(sg_fr)) {
       subcons_fr_ptr consumer = (subcons_fr_ptr)sg_fr;
       
-      if(!CallResults_variant_found(results) &&
-            (SgFr_answer_template(consumer) == NULL ||
-                (SgFr_state(sg_fr) == complete && TabEnt_is_load(tab_ent))))
-      {
+      if(SgFr_cons_cp(consumer) == NULL) {
         fix_answer_template(CallResults_var_vector(results));
-        SgFr_answer_template(consumer) = H - 1;
       }
     }
   }

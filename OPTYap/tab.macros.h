@@ -364,7 +364,7 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
         new_basic_subgoal_frame(SG_FR, CODE, LEAF, SUBSUMED_CONSUMER_SFT, ALLOC_SUBCONS_SUBGOAL_FRAME);  \
         add_answer_trie_subgoal_frame(SG_FR); \
         SgFr_timestamp(SG_FR) = 0;  \
-        SgFr_answer_template(SG_FR) = NULL; \
+        SgFr_cons_cp(SG_FR) = NULL; \
         SgFr_producer(SG_FR) = PRODUCER;  \
         SgFr_consumers(SG_FR) = SgFr_prod_consumers(PRODUCER);  \
         if (!SgFr_prod_consumers(PRODUCER))      \
@@ -382,6 +382,7 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
 #define init_sub_consumer_subgoal_frame(SG_FR)  \
         { SgFr_init_yapor_fields(SG_FR);  \
           SgFr_state(SG_FR) = evaluating; \
+          SgFr_cons_cp(SG_FR) = B;        \
         }
 
 #define SgFr_has_real_answers(SG_FR)                                      \
