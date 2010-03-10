@@ -57,6 +57,14 @@
 	TermStack_Push(*(RepPair(tl)));	\
 }
 
+#define CreateHeapLongInt(LONG) { \
+  *hreg = AbsAppl(hreg + 1);  \
+  ++hreg; \
+  *hreg++ = (CELL)FunctorLongInt; \
+  *hreg++ = (CELL)(LONG); \
+  *hreg++ = EndSpecials;  \
+}
+
 /* define WAM registers */
 #define trreg TR
 #define hreg H
