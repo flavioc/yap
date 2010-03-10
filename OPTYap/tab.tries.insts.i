@@ -416,11 +416,11 @@
 **      trie_atom      **
 ** ------------------- */
 
-#define UNIFY_LONG_INT()  \
+#define UNIFY_LONG_INT(BIND_FUN)  \
   CELL term = Deref(*aux_stack_ptr);    \
   switch(cell_tag(term)) {  \
     case TAG_REF:                           \
-      Bind_Global((CELL*)term, AbsAppl(H)); \
+      BIND_FUN((CELL*)term, AbsAppl(H)); \
       *H++ = (CELL)FunctorLongInt; \
       *H++ = (CELL)(TSTN_long_int((long_tst_node_ptr)node)); \
       *H++ = EndSpecials;  \
@@ -436,39 +436,41 @@
 #define stack_trie_long_instr()                                     \
   if(heap_arity) {  \
     YENV = ++aux_stack_ptr;             \
-    UNIFY_LONG_INT();         \
+    UNIFY_LONG_INT(Bind_Global);         \
     INC_HEAP_ARITY(-1);       \
     next_instruction(heap_arity - 1 || subs_arity, node);         \
   } else {  \
     aux_stack_ptr += 2; \
     *aux_stack_ptr = subs_arity - 1;  \
     aux_stack_ptr += subs_arity;  \
-    UNIFY_LONG_INT(); \
+    UNIFY_LONG_INT(Bind); \
     ALIGN_STACK_LEFT();     \
     next_instruction(subs_arity - 1, node); \
   }
   
-#define UNIFY_ATOM()  \
+#define UNIFY_ATOM(BIND_FUN)  \
   CELL term = Deref(*aux_stack_ptr);                          \
   if(IsVarTerm(term)) {                                       \
-    Bind_Global((CELL *)term, TrNode_entry(node));  \
+    BIND_FUN((CELL *)term, TrNode_entry(node));  \
   } else {                                                    \
     if(term != TrNode_entry(node)) {                          \
       goto fail;                                              \
     }                                                         \
   }
 
-#define stack_trie_atom_instr()                                      \      
+#define stack_trie_atom_instr()                                      \
+dprintf("stack_trie_atom_instr\n");                                    \
+        dprintf("Heap arity: %d\n", heap_arity); \
         if (heap_arity) {                                            \
           YENV = ++aux_stack_ptr;                                    \
-          UNIFY_ATOM();                                              \
+          UNIFY_ATOM(Bind_Global);                                   \
           INC_HEAP_ARITY(-1);                                        \
           next_instruction(heap_arity - 1 || subs_arity, node);      \
         } else {                                                     \
           aux_stack_ptr += 2;                                        \
           *aux_stack_ptr = subs_arity - 1;                           \
           aux_stack_ptr += subs_arity;                               \
-          UNIFY_ATOM();                                              \
+          UNIFY_ATOM(Bind);                                          \
           ALIGN_STACK_LEFT();                                        \
           next_instruction(subs_arity - 1, node);                    \
         }
