@@ -47,6 +47,18 @@ struct time_stamped_trie_node {
 #define TSTN_node_type(X)   TrNode_node_type(X)
 #define TSTN_time_stamp(X)  (CAST_TSTN(X)->ts)
 
+/* ---------------------------- **
+** special nodes (long + float) **
+** ---------------------------- */
+
+struct long_tst_node {
+  struct time_stamped_trie_node base_tst;
+  Int long_int;
+};
+typedef struct long_tst_node *long_tst_node_ptr;
+
+#define TSTN_long_int(X)  ((X)->long_int)
+
 /* ----------------------- **
 ** Time stamped indexes    **
 ** ----------------------- */
