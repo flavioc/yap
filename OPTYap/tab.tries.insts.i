@@ -449,16 +449,15 @@
   }
   
 #define UNIFY_ATOM()  \
-  CELL term = Deref(*aux_stack_ptr);                         \
-  if(IsVarTerm(term)) {                                        \
+  CELL term = Deref(*aux_stack_ptr);                          \
+  if(IsVarTerm(term)) {                                       \
     Bind_Global((CELL *)term, TrNode_entry(node));  \
-  } else {                                                  \
-    if(term != TrNode_entry(node)) {                        \
-      goto fail;                                            \
-    }                                                       \
+  } else {                                                    \
+    if(term != TrNode_entry(node)) {                          \
+      goto fail;                                              \
+    }                                                         \
   }
-  
-// OK
+
 #define stack_trie_atom_instr()                                      \      
         if (heap_arity) {                                            \
           YENV = ++aux_stack_ptr;                                    \

@@ -569,7 +569,7 @@ gt_node_ptr global_trie_node_check_insert(gt_node_ptr parent_node, Term t) {
 static inline sg_node_ptr
 find_subgoal_node(sg_node_ptr child_node, sg_node_ptr parent_node, int *count_nodes, Term t, int flags) {
   if(IS_LONG_INT_FLAG(flags)) {
-    printf("New long int\n");
+    dprintf("New long int\n");
     while(child_node) {
       if(TrNode_is_long(child_node) && TrNode_long_int((long_sg_node_ptr)child_node) == t) {
         return child_node;

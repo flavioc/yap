@@ -143,20 +143,20 @@ TSTNptr new_tstn(CTXTdeclc int trie_t, int node_t, Cell symbol, TSTNptr parent,
     TSTNptr sibling) {
   void * tstn;
   
-  printf("TrieType %d\n", trie_t);
+  dprintf("TrieType %d\n", trie_t);
   
   if(IS_LONG_INT_FLAG(node_t)) {
     ALLOC_LONG_TST_NODE(tstn);
     TSTN_long_int((long_tst_node_ptr)tstn) = symbol;
     TN_Init(((TSTNptr)tstn),trie_t,node_t,EncodedLongFunctor,parent,sibling);
-    printf("New tst long int %ld\n", symbol);
+    dprintf("New tst long int %ld\n", symbol);
   } else {
-    printf("new normal tst node\n");
+    dprintf("new normal tst node\n");
     ALLOC_TST_ANSWER_TRIE_NODE(tstn);
     TN_Init(((TSTNptr)tstn),trie_t,node_t,symbol,parent,sibling);
   }
   TSTN_TimeStamp(((TSTNptr)tstn)) = TSTN_DEFAULT_TIMESTAMP;
-  return (TSTNptr)tstn;        
+  return (TSTNptr)tstn;
 }
 
 /*

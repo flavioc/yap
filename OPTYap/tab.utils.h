@@ -311,7 +311,7 @@ extern DynamicStack tstTrail;
       TermStack_PushListArgs(subterm);  \
       break;  \
     case TAG_LONG_INT:                  \
-      printf("Long int ...\n");         \
+      dprintf("Long int ...\n");         \
       Symbol = LongIntOfTerm(subterm);  \
       NodeType |= LONG_INT_NT;          \
       break;  \

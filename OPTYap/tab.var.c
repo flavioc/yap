@@ -320,7 +320,7 @@ void consume_variant_answer(ans_node_ptr current_ans_node, int subs_arity, CELL 
           STACK_PUSH_UP(t, stack_terms);
 #endif /* TRIE_COMPACT_PAIRS */
         } else if (IsApplTerm(t)) {
-          printf("ApplTerm\n");
+          dprintf("ApplTerm\n");
           Functor f = (Functor) RepAppl(t);
           if (f == FunctorDouble) {
             volatile Float dbl;

@@ -529,7 +529,7 @@ While_TermStack_NotEmpty:
       case TAG_LONG_INT:
         if(search_mode == MATCH_SYMBOL_EXACTLY) {
           Int li = LongIntOfTerm(subterm);
-          printf("Long int found %ld\n", li);
+          dprintf("Long int found %ld\n", li);
           Set_Matching_and_TrieVar_Chains(li, pCurrentBTN, variableChain);
           
           while(IsNonNULL(pCurrentBTN)) {
@@ -538,15 +538,15 @@ While_TermStack_NotEmpty:
               int go = FALSE;
               
               if(TrNode_is_call(pCurrentBTN)) {
-                printf("Call trie...\n");
+                dprintf("Call trie...\n");
                 go = (li == TrNode_long_int((long_sg_node_ptr)pCurrentBTN));
               } else {
-                printf("Answer trie...\n");
+                dprintf("Answer trie...\n");
                 go = (li == TSTN_long_int((long_tst_node_ptr)pCurrentBTN));
               }
               
               if(go) {
-                printf("Find one matching long int\n");
+                dprintf("Find one matching long int\n");
                 Conditionally_Create_ChoicePoint(variableChain)
                 Descend_In_Trie_and_Continue(pCurrentBTN);
               }
@@ -554,7 +554,7 @@ While_TermStack_NotEmpty:
             pCurrentBTN = BTN_Sibling(pCurrentBTN);
           }
           
-          printf("Found no matching long int\n");
+          dprintf("Found no matching long int\n");
           
           /* failed to find a long int */
           pCurrentBTN = variableChain;
