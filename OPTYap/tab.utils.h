@@ -315,6 +315,12 @@ extern DynamicStack tstTrail;
       Symbol = LongIntOfTerm(subterm);  \
       NodeType |= LONG_INT_NT;          \
       break;  \
+    case TAG_FLOAT:                     \
+      { Float *ptr = (Float*)&(Symbol);       \
+        *ptr = FloatOfTerm(subterm);          \
+        NodeType |= FLOAT_NT;                 \
+      }                                     \
+      break;                                \
     default:  \
       Symbol = 0; \
       TrieError_UnknownSubtermTag(subterm); \
@@ -430,7 +436,7 @@ extern int AnsVarCtr;
  }
 
 // deactivate to test
-#define FDEBUG
+//#define FDEBUG
 #ifdef FDEBUG
 #define dprintf(MESG, ARGS...) printf(MESG, ##ARGS)
 #else
