@@ -464,60 +464,35 @@ While_TermStack_NotEmpty:
     switch(cell_tag(subterm)) {
 #ifdef SUBSUMPTION_YAP
       case TAG_FLOAT:
+        dprintf("TAG_FLOAT\n");
         if(search_mode == MATCH_SYMBOL_EXACTLY) {
-          symbol = EncodeTrieFunctor(subterm);
-          Set_Matching_and_TrieVar_Chains(symbol, pCurrentBTN, variableChain);
-          
-          volatile Float dbl = FloatOfTerm(subterm);
-          volatile Term *t_dbl = (Term *)((void *) &dbl);
-
-          /* if double is twice the size of int then it
-           * is spread across three trie nodes, thus we
-           * must match 3 nodes before trying to match
-           * variables
-           */
-#if SIZEOF_DOUBLE == 2 * SIZEOF_INT_P
-          Term match1 = *(t_dbl + 1);
-          Term match2 = *t_dbl;
-          
-          dprintf("match double 64 %lf\n", dbl);
+          Float flt = FloatOfTerm(subterm);
+          dprintf("Float found %lf\n", flt);
+          Set_Matching_and_TrieVar_Chains(EncodedFloatFunctor, pCurrentBTN, variableChain);
           
           while(IsNonNULL(pCurrentBTN)) {
-            if(symbol == BTN_Symbol(pCurrentBTN)) {
-              BTNptr child1 = BTN_Child(pCurrentBTN);
+            if(TrNode_is_long(pCurrentBTN))
+            {
+              int go = FALSE;
               
-              Set_Hash_Match(child1, match1);
+              if(TrNode_is_call(pCurrentBTN)) {
+                dprintf("Call trie...\n");
+                go = (flt == TrNode_float((float_sg_node_ptr)pCurrentBTN));
+              } else {
+                dprintf("Answer trie...\n");
+                go = (flt == TSTN_float((float_tst_node_ptr)pCurrentBTN));
+              }
               
-              while(IsNonNULL(child1)) {
-                if(match1 == BTN_Symbol(child1)) {
-                  BTNptr child2 = BTN_Child(child1);
-                  
-                  Set_Hash_Match(child2, match2);
-                  NonVarSearchChain_ExactMatch(match2, child2, variableChain, TermStack_NOOP);
-                }
-                
-                child1 = BTN_Sibling(child1);
+              if(go) {
+                dprintf("Find one matching float\n");
+                Conditionally_Create_ChoicePoint(variableChain)
+                Descend_In_Trie_and_Continue(pCurrentBTN);
               }
             }
-            
             pCurrentBTN = BTN_Sibling(pCurrentBTN);
           }
-#else
-          Term match1 = *t_dbl;
-          dprintf("Double 32 %f\n", *t_dbl);
           
-          while(IsNonNULL(pCurrentBTN)) {
-            if(symbol == BTN_Symbol(pCurrentBTN)) {
-              BTNptr child1 = BTN_Child(pCurrentBTN);
-              
-              Set_Hash_Match(child1, match);
-              
-              NonVarSearchChain_ExactMatch(match, child1, variableChain, TermStack_NOOP);
-            }
-            
-            pCurrentBTN = BTN_Sibling(pCurrentBTN);
-          }
-#endif /* SIZEOF_DOUBLE x SIZEOF_INT_P */
+          dprintf("Found no matching float\n");
           
           /* failed to find a float */
           pCurrentBTN = variableChain;
@@ -529,32 +504,25 @@ While_TermStack_NotEmpty:
       case TAG_LONG_INT:
         if(search_mode == MATCH_SYMBOL_EXACTLY) {
           Int li = LongIntOfTerm(subterm);
-          dprintf("Long int found %ld\n", li);
-          Set_Matching_and_TrieVar_Chains(li, pCurrentBTN, variableChain);
+          Set_Matching_and_TrieVar_Chains(EncodedLongFunctor, pCurrentBTN, variableChain);
           
           while(IsNonNULL(pCurrentBTN)) {
             if(TrNode_is_long(pCurrentBTN))
             {
               int go = FALSE;
               
-              if(TrNode_is_call(pCurrentBTN)) {
-                dprintf("Call trie...\n");
+              if(TrNode_is_call(pCurrentBTN))
                 go = (li == TrNode_long_int((long_sg_node_ptr)pCurrentBTN));
-              } else {
-                dprintf("Answer trie...\n");
+              else
                 go = (li == TSTN_long_int((long_tst_node_ptr)pCurrentBTN));
-              }
               
               if(go) {
-                dprintf("Find one matching long int\n");
                 Conditionally_Create_ChoicePoint(variableChain)
                 Descend_In_Trie_and_Continue(pCurrentBTN);
               }
             }
             pCurrentBTN = BTN_Sibling(pCurrentBTN);
           }
-          
-          dprintf("Found no matching long int\n");
           
           /* failed to find a long int */
           pCurrentBTN = variableChain;
