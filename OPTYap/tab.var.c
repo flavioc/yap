@@ -111,16 +111,11 @@ variant_call_cont_insert(tab_ent_ptr tab_ent, sg_node_ptr current_node, int coun
       Functor f = FunctorOfTerm(t);
       
       if (f == FunctorDouble) {
-        volatile Float dbl = FloatOfTerm(t);
-        volatile Term *t_dbl = (Term *)((void *) &dbl);
-        SUBGOAL_TOKEN_CHECK_INSERT(tab_ent, current_node, AbsAppl((Term *)f), INTERIOR_NT);
-#if SIZEOF_DOUBLE == 2 * SIZEOF_INT_P
-        SUBGOAL_TOKEN_CHECK_INSERT(tab_ent, current_node, *(t_dbl + 1), INTERIOR_NT);
-#endif /* SIZEOF_DOUBLE x SIZEOF_INT_P */
-        SUBGOAL_TOKEN_CHECK_INSERT(tab_ent, current_node, *t_dbl, INTERIOR_NT);
+        Float dbl = FloatOfTerm(t);
+        SUBGOAL_TOKEN_CHECK_INSERT(tab_ent, current_node, &dbl, INTERIOR_NT | FLOAT_NT);
       } else if (f == FunctorLongInt) {
         Int li = LongIntOfTerm(t);
-        SUBGOAL_TOKEN_CHECK_INSERT(tab_ent, current_node, li, INTERIOR_NT | LONG_INT_NT);
+        SUBGOAL_TOKEN_CHECK_INSERT(tab_ent, current_node, &li, INTERIOR_NT | LONG_INT_NT);
       } else if (f == FunctorDBRef) {
         Yap_Error(INTERNAL_ERROR, TermNil, "unsupported type tag (FunctorDBRef in subgoal_search)");
       } else if (f == FunctorBigInt) {
@@ -277,6 +272,10 @@ void consume_variant_answer(ans_node_ptr current_ans_node, int subs_arity, CELL 
         t = MkLongIntTerm(TSTN_long_int((long_tst_node_ptr)current_node));
     	  STACK_CHECK_EXPAND(stack_terms, stack_vars, stack_terms_base);
     	  STACK_PUSH_UP(t, stack_terms);
+    	} else if(TrNode_is_float(current_node)) {
+        t = MkFloatTerm(TSTN_float((float_tst_node_ptr)current_node));
+        STACK_CHECK_EXPAND(stack_terms, stack_vars, stack_terms_base);
+        STACK_PUSH_UP(t, stack_terms);
       } else if (IsVarTerm(t)) {
         int var_index = VarIndexOfTableTerm(t);
         STACK_CHECK_EXPAND(stack_terms, stack_vars_base + var_index + 1, stack_terms_base);
@@ -325,12 +324,12 @@ void consume_variant_answer(ans_node_ptr current_ans_node, int subs_arity, CELL 
           if (f == FunctorDouble) {
             volatile Float dbl;
             volatile Term *t_dbl = (Term *)((void *) &dbl);
-            t = TrNode_entry(current_node);
             current_node = TrNode_parent(current_node);
+            t = TrNode_entry(current_node);
             *t_dbl = t;
 #if SIZEOF_DOUBLE == 2 * SIZEOF_INT_P
-            t = TrNode_entry(current_node);
             current_node = TrNode_parent(current_node);
+            t = TrNode_entry(current_node);
             *(t_dbl + 1) = t;
 #endif /* SIZEOF_DOUBLE x SIZEOF_INT_P */
             current_node = TrNode_parent(current_node);
@@ -338,8 +337,11 @@ void consume_variant_answer(ans_node_ptr current_ans_node, int subs_arity, CELL 
             STACK_CHECK_EXPAND(stack_terms, stack_vars, stack_terms_base);
             STACK_PUSH_UP(t, stack_terms);
           } else if (f == FunctorLongInt) {
-            Int li = TrNode_entry(current_node);
             current_node = TrNode_parent(current_node);
+            
+            Int li = TrNode_entry(current_node);
+            printf("li %ld\n", li);
+            
             current_node = TrNode_parent(current_node);
             t = MkLongIntTerm(li);
             STACK_CHECK_EXPAND(stack_terms, stack_vars, stack_terms_base);
