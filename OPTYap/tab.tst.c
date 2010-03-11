@@ -72,11 +72,13 @@ STD_PROTO(static inline TSTHTptr New_BTHT, (int));
     case TAG_LONG_INT:  \
       TN_Instr(pTN) = _trie_retry_long_int; \
       break;  \
+    case TAG_FLOAT: \
+      TN_Instr(pTN) = _trie_retry_float_val;  \
+      break;                \
     default:  \
       xsb_abort("Trie Node creation: Bad tag in symbol %lx", \
                   Symbol);  \
   }
-  /// XXX: float e long int
   
 #define TN_ResetInstrCPs(pHead, pSibling)
 #define TN_ForceInstrCPtoNOCP(pTN)
@@ -139,7 +141,7 @@ STD_PROTO(static inline TSTHTptr New_BTHT, (int));
 #define TN_GetHashHdr(pTN)    TN_Child(pTN)
 #define BTN_GetHashHdr(pTN)   ((BTHTptr)TN_GetHashHdr(pTN))
 
-TSTNptr new_tstn(CTXTdeclc int trie_t, int node_t, Cell symbol, TSTNptr parent,
+TSTNptr new_tstn(CTXTdeclc int trie_t, int node_t, Cell *symbol, TSTNptr parent,
     TSTNptr sibling) {
   void * tstn;
   
@@ -147,13 +149,18 @@ TSTNptr new_tstn(CTXTdeclc int trie_t, int node_t, Cell symbol, TSTNptr parent,
   
   if(IS_LONG_INT_FLAG(node_t)) {
     ALLOC_LONG_TST_NODE(tstn);
-    TSTN_long_int((long_tst_node_ptr)tstn) = symbol;
+    TSTN_long_int((long_tst_node_ptr)tstn) = (Int)*symbol;
     TN_Init(((TSTNptr)tstn),trie_t,node_t,EncodedLongFunctor,parent,sibling);
-    dprintf("New tst long int %ld\n", symbol);
+    dprintf("New tst long int %ld\n", *(Int *)symbol);
+  } else if(IS_FLOAT_FLAG(node_t)) {
+    ALLOC_FLOAT_TST_NODE(tstn);
+    TSTN_float((float_tst_node_ptr)tstn) = *(Float *)symbol;
+    TN_Init(((TSTNptr)tstn),trie_t,node_t,EncodedFloatFunctor,parent,sibling);
+    dprintf("new tst float %lf\n", *(Float *)symbol);
   } else {
     dprintf("new normal tst node\n");
     ALLOC_TST_ANSWER_TRIE_NODE(tstn);
-    TN_Init(((TSTNptr)tstn),trie_t,node_t,symbol,parent,sibling);
+    TN_Init(((TSTNptr)tstn),trie_t,node_t,symbol == 0 ? 0 : *symbol,parent,sibling);
   }
   TSTN_TimeStamp(((TSTNptr)tstn)) = TSTN_DEFAULT_TIMESTAMP;
   return (TSTNptr)tstn;
@@ -164,9 +171,8 @@ TSTNptr new_tstn(CTXTdeclc int trie_t, int node_t, Cell symbol, TSTNptr parent,
  * no children.
  */
 inline static
-TSTNptr tstnAddSymbol(CTXTdeclc TSTNptr parent, Cell symbol, int trieType, int nodeType) {
+TSTNptr tstnAddSymbol(CTXTdeclc TSTNptr parent, Cell *symbol, int trieType, int nodeType) {
   TSTNptr newTSTN;
-  
   New_TSTN(newTSTN, trieType, nodeType, symbol, parent, NULL);
   TSTN_Child(parent) = newTSTN;
   return newTSTN;
@@ -379,7 +385,7 @@ void tstnHashifyChildren(CTXTdeclc TSTNptr parent, TSTNptr root, xsbBool createT
  * the hash table.
  */
 inline static
-TSTNptr tsthtInsertSymbol(CTXTdeclc TSTNptr parent, Cell symbol, int trieType,
+TSTNptr tsthtInsertSymbol(CTXTdeclc TSTNptr parent, Cell *symbol, int trieType,
   int nodeType, xsbBool maintainsTSI) {
   
   TSTHTptr ht;
@@ -388,9 +394,9 @@ TSTNptr tsthtInsertSymbol(CTXTdeclc TSTNptr parent, Cell symbol, int trieType,
   
   ht = TSTN_GetHashHdr(parent);
 #ifdef SUBSUMPTION_YAP
-  bucket = CalculateBucketForSymbol(ht, GET_HASH_SYMBOL(symbol, nodeType));
+  bucket = CalculateBucketForSymbol(ht, GET_HASH_SYMBOL(symbol[0], nodeType));
 #else
-  bucket = CalculateBucketForSymbol(ht, symbol);
+  bucket = CalculateBucketForSymbol(ht, symbol[0]);
 #endif
   chain = *bucket;
   New_TSTN(tstn,trieType,HASHED_INTERIOR_NT | nodeType,symbol,parent,chain);
@@ -415,11 +421,10 @@ TSTNptr tsthtInsertSymbol(CTXTdeclc TSTNptr parent, Cell symbol, int trieType,
  * environment for the children.
  */
 inline static
-TSTNptr tstnInsertSymbol(CTXTdeclc TSTNptr parent, Cell symbol, int trieType,
+TSTNptr tstnInsertSymbol(CTXTdeclc TSTNptr parent, Cell *symbol, int trieType,
   int nodeType, TSTNptr root, xsbBool createTSI) {
   TSTNptr tstn, chain;
   int chain_length;
-  
   chain = TSTN_Child(parent);
   New_TSTN(tstn,trieType,nodeType,symbol,parent,chain);
   TSTN_Child(parent) = tstn;
@@ -496,19 +501,27 @@ inline static void update_timestamps(TSTNptr tstLeaf, TSTNptr tstRoot,
 
 TSTNptr tst_insert(CTXTdeclc TSTNptr tstRoot, TSTNptr lastMatch, Cell firstSymbol,
         xsbBool maintainTSI) {
-  Cell symbol;
+#ifdef SUBSUMPTION_YAP
+#if SIZEOF_DOUBLE == 2 * SIZEOF_INT_P
+  Cell symbol[2]; /* for floats */
+#else
+  Cell symbol[1];
+#endif 
+#else
+  Cell symbol[1];
+#endif /* SUBSUMPTION_YAP */
   int std_var_num,
       trieType,
       nodeType;
 
-  symbol = firstSymbol;
+  symbol[0] = firstSymbol;
   std_var_num = Trail_NumBindings;
   trieType = TSTN_TrieType(tstRoot);
   
   /* Insert initial symbol
      --------------------- */
-  if ( symbol == NO_INSERT_SYMBOL )
-    ProcessNextSubtermFromTrieStacks(symbol, nodeType, std_var_num);
+  if ( firstSymbol == NO_INSERT_SYMBOL )
+    ProcessNextSubtermFromTrieStacks(symbol[0], nodeType, std_var_num);
   
   if(IsNULL(TSTN_Child(lastMatch)))
     lastMatch = tstnAddSymbol(CTXTc lastMatch, symbol, trieType, nodeType);
@@ -520,12 +533,14 @@ TSTNptr tst_insert(CTXTdeclc TSTNptr tstRoot, TSTNptr lastMatch, Cell firstSymbo
   
   /* insert remaining symbols */
   while(!TermStack_IsEmpty) {
-    ProcessNextSubtermFromTrieStacks(symbol,nodeType,std_var_num);
+    ProcessNextSubtermFromTrieStacks(symbol[0],nodeType,std_var_num);
     lastMatch = tstnAddSymbol(CTXTc lastMatch,symbol,trieType,nodeType);
   }
   update_timestamps(lastMatch,tstRoot,maintainTSI);
   MakeLeafNode(lastMatch);
-  TN_UpgradeInstrTypeToSUCCESS(lastMatch,TrieSymbolType(symbol));
+#ifdef SUBSUMPTION_XSB
+  TN_UpgradeInstrTypeToSUCCESS(lastMatch,TrieSymbolType(symbol[0]));
+#endif
   AnsVarCtr = AnsVarCtr + std_var_num;
   return lastMatch;
 }
