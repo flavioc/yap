@@ -222,6 +222,17 @@ void symstkPrintNextTrieTerm(CTXTdeclc FILE *fp, xsbBool list_recursion)
       fprintf(fp, "|" LongIntFormatString "]", li);
     else
       fprintf(fp, LongIntFormatString, li);
+  } else if(TrNode_is_float(node)) {
+    Float flt;
+    if(TrNode_is_call(node))
+      flt = TrNode_float((float_sg_node_ptr)node);
+    else
+      flt = TSTN_float((float_tst_node_ptr)node);
+    
+    if(list_recursion)
+      fprintf(fp, "|" FloatFormatString "]", flt);
+    else
+      fprintf(fp, FloatFormatString, flt);
   } else if(IsIntTerm(symbol)) {
     if(list_recursion)
       fprintf(fp, "|" IntegerFormatString "]", int_val(symbol));
@@ -536,6 +547,9 @@ recursive_construct_subgoal(CELL* trie_vars, CELL* placeholder)
   if(TrNode_is_long(node)) {
     Int li = TrNode_long_int((long_sg_node_ptr)node);
     *placeholder = MkLongIntTerm(li);
+  } else if(TrNode_is_float(node)) {
+    Float flt = TrNode_float((float_sg_node_ptr)node);
+    *placeholder = MkFloatTerm(flt);
   } else if(IsAtomOrIntTerm(symbol)) {
     dprintf("New constant\n");
     *placeholder = symbol;
@@ -701,19 +715,22 @@ fix_functor(Term t, CELL* placeholder)
   Functor f = FunctorOfTerm(t);
   
   if(f == FunctorDouble) {
-    printf("DOUBLE!\n");
+    dprintf("DOUBLE!\n");
+    if(placeholder)
+      *placeholder = MkFloatTerm(FloatOfTerm(t));
+    else {
+      CELL* orig_h = H++;
+      TermStack_Push(orig_h);
+      *orig_h = MkFloatTerm(FloatOfTerm(t));
+    }
   } else if(f == FunctorLongInt) {
     if(placeholder)
-      *placeholder = AbsAppl(H);
+      *placeholder = MkLongIntTerm(LongIntOfTerm(t));
     else {
-      TermStack_Push(H);
-      *H = AbsAppl(H + 1);
-      ++H;
+      CELL* orig_h = H++;
+      TermStack_Push(orig_h);
+      *orig_h = MkLongIntTerm(LongIntOfTerm(t));
     }
-    
-    *H++ = (CELL)FunctorLongInt;
-    *H++ = (CELL)(LongIntOfTerm(t));
-    *H++ = EndSpecials;
   } else {
     if(placeholder)
       *placeholder = AbsAppl(H);
