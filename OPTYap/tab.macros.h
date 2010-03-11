@@ -51,7 +51,7 @@ STD_PROTO(static inline void abolish_incomplete_producer_subgoal, (sg_fr_ptr sg_
 
 STD_PROTO(static inline void abolish_incomplete_subgoals, (choiceptr));
 
-STD_PROTO(static inline int build_next_subsumptive_consumer_return_list, (subcons_fr_ptr));
+STD_PROTO(static inline int build_next_subsumptive_consumer_return_list, (subcons_fr_ptr, CELL*));
 STD_PROTO(static inline continuation_ptr get_next_answer_continuation, (dep_fr_ptr dep_fr));
 STD_PROTO(static inline int is_new_generator_call, (CallLookupResults *));
 STD_PROTO(static inline int is_new_consumer_call, (CallLookupResults *));
@@ -204,8 +204,10 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
 #define CompactPairEndList  AbsPair((Term *) (2*(LowTagBits + 1)))
 #endif /* TRIE_COMPACT_PAIRS */
 
-#define EncodedLongFunctor AbsAppl((Term *)FunctorLongInt)
-#define GET_HASH_SYMBOL(TERM, FLAGS) (IS_LONG_INT_FLAG(FLAGS) ? EncodedLongFunctor : (TERM))
+#define EncodedLongFunctor  AbsAppl((Term *)FunctorLongInt)
+#define EncodedFloatFunctor AbsAppl((Term *)FunctorDouble)
+#define GET_HASH_SYMBOL(TERM, FLAGS) (IS_LONG_INT_FLAG(FLAGS) ? EncodedLongFunctor :              \
+                                          (IS_FLOAT_FLAG(FLAGS) ? EncodedFloatFunctor : (Term)(TERM)))
 
 #define HASH_TABLE_LOCK(NODE)  ((((unsigned long int) NODE) >> 5) & (TABLE_LOCK_BUCKETS - 1))
 #define LOCK_TABLE(NODE)         LOCK(GLOBAL_table_lock(HASH_TABLE_LOCK(NODE)))
@@ -450,15 +452,32 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
 
 #define new_subgoal_trie_node(NODE, ENTRY, CHILD, PARENT, NEXT, TYPE)               \
         INCREMENT_GLOBAL_TRIE_REFS(ENTRY);                                          \
-        if(IS_LONG_INT_FLAG(TYPE)) {                                                \
-          ALLOC_LONG_SUBGOAL_TRIE_NODE(NODE);                                       \
-          init_subgoal_trie_node(NODE, FunctorLongInt, CHILD, PARENT, NEXT, TYPE);  \
-          TrNode_long_int((long_sg_node_ptr)(NODE)) = ENTRY;                        \
-        } else {                                                                    \
-          ALLOC_SUBGOAL_TRIE_NODE(NODE);                                            \
-          init_subgoal_trie_node(NODE, ENTRY, CHILD, PARENT, NEXT, TYPE);           \
-        }
+        ALLOC_SUBGOAL_TRIE_NODE(NODE);                                            \
+        init_subgoal_trie_node(NODE, ENTRY, CHILD, PARENT, NEXT, TYPE)
         
+#define new_long_subgoal_trie_node(NODE, LONG, CHILD, PARENT, NEXT, TYPE) \
+        INCREMENT_GLOBAL_TRIE_REFS(EncodedLongFunctor);                   \
+        ALLOC_LONG_SUBGOAL_TRIE_NODE(NODE);                             \
+        init_subgoal_trie_node(NODE, EncodedLongFunctor, CHILD, PARENT, NEXT, TYPE);  \
+        TrNode_long_int((long_sg_node_ptr)(NODE)) = LONG
+        
+#define new_float_subgoal_trie_node(NODE, FLOAT, CHILD, PARENT, NEXT, TYPE) \
+        INCREMENT_GLOBAL_TRIE_REFS(EncodedFloatFunctor);                    \
+        ALLOC_FLOAT_SUBGOAL_TRIE_NODE(NODE);                                \
+        init_subgoal_trie_node(NODE, EncodedFloatFunctor, CHILD, PARENT, NEXT, TYPE); \
+        TrNode_float((float_sg_node_ptr)(NODE)) = FLOAT
+        
+#define new_general_subgoal_trie_node(NODE, DATA, CHILD, PARENT, NEXT, TYPE)  \
+        if(IS_FLOAT_FLAG(TYPE)) {                                             \
+          Float flt = *(Float *)(DATA);                                       \
+          new_float_subgoal_trie_node(NODE, flt, CHILD, PARENT, NEXT, TYPE);   \
+        } else if(IS_LONG_INT_FLAG(TYPE)) {                                   \
+          Int li = *(Int *)(DATA);                                            \
+          new_long_subgoal_trie_node(NODE, li, CHILD, PARENT, NEXT, TYPE);   \
+        } else {                                                              \
+          Term t = (Term)(DATA);                                              \
+          new_subgoal_trie_node(NODE, t, CHILD, PARENT, NEXT, TYPE);          \
+        }
         
 #define init_subgoal_trie_node(NODE, ENTRY, CHILD, PARENT, NEXT, TYPE)  \
         TrNode_entry(NODE) = ENTRY;                                     \
@@ -472,6 +491,8 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
 #define free_subgoal_trie_node(NODE)                                    \
         if(TrNode_is_long(NODE))  {                                     \
           FREE_LONG_SUBGOAL_TRIE_NODE(NODE);                            \
+        } else if(TrNode_is_float(NODE)) {                              \
+          FREE_FLOAT_SUBGOAL_TRIE_NODE(NODE);                           \
         } else {                                                        \
           FREE_SUBGOAL_TRIE_NODE(NODE);                                 \
         }
@@ -803,6 +824,8 @@ free_answer_trie_node(ans_node_ptr node) {
   } else {
     if(TrNode_is_long(node)) {
       FREE_LONG_TST_NODE(node);
+    } else if(TrNode_is_float(node)) {
+      FREE_FLOAT_TST_NODE(node);
     } else {
       FREE_TST_ANSWER_TRIE_NODE(node);
     }
@@ -1067,7 +1090,7 @@ void free_tst_hash_index(tst_ans_hash_ptr hash) {
 }
 
 static inline int
-build_next_subsumptive_consumer_return_list(subcons_fr_ptr consumer_sg) {
+build_next_subsumptive_consumer_return_list(subcons_fr_ptr consumer_sg, CELL *answer_template) {
   subprod_fr_ptr producer_sg = SgFr_producer(consumer_sg);
   const int producer_ts = SgFr_prod_timestamp(producer_sg);
   const int consumer_ts = SgFr_timestamp(consumer_sg);
@@ -1077,7 +1100,6 @@ build_next_subsumptive_consumer_return_list(subcons_fr_ptr consumer_sg) {
     
   //dprintf("Producer ts %d consumer ts %d\n", producer_ts, consumer_ts);
   dprintf("build_next\n");
-  CELL* answer_template = SgFr_answer_template(consumer_sg);
   int size = IntOfTerm(*answer_template);
   
   /* skip size */
@@ -1160,7 +1182,7 @@ get_next_answer_continuation(dep_fr_ptr dep_fr) {
            *     are available and no continuation is returned
            */
           subcons_fr_ptr consumer_sg = (subcons_fr_ptr)sg_fr;
-          if(build_next_subsumptive_consumer_return_list(consumer_sg))
+          if(build_next_subsumptive_consumer_return_list(consumer_sg, SgFr_answer_template(consumer_sg)))
             return ContPtr_next(last_cont);
           else
             return NULL;
