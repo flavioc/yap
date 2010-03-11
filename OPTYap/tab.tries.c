@@ -994,6 +994,7 @@ void traverse_answer_trie(ans_node_ptr current_node, char *str, int str_index, i
 }
 
 
+/* this code is awful */
 static
 void traverse_trie_node(void* node, char *str, int *str_index_ptr, int *arity, int *mode_ptr, int type) {
   int mode = *mode_ptr;
@@ -1002,50 +1003,66 @@ void traverse_trie_node(void* node, char *str, int *str_index_ptr, int *arity, i
   int flags = TrNode_node_type((sg_node_ptr)node);
 
   /* test the node type */
-  if (mode == TRAVERSE_MODE_FLOAT) {
 #if SIZEOF_DOUBLE == 2 * SIZEOF_INT_P
+  if (mode == TRAVERSE_MODE_FLOAT) {
     arity[0]++;
     arity[arity[0]] = (int) t;
     mode = TRAVERSE_MODE_FLOAT2;
-  } else if (mode == TRAVERSE_MODE_FLOAT2) {
+  } else if (mode == TRAVERSE_MODE_FLOAT2 || IS_FLOAT_FLAG(flags)) {
     volatile Float dbl;
-    volatile Term *t_dbl = (Term *)((void *) &dbl);
-    *t_dbl = t;
-    *(t_dbl + 1) = (Term) arity[arity[0]];
-    arity[0]--;
-#else /* SIZEOF_DOUBLE == SIZEOF_INT_P */
-    volatile Float dbl;
-    volatile Term *t_dbl = (Term *)((void *) &dbl);
-    *t_dbl = t;
-#endif /* SIZEOF_DOUBLE x SIZEOF_INT_P */
+    if(IS_FLOAT_FLAG(flags)) {
+      if(TrNode_is_call((sg_node_ptr)node))
+        dbl = TrNode_float((float_sg_node_ptr)node);
+      else
+        dbl = TSTN_float((float_tst_node_ptr)node);
+    } else {
+      volatile Term *t_dbl = (Term *)((void *) &dbl);
+      *t_dbl = t;
+      *(t_dbl + 1) = (Term) arity[arity[0]];
+      arity[0]--;
+    }
     str_index += sprintf(& str[str_index], "%.15g", dbl);
+#else /* SIZEOF_DOUBLE == SIZEOF_INT_P */
+  if (mode == TRAVERSE_MODE_FLOAT || IS_FLOAT_FLAG(flags)) {
+    volatile Float dbl;
+    if(IS_FLOAT_FLAG(flags)) {
+      if(TrNode_is_call((sg_node_ptr)node))
+        flt = TrNode_float((float_sg_node_ptr)node);
+      else
+        flt = TSTN_float((float_tst_node_ptr)node);
+    } else {
+      volatile Term *t_dbl = (Term *)((void *) &dbl);
+      *t_dbl = t;
+    }
+    str_index += sprintf(& str[str_index], "%.15g", dbl);
+#endif /* SIZEOF_DOUBLE x SIZEOF_INT_P */
     while (arity[0]) {
       if (arity[arity[0]] > 0) {
-	arity[arity[0]]--;
-	if (arity[arity[0]] == 0) {
-	  str_index += sprintf(& str[str_index], ")");
-	  arity[0]--;
-	} else {
-	  str_index += sprintf(& str[str_index], ",");
-	  break;
-	}
+	      arity[arity[0]]--;
+	      if (arity[arity[0]] == 0) {
+	        str_index += sprintf(& str[str_index], ")");
+	        arity[0]--;
+	      } else {
+	        str_index += sprintf(& str[str_index], ",");
+	        break;
+	      }
       } else {
-	if (arity[arity[0]] == -2) {
+	      if (arity[arity[0]] == -2) {
 #ifdef TRIE_COMPACT_PAIRS
-	  str_index += sprintf(& str[str_index], ",");
+	        str_index += sprintf(& str[str_index], ",");
 #else
-	  str_index += sprintf(& str[str_index], "|");
-	  arity[arity[0]] = -1;
+	        str_index += sprintf(& str[str_index], "|");
+	        arity[arity[0]] = -1;
 #endif /* TRIE_COMPACT_PAIRS */
-	  break;
-	} else {
-	  str_index += sprintf(& str[str_index], "]");
-	  arity[0]--;
-	}
+	        break;
+	      } else {
+	        str_index += sprintf(& str[str_index], "]");
+	        arity[0]--;
+	      }
       }
     }
 #ifndef GLOBAL_TRIE
-    if (type == TRAVERSE_TYPE_SUBGOAL)
+    if (type == TRAVERSE_TYPE_SUBGOAL || IS_FLOAT_FLAG(flags))
       mode = TRAVERSE_MODE_NORMAL;
     else  /* type == TRAVERSE_TYPE_ANSWER */
 #endif /* GLOBAL_TRIE */
