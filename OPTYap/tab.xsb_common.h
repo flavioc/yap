@@ -58,11 +58,13 @@
 }
 
 #define CreateHeapLongInt(LONG) { \
-  *hreg = AbsAppl(hreg + 1);  \
-  ++hreg; \
-  *hreg++ = (CELL)FunctorLongInt; \
-  *hreg++ = (CELL)(LONG); \
-  *hreg++ = EndSpecials;  \
+  CELL *orig_h = hreg++;  \
+  *orig_h = MkLongIntTerm(LONG);  \
+}
+
+#define CreateHeapFloat(FLOAT) { \
+  CELL* orig_h = hreg++;  \
+  *orig_h = MkFloatTerm(FLOAT); \
 }
 
 /* define WAM registers */
