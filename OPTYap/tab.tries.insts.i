@@ -217,7 +217,6 @@
 **      trie_var      **
 ** ------------------ */
 
-// OK
 #define stack_trie_var_instr()                                   \
         if (heap_arity) {                                        \
           CELL term;                                              \
@@ -420,10 +419,7 @@
   CELL term = Deref(*aux_stack_ptr);    \
   switch(cell_tag(term)) {  \
     case TAG_REF:                           \
-      BIND_FUN((CELL*)term, AbsAppl(H)); \
-      *H++ = (CELL)FunctorLongInt; \
-      *H++ = (CELL)(TSTN_long_int((long_tst_node_ptr)node)); \
-      *H++ = EndSpecials;  \
+      BIND_FUN((CELL *)term, MkLongIntTerm(TSTN_long_int((long_tst_node_ptr)node))); \
       break;              \
     case TAG_LONG_INT:          \
       if(LongIntOfTerm(term) != TSTN_long_int((long_tst_node_ptr)node))  \
@@ -445,6 +441,35 @@
     aux_stack_ptr += subs_arity;  \
     UNIFY_LONG_INT(Bind); \
     ALIGN_STACK_LEFT();     \
+    next_instruction(subs_arity - 1, node); \
+  }
+  
+#define UNIFY_FLOAT(BIND_FUN) \
+  CELL term = Deref(*aux_stack_ptr);  \
+  switch(cell_tag(term)) {  \
+    case TAG_REF: \
+      BIND_FUN((CELL *)term, MkFloatTerm(TSTN_float((float_tst_node_ptr)node)));  \
+      break;  \
+    case TAG_FLOAT: \
+      if(FloatOfTerm(term) != TSTN_float((float_tst_node_ptr)node)) \
+        goto fail;  \
+      break;  \
+    default:  \
+      goto fail;  \
+  }
+  
+#define stack_trie_float_instr()  \
+  if(heap_arity) {  \
+    YENV = ++aux_stack_ptr; \
+    UNIFY_FLOAT(Bind_Global); \
+    INC_HEAP_ARITY(-1); \
+    next_instruction(heap_arity - 1 || subs_arity, node); \
+  } else {  \
+    aux_stack_ptr += 2; \
+    *aux_stack_ptr = subs_arity - 1;  \
+    aux_stack_ptr += subs_arity;  \
+    UNIFY_FLOAT(Bind);  \
+    ALIGN_STACK_LEFT(); \
     next_instruction(subs_arity - 1, node); \
   }
   
@@ -1684,19 +1709,53 @@ dprintf("stack_trie_atom_instr\n");                                    \
   ENDBOp();
   
   BOp(trie_do_float_val, e)
-    Yap_Error(INTERNAL_ERROR, TermNil, "invalid instruction (trie_do_float_val)");
+    dprintf("trie_do_float_val\n");
+    register tst_node_ptr node = (tst_node_ptr) PREG;
+    register CELL *aux_stack_ptr = YENV;
+    int heap_arity = *aux_stack_ptr;
+    int vars_arity = *(aux_stack_ptr + heap_arity + 1);
+    int subs_arity = *(aux_stack_ptr + heap_arity + 2);
+
+    stack_trie_float_instr();
   ENDBOp();
   
   BOp(trie_trust_float_val, e)
-    Yap_Error(INTERNAL_ERROR, TermNil, "invalid instruction (trie_trust_float_val)");
+    dprintf("trie_trust_float_val\n");
+    register tst_node_ptr node = (tst_node_ptr) PREG;
+    register CELL *aux_stack_ptr = (CELL *) (B + 1);
+    int heap_arity = *aux_stack_ptr;
+    int vars_arity = *(aux_stack_ptr + heap_arity + 1);
+    int subs_arity = *(aux_stack_ptr + heap_arity + 2);
+    
+    pop_trie_node();
+    
+    stack_trie_float_instr();
   ENDBOp();
   
   BOp(trie_try_float_val, e)
-    Yap_Error(INTERNAL_ERROR, TermNil, "invalid instruction (trie_try_float_val)");
+    dprintf("trie_try_float_val\n");
+    register tst_node_ptr node = (tst_node_ptr) PREG;
+    register CELL *aux_stack_ptr = YENV;
+    int heap_arity = *aux_stack_ptr;
+    int vars_arity = *(aux_stack_ptr + heap_arity + 1);
+    int subs_arity = *(aux_stack_ptr + heap_arity + 2);
+    
+    store_trie_node(TrNode_next(node));
+    
+    stack_trie_float_instr();
   ENDBOp();
   
   BOp(trie_retry_float_val, e)
-    Yap_Error(INTERNAL_ERROR, TermNil, "invalid instruction (trie_retry_float_val)");
+    dprintf("trie_retry_float\n");
+    register tst_node_ptr node = (tst_node_ptr) PREG;
+    register CELL *aux_stack_ptr = (CELL *) (B + 1);
+    int heap_arity = *aux_stack_ptr;
+    int vars_arity = *(aux_stack_ptr + heap_arity + 1);
+    int subs_arity = *(aux_stack_ptr + heap_arity + 2);
+    
+    restore_trie_node(TrNode_next(node));
+    
+    stack_trie_float_instr();
   ENDBOp();
 
   PBOp(trie_do_long, e)
@@ -1732,7 +1791,7 @@ dprintf("stack_trie_atom_instr\n");                                    \
   ENDBOp();
   
   BOp(trie_do_long_int, e)
-    dprintf("trie_do_atom\n");
+    dprintf("trie_do_long_int\n");
     register tst_node_ptr node = (tst_node_ptr) PREG;
     register CELL *aux_stack_ptr = YENV;
     int heap_arity = *aux_stack_ptr;
@@ -1884,6 +1943,9 @@ dprintf("stack_trie_atom_instr\n");                                    \
           break;
         case TAG_LONG_INT:
           term = EncodedLongFunctor;
+          break;
+        case TAG_FLOAT:
+          term = EncodedFloatFunctor;
           break;
         default:
           printf("NOT RECOGNIZED DO HASH!!!\n");
