@@ -546,7 +546,7 @@
   	    /* consumer */
   	    if(TabEnt_is_load(tab_ent)) {
   	      if(SgFr_state(sg_fr) < complete) {
-  	        build_next_subsumptive_consumer_return_list((subcons_fr_ptr)sg_fr);
+  	        build_next_subsumptive_consumer_return_list((subcons_fr_ptr)sg_fr, H - 1);
             SgFr_state(sg_fr) = complete;
   	      }
   	      if (SgFr_has_no_answers(sg_fr)) {
@@ -715,7 +715,7 @@ exec_compiled_trie_single:
   	    /* consumer */
   	    if(TabEnt_is_load(tab_ent)) {
   	      if(SgFr_state(sg_fr) < complete) {
-  	        build_next_subsumptive_consumer_return_list((subcons_fr_ptr)sg_fr);
+  	        build_next_subsumptive_consumer_return_list((subcons_fr_ptr)sg_fr, H - 1);
             SgFr_state(sg_fr) = complete;
   	      }
   	      if (SgFr_has_no_answers(sg_fr)) {
@@ -885,7 +885,7 @@ exec_compiled_trie_me:
   	    /* consumer */
   	    if(TabEnt_is_load(tab_ent)) {
   	      if(SgFr_state(sg_fr) < complete) {
-  	        build_next_subsumptive_consumer_return_list((subcons_fr_ptr)sg_fr);
+  	        build_next_subsumptive_consumer_return_list((subcons_fr_ptr)sg_fr, H - 1);
             SgFr_state(sg_fr) = complete;
   	      }
   	      if (SgFr_has_no_answers(sg_fr)) {
