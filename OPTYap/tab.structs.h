@@ -111,8 +111,8 @@ typedef struct table_entry {
 ** ------------------------- */
 
 enum Types_of_Tries {
- CALL_TRIE_TT              = 0x01,     /* binary:  0110 */
- BASIC_ANSWER_TRIE_TT      = 0x02,     /* binary:  0101 */
+ CALL_TRIE_TT              = 0x01,     /* binary:  0001 */
+ BASIC_ANSWER_TRIE_TT      = 0x02,     /* binary:  0010 */
  TS_ANSWER_TRIE_TT         = 0x04,     /* binary:  0100 */
 };
 
@@ -123,10 +123,12 @@ enum Types_of_Trie_Nodes {
   HASHED_LEAF_NT = 0x03,
   INTERIOR_NT = 0x00,
   HASHED_INTERIOR_NT = 0x01,
-  LONG_INT_NT = 0x10
+  LONG_INT_NT = 0x10,
+  FLOAT_NT = 0x20
 };
 
 #define IS_LONG_INT_FLAG(FLAG) ((FLAG) & LONG_INT_NT)
+#define IS_FLOAT_FLAG(FLAG) ((FLAG) & FLOAT_NT)
 
 typedef unsigned long time_stamp;
 
@@ -212,7 +214,9 @@ typedef struct answer_trie_node {
 #define TrNode_is_hash(X)      (TrNode_node_type(X) & HASH_HEADER_NT)
 #define TrNode_is_hashed(X)    (TrNode_node_type(X) & HASHED_INTERIOR_NT)
 #define TrNode_is_long(X)      (IS_LONG_INT_FLAG(TrNode_node_type(X)))
+#define TrNode_is_float(X)     (IS_FLOAT_FLAG(TrNode_node_type(X)))
 #define TrNode_long_int(X)     ((X)->long_int)
+#define TrNode_float(X)        ((X)->float_val)
 #define TrNode_is_call(X)      (TrNode_trie_type(X) & CALL_TRIE_TT)
 #define TrNode_is_root(X)      (TrNode_node_type(X) & TRIE_ROOT_NT)
 
