@@ -131,6 +131,7 @@ struct global_pages {
   struct pages answer_trie_hash_pages;
   struct pages time_stamp_trie_node_pages;
   struct pages long_tst_node_pages;
+  struct pages float_tst_node_pages;
   struct pages tst_index_node_pages;
   struct pages tst_answer_trie_hash_pages;
   
@@ -261,6 +262,7 @@ struct global_data{
 #define GLOBAL_PAGES_ans_hash                   (GLOBAL.pages.answer_trie_hash_pages)
 #define GLOBAL_PAGES_tst_ans_node               (GLOBAL.pages.time_stamp_trie_node_pages)
 #define GLOBAL_PAGES_long_tst_node              (GLOBAL.pages.long_tst_node_pages)
+#define GLOBAL_PAGES_float_tst_node             (GLOBAL.pages.float_tst_node_pages)
 #define GLOBAL_PAGES_tst_index_node             (GLOBAL.pages.tst_index_node_pages)
 #define GLOBAL_PAGES_tst_answer_trie_hash       (GLOBAL.pages.tst_answer_trie_hash_pages)
 #define GLOBAL_PAGES_dep_fr                     (GLOBAL.pages.dependency_frame_pages)

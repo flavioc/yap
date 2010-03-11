@@ -59,6 +59,14 @@ typedef struct long_tst_node *long_tst_node_ptr;
 
 #define TSTN_long_int(X)  ((X)->long_int)
 
+struct float_tst_node {
+  struct time_stamped_trie_node base_tst;
+  Float float_val;
+};
+typedef struct float_tst_node *float_tst_node_ptr;
+
+#define TSTN_float(X) ((X)->float_val)
+
 /* ----------------------- **
 ** Time stamped indexes    **
 ** ----------------------- */
@@ -113,7 +121,7 @@ struct tst_answer_trie_hash {
 
 TSTNptr tst_insert(CTXTdeclc TSTNptr tstRoot, TSTNptr lastMatch, Cell firstSymbol,
   xsbBool maintainTSI);
-TSTNptr new_tstn(CTXTdeclc int trie_t, int node_t, Cell symbol, TSTNptr parent,
+TSTNptr new_tstn(CTXTdeclc int trie_t, int node_t, Cell *symbol, TSTNptr parent,
   TSTNptr sibling);
 void tstCreateTSIs(CTXTdeclc TSTNptr pTST);
 void tstht_remove_index(TSTHTptr ht);
