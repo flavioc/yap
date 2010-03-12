@@ -228,7 +228,10 @@ extern DynamicStack tstSymbolStack;
 #define SymbolStack_PushPathRootNodes(Leaf, Root) {  \
     BTNptr btn = (BTNptr)Leaf;  \
     while(!IsTrieRoot(btn)) { \
-      SymbolStack_Push(btn);  \
+      if(TrNode_is_float(btn) || TrNode_is_long(btn)) { \
+        SymbolStack_Push(btn);  \
+      } \
+      SymbolStack_Push(BTN_Symbol(btn));  \
       btn = BTN_Parent(btn);  \
     } \
     Root = (void*)btn;  \
@@ -403,7 +406,7 @@ typedef enum {
 
 #define TAG_TrieVar TAG_REF
 
-CellTag cell_tag(Term t);
+inline CellTag cell_tag(Term t);
 CellTag TrieSymbolType(Term t);
 xsbBool are_identical_terms(Cell term1, Cell term2);
 void printTrieSymbol(FILE* fp, Cell symbol);

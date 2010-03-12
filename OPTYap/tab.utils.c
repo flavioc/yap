@@ -25,7 +25,7 @@ typedef enum {
   PRINT_VAR
 } PrintVarType;
 
-CellTag cell_tag(Term t)
+inline CellTag cell_tag(Term t)
 {
   if(IsVarTerm(t))
     return TAG_REF;
@@ -200,7 +200,6 @@ void printTrieSymbol(FILE* fp, Cell symbol)
 static
 void symstkPrintNextTrieTerm(CTXTdeclc FILE *fp, xsbBool list_recursion)
 {
-  BTNptr node;
   Cell symbol;
   
   if(SymbolStack_IsEmpty) {
@@ -208,32 +207,9 @@ void symstkPrintNextTrieTerm(CTXTdeclc FILE *fp, xsbBool list_recursion)
     return;
   }
   
-  SymbolStack_Pop(node);
-  symbol = BTN_Symbol(node);
+  SymbolStack_Pop(symbol);
   
-  if(TrNode_is_long(node)) {
-    Int li;
-    if(TrNode_is_call(node))
-      li = TrNode_long_int((long_sg_node_ptr)node);
-    else
-      li = TSTN_long_int((long_tst_node_ptr)node);
-      
-    if(list_recursion)
-      fprintf(fp, "|" LongIntFormatString "]", li);
-    else
-      fprintf(fp, LongIntFormatString, li);
-  } else if(TrNode_is_float(node)) {
-    Float flt;
-    if(TrNode_is_call(node))
-      flt = TrNode_float((float_sg_node_ptr)node);
-    else
-      flt = TSTN_float((float_tst_node_ptr)node);
-    
-    if(list_recursion)
-      fprintf(fp, "|" FloatFormatString "]", flt);
-    else
-      fprintf(fp, FloatFormatString, flt);
-  } else if(IsIntTerm(symbol)) {
+  if(IsIntTerm(symbol)) {
     if(list_recursion)
       fprintf(fp, "|" IntegerFormatString "]", int_val(symbol));
     else
@@ -258,22 +234,32 @@ void symstkPrintNextTrieTerm(CTXTdeclc FILE *fp, xsbBool list_recursion)
     Functor f = (Functor) RepAppl(symbol);
     
     if(f == FunctorDouble) {
-      volatile Float dbl;
-      volatile Term *t_dbl = (Term *)((void *) &dbl);
+      BTNptr node;
+      Float flt;
       
-#if SIZEOF_DOUBLE == 2 * SIZEOF_INT_P
-      SymbolStack_Pop(*(t_dbl + 1));
-#endif /* SIZEOF_DOUBLE x SIZEOF_INT_P */
-      SymbolStack_Pop(*t_dbl);
+      SymbolStack_Pop(node);
       
-      if(list_recursion)
-        fprintf(fp, "|" FloatFormatString "]", dbl);
+      if(TrNode_is_call(node))
+        flt = TrNode_float((float_sg_node_ptr)node);
       else
-        fprintf(fp, FloatFormatString, dbl);
+        flt = TSTN_float((float_tst_node_ptr)node);
+
+      if(list_recursion)
+        fprintf(fp, "|" FloatFormatString "]", flt);
+      else
+        fprintf(fp, FloatFormatString, flt);
         
     } else if(f == FunctorLongInt) {
+      BTNptr node;
       Int li;
-      SymbolStack_Pop(li);
+      
+      SymbolStack_Pop(node);
+      
+      if(TrNode_is_call(node))
+        li = TrNode_long_int((long_sg_node_ptr)node);
+      else
+        li = TSTN_long_int((long_tst_node_ptr)node);
+
       if(list_recursion)
         fprintf(fp, "|" LongIntFormatString "]", li);
       else
@@ -539,18 +525,10 @@ static void
 recursive_construct_subgoal(CELL* trie_vars, CELL* placeholder)
 {
   CELL symbol;
-  tst_node_ptr node;
   
-  SymbolStack_Pop(node);
-  symbol = TSTN_entry(node);
+  SymbolStack_Pop(symbol);
   
-  if(TrNode_is_long(node)) {
-    Int li = TrNode_long_int((long_sg_node_ptr)node);
-    *placeholder = MkLongIntTerm(li);
-  } else if(TrNode_is_float(node)) {
-    Float flt = TrNode_float((float_sg_node_ptr)node);
-    *placeholder = MkFloatTerm(flt);
-  } else if(IsAtomOrIntTerm(symbol)) {
+  if(IsAtomOrIntTerm(symbol)) {
     dprintf("New constant\n");
     *placeholder = symbol;
   } else if(IsVarTerm(symbol)) {
@@ -571,7 +549,17 @@ recursive_construct_subgoal(CELL* trie_vars, CELL* placeholder)
     Functor f = DecodeTrieFunctor(symbol);
 
     if(f == FunctorDouble) {
-      // XXX IMPLEMENT
+      float_sg_node_ptr node;
+      
+      SymbolStack_Pop(node);
+      
+      *placeholder = MkFloatTerm(TrNode_float(node));
+    } else if(f == FunctorLongInt) {
+      long_sg_node_ptr node;
+      
+      SymbolStack_Pop(node);
+      
+      *placeholder = MkLongIntTerm(TrNode_long_int(node));
     } else {
       int i, arity = ArityOfFunctor(f);
       CELL *arguments;
