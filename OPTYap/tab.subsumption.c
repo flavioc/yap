@@ -674,7 +674,7 @@ While_TermStack_NotEmpty:
           Set_Matching_and_TrieVar_Chains((Term)flt, pCurrentBTN, variableChain);
           
           while(IsNonNULL(pCurrentBTN)) {
-            if(TrNode_is_long(pCurrentBTN))
+            if(TrNode_is_float(pCurrentBTN))
             {
               int go = FALSE;
               
