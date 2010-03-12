@@ -566,51 +566,41 @@ gt_node_ptr global_trie_node_check_insert(gt_node_ptr parent_node, Term t) {
 }
 #endif /* GLOBAL_TRIE */
 
-static inline sg_node_ptr
-find_subgoal_node(sg_node_ptr child_node, sg_node_ptr parent_node, int *count_nodes, void *data, int flags) {
-  if(IS_FLOAT_FLAG(flags)) {
-    Float flt = *(Float *)data;
-    dprintf("Insert float %lf\n", flt);
-    while(child_node) {
-      if(TrNode_is_float(child_node) && TrNode_float((float_sg_node_ptr)child_node) == flt) {
-        return child_node;
-      }
-      
-      *count_nodes++;
-      child_node = TrNode_next(child_node);
-    }
-    
-    return NULL;
+#define FIND_NODE_LOOP(NODE, PARENT, COUNT, CONDITION) \
+  while(NODE) { \
+    if(CONDITION) { \
+      UNLOCK_NODE(PARENT);  \
+      return NODE;  \
+    } \
+    ++(COUNT);  \
+    NODE = TrNode_next(NODE); \
   }
-  if(IS_LONG_INT_FLAG(flags)) {
-    dprintf("New long int\n");
-    Int li = *(Int *)data;
-    
-    while(child_node) {
-      if(TrNode_is_long(child_node) && TrNode_long_int((long_sg_node_ptr)child_node) == li) {
-        return child_node;
-      }
-      
-      *count_nodes++;
-      child_node = TrNode_next(child_node);
-    }
-    
-    return NULL;
-  }
-  
-  Term t = (Term)data;
-  
-  while(child_node) {
-    if(TrNode_entry(child_node) == t) {
-      UNLOCK_NODE(parent_node);
-      return child_node;
-    }
-    
-    *count_nodes++;
-    child_node = TrNode_next(child_node);
-  }
-  
-  return NULL;
+
+#define FIND_FLOAT_NODE(NODE, PARENT, DATA, COUNT)  { \
+  Float flt = *(Float *)(DATA); \
+  FIND_NODE_LOOP(NODE, PARENT, COUNT, \
+    TrNode_is_float(NODE) && TrNode_float((float_sg_node_ptr)(NODE)) == flt)  \
+}
+
+#define FIND_LONG_INT_NODE(NODE, PARENT, DATA, COUNT) { \
+  Int li = *(Int *)(DATA);                \
+  FIND_NODE_LOOP(NODE, PARENT, COUNT, \
+    TrNode_is_long(NODE) && TrNode_long_int((long_sg_node_ptr)(NODE)) == li)  \
+}
+
+#define FIND_STANDARD_NODE(NODE, PARENT, DATA, COUNT) { \
+  Term t = (Term)(DATA);  \
+  FIND_NODE_LOOP(NODE, PARENT, COUNT, \
+    TrNode_entry(NODE) == t)  \
+}
+
+#define FIND_SUBGOAL_NODE(NODE, PARENT, DATA, COUNT, FLAGS) { \
+  if(IS_FLOAT_FLAG(FLAGS))  \
+    FIND_FLOAT_NODE(NODE, PARENT, DATA, COUNT)  \
+  else if(IS_LONG_INT_FLAG(FLAGS))  \
+    FIND_LONG_INT_NODE(NODE, PARENT, DATA, COUNT) \
+  else  \
+    FIND_STANDARD_NODE(NODE, PARENT, DATA, COUNT) \
 }
 
 static inline void
@@ -670,7 +660,7 @@ sg_node_ptr subgoal_trie_node_check_insert(tab_ent_ptr tab_ent, sg_node_ptr pare
 sg_node_ptr subgoal_trie_node_check_insert(tab_ent_ptr tab_ent, sg_node_ptr parent_node, void *data, int flags) {
 #endif /* GLOBAL_TRIE */
   sg_node_ptr child_node;
-  
+
   LOCK_NODE(parent_node);
   child_node = TrNode_child(parent_node);
 
@@ -683,9 +673,8 @@ sg_node_ptr subgoal_trie_node_check_insert(tab_ent_ptr tab_ent, sg_node_ptr pare
 
   if (! IS_SUBGOAL_TRIE_HASH(child_node)) {
     int count_nodes = 0;
-    child_node = find_subgoal_node(child_node, parent_node, &count_nodes, data, flags);
-    if(child_node)
-      return child_node;
+    FIND_SUBGOAL_NODE(child_node, parent_node, data, count_nodes, flags);
+    /* if here, trie node not found */
     new_general_subgoal_trie_node(child_node, data, NULL, parent_node, TrNode_child(parent_node), flags);
     count_nodes++;
     if (count_nodes >= MAX_NODES_PER_TRIE_LEVEL) {
@@ -705,14 +694,14 @@ sg_node_ptr subgoal_trie_node_check_insert(tab_ent_ptr tab_ent, sg_node_ptr pare
     hash = (sg_hash_ptr) child_node;
     bucket = Hash_bucket(hash, HASH_ENTRY(GET_HASH_SYMBOL(data, flags), Hash_seed(hash)));
     child_node = *bucket;
-    child_node = find_subgoal_node(child_node, parent_node, &count_nodes, data, flags);
-    if(child_node)
-      return child_node;
+    FIND_SUBGOAL_NODE(child_node, parent_node, data, count_nodes, flags);
+    /* if here, trie node not found in hash */
     new_general_subgoal_trie_node(child_node, data, NULL, parent_node, *bucket, HASHED_INTERIOR_NT | flags);
     *bucket = child_node;
     Hash_num_nodes(hash)++;
     count_nodes++;
     if (count_nodes >= MAX_NODES_PER_BUCKET && Hash_num_nodes(hash) > Hash_num_buckets(hash)) {
+      /* expand current hash */
       expand_subgoal_hash_table(hash);
     }
     UNLOCK_NODE(parent_node);
