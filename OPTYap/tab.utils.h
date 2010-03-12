@@ -312,14 +312,14 @@ extern DynamicStack tstTrail;
       break;  \
     case TAG_LONG_INT:                  \
       dprintf("Long int ...\n");         \
-      Symbol = LongIntOfTerm(subterm);  \
+      li = LongIntOfTerm(subterm);      \
+      Symbol = (Cell)&li;               \
       NodeType |= LONG_INT_NT;          \
       break;  \
     case TAG_FLOAT:                     \
-      { Float *ptr = (Float*)&(Symbol);       \
-        *ptr = FloatOfTerm(subterm);          \
-        NodeType |= FLOAT_NT;                 \
-      }                                     \
+      flt = FloatOfTerm(subterm);     \
+      symbol = (Cell)&flt;              \
+      NodeType |= FLOAT_NT;                 \
       break;                                \
     default:  \
       Symbol = 0; \

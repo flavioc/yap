@@ -121,7 +121,7 @@ struct tst_answer_trie_hash {
 
 TSTNptr tst_insert(CTXTdeclc TSTNptr tstRoot, TSTNptr lastMatch, Cell firstSymbol,
   xsbBool maintainTSI);
-TSTNptr new_tstn(CTXTdeclc int trie_t, int node_t, Cell *symbol, TSTNptr parent,
+TSTNptr new_tstn(CTXTdeclc int trie_t, int node_t, Cell symbol, TSTNptr parent,
   TSTNptr sibling);
 void tstCreateTSIs(CTXTdeclc TSTNptr pTST);
 void tstht_remove_index(TSTHTptr ht);
