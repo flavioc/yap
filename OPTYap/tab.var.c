@@ -319,7 +319,6 @@ void consume_variant_answer(ans_node_ptr current_ans_node, int subs_arity, CELL 
           STACK_PUSH_UP(t, stack_terms);
 #endif /* TRIE_COMPACT_PAIRS */
         } else if (IsApplTerm(t)) {
-          dprintf("ApplTerm\n");
           Functor f = (Functor) RepAppl(t);
           if (f == FunctorDouble) {
             volatile Float dbl;
@@ -340,7 +339,6 @@ void consume_variant_answer(ans_node_ptr current_ans_node, int subs_arity, CELL 
             current_node = TrNode_parent(current_node);
             
             Int li = TrNode_entry(current_node);
-            printf("li %ld\n", li);
             
             current_node = TrNode_parent(current_node);
             t = MkLongIntTerm(li);
