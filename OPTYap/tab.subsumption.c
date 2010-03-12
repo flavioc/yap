@@ -462,76 +462,6 @@ While_TermStack_NotEmpty:
     XSB_Deref(subterm);
     
     switch(cell_tag(subterm)) {
-#ifdef SUBSUMPTION_YAP
-      case TAG_FLOAT:
-        dprintf("TAG_FLOAT\n");
-        if(search_mode == MATCH_SYMBOL_EXACTLY) {
-          Float flt = FloatOfTerm(subterm);
-          dprintf("Float found %lf\n", flt);
-          Set_Matching_and_TrieVar_Chains(EncodedFloatFunctor, pCurrentBTN, variableChain);
-          
-          while(IsNonNULL(pCurrentBTN)) {
-            if(TrNode_is_long(pCurrentBTN))
-            {
-              int go = FALSE;
-              
-              if(TrNode_is_call(pCurrentBTN)) {
-                dprintf("Call trie...\n");
-                go = (flt == TrNode_float((float_sg_node_ptr)pCurrentBTN));
-              } else {
-                dprintf("Answer trie...\n");
-                go = (flt == TSTN_float((float_tst_node_ptr)pCurrentBTN));
-              }
-              
-              if(go) {
-                dprintf("Find one matching float\n");
-                Conditionally_Create_ChoicePoint(variableChain)
-                Descend_In_Trie_and_Continue(pCurrentBTN);
-              }
-            }
-            pCurrentBTN = BTN_Sibling(pCurrentBTN);
-          }
-          
-          dprintf("Found no matching float\n");
-          
-          /* failed to find a float */
-          pCurrentBTN = variableChain;
-          SetNoVariant(pParentBTN);
-        }
-        NonVarSearchChain_BoundTrievar(subterm, pCurrentBTN, variableChain);
-        NonVarSearchChain_UnboundTrieVar(subterm, variableChain);
-        break;
-      case TAG_LONG_INT:
-        if(search_mode == MATCH_SYMBOL_EXACTLY) {
-          Int li = LongIntOfTerm(subterm);
-          Set_Matching_and_TrieVar_Chains(EncodedLongFunctor, pCurrentBTN, variableChain);
-          
-          while(IsNonNULL(pCurrentBTN)) {
-            if(TrNode_is_long(pCurrentBTN))
-            {
-              int go = FALSE;
-              
-              if(TrNode_is_call(pCurrentBTN))
-                go = (li == TrNode_long_int((long_sg_node_ptr)pCurrentBTN));
-              else
-                go = (li == TSTN_long_int((long_tst_node_ptr)pCurrentBTN));
-              
-              if(go) {
-                Conditionally_Create_ChoicePoint(variableChain)
-                Descend_In_Trie_and_Continue(pCurrentBTN);
-              }
-            }
-            pCurrentBTN = BTN_Sibling(pCurrentBTN);
-          }
-          
-          /* failed to find a long int */
-          pCurrentBTN = variableChain;
-          SetNoVariant(pParentBTN);
-        }
-        NonVarSearchChain_BoundTrievar(subterm, pCurrentBTN, variableChain);
-        NonVarSearchChain_UnboundTrieVar(subterm, variableChain);
-      break;
-#endif /* SUBSUMPTION_YAP */
       case XSB_STRING:
       case XSB_INT:
 #ifdef SUBSUMPTION_XSB
@@ -735,6 +665,76 @@ While_TermStack_NotEmpty:
 	      "Attributed variables not yet implemented in calls to subsumptive tables.");
       break;
 #endif /* SUBSUMPTION_XSB */
+#ifdef SUBSUMPTION_YAP
+      case TAG_FLOAT:
+        dprintf("TAG_FLOAT\n");
+        if(search_mode == MATCH_SYMBOL_EXACTLY) {
+          Float flt = FloatOfTerm(subterm);
+          dprintf("Float found %lf\n", flt);
+          Set_Matching_and_TrieVar_Chains(EncodedFloatFunctor, pCurrentBTN, variableChain);
+          
+          while(IsNonNULL(pCurrentBTN)) {
+            if(TrNode_is_long(pCurrentBTN))
+            {
+              int go = FALSE;
+              
+              if(TrNode_is_call(pCurrentBTN)) {
+                dprintf("Call trie...\n");
+                go = (flt == TrNode_float((float_sg_node_ptr)pCurrentBTN));
+              } else {
+                dprintf("Answer trie...\n");
+                go = (flt == TSTN_float((float_tst_node_ptr)pCurrentBTN));
+              }
+              
+              if(go) {
+                dprintf("Find one matching float\n");
+                Conditionally_Create_ChoicePoint(variableChain)
+                Descend_In_Trie_and_Continue(pCurrentBTN);
+              }
+            }
+            pCurrentBTN = BTN_Sibling(pCurrentBTN);
+          }
+          
+          dprintf("Found no matching float\n");
+          
+          /* failed to find a float */
+          pCurrentBTN = variableChain;
+          SetNoVariant(pParentBTN);
+        }
+        NonVarSearchChain_BoundTrievar(subterm, pCurrentBTN, variableChain);
+        NonVarSearchChain_UnboundTrieVar(subterm, variableChain);
+        break;
+      case TAG_LONG_INT:
+        if(search_mode == MATCH_SYMBOL_EXACTLY) {
+          Int li = LongIntOfTerm(subterm);
+          Set_Matching_and_TrieVar_Chains(EncodedLongFunctor, pCurrentBTN, variableChain);
+          
+          while(IsNonNULL(pCurrentBTN)) {
+            if(TrNode_is_long(pCurrentBTN))
+            {
+              int go = FALSE;
+              
+              if(TrNode_is_call(pCurrentBTN))
+                go = (li == TrNode_long_int((long_sg_node_ptr)pCurrentBTN));
+              else
+                go = (li == TSTN_long_int((long_tst_node_ptr)pCurrentBTN));
+              
+              if(go) {
+                Conditionally_Create_ChoicePoint(variableChain)
+                Descend_In_Trie_and_Continue(pCurrentBTN);
+              }
+            }
+            pCurrentBTN = BTN_Sibling(pCurrentBTN);
+          }
+          
+          /* failed to find a long int */
+          pCurrentBTN = variableChain;
+          SetNoVariant(pParentBTN);
+        }
+        NonVarSearchChain_BoundTrievar(subterm, pCurrentBTN, variableChain);
+        NonVarSearchChain_UnboundTrieVar(subterm, variableChain);
+      break;
+#endif /* SUBSUMPTION_YAP */
     default:
       TrieError_UnknownSubtermTag(subterm);
       break;
