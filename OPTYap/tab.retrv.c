@@ -1016,10 +1016,11 @@ While_TSnotEmpty:
          --------------------- */
       case TAG_LONG_INT:
         if(IsHashHeader(cur_chain)) {
-          SetMatchAndUnifyChains(EncodedLongFunctor,cur_chain,alt_chain);
+          Int li = LongIntOfTerm(subterm);
+          
+          SetMatchAndUnifyChains((Term)li,cur_chain,alt_chain);
 
           if(cur_chain != alt_chain) {
-            Int li = LongIntOfTerm(subterm);
             while(IsNonNULL(cur_chain)) {
               if(TrNode_is_long(cur_chain) && TSTN_long_int((long_tst_node_ptr)cur_chain) == li) {
                 if(IsValidTS(TSTN_GetTSfromTSIN(cur_chain), ts)) {
@@ -1049,10 +1050,11 @@ While_TSnotEmpty:
     case TAG_FLOAT:
       dprintf("Float\n");
       if(IsHashHeader(cur_chain)) {
-        SetMatchAndUnifyChains(EncodedFloatFunctor,cur_chain,alt_chain);
+        Float flt = FloatOfTerm(subterm);
+        
+        SetMatchAndUnifyChains((Term)flt,cur_chain,alt_chain);
 
         if(cur_chain != alt_chain) {
-          Float flt = FloatOfTerm(subterm);
           dprintf("Flt %lf\n", flt);
           while(IsNonNULL(cur_chain)) {
             if(TrNode_is_float(cur_chain) && TSTN_float((float_tst_node_ptr)cur_chain) == flt) {

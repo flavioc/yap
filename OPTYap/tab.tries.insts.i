@@ -1920,7 +1920,7 @@ dprintf("stack_trie_atom_instr\n");                                    \
       
       hash_cp->last_bucket = TSTHT_buckets(hash);
       
-      // find first valid bucket
+      /* find first valid bucket */
       while(!*(hash_cp->last_bucket))
         hash_cp->last_bucket++;
       
@@ -1942,13 +1942,13 @@ dprintf("stack_trie_atom_instr\n");                                    \
           term = EncodeTrieList(term);
           break;
         case TAG_LONG_INT:
-          term = EncodedLongFunctor;
+          term = (Term)LongIntOfTerm(term);
           break;
         case TAG_FLOAT:
-          term = EncodedFloatFunctor;
+          term = (Term)FloatOfTerm(term);
           break;
         default:
-          printf("NOT RECOGNIZED DO HASH!!!\n");
+          Yap_Error(INTERNAL_ERROR, TermNil, "invalid term tag (trie_do_hash)");
           break;
       }
       

@@ -94,7 +94,7 @@ STD_PROTO(static inline TSTHTptr New_BTHT, (int));
 #define TrieHT_InsertNode(pBucketArray,HashSeed,pTN) {                  \
   void **pBucket;                                                       \
                                                                         \
-  pBucket = (void**)(pBucketArray + TrieHash(TN_Symbol(pTN),HashSeed)); \
+  pBucket = (void**)(pBucketArray + TrieHash(HASH_TST_NODE(pTN),HashSeed)); \
   if(IsNonNULL(*pBucket)) {                                             \
     TN_ForceInstrCPtoTRY(pTN);                                          \
     TN_RotateInstrCPtoRETRYorTRUST((BTNptr)*pBucket);                   \

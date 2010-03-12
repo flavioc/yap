@@ -613,7 +613,7 @@ hashify_node_list(sg_node_ptr parent_node, sg_node_ptr child_node, int count_nod
   new_subgoal_trie_hash(hash, count_nodes, tab_ent);
   chain_node = child_node;
   do {
-    entry = HASH_ENTRY(TrNode_entry(chain_node), BASE_HASH_BUCKETS - 1);
+    entry = HASH_ENTRY(HASH_SUBGOAL_NODE(chain_node), BASE_HASH_BUCKETS - 1);
     bucket = Hash_bucket(hash, entry);
     next_node = TrNode_next(chain_node);
     TrNode_node_type(chain_node) |= HASHED_INTERIOR_NT;
@@ -642,7 +642,7 @@ expand_subgoal_hash_table(sg_hash_ptr hash) {
     if (*--old_bucket) {
       chain_node = *old_bucket;
       do {
-        bucket = Hash_bucket(hash, HASH_ENTRY(TrNode_entry(chain_node), seed));
+        bucket = Hash_bucket(hash, HASH_ENTRY(HASH_SUBGOAL_NODE(chain_node), seed));
         next_node = TrNode_next(chain_node);
         TrNode_next(chain_node) = *bucket;
         *bucket = chain_node;

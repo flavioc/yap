@@ -671,7 +671,7 @@ While_TermStack_NotEmpty:
         if(search_mode == MATCH_SYMBOL_EXACTLY) {
           Float flt = FloatOfTerm(subterm);
           dprintf("Float found %lf\n", flt);
-          Set_Matching_and_TrieVar_Chains(EncodedFloatFunctor, pCurrentBTN, variableChain);
+          Set_Matching_and_TrieVar_Chains((Term)flt, pCurrentBTN, variableChain);
           
           while(IsNonNULL(pCurrentBTN)) {
             if(TrNode_is_long(pCurrentBTN))
@@ -707,7 +707,7 @@ While_TermStack_NotEmpty:
       case TAG_LONG_INT:
         if(search_mode == MATCH_SYMBOL_EXACTLY) {
           Int li = LongIntOfTerm(subterm);
-          Set_Matching_and_TrieVar_Chains(EncodedLongFunctor, pCurrentBTN, variableChain);
+          Set_Matching_and_TrieVar_Chains((Term)li, pCurrentBTN, variableChain);
           
           while(IsNonNULL(pCurrentBTN)) {
             if(TrNode_is_long(pCurrentBTN))
