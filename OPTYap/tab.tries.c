@@ -366,16 +366,11 @@ void free_subgoal_trie_branch(sg_node_ptr current_node, int nodes_left, int node
 #endif /* TRIE_COMPACT_PAIRS */
     else if (IsApplTerm(t)) {
       Functor f = (Functor) RepAppl(t);
-      if (f == FunctorDouble)
-#if SIZEOF_DOUBLE == 2 * SIZEOF_INT_P
-	nodes_extra = 2;
-#else
-        nodes_extra = 1;
-#endif /* SIZEOF_DOUBLE x SIZEOF_INT_P */
-      else if (f == FunctorLongInt)
-	nodes_extra = 1;
-      else
-	nodes_left += ArityOfFunctor(f) - 1;
+      if(f != FunctorDouble && f != FunctorLongInt) {
+        nodes_left += ArityOfFunctor(f) - 1;
+      } else {
+        nodes_left--;
+      }
     }
   }
   if (nodes_left)
