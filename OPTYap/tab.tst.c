@@ -95,7 +95,7 @@ STD_PROTO(static inline Term HASH_TST_NODE, (tst_node_ptr));
 #define TrieHT_InsertNode(pBucketArray,HashSeed,pTN) {                  \
   void **pBucket;                                                       \
                                                                         \
-  pBucket = (void**)(pBucketArray + TrieHash(HASH_TST_NODE(pTN),HashSeed)); \
+  pBucket = (void**)(pBucketArray + TrieHash(HASH_TST_NODE((tst_node_ptr)pTN),HashSeed)); \
   if(IsNonNULL(*pBucket)) {                                             \
     TN_ForceInstrCPtoTRY(pTN);                                          \
     TN_RotateInstrCPtoRETRYorTRUST((BTNptr)*pBucket);                   \
@@ -525,7 +525,7 @@ TSTNptr tst_insert(CTXTdeclc TSTNptr tstRoot, TSTNptr lastMatch, Cell firstSymbo
   Cell symbol;
   int std_var_num,
       trieType,
-      nodeType;
+      nodeType = INTERIOR_NT;
 
   symbol = firstSymbol;
   std_var_num = Trail_NumBindings;
