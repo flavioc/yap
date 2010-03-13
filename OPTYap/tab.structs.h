@@ -290,13 +290,25 @@ typedef ans_node_ptr continuation_ptr;
 /* ------------------------------- **
 **     Subgoal frames data         **
 ** ------------------------------- */
-typedef unsigned char subgoal_frame_type;
 
 enum SubgoalFrameType {
   VARIANT_PRODUCER_SFT        = 0x01,
   SUBSUMPTIVE_PRODUCER_SFT    = 0x02,
   SUBSUMED_CONSUMER_SFT       = 0x03
 };
+typedef unsigned char subgoal_frame_type;
+
+enum SubgoalState {
+  incomplete      = 0,  /* INCOMPLETE_TABLING */
+  ready           = 1,
+  evaluating      = 2,
+  complete        = 3,
+  complete_in_use = 4,  /* LIMIT_TABLING */
+  compiled        = 5,
+  compiled_in_use = 6   /* LIMIT_TABLING */
+}; /* do not change order !!! */
+
+typedef unsigned char subgoal_state;
 
 /* ------------------------------ **
 **      Struct subgoal_frame      **
@@ -304,29 +316,15 @@ enum SubgoalFrameType {
 
 typedef struct subgoal_frame {
   subgoal_frame_type type; /* subgoal frame type */
+  subgoal_state state_flag;
+  
+  yamop *code_of_subgoal;
+  
 #if defined(YAPOR) || defined(THREADS)
   lockvar lock;
 #endif
-#ifdef YAPOR
-  int generator_worker;
-  struct or_frame *top_or_frame_on_generator_branch;
-#endif /* YAPOR */
-  yamop *code_of_subgoal;
-  enum {
-    incomplete      = 0,  /* INCOMPLETE_TABLING */
-    ready           = 1,
-    evaluating      = 2,
-    complete        = 3,
-    complete_in_use = 4,  /* LIMIT_TABLING */
-    compiled        = 5,
-    compiled_in_use = 6   /* LIMIT_TABLING */
-  } state_flag;  /* do not change order !!! */
-  
-  choiceptr generator_choice_point;
   
   sg_node_ptr leaf_ptr;
-  
-  struct answer_trie_node *answer_trie;
   
   continuation_ptr first_answer;
   continuation_ptr last_answer;
@@ -339,6 +337,15 @@ typedef struct subgoal_frame {
   struct subgoal_frame *previous;
 #endif /* LIMIT_TABLING */
   struct subgoal_frame *next;
+  
+  struct answer_trie_node *answer_trie;
+  
+  choiceptr generator_choice_point;
+  
+#ifdef YAPOR
+  int generator_worker;
+  struct or_frame *top_or_frame_on_generator_branch;
+#endif /* YAPOR */
 } variant_sf;
 
 #define variant_subgoal_frame subgoal_frame
@@ -398,13 +405,24 @@ typedef struct subsumptive_producer_subgoal_frame {
 
 typedef subsumptive_producer_sf *subprod_fr_ptr;
 
-#define CAST_SUBPRODSF(X)   ((subprod_fr_ptr)(X))
-
 #define SgFr_prod_consumers(X) ((X)->consumers)
 #define SgFr_prod_timestamp(X) TSTN_time_stamp((tst_node_ptr)SgFr_answer_trie(X))
 
 struct subsumed_consumer_subgoal_frame {
-  variant_sf var_sf;
+  subgoal_frame_type type; /* subgoal frame type */
+  subgoal_state state_flag;
+  
+  yamop *code_of_subgoal;
+  
+#if defined(YAPOR) || defined(THREADS)
+  lockvar lock;
+#endif
+  
+  sg_node_ptr leaf_ptr;
+
+  continuation_ptr first_answer;
+  continuation_ptr last_answer;
+  
   time_stamp ts;
   subprod_fr_ptr producer;
   choiceptr cons_cp;
@@ -412,8 +430,6 @@ struct subsumed_consumer_subgoal_frame {
 };
 
 typedef subsumptive_consumer_sf *subcons_fr_ptr;
-
-#define CAST_SUBCONSSF(X)   ((subcons_fr_ptr)(X))
 
 #define SgFr_timestamp(X)       ((X)->ts)
 #define SgFr_producer(X)        ((X)->producer)
