@@ -205,6 +205,12 @@ extern DynamicStack tstSymbolStack;
     Symbol = *curFrame; \
 }
 
+#define SymbolStack_PopOther(Symbol, Cast) {  \
+  CPtr curFrame;  \
+  DynStk_BlindPop(tstSymbolStack, curFrame);  \
+  Symbol = (Cast)*curFrame; \
+}
+
 #define SymbolStack_Peek(Symbol) {  \
     CPtr curFrame;  \
     DynStk_BlindPeek(tstSymbolStack, curFrame); \
@@ -229,7 +235,7 @@ extern DynamicStack tstSymbolStack;
     BTNptr btn = (BTNptr)Leaf;  \
     while(!IsTrieRoot(btn)) { \
       if(TrNode_is_float(btn) || TrNode_is_long(btn)) { \
-        SymbolStack_Push(btn);  \
+        SymbolStack_Push((CELL)btn);  \
       } \
       SymbolStack_Push(BTN_Symbol(btn));  \
       btn = BTN_Parent(btn);  \
