@@ -141,8 +141,7 @@ void print_hash_table(TSTHTptr ht);
 struct hash_choicept {
    struct choicept cp;
    tst_node_ptr *last_bucket;
-   tst_ans_hash_ptr hash;
-   int is_variable;
+   tst_node_ptr *final_bucket;
 };
 typedef struct hash_choicept *hash_cp_ptr;
 

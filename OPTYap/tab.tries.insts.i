@@ -1888,13 +1888,11 @@ dprintf("stack_trie_atom_instr\n");                                    \
     HBREG = PROTECT_FROZEN_H(B);                          \
     SET_BB(PROTECT_FROZEN_B(B));                          \
     if ((choiceptr) YENV == B_FZ) {                       \
-      dprintf("Loop!\n");                                 \
-    } else {                                              \
-      CELL *aux_stack_ptr = YENV;                         \
+      register CELL *aux_stack_ptr = YENV;                \
       int heap_arity = *aux_stack_ptr;                    \
       int vars_arity = *(aux_stack_ptr + heap_arity + 1); \
       int subs_arity = *(aux_stack_ptr + heap_arity + 2); \
-      /* XXX       */                                     \
+      copy_arity_stack();                                 \
     }
   
   BOp(trie_do_hash, e)
@@ -1904,8 +1902,6 @@ dprintf("stack_trie_atom_instr\n");                                    \
     int vars_arity = *(aux_stack_ptr + heap_arity + 1);
     int subs_arity = *(aux_stack_ptr + heap_arity + 2);
     
-    dprintf("trie_do_hash %d %d %d\n", heap_arity, vars_arity, subs_arity);
-    
     if(heap_arity)
       aux_stack_ptr++;
     else
@@ -1914,23 +1910,38 @@ dprintf("stack_trie_atom_instr\n");                                    \
     CELL term = Deref(*aux_stack_ptr);
     
     if(IsVarTerm(term)) {
+      tst_node_ptr *first_bucket = TSTHT_buckets(hash);
+      tst_node_ptr *end_bucket = first_bucket + TSTHT_num_buckets(hash);
+      tst_node_ptr *final_bucket;
+      
+      /* find last valid bucket */
+      while(--end_bucket != first_bucket) {
+        if(*end_bucket) {
+          final_bucket = end_bucket;
+          break;
+        }
+      }
+      
+      /* find first valid bucket */
+      while(!*(first_bucket))
+        first_bucket++;
+      
+      if(first_bucket == final_bucket) {
+        /* only one valid bucket in hash table */
+        next_node_instruction(first_bucket);
+      }
+      
       store_hash_node();
       
       hash_cp_ptr hash_cp = HASH_CP(B);
       
-      hash_cp->last_bucket = TSTHT_buckets(hash);
-      
-      /* find first valid bucket */
-      while(!*(hash_cp->last_bucket))
-        hash_cp->last_bucket++;
-      
-      hash_cp->is_variable = TRUE;
-      hash_cp->hash = hash;
-      
-      dprintf("trie_do_hash is variable\n");
+      hash_cp->last_bucket = first_bucket;
+      hash_cp->final_bucket = final_bucket;
       
       next_node_instruction(*(hash_cp->last_bucket));
     } else {
+      
+      /* get hash code for the corresponding term type */
       switch(cell_tag(term)) {
         case TAG_ATOM:
         case TAG_INT:
@@ -1952,78 +1963,56 @@ dprintf("stack_trie_atom_instr\n");                                    \
           break;
       }
       
-      dprintf("trie_do_hash other term %d\n", (int)term);
-      
       int bucket_entry = HASH_ENTRY(term, Hash_seed(hash));
-      
       tst_node_ptr *bucket_ptr = Hash_bucket(hash, bucket_entry);
       tst_node_ptr *var_bucket_ptr = Hash_bucket(hash, TRIEVAR_BUCKET);
       tst_node_ptr bucket = *bucket_ptr;
       tst_node_ptr var_bucket = *var_bucket_ptr;
       
-      if(bucket == NULL && var_bucket == NULL) {
-        dprintf("trie_do_hash all null\n");
-        goto fail;
-      }
+      if(bucket == NULL && var_bucket == NULL)
+        goto fail; /* no buckets found */
       
-      if(var_bucket == bucket)
+      if(var_bucket_ptr == bucket_ptr)
         var_bucket = NULL; /* skip duplicate buckets */
       
       if(bucket != NULL && var_bucket != NULL) {
-        dprintf("trie_do_hash two\n");
+        /* var and concrete bucket found, try concrete then var bucket */
         store_hash_node();
 
         hash_cp_ptr hash_cp = HASH_CP(B);
         
-        hash_cp->is_variable = FALSE;
-        hash_cp->last_bucket = var_bucket_ptr;
+        hash_cp->final_bucket = NULL;
+        hash_cp->last_bucket = (tst_node_ptr*)var_bucket;
         
         next_node_instruction(bucket);
       }
       
-      /* run the valid bucket */
-      if(bucket) {
-        dprintf("trie_do_hash concrete\n");
-        next_node_instruction(bucket);
-      }
-      else {
-        dprintf("trie_do_hash var\n");
-        next_node_instruction(var_bucket);
-      }
+      /* run the only valid bucket */
+      next_node_instruction(bucket ? bucket : var_bucket);
     }
   ENDBOp();
   
   BOp(trie_retry_hash, e)
     hash_cp_ptr hash_cp = HASH_CP(B);
-    
-  dprintf("trie_retry_hash\n");
   
-    if(hash_cp->is_variable) {
-      dprintf("is variable\n");
-      tst_ans_hash_ptr hash = hash_cp->hash;
-      tst_node_ptr *last_bucket = TSTHT_buckets(hash) + TSTHT_num_buckets(hash);
-      
-      do {
-        hash_cp->last_bucket++;
-        
-        if(last_bucket == hash_cp->last_bucket) {
-          dprintf("No more items in hash table\n");
-          pop_hash_node();
-          goto fail; /* it is over */
-        }
-        
+    if(hash_cp->final_bucket) {
+      /* trying to unify with a variable */
+      while(hash_cp->last_bucket++) {
         if(*(hash_cp->last_bucket)) {
-          restore_hash_node();
+          if(hash_cp->last_bucket == hash_cp->final_bucket) {
+            pop_hash_node();
+          } else {
+            restore_hash_node();
+          }
           next_node_instruction(*(hash_cp->last_bucket));
         }
-      } while(TRUE);
+      }
     } else {
-      dprintf("is other\n");
-      /* consume the var bucket */
+      /* trying to unify with a concrete term
+       * here, we just need to run the variable bucket code
+       */
       pop_hash_node();
-      
-      dprintf("is other popped\n");
         
-      next_node_instruction(*(hash_cp->last_bucket));
+      next_node_instruction((tst_node_ptr)hash_cp->last_bucket);
     }
   ENDBOp();
