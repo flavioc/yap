@@ -1030,7 +1030,7 @@ TSTNptr subsumptive_tst_search(CTXTdeclc TSTNptr tstRoot, int nTerms, CPtr termV
 void *newTSTAnswerSet(void) {
   TSTNptr root;
   
-  New_TSTN(root, TS_ANSWER_TRIE_TT, TRIE_ROOT_NT, 0, NULL, NULL);
+  New_TSTN(root, TST_TRIE_NT, TRIE_ROOT_NT, 0, NULL, NULL);
   TSTN_TimeStamp(root) = EMPTY_TST_TIMESTAMP;
   
   return root;

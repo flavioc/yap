@@ -111,7 +111,7 @@ void delete_subgoal_path(sg_fr_ptr sg_fr) {
 
   TrNode_child(node) = NULL;
   
-  while(TrNode_node_type(node) != TRIE_ROOT_NT && TrNode_child(node) == NULL) {
+  while(!TrNode_is_root(node) && TrNode_child(node) == NULL) {
     
     parent = TrNode_parent(node);
     first_child = TrNode_child(parent);

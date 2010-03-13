@@ -87,8 +87,8 @@ typedef Functor Psc;
 #define IsStandardizedVariable(DerefVar)  (IsTableVarTerm(DerefVar))
 
 #define IndexOfStdVar(VAR_ENUM_ADDR)  VarIndexOfTerm(VAR_ENUM_ADDR)
-#define IsTrieRoot(NODE)   (TrNode_parent(NODE) == NULL || TrNode_node_type(NODE) == TRIE_ROOT_NT)
-#define IsLeafNode(NODE)   (TrNode_child(NODE) == NULL) /// XXX
+#define IsTrieRoot(NODE)   (TrNode_parent(NODE) == NULL || TrNode_is_root(NODE))
+#define IsLeafNode(NODE)   (TrNode_child(NODE) == NULL || TrNode_is_leaf(NODE)) /// XXX
 #define IsEscapeNode(NODE)  (FALSE) // XXX
 #define ESCAPE_NODE_SYMBOL    (long)0xFFFFFFF // XXX
 #define IsTrieFunctor(SYMBOL) (cell_tag(SYMBOL) == TAG_STRUCT)

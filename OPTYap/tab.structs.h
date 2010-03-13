@@ -110,12 +110,6 @@ typedef struct table_entry {
 **    Trie definitions       **
 ** ------------------------- */
 
-enum Types_of_Tries {
- CALL_TRIE_TT              = 0x01,     /* binary:  0001 */
- BASIC_ANSWER_TRIE_TT      = 0x02,     /* binary:  0010 */
- TS_ANSWER_TRIE_TT         = 0x04,     /* binary:  0100 */
-};
-
 enum Types_of_Trie_Nodes {
   TRIE_ROOT_NT = 0x08,
   HASH_HEADER_NT = 0x04,
@@ -124,9 +118,13 @@ enum Types_of_Trie_Nodes {
   INTERIOR_NT = 0x00,
   HASHED_INTERIOR_NT = 0x01,
   LONG_INT_NT = 0x10,
-  FLOAT_NT = 0x20
+  FLOAT_NT = 0x20,
+  CALL_TRIE_NT = 0x00,
+  ANSWER_TRIE_NT = 0x40,
+  TST_TRIE_NT = 0x80
 };
 
+#define TRIE_TYPE_MASK 0xC0
 #define IS_LONG_INT_FLAG(FLAG) ((FLAG) & LONG_INT_NT)
 #define IS_FLOAT_FLAG(FLAG) ((FLAG) & FLOAT_NT)
 
@@ -134,7 +132,6 @@ typedef unsigned long time_stamp;
 
 struct basic_trie_info {
   OPCODE instr;
-  unsigned char trie_type;
   unsigned char node_type;
 };
 
@@ -203,7 +200,7 @@ typedef struct answer_trie_node {
 
 #define TrNode_instr(X)        ((X)->basic_info.instr)
 #define TrNode_node_type(X)    ((X)->basic_info.node_type)
-#define TrNode_trie_type(X)    ((X)->basic_info.trie_type)
+#define TrNode_trie_type(X)    (TrNode_node_type(X) & TRIE_TYPE_MASK)
 #define TrNode_or_arg(X)       ((X)->or_arg)
 #define TrNode_entry(X)        ((X)->entry)
 #define TrNode_lock(X)         ((X)->lock)
@@ -217,8 +214,11 @@ typedef struct answer_trie_node {
 #define TrNode_is_float(X)     (IS_FLOAT_FLAG(TrNode_node_type(X)))
 #define TrNode_long_int(X)     ((X)->long_int)
 #define TrNode_float(X)        ((X)->float_val)
-#define TrNode_is_call(X)      (TrNode_trie_type(X) & CALL_TRIE_TT)
+#define TrNode_is_call(X)      (TrNode_trie_type(X) == CALL_TRIE_NT)
+#define TrNode_is_tst(X)       (TrNode_trie_type(X) == TST_TRIE_NT)
+#define TrNode_is_answer(X)    (TrNode_trie_type(X) == ANSWER_TRIE_NT)
 #define TrNode_is_root(X)      (TrNode_node_type(X) & TRIE_ROOT_NT)
+#define TrNode_is_leaf(X)      (TrNode_node_type(X) & LEAF_NT)
 
 /* -------------------------------------------------------------------------- **
 **      Structs global_trie_hash, subgoal_trie_hash and answer_trie_hash      **

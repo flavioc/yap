@@ -36,8 +36,7 @@ STD_PROTO(static inline Term HASH_TST_NODE, (tst_node_ptr));
   } \
   else  \
     TN_Instr(TN) = trie_root; \
-  TN_TrieType(TN) = TrieType; \
-  TN_NodeType(TN) = NodeType; \
+  TN_NodeType(TN) = NodeType | TrieType; \
   TN_Symbol(TN) = Symbol; \
   TN_Parent(TN) = Parent; \
   TN_Child(TN) = NULL;  \
@@ -162,8 +161,6 @@ TSTNptr new_tstn(CTXTdeclc int trie_t, int node_t, Cell symbol, TSTNptr parent,
     TSTNptr sibling) {
   void * tstn;
   
-  dprintf("TrieType %d\n", trie_t);
-  
   if(IS_LONG_INT_FLAG(node_t)) {
     ALLOC_LONG_TST_NODE(tstn);
     TSTN_long_int((long_tst_node_ptr)tstn) = *(Int *)symbol;
@@ -272,9 +269,7 @@ static inline TSTHTptr New_BTHT(int TrieType) {
   ALLOC_TST_ANSWER_TRIE_HASH(btht);
   ALLOC_HASH_BUCKETS(TSTHT_BucketArray(btht), TrieHT_INIT_SIZE);
   TSTHT_Instr(btht) = hash_opcode;
-  //TSTHT_Status(btht) = VALID_NODE_STATUS;
-  TSTHT_TrieType(btht) = TrieType;
-  TSTHT_NodeType(btht) = HASH_HEADER_NT;
+  TSTHT_NodeType(btht) = HASH_HEADER_NT | TrieType;
   TSTHT_NumContents(btht) = MAX_SIBLING_LEN + 1;
   TSTHT_NumBuckets(btht) = TrieHT_INIT_SIZE;
   

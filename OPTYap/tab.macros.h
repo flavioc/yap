@@ -493,8 +493,7 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
         TrNode_child(NODE) = CHILD;                                     \
         TrNode_parent(NODE) = PARENT;                                   \
         TrNode_next(NODE) = NEXT;                                       \
-        TrNode_trie_type(NODE) = CALL_TRIE_TT;                          \
-        TrNode_node_type(NODE) = TYPE
+        TrNode_node_type(NODE) = TYPE | CALL_TRIE_NT
         
 #define free_subgoal_trie_node(NODE)                                    \
         if(TrNode_is_long(NODE))  {                                     \
@@ -507,21 +506,19 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
 
 #define new_root_answer_trie_node(NODE)                                 \
         ALLOC_ANSWER_TRIE_NODE(NODE);                                   \
-        init_answer_trie_node(NODE, 0, 0, NULL, NULL, NULL);            \
-        TrNode_node_type(NODE) = TRIE_ROOT_NT
+        init_answer_trie_node(NODE, 0, 0, NULL, NULL, NULL, TRIE_ROOT_NT)
 #define new_answer_trie_node(NODE, INSTR, ENTRY, CHILD, PARENT, NEXT)   \
         INCREMENT_GLOBAL_TRIE_REFS(ENTRY);                              \
         ALLOC_ANSWER_TRIE_NODE(NODE);                                   \
-        init_answer_trie_node(NODE, INSTR, ENTRY, CHILD, PARENT, NEXT); \
-        TrNode_node_type(NODE) = INTERIOR_NT
-#define init_answer_trie_node(NODE, INSTR, ENTRY, CHILD, PARENT, NEXT)  \
+        init_answer_trie_node(NODE, INSTR, ENTRY, CHILD, PARENT, NEXT, INTERIOR_NT)
+#define init_answer_trie_node(NODE, INSTR, ENTRY, CHILD, PARENT, NEXT, FLAGS)  \
         TrNode_instr(NODE) = INSTR;                                     \
         TrNode_entry(NODE) = ENTRY;                                     \
         TrNode_init_lock_field(NODE);                                   \
         TrNode_child(NODE) = CHILD;                                     \
         TrNode_parent(NODE) = PARENT;                                   \
         TrNode_next(NODE) = NEXT;                                       \
-        TrNode_trie_type(NODE) = BASIC_ANSWER_TRIE_TT
+        TrNode_node_type(NODE) = FLAGS | ANSWER_TRIE_NT
 
 
 #define MAX_NODES_PER_TRIE_LEVEL           8
@@ -547,18 +544,16 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
 
 #define new_subgoal_trie_hash(HASH, NUM_NODES, TAB_ENT)             \
         ALLOC_SUBGOAL_TRIE_HASH(HASH);                              \
-        TrNode_node_type(HASH) = HASH_HEADER_NT;                    \
-        TrNode_trie_type(HASH) = CALL_TRIE_TT;                      \
+        TrNode_node_type(HASH) = HASH_HEADER_NT | CALL_TRIE_NT;     \
         Hash_num_buckets(HASH) = BASE_HASH_BUCKETS;                 \
         ALLOC_HASH_BUCKETS(Hash_buckets(HASH), BASE_HASH_BUCKETS);  \
         Hash_num_nodes(HASH) = NUM_NODES;                           \
-        SgHash_init_next_field(HASH, TAB_ENT)      
+        SgHash_init_next_field(HASH, TAB_ENT)
 
 
 #define new_answer_trie_hash(HASH, NUM_NODES, SG_FR)                \
         ALLOC_ANSWER_TRIE_HASH(HASH);                               \
-        TrNode_node_type(HASH) = HASH_HEADER_NT;                    \
-        TrNode_trie_type(HASH) = BASIC_ANSWER_TRIE_TT;              \
+        TrNode_node_type(HASH) = HASH_HEADER_NT | ANSWER_TRIE_NT;   \
         Hash_num_buckets(HASH) = BASE_HASH_BUCKETS;                 \
         ALLOC_HASH_BUCKETS(Hash_buckets(HASH), BASE_HASH_BUCKETS);  \
         Hash_num_nodes(HASH) = NUM_NODES;                           \
@@ -827,9 +822,10 @@ TABLING_ERROR_MESSAGE("rebind_tr < end_tr (function restore_bindings)");
 
 static inline void
 free_answer_trie_node(ans_node_ptr node) {
-  if(TrNode_trie_type(node) & BASIC_ANSWER_TRIE_TT) {
+  if(TrNode_is_answer(node)) {
     FREE_ANSWER_TRIE_NODE(node);
   } else {
+    /* TST node */
     if(TrNode_is_long(node)) {
       FREE_LONG_TST_NODE(node);
     } else if(TrNode_is_float(node)) {
@@ -1024,11 +1020,6 @@ void free_subgoal_trie_hash_chain(sg_hash_ptr hash) {
  */
 static inline
 void free_answer_trie_hash_chain(ans_hash_ptr hash) {
-#ifdef TABLING_ERRORS
-  if(hash && TrNode_trie_type(hash) != BASIC_ANSWER_TRIE_TT) {
-    TABLING_ERROR_MESSAGE("free_answer_trie_hash_chain must be called for basic answer tries");
-  }
-#endif
   while (hash) {
     ans_node_ptr chain_node, *bucket, *last_bucket;
     ans_hash_ptr next_hash;
@@ -1058,11 +1049,6 @@ void free_answer_trie_hash_chain(ans_hash_ptr hash) {
 
 static inline
 void free_tst_hash_chain(tst_ans_hash_ptr hash) {
-#ifdef TABLING_ERRORS
-  if(hash && TrNode_trie_type(hash) != TS_ANSWER_TRIE_TT) {
-    TABLING_ERROR_MESSAGE("free_tst_hash_chain must be called for tst answer tries");
-  }
-#endif
   while(hash) {
     tst_node_ptr chain_node, *bucket, *last_bucket;
     tst_ans_hash_ptr next_hash;
