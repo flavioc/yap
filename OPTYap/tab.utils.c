@@ -237,7 +237,7 @@ void symstkPrintNextTrieTerm(CTXTdeclc FILE *fp, xsbBool list_recursion)
       BTNptr node;
       Float flt;
       
-      SymbolStack_Pop(node);
+      SymbolStack_PopOther(node, BTNptr);
       
       if(TrNode_is_call(node))
         flt = TrNode_float((float_sg_node_ptr)node);
@@ -253,7 +253,7 @@ void symstkPrintNextTrieTerm(CTXTdeclc FILE *fp, xsbBool list_recursion)
       BTNptr node;
       Int li;
       
-      SymbolStack_Pop(node);
+      SymbolStack_PopOther(node, BTNptr);
       
       if(TrNode_is_call(node))
         li = TrNode_long_int((long_sg_node_ptr)node);
@@ -551,13 +551,13 @@ recursive_construct_subgoal(CELL* trie_vars, CELL* placeholder)
     if(f == FunctorDouble) {
       float_sg_node_ptr node;
       
-      SymbolStack_Pop(node);
+      SymbolStack_PopOther(node, float_sg_node_ptr);
       
       *placeholder = MkFloatTerm(TrNode_float(node));
     } else if(f == FunctorLongInt) {
       long_sg_node_ptr node;
       
-      SymbolStack_Pop(node);
+      SymbolStack_PopOther(node, long_sg_node_ptr);
       
       *placeholder = MkLongIntTerm(TrNode_long_int(node));
     } else {
@@ -703,29 +703,22 @@ fix_functor(Term t, CELL* placeholder)
   Functor f = FunctorOfTerm(t);
   
   if(f == FunctorDouble) {
-    dprintf("DOUBLE!\n");
     if(placeholder)
       *placeholder = MkFloatTerm(FloatOfTerm(t));
     else {
-      CELL* orig_h = H++;
-      TermStack_Push(orig_h);
-      *orig_h = MkFloatTerm(FloatOfTerm(t));
+      TermStack_Push(MkFloatTerm(FloatOfTerm(t)));
     }
   } else if(f == FunctorLongInt) {
     if(placeholder)
       *placeholder = MkLongIntTerm(LongIntOfTerm(t));
     else {
-      CELL* orig_h = H++;
-      TermStack_Push(orig_h);
-      *orig_h = MkLongIntTerm(LongIntOfTerm(t));
+      TermStack_Push(MkLongIntTerm(LongIntOfTerm(t)));
     }
   } else {
     if(placeholder)
       *placeholder = AbsAppl(H);
     else {
-      TermStack_Push(H);
-      *H = AbsAppl(H + 1);
-      ++H;
+      TermStack_Push(AbsAppl(H));
     }
     *H++ = (CELL)f;
   
@@ -745,9 +738,7 @@ fix_list(Term t, CELL* placeholder)
   if(placeholder)
     *placeholder = AbsPair(H);
   else {
-    TermStack_Push(H);
-    *H = AbsPair(H + 1);
-    ++H;
+    TermStack_Push(AbsPair(H));
   }
   
   CELL* arguments = H;
@@ -765,8 +756,7 @@ fix_rec(CELL val, CELL* placeholder)
     if(placeholder)
       *placeholder = val;
     else {
-      TermStack_Push(H);
-      *H++ = val;
+      TermStack_Push(val);
     }
   } else if(IsVarTerm(val)) {
     if(IsStandardizedVariable(val)) {
@@ -775,9 +765,7 @@ fix_rec(CELL val, CELL* placeholder)
       if(placeholder)
         *placeholder = val;
       else {
-        *H = (CELL)val;
-        TermStack_Push(H);
-        ++H;
+        TermStack_Push(val);
       }
     } else {
       dprintf("New variable\n");
@@ -786,11 +774,11 @@ fix_rec(CELL val, CELL* placeholder)
       Trail_Push(&TrieVarBindings[variable_counter]);
       if(placeholder) {
         *placeholder = (CELL)placeholder;
-        TrieVarBindings[variable_counter] = placeholder;
+        TrieVarBindings[variable_counter] = (CELL)placeholder;
       } else {
         *H = (CELL)H;
-        TrieVarBindings[variable_counter] = H;
-        TermStack_Push(H);
+        TrieVarBindings[variable_counter] = (CELL)H;
+        TermStack_Push((CELL)H);
         ++H;
       }
       ++variable_counter;
