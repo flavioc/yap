@@ -458,16 +458,22 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
         init_subgoal_trie_node(NODE, ENTRY, CHILD, PARENT, NEXT, TYPE)
         
 #define new_long_subgoal_trie_node(NODE, LONG, CHILD, PARENT, NEXT, TYPE) \
-        INCREMENT_GLOBAL_TRIE_REFS(EncodedLongFunctor);                   \
-        ALLOC_LONG_SUBGOAL_TRIE_NODE(NODE);                             \
-        init_subgoal_trie_node(NODE, EncodedLongFunctor, CHILD, PARENT, NEXT, TYPE);  \
-        TrNode_long_int((long_sg_node_ptr)(NODE)) = LONG
+        { INCREMENT_GLOBAL_TRIE_REFS((Term)(LONG));                   \
+          long_sg_node_ptr long_node;                                 \
+          ALLOC_LONG_SUBGOAL_TRIE_NODE(long_node);                    \
+          NODE = (sg_node_ptr)long_node;                                           \
+          init_subgoal_trie_node(NODE, EncodedLongFunctor, CHILD, PARENT, NEXT, TYPE);  \
+          TrNode_long_int(long_node) = LONG;                          \
+        }
         
 #define new_float_subgoal_trie_node(NODE, FLOAT, CHILD, PARENT, NEXT, TYPE) \
-        INCREMENT_GLOBAL_TRIE_REFS(EncodedFloatFunctor);                    \
-        ALLOC_FLOAT_SUBGOAL_TRIE_NODE(NODE);                                \
-        init_subgoal_trie_node(NODE, EncodedFloatFunctor, CHILD, PARENT, NEXT, TYPE); \
-        TrNode_float((float_sg_node_ptr)(NODE)) = FLOAT
+        { INCREMENT_GLOBAL_TRIE_REFS((Term)(FLOAT));                    \
+          float_sg_node_ptr float_node;                                 \
+          ALLOC_FLOAT_SUBGOAL_TRIE_NODE(float_node);                    \
+          NODE = (sg_node_ptr)float_node;                               \
+          init_subgoal_trie_node(NODE, EncodedFloatFunctor, CHILD, PARENT, NEXT, TYPE); \
+          TrNode_float(float_node) = FLOAT;                               \
+        }
         
 #define new_general_subgoal_trie_node(NODE, DATA, CHILD, PARENT, NEXT, TYPE)  \
         if(IS_FLOAT_FLAG(TYPE)) {                                             \
