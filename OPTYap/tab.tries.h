@@ -1,27 +1,5 @@
-/* ------------------------------------- **
-**      Local functions declaration      **
-** ------------------------------------- */
-
-#ifdef YAPOR
-#ifdef TABLING_INNER_CUTS
-static int update_answer_trie_branch(ans_node_ptr previous_node, ans_node_ptr current_node);
-#else
-static int update_answer_trie_branch(ans_node_ptr current_node);
-#endif /* TABLING_INNER_CUTS */
-#else
-static void update_answer_trie_branch(ans_node_ptr current_node, int position);
-#endif /* YAPOR */
-static void traverse_subgoal_trie(sg_node_ptr current_node, char *str, int str_index, int *arity, int mode, int position, tab_ent_ptr tab_ent);
-static void traverse_answer_trie(ans_node_ptr current_node, char *str, int str_index, int *arity, int var_index, int mode, int position);
-static void traverse_trie_node(void *node, char *str, int *str_index_ptr, int *arity, int *mode_ptr, int type);
-#ifdef GLOBAL_TRIE
-static void free_global_trie_branch(gt_node_ptr current_node);
-static void traverse_global_trie(gt_node_ptr current_node, char *str, int str_index, int *arity, int mode, int position);
-static void traverse_global_trie_for_subgoal(gt_node_ptr current_node, char *str, int *str_index, int *arity, int *mode);
-static void traverse_global_trie_for_answer(gt_node_ptr current_node, char *str, int *str_index, int *arity, int *mode);
-#endif /* GLOBAL_TRIE */
-
-
+#ifndef TAB_TRIES_H
+#define TAB_TRIES_H
 
 /* ----------------------- **
 **      Local inlines      **
@@ -829,3 +807,5 @@ ans_node_ptr answer_trie_node_check_insert(sg_fr_ptr sg_fr, ans_node_ptr parent_
   }
 }
 #endif /* TABLE_LOCK_LEVEL */
+
+#endif /* TAB_TRIES_H */

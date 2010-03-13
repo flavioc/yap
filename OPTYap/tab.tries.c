@@ -26,6 +26,29 @@
 #include "tab.utils.h"
 #include "tab.tries.h"
 
+/* ------------------------------------- **
+**      Local functions declaration      **
+** ------------------------------------- */
+
+#ifdef YAPOR
+#ifdef TABLING_INNER_CUTS
+static int update_answer_trie_branch(ans_node_ptr previous_node, ans_node_ptr current_node);
+#else
+static int update_answer_trie_branch(ans_node_ptr current_node);
+#endif /* TABLING_INNER_CUTS */
+#else
+static void update_answer_trie_branch(ans_node_ptr current_node, int position);
+#endif /* YAPOR */
+static void traverse_subgoal_trie(sg_node_ptr current_node, char *str, int str_index, int *arity, int mode, int position, tab_ent_ptr tab_ent);
+static void traverse_answer_trie(ans_node_ptr current_node, char *str, int str_index, int *arity, int var_index, int mode, int position);
+static void traverse_trie_node(void *node, char *str, int *str_index_ptr, int *arity, int *mode_ptr, int type);
+#ifdef GLOBAL_TRIE
+static void free_global_trie_branch(gt_node_ptr current_node);
+static void traverse_global_trie(gt_node_ptr current_node, char *str, int str_index, int *arity, int mode, int position);
+static void traverse_global_trie_for_subgoal(gt_node_ptr current_node, char *str, int *str_index, int *arity, int *mode);
+static void traverse_global_trie_for_answer(gt_node_ptr current_node, char *str, int *str_index, int *arity, int *mode);
+#endif /* GLOBAL_TRIE */
+
 /* -------------------------- **
 **      Global functions      **
 ** -------------------------- */
@@ -698,7 +721,7 @@ void update_answer_trie_branch(ans_node_ptr current_node, int position) {
     while(bucket != last_bucket) {
       if(*bucket) {
         chain_node = *bucket;
-        update_answer_trie_branch(chain_node, TRAVERSE_POSITION_FIRST); /* retry --> try */
+        update_answer_trie_branch((ans_node_ptr)chain_node, TRAVERSE_POSITION_FIRST); /* retry --> try */
       }
       bucket++;
     }
@@ -845,7 +868,7 @@ void traverse_subgoal_trie(sg_node_ptr current_node, char *str, int str_index, i
             TrStat_answers++;
             
             if (TrStat_show == SHOW_MODE_STRUCTURE) {
-              consume_subsumptive_answer((ans_node_ptr)ans, ans_size, ans_tmplt);
+              consume_subsumptive_answer((BTNptr)ans, ans_size, ans_tmplt);
               
               printSubsumptiveAnswer(Yap_stdout, vars);
               
