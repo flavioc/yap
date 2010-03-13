@@ -10,6 +10,7 @@
 /* prototypes */
 STD_PROTO(static inline void expand_trie_ht, (CTXTdeclc BTHTptr));
 STD_PROTO(static inline TSTHTptr New_BTHT, (int));
+STD_PROTO(static inline Term HASH_TST_NODE, (tst_node_ptr));
 
 #define New_TSIN(TSIN, TSTN) {  \
   void *t;  \
@@ -140,6 +141,22 @@ STD_PROTO(static inline TSTHTptr New_BTHT, (int));
 #define BTN_SetHashHdr(pBTN,pTHT) TN_SetHashHdr(pBTN,pTHT)
 #define TN_GetHashHdr(pTN)    TN_Child(pTN)
 #define BTN_GetHashHdr(pTN)   ((BTHTptr)TN_GetHashHdr(pTN))
+
+static inline Term
+HASH_TST_NODE(tst_node_ptr node) {
+ int flags = TrNode_node_type(node);
+
+ if(IS_LONG_INT_FLAG(flags)) {
+   Int li = TSTN_long_int((long_tst_node_ptr)node);
+
+   return (Term)li;
+ } else if(IS_FLOAT_FLAG(flags)) {
+   Float flt = TSTN_float((float_tst_node_ptr)node);
+
+   return (Term)flt;
+ } else
+   return TSTN_entry(node);
+}
 
 TSTNptr new_tstn(CTXTdeclc int trie_t, int node_t, Cell symbol, TSTNptr parent,
     TSTNptr sibling) {

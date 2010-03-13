@@ -566,6 +566,22 @@ gt_node_ptr global_trie_node_check_insert(gt_node_ptr parent_node, Term t) {
 }
 #endif /* GLOBAL_TRIE */
 
+static inline Term
+HASH_SUBGOAL_NODE(sg_node_ptr node) {
+  int flags = TrNode_node_type(node);
+  
+  if(IS_LONG_INT_FLAG(flags)) {
+    Int li = TrNode_long_int((long_sg_node_ptr)node);
+    
+    return (Term)li;
+  } else if(IS_FLOAT_FLAG(flags)) {
+    Float flt = TrNode_float((float_sg_node_ptr)node);
+    
+    return (Term)flt;
+  } else
+    return TrNode_entry(node);
+}
+
 #define FIND_NODE_LOOP(NODE, PARENT, COUNT, CONDITION) \
   while(NODE) { \
     if(CONDITION) { \

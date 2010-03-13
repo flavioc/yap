@@ -206,52 +206,10 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
 
 #define EncodedLongFunctor  AbsAppl((Term *)FunctorLongInt)
 #define EncodedFloatFunctor AbsAppl((Term *)FunctorDouble)
-                                          
-static inline Term
-GET_HASH_SYMBOL(Term t, int flags) {
-  if(IS_LONG_INT_FLAG(flags)) {
-    Int li = *(Int *)t;
-    
-    return (Term)li;
-  } else if(IS_FLOAT_FLAG(flags)) {
-    Float flt = *(Float *)t;
-    
-    return (Term)flt;
-  } else
-    return t;
-}
 
-static inline Term
-HASH_SUBGOAL_NODE(sg_node_ptr node) {
-  int flags = TrNode_node_type(node);
-  
-  if(IS_LONG_INT_FLAG(flags)) {
-    Int li = TrNode_long_int((long_sg_node_ptr)node);
-    
-    return (Term)li;
-  } else if(IS_FLOAT_FLAG(flags)) {
-    Float flt = TrNode_float((float_sg_node_ptr)node);
-    
-    return (Term)flt;
-  } else
-    return TrNode_entry(node);
-}
-
-static inline Term
-HASH_TST_NODE(tst_node_ptr node) {
-  int flags = TrNode_node_type(node);
-  
-  if(IS_LONG_INT_FLAG(flags)) {
-    Int li = TSTN_long_int((long_tst_node_ptr)node);
-    
-    return (Term)li;
-  } else if(IS_FLOAT_FLAG(flags)) {
-    Float flt = TSTN_float((float_tst_node_ptr)node);
-    
-    return (Term)flt;
-  } else
-    return TSTN_entry(node);
-}
+#define GET_HASH_SYMBOL(DATA, FLAGS) \
+          (IS_LONG_INT_FLAG(FLAGS) ? (Term)*(Int *)(DATA) : \
+            (IS_FLOAT_FLAG(FLAGS) ? (Term)*(Float *)(DATA) : (Term)(DATA)))
 
 #define HASH_TABLE_LOCK(NODE)  ((((unsigned long int) NODE) >> 5) & (TABLE_LOCK_BUCKETS - 1))
 #define LOCK_TABLE(NODE)         LOCK(GLOBAL_table_lock(HASH_TABLE_LOCK(NODE)))
