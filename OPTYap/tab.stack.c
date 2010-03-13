@@ -23,9 +23,9 @@ void dynamic_stack_print(DynamicStack ds)
       " Stack Top:  %8p\tCurrent Size: %u frames\n"
       " Stack Ceiling: %8p\tInitial Size: %u frames",
       DynStk_Name(ds),
-      DynStk_Base(ds), DynStk_FrameSize(ds),
-      DynStk_Top(ds), DynStk_CurSize(ds),
-      DynStk_Ceiling(ds), DynStk_InitSize(ds));
+      DynStk_Base(ds), (unsigned int)DynStk_FrameSize(ds),
+      DynStk_Top(ds), (unsigned int)DynStk_CurSize(ds),
+      DynStk_Ceiling(ds), (unsigned int)DynStk_InitSize(ds));
 }
 
 void dynamic_stack_init(DynamicStack *ds, size_t stack_size, size_t frame_size, char* name)
