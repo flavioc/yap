@@ -151,11 +151,11 @@ extern DynamicStack tstTermStackLog;
 #define TermStackLog_Base ((pLogFrame)DynStk_Base(tstTermStackLog))
 #define TermStackLog_ResetTOS DynStk_ResetTOS(tstTermStackLog)
 
-#define TermStackLog_PushFrame {  \
-    pLogFrame nextFrame; \
-    DynStk_Push(tstTermStackLog, nextFrame);  \
+#define TermStackLog_PushFrame {                                \
+    pLogFrame nextFrame;                                        \
+    DynStk_Push(tstTermStackLog, nextFrame);                    \
     LogFrame_Index(nextFrame) = TermStack_Top - TermStack_Base; \
-    LogFrame_Value(nextFrame) = *(TermStack_Top); \
+    LogFrame_Value(nextFrame) = *(TermStack_Top);               \
 }
 
 #define TermStackLog_PopAndReset { \

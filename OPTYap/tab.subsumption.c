@@ -55,15 +55,15 @@ typedef enum Search_Strategy_Mode {
  *  state is still accessible.
  */
 #define CPStack_PushFrame(AltNode, VarChain)  { \
-    CPStack_OverflowCheck; \
-    CPF_AlternateNode = AltNode; \
-    CPF_VariableChain = VarChain;  \
-    CPF_TermStackTopIndex =  \
-      TermStack_Top - TermStack_Base + 1;  \
-    CPF_TermStackLogTopIndex =  \
+    CPStack_OverflowCheck;                      \
+    CPF_AlternateNode = AltNode;                \
+    CPF_VariableChain = VarChain;               \
+    CPF_TermStackTopIndex =                     \
+      TermStack_Top - TermStack_Base + 1;       \
+    CPF_TermStackLogTopIndex =                  \
       TermStackLog_Top - TermStackLog_Base - 1; \
     CPF_TrailTopIndex = Trail_Top - Trail_Base; \
-    tstCCPStack.top++;  \
+    tstCCPStack.top++;                          \
 }
 
 /*
@@ -954,8 +954,7 @@ void subsumptive_call_search(TabledCallInfo *call_info, CallLookupResults *resul
     CallResults_variant_found(results) = (path_type == VARIANT_PATH);
     CallResults_var_vector(results) = answer_template;
     
-    //if((path_type != VARIANT_PATH) && (SgFr_state(sf_with_ans_set) < complete)) {
-    // To change this when compiled tries work XXX
+    //if((path_type != VARIANT_PATH) && (SgFr_state(subsumer) < complete)) {
     if(path_type != VARIANT_PATH) {
       CallResults_leaf(results) = variant_call_cont_insert(tab_ent, (sg_node_ptr)stl_restore_variant_cont(), variant_cont.bindings.num);
       Trail_Unwind_All;
