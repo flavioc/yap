@@ -2045,7 +2045,7 @@ Yap_absmi(int inp)
 	      goto failloop;
 	    } else
 #endif /* FROZEN_STACKS */
-	      if (IN_BETWEEN(Yap_GlobalBase, pt1, H0))
+	      if (IsAttVar(pt1))
 		goto failloop;		       	    
 	    flags = *pt1;
 #if defined(YAPOR) || defined(THREADS)
@@ -3284,7 +3284,7 @@ Yap_absmi(int inp)
       BIND_AND_JUMP(pt0, d0);
 #ifdef COROUTINING
       DO_TRAIL(pt0, d0);
-      if (pt0 < H0) Yap_WakeUp(pt0);
+      if (IsAttVar(pt0)) Yap_WakeUp(pt0);
 #endif
       GONext();
 
@@ -3305,7 +3305,7 @@ Yap_absmi(int inp)
       BIND(pt0, d1, bind_gvalx_var_nonvar);
 #ifdef COROUTINING
       DO_TRAIL(pt0, d1);
-      if (pt0 < H0) Yap_WakeUp(pt0);
+      if (IsAttVar(pt0)) Yap_WakeUp(pt0);
     bind_gvalx_var_nonvar:
 #endif
       GONext();
@@ -3317,14 +3317,14 @@ Yap_absmi(int inp)
       UnifyCells(pt0, pt1, uc1, uc2);
 #ifdef COROUTINING
       DO_TRAIL(pt0, (CELL)pt1);
-      if (pt0 < H0) Yap_WakeUp(pt0);
+      if (IsAttVar(pt0)) Yap_WakeUp(pt0);
     uc1:
 #endif
       GONext();
 #ifdef COROUTINING
     uc2:
       DO_TRAIL(pt1, (CELL)pt0);
-      if (pt1 < H0) Yap_WakeUp(pt1);
+      if (IsAttVar(pt1)) Yap_WakeUp(pt1);
       GONext();
 #endif
       ENDP(pt1);
@@ -3366,7 +3366,7 @@ Yap_absmi(int inp)
       BIND(pt1, d0, bind_gvaly_nonvar_var);
 #ifdef COROUTINING
       DO_TRAIL(pt1, d0);
-      if (pt1 < H0) Yap_WakeUp(pt1);
+      if (IsAttVar(pt1)) Yap_WakeUp(pt1);
     bind_gvaly_nonvar_var:
 #endif
       GONext();
@@ -3385,7 +3385,7 @@ Yap_absmi(int inp)
       BIND(pt0, d1, bind_gvaly_var_nonvar);
 #ifdef COROUTINING
       DO_TRAIL(pt0, d1);
-      if (pt0 < H0) Yap_WakeUp(pt0);
+      if (IsAttVar(pt0)) Yap_WakeUp(pt0);
     bind_gvaly_var_nonvar:
 #endif
       GONext();
@@ -3397,14 +3397,14 @@ Yap_absmi(int inp)
       UnifyCells(pt0, pt1, uc3, uc4);
 #ifdef COROUTINING
       DO_TRAIL(pt0, (CELL)pt1);
-      if (pt0 < H0) Yap_WakeUp(pt0);
+      if (IsAttVar(pt0)) Yap_WakeUp(pt0);
     uc3:
 #endif
       GONext();
 #ifdef COROUTINING
     uc4:
       DO_TRAIL(pt1, (CELL)pt0);
-      if (pt1 < H0) Yap_WakeUp(pt1);
+      if (IsAttVar(pt1)) Yap_WakeUp(pt1);
       GONext();
 #endif
       ENDP(pt1);
@@ -3438,7 +3438,7 @@ Yap_absmi(int inp)
       BIND(pt0, d1, bind_gatom);
 #ifdef COROUTINING
       DO_TRAIL(pt0, d1);
-      if (pt0 < H0) Yap_WakeUp(pt0);
+      if (IsAttVar(pt0)) Yap_WakeUp(pt0);
     bind_gatom:
 #endif
       GONext();
@@ -3469,7 +3469,7 @@ Yap_absmi(int inp)
       BIND(pt0, PREG->u.cc.c1, gatom_2b);
 #ifdef COROUTINING
       DO_TRAIL(pt0, PREG->u.cc.c1);
-      if (pt0 < H0) Yap_WakeUp(pt0);
+      if (IsAttVar(pt0)) Yap_WakeUp(pt0);
 #endif
       ENDP(pt0);
     gatom_2b:
@@ -3495,7 +3495,7 @@ Yap_absmi(int inp)
       BIND(pt0, d1, gatom_2c);
 #ifdef COROUTINING
       DO_TRAIL(pt0, d1);
-      if (pt0 < H0) Yap_WakeUp(pt0);
+      if (IsAttVar(pt0)) Yap_WakeUp(pt0);
     gatom_2c:
 #endif
       GONext();
@@ -3526,7 +3526,7 @@ Yap_absmi(int inp)
       BIND(pt0, PREG->u.ccc.c1, gatom_3b);
 #ifdef COROUTINING
       DO_TRAIL(pt0, PREG->u.ccc.c1);
-      if (pt0 < H0) Yap_WakeUp(pt0);
+      if (IsAttVar(pt0)) Yap_WakeUp(pt0);
 #endif
       ENDP(pt0);
     gatom_3b:
@@ -3549,7 +3549,7 @@ Yap_absmi(int inp)
       BIND(pt0, PREG->u.ccc.c2, gatom_3c);
 #ifdef COROUTINING
       DO_TRAIL(pt0, PREG->u.ccc.c2);
-      if (pt0 < H0) Yap_WakeUp(pt0);
+      if (IsAttVar(pt0)) Yap_WakeUp(pt0);
 #endif
       ENDP(pt0);
     gatom_3c:
@@ -3575,7 +3575,7 @@ Yap_absmi(int inp)
       BIND(pt0, d1, gatom_3d);
 #ifdef COROUTINING
       DO_TRAIL(pt0, d1);
-      if (pt0 < H0) Yap_WakeUp(pt0);
+      if (IsAttVar(pt0)) Yap_WakeUp(pt0);
     gatom_3d:
 #endif
       GONext();
@@ -3606,7 +3606,7 @@ Yap_absmi(int inp)
       BIND(pt0, PREG->u.cccc.c1, gatom_4b);
 #ifdef COROUTINING
       DO_TRAIL(pt0, PREG->u.cccc.c1);
-      if (pt0 < H0) Yap_WakeUp(pt0);
+      if (IsAttVar(pt0)) Yap_WakeUp(pt0);
 #endif
       ENDP(pt0);
     gatom_4b:
@@ -3629,7 +3629,7 @@ Yap_absmi(int inp)
       BIND(pt0, PREG->u.cccc.c2, gatom_4c);
 #ifdef COROUTINING
       DO_TRAIL(pt0, PREG->u.cccc.c2);
-      if (pt0 < H0) Yap_WakeUp(pt0);
+      if (IsAttVar(pt0)) Yap_WakeUp(pt0);
 #endif
       ENDP(pt0);
     gatom_4c:
@@ -3652,7 +3652,7 @@ Yap_absmi(int inp)
       BIND(pt0, PREG->u.cccc.c3, gatom_4d);
 #ifdef COROUTINING
       DO_TRAIL(pt0, PREG->u.cccc.c3);
-      if (pt0 < H0) Yap_WakeUp(pt0);
+      if (IsAttVar(pt0)) Yap_WakeUp(pt0);
 #endif
       ENDP(pt0);
    gatom_4d:
@@ -3678,7 +3678,7 @@ Yap_absmi(int inp)
       BIND(pt0, d1, gatom_4e);
 #ifdef COROUTINING
       DO_TRAIL(pt0, d1);
-      if (pt0 < H0) Yap_WakeUp(pt0);
+      if (IsAttVar(pt0)) Yap_WakeUp(pt0);
     gatom_4e:
 #endif
       GONext();
@@ -3709,7 +3709,7 @@ Yap_absmi(int inp)
       BIND(pt0, PREG->u.ccccc.c1, gatom_5b);
 #ifdef COROUTINING
       DO_TRAIL(pt0, PREG->u.ccccc.c1);
-      if (pt0 < H0) Yap_WakeUp(pt0);
+      if (IsAttVar(pt0)) Yap_WakeUp(pt0);
 #endif
       ENDP(pt0);
     gatom_5b:
@@ -3732,7 +3732,7 @@ Yap_absmi(int inp)
       BIND(pt0, PREG->u.ccccc.c2, gatom_5c);
 #ifdef COROUTINING
       DO_TRAIL(pt0, PREG->u.ccccc.c2);
-      if (pt0 < H0) Yap_WakeUp(pt0);
+      if (IsAttVar(pt0)) Yap_WakeUp(pt0);
 #endif
       ENDP(pt0);
     gatom_5c:
@@ -3755,7 +3755,7 @@ Yap_absmi(int inp)
       BIND(pt0, PREG->u.ccccc.c3, gatom_5d);
 #ifdef COROUTINING
       DO_TRAIL(pt0, PREG->u.ccccc.c3);
-      if (pt0 < H0) Yap_WakeUp(pt0);
+      if (IsAttVar(pt0)) Yap_WakeUp(pt0);
 #endif
       ENDP(pt0);
    gatom_5d:
@@ -3778,7 +3778,7 @@ Yap_absmi(int inp)
       BIND(pt0, PREG->u.ccccc.c4, gatom_5e);
 #ifdef COROUTINING
       DO_TRAIL(pt0, PREG->u.ccccc.c4);
-      if (pt0 < H0) Yap_WakeUp(pt0);
+      if (IsAttVar(pt0)) Yap_WakeUp(pt0);
 #endif
       ENDP(pt0);
    gatom_5e:
@@ -3804,7 +3804,7 @@ Yap_absmi(int inp)
       BIND(pt0, d1, gatom_5f);
 #ifdef COROUTINING
       DO_TRAIL(pt0, d1);
-      if (pt0 < H0) Yap_WakeUp(pt0);
+      if (IsAttVar(pt0)) Yap_WakeUp(pt0);
     gatom_5f:
 #endif
       GONext();
@@ -3835,7 +3835,7 @@ Yap_absmi(int inp)
       BIND(pt0, PREG->u.cccccc.c1, gatom_6b);
 #ifdef COROUTINING
       DO_TRAIL(pt0, PREG->u.cccccc.c1);
-      if (pt0 < H0) Yap_WakeUp(pt0);
+      if (IsAttVar(pt0)) Yap_WakeUp(pt0);
 #endif
       ENDP(pt0);
     gatom_6b:
@@ -3858,7 +3858,7 @@ Yap_absmi(int inp)
       BIND(pt0, PREG->u.cccccc.c2, gatom_6c);
 #ifdef COROUTINING
       DO_TRAIL(pt0, PREG->u.cccccc.c2);
-      if (pt0 < H0) Yap_WakeUp(pt0);
+      if (IsAttVar(pt0)) Yap_WakeUp(pt0);
 #endif
       ENDP(pt0);
     gatom_6c:
@@ -3881,7 +3881,7 @@ Yap_absmi(int inp)
       BIND(pt0, PREG->u.cccccc.c3, gatom_6d);
 #ifdef COROUTINING
       DO_TRAIL(pt0, PREG->u.cccccc.c3);
-      if (pt0 < H0) Yap_WakeUp(pt0);
+      if (IsAttVar(pt0)) Yap_WakeUp(pt0);
 #endif
       ENDP(pt0);
    gatom_6d:
@@ -3904,7 +3904,7 @@ Yap_absmi(int inp)
       BIND(pt0, PREG->u.cccccc.c4, gatom_6e);
 #ifdef COROUTINING
       DO_TRAIL(pt0, PREG->u.cccccc.c4);
-      if (pt0 < H0) Yap_WakeUp(pt0);
+      if (IsAttVar(pt0)) Yap_WakeUp(pt0);
 #endif
       ENDP(pt0);
    gatom_6e:
@@ -3927,7 +3927,7 @@ Yap_absmi(int inp)
       BIND(pt0, PREG->u.cccccc.c5, gatom_6f);
 #ifdef COROUTINING
       DO_TRAIL(pt0, PREG->u.cccccc.c5);
-      if (pt0 < H0) Yap_WakeUp(pt0);
+      if (IsAttVar(pt0)) Yap_WakeUp(pt0);
 #endif
       ENDP(pt0);
     gatom_6f:
@@ -3953,7 +3953,7 @@ Yap_absmi(int inp)
       BIND(pt0, d1, gatom_6g);
 #ifdef COROUTINING
       DO_TRAIL(pt0, d1);
-      if (pt0 < H0) Yap_WakeUp(pt0);
+      if (IsAttVar(pt0)) Yap_WakeUp(pt0);
     gatom_6g:
 #endif
       GONext();
@@ -3995,7 +3995,7 @@ Yap_absmi(int inp)
       BIND(pt0, d0, bind_glist);
 #ifdef COROUTINING
       DO_TRAIL(pt0, d0);
-      if (pt0 < H0) {
+      if (IsAttVar(pt0)) {
 	Yap_WakeUp(pt0);
 	S_SREG = H;
       }
@@ -4049,7 +4049,7 @@ Yap_absmi(int inp)
       BIND(pt0, d1, bind_gstruct);
 #ifdef COROUTINING
       DO_TRAIL(pt0, d1);
-      if (pt0 < H0) {
+      if (IsAttVar(pt0)) {
 	Yap_WakeUp(pt0);
       }
     bind_gstruct:
@@ -4115,7 +4115,7 @@ Yap_absmi(int inp)
       BIND(pt0, d1, bind_gfloat);
 #ifdef COROUTINING
       DO_TRAIL(pt0, d1);
-      if (pt0 < H0) Yap_WakeUp(pt0);
+      if (IsAttVar(pt0)) Yap_WakeUp(pt0);
     bind_gfloat:
 #endif
       GONext();
@@ -4160,7 +4160,7 @@ Yap_absmi(int inp)
       BIND(pt0, d1, bind_glongint);
 #ifdef COROUTINING
       DO_TRAIL(pt0, d1);
-      if (pt0 < H0) Yap_WakeUp(pt0);
+      if (IsAttVar(pt0)) Yap_WakeUp(pt0);
     bind_glongint:
 #endif
       GONext();
@@ -4208,7 +4208,7 @@ Yap_absmi(int inp)
       BIND(pt0, d1, bind_gbigint);
 #ifdef COROUTINING
       DO_TRAIL(pt0, d1);
-      if (pt0 < H0) Yap_WakeUp(pt0);
+      if (IsAttVar(pt0)) Yap_WakeUp(pt0);
     bind_gbigint:
 #endif
       GONext();
@@ -4247,7 +4247,7 @@ Yap_absmi(int inp)
       BIND(pt0, d1, bind_gdbterm);
 #ifdef COROUTINING
       DO_TRAIL(pt0, d1);
-      if (pt0 < H0) Yap_WakeUp(pt0);
+      if (IsAttVar(pt0)) Yap_WakeUp(pt0);
     bind_gdbterm:
 #endif
       GONext();
@@ -4299,7 +4299,7 @@ Yap_absmi(int inp)
       BIND(pt1, d0, bind_glist_valx_nonvar_var);
 #ifdef COROUTINING
       DO_TRAIL(pt1, d0);
-      if (pt1 < H0) Yap_WakeUp(pt1);
+      if (IsAttVar(pt1)) Yap_WakeUp(pt1);
     bind_glist_valx_nonvar_var:
 #endif
       GONext();
@@ -4320,7 +4320,7 @@ Yap_absmi(int inp)
       BIND_GLOBAL(pt0, d0, bind_glist_valx_var_nonvar);
 #ifdef COROUTINING
       DO_TRAIL(pt0, d0);
-      if (pt0 < H0) Yap_WakeUp(pt0);
+      if (IsAttVar(pt0)) Yap_WakeUp(pt0);
     bind_glist_valx_var_nonvar:
 #endif
       GONext();
@@ -4332,14 +4332,14 @@ Yap_absmi(int inp)
       UnifyGlobalRegCells(pt0, pt1, uc5, uc6);
 #ifdef COROUTINING
       DO_TRAIL(pt0, (CELL)pt1);
-      if (pt0 < H0) Yap_WakeUp(pt0);
+      if (IsAttVar(pt0)) Yap_WakeUp(pt0);
     uc5:
 #endif
       GONext();
 #ifdef COROUTINING
     uc6:
       DO_TRAIL(pt1, (CELL)pt0);
-      if (pt1 < H0) Yap_WakeUp(pt1);
+      if (IsAttVar(pt1)) Yap_WakeUp(pt1);
       GONext();
 #endif
       ENDP(pt1);
@@ -4372,7 +4372,7 @@ Yap_absmi(int inp)
 
 #ifdef COROUTINING
       DO_TRAIL(pt0, d0);
-      if (pt0 < H0) Yap_WakeUp(pt0);
+      if (IsAttVar(pt0)) Yap_WakeUp(pt0);
     dbind:
 #endif
       ALWAYS_GONextW();
@@ -4421,7 +4421,7 @@ Yap_absmi(int inp)
       BIND(pt1, d0, bind_glist_valy_nonvar_var);
 #ifdef COROUTINING
       DO_TRAIL(pt1, d0);
-      if (pt1 < H0) Yap_WakeUp(pt1);
+      if (IsAttVar(pt1)) Yap_WakeUp(pt1);
     bind_glist_valy_nonvar_var:
 #endif
       GONext();
@@ -4442,7 +4442,7 @@ Yap_absmi(int inp)
       BIND_GLOBAL(pt0, d1, bind_glist_valy_var_nonvar);
 #ifdef COROUTINING
       DO_TRAIL(pt0, d1);
-      if (pt0 < H0) Yap_WakeUp(pt0);
+      if (IsAttVar(pt0)) Yap_WakeUp(pt0);
     bind_glist_valy_var_nonvar:
 #endif
       GONext();
@@ -4453,14 +4453,14 @@ Yap_absmi(int inp)
       UnifyGlobalRegCells(pt0, pt1, uc7, uc8);
 #ifdef COROUTINING
       DO_TRAIL(pt0, (CELL)pt1);
-      if (pt0 < H0) Yap_WakeUp(pt0);
+      if (IsAttVar(pt0)) Yap_WakeUp(pt0);
     uc7:
 #endif
       GONext();
 #ifdef COROUTINING
     uc8:
       DO_TRAIL(pt1, (CELL)pt0);
-      if (pt1 < H0) Yap_WakeUp(pt1);
+      if (IsAttVar(pt1)) Yap_WakeUp(pt1);
       GONext();
 #endif
       ENDP(pt1);
@@ -4479,7 +4479,7 @@ Yap_absmi(int inp)
       BIND(pt0, d0, bind_glist_valy_write);
 #ifdef COROUTINING
       DO_TRAIL(pt0, d0);
-      if (pt0 < H0) {
+      if (IsAttVar(pt0)) {
 	Yap_WakeUp(pt0);
 	pt1 = H;
       }
@@ -4536,7 +4536,7 @@ Yap_absmi(int inp)
       BIND(pt0, d0, bind_glist_varx_write);
 #ifdef COROUTINING
       DO_TRAIL(pt0, d0);
-      if (pt0 < H0) Yap_WakeUp(pt0);
+      if (IsAttVar(pt0)) Yap_WakeUp(pt0);
     bind_glist_varx_write:
 #endif
       PREG = NEXTOP(PREG, xx);
@@ -4587,7 +4587,7 @@ Yap_absmi(int inp)
       BIND(pt0, d0, bind_glist_void_vary_write);
 #ifdef COROUTINING
       DO_TRAIL(pt0, d0);
-      if (pt0 < H0) Yap_WakeUp(pt0);
+      if (IsAttVar(pt0)) Yap_WakeUp(pt0);
     bind_glist_void_vary_write:
 #endif
       GONext();
@@ -4632,7 +4632,7 @@ Yap_absmi(int inp)
       BIND(pt1, d0, bind_glist_void_valx_nonvar_var);
 #ifdef COROUTINING
       DO_TRAIL(pt1, d0);
-      if (pt1 < H0) Yap_WakeUp(pt1);
+      if (IsAttVar(pt1)) Yap_WakeUp(pt1);
   bind_glist_void_valx_nonvar_var:
 #endif
       GONext();
@@ -4652,7 +4652,7 @@ Yap_absmi(int inp)
       BIND_GLOBAL(pt0, d1, bind_glist_void_valx_var_nonvar);
 #ifdef COROUTINING
       DO_TRAIL(pt0, d1);
-      if (pt0 < H0) Yap_WakeUp(pt0);
+      if (IsAttVar(pt0)) Yap_WakeUp(pt0);
   bind_glist_void_valx_var_nonvar:
 #endif
       GONext();
@@ -4664,14 +4664,14 @@ Yap_absmi(int inp)
       UnifyGlobalRegCells(pt0, pt1, uc9, uc10);
 #ifdef COROUTINING
       DO_TRAIL(pt0, (CELL)pt1);
-      if (pt0 < H0) Yap_WakeUp(pt0);
+      if (IsAttVar(pt0)) Yap_WakeUp(pt0);
     uc9:
 #endif
       GONext();
 #ifdef COROUTINING
     uc10:
       DO_TRAIL(pt1, (CELL)pt0);
-      if (pt1 < H0) Yap_WakeUp(pt1);
+      if (IsAttVar(pt1)) Yap_WakeUp(pt1);
       GONext();
 #endif
       ENDP(pt1);
@@ -4687,7 +4687,7 @@ Yap_absmi(int inp)
       BIND(pt0, d0, bind_glist_void_valx_write);
 #ifdef COROUTINING
       DO_TRAIL(pt0, d0);
-      if (pt0 < H0) {
+      if (IsAttVar(pt0)) {
 	Yap_WakeUp(pt0);
 	pt1 = H;
       }
@@ -4744,7 +4744,7 @@ Yap_absmi(int inp)
       BIND(pt1, d0, bind_glist_void_valy_nonvar_var);
 #ifdef COROUTINING
       DO_TRAIL(pt1, d0);
-      if (pt1 < H0) Yap_WakeUp(pt1);
+      if (IsAttVar(pt1)) Yap_WakeUp(pt1);
   bind_glist_void_valy_nonvar_var:
 #endif
       GONext();
@@ -4765,7 +4765,7 @@ Yap_absmi(int inp)
       BIND_GLOBAL(pt0, d1, bind_glist_void_valy_var_nonvar);
 #ifdef COROUTINING
       DO_TRAIL(pt0, d1);
-      if (pt0 < H0) Yap_WakeUp(pt0);
+      if (IsAttVar(pt0)) Yap_WakeUp(pt0);
   bind_glist_void_valy_var_nonvar:
 #endif
       GONext();
@@ -4776,14 +4776,14 @@ Yap_absmi(int inp)
       UnifyGlobalRegCells(pt0, pt1, uc11, uc12);
 #ifdef COROUTINING
       DO_TRAIL(pt0, (CELL)pt1);
-      if (pt0 < H0) Yap_WakeUp(pt0);
+      if (IsAttVar(pt0)) Yap_WakeUp(pt0);
     uc11:
 #endif
       GONext();
 #ifdef COROUTINING
     uc12:
       DO_TRAIL(pt1, (CELL)pt0);
-      if (pt1 < H0) Yap_WakeUp(pt1);
+      if (IsAttVar(pt1)) Yap_WakeUp(pt1);
       GONext();
 #endif
       ENDP(pt1);
@@ -4799,7 +4799,7 @@ Yap_absmi(int inp)
       BIND(pt0, d0, bind_glist_void_valy_write);
 #ifdef COROUTINING
       DO_TRAIL(pt0, d0);
-      if (pt0 < H0) {
+      if (IsAttVar(pt0)) {
 	Yap_WakeUp(pt0);
 	S_SREG = H;
       }
@@ -5093,7 +5093,7 @@ Yap_absmi(int inp)
       BIND(pt1, d0, bind_uvalx_nonvar_var);
 #ifdef COROUTINING
       DO_TRAIL(pt1, d0);
-      if (pt1 < H0) Yap_WakeUp(pt1);
+      if (IsAttVar(pt1)) Yap_WakeUp(pt1);
   bind_uvalx_nonvar_var:
 #endif
       GONext();
@@ -5112,7 +5112,7 @@ Yap_absmi(int inp)
       BIND_GLOBAL(pt0, d1, bind_uvalx_var_nonvar);
 #ifdef COROUTINING
       DO_TRAIL(pt0, d1);
-      if (pt0 < H0) Yap_WakeUp(pt0);
+      if (IsAttVar(pt0)) Yap_WakeUp(pt0);
   bind_uvalx_var_nonvar:
 #endif
       GONext();
@@ -5125,14 +5125,14 @@ Yap_absmi(int inp)
       UnifyGlobalRegCells(pt0, pt1, uc13, uc14);
 #ifdef COROUTINING
       DO_TRAIL(pt0, (CELL)pt1);
-      if (pt0 < H0) Yap_WakeUp(pt0);
+      if (IsAttVar(pt0)) Yap_WakeUp(pt0);
     uc13:
 #endif
       GONext();
 #ifdef COROUTINING
     uc14:
       DO_TRAIL(pt1, (CELL)pt0);
-      if (pt1 < H0) Yap_WakeUp(pt1);
+      if (IsAttVar(pt1)) Yap_WakeUp(pt1);
       GONext();
 #endif
       ENDP(pt1);
@@ -5177,7 +5177,7 @@ Yap_absmi(int inp)
       BIND(pt1, d0, bind_ulvalx_nonvar_var);
 #ifdef COROUTINING
       DO_TRAIL(pt1, d0);
-      if (pt1 < H0) Yap_WakeUp(pt1);
+      if (IsAttVar(pt1)) Yap_WakeUp(pt1);
   bind_ulvalx_nonvar_var:
 #endif
       GONext();
@@ -5195,7 +5195,7 @@ Yap_absmi(int inp)
       BIND_GLOBAL(pt0, d1, bind_ulvalx_var_nonvar);
 #ifdef COROUTINING
       DO_TRAIL(pt0, d1);
-      if (pt0 < H0) Yap_WakeUp(pt0);
+      if (IsAttVar(pt0)) Yap_WakeUp(pt0);
   bind_ulvalx_var_nonvar:
 #endif
       GONext();
@@ -5207,14 +5207,14 @@ Yap_absmi(int inp)
       UnifyGlobalRegCells(pt0, pt1, uc15, uc16);
 #ifdef COROUTINING
       DO_TRAIL(pt0, (CELL)pt1);
-      if (pt0 < H0) Yap_WakeUp(pt0);
+      if (IsAttVar(pt0)) Yap_WakeUp(pt0);
     uc15:
 #endif
       GONext();
 #ifdef COROUTINING
     uc16:
       DO_TRAIL(pt1, (CELL)pt0);
-      if (pt1 < H0) Yap_WakeUp(pt1);
+      if (IsAttVar(pt1)) Yap_WakeUp(pt1);
       GONext();
 #endif
       ENDP(pt1);
@@ -5262,7 +5262,7 @@ Yap_absmi(int inp)
       BIND(pt1, d0, bind_uvaly_nonvar_var);
 #ifdef COROUTINING
       DO_TRAIL(pt1, d0);
-      if (pt1 < H0) Yap_WakeUp(pt1);
+      if (IsAttVar(pt1)) Yap_WakeUp(pt1);
   bind_uvaly_nonvar_var:
 #endif
       GONext();
@@ -5283,7 +5283,7 @@ Yap_absmi(int inp)
       BIND_GLOBAL(pt0, d1, bind_uvaly_var_nonvar);
 #ifdef COROUTINING
       DO_TRAIL(pt0, d1);
-      if (pt0 < H0) Yap_WakeUp(pt0);
+      if (IsAttVar(pt0)) Yap_WakeUp(pt0);
   bind_uvaly_var_nonvar:
 #endif
       GONext();
@@ -5295,14 +5295,14 @@ Yap_absmi(int inp)
       UnifyGlobalRegCells(pt0, pt1, uc17, uc18);
 #ifdef COROUTINING
       DO_TRAIL(pt0, (CELL)pt1);
-      if (pt0 < H0) Yap_WakeUp(pt0);
+      if (IsAttVar(pt0)) Yap_WakeUp(pt0);
     uc17:
 #endif
       GONext();
 #ifdef COROUTINING
     uc18:
       DO_TRAIL(pt1, (CELL)pt1);
-      if (pt1 < H0) Yap_WakeUp(pt1);
+      if (IsAttVar(pt1)) Yap_WakeUp(pt1);
       GONext();
 #endif
       ENDP(pt1);
@@ -5356,7 +5356,7 @@ Yap_absmi(int inp)
       BIND(pt1, d0, bind_ulvaly_nonvar_var);
 #ifdef COROUTINING
       DO_TRAIL(pt1, d0);
-      if (pt1 < H0) Yap_WakeUp(pt1);
+      if (IsAttVar(pt1)) Yap_WakeUp(pt1);
   bind_ulvaly_nonvar_var:
 #endif
       GONext();
@@ -5376,7 +5376,7 @@ Yap_absmi(int inp)
       BIND_GLOBAL(pt0, d1, bind_ulvaly_var_nonvar);
 #ifdef COROUTINING
       DO_TRAIL(pt0, d1);
-      if (pt0 < H0) Yap_WakeUp(pt0);
+      if (IsAttVar(pt0)) Yap_WakeUp(pt0);
   bind_ulvaly_var_nonvar:
 #endif
       GONext();
@@ -5389,14 +5389,14 @@ Yap_absmi(int inp)
       UnifyGlobalRegCells(pt0, pt1, uc19, uc20);
 #ifdef COROUTINING
       DO_TRAIL(pt0, (CELL)pt1);
-      if (pt0 < H0) Yap_WakeUp(pt0);
+      if (IsAttVar(pt0)) Yap_WakeUp(pt0);
     uc19:
 #endif
       GONext();
 #ifdef COROUTINING
     uc20:
       DO_TRAIL(pt1, (CELL)pt0);
-      if (pt1 < H0) Yap_WakeUp(pt1);
+      if (IsAttVar(pt1)) Yap_WakeUp(pt1);
       GONext();
 #endif
       ENDP(pt1);
@@ -5451,7 +5451,7 @@ Yap_absmi(int inp)
       BIND(pt1, d0, bind_uvalx_loc_nonvar_var);
 #ifdef COROUTINING
       DO_TRAIL(pt1, d0);
-      if (pt1 < H0) Yap_WakeUp(pt1);
+      if (IsAttVar(pt1)) Yap_WakeUp(pt1);
   bind_uvalx_loc_nonvar_var:
 #endif
       GONext();
@@ -5471,7 +5471,7 @@ Yap_absmi(int inp)
       BIND_GLOBAL(pt0, d1, bind_uvalx_loc_var_nonvar);
 #ifdef COROUTINING
       DO_TRAIL(pt0, d1);
-      if (pt0 < H0) Yap_WakeUp(pt0);
+      if (IsAttVar(pt0)) Yap_WakeUp(pt0);
   bind_uvalx_loc_var_nonvar:
 #endif
       GONext();
@@ -5486,14 +5486,14 @@ Yap_absmi(int inp)
       UnifyGlobalRegCells(pt0, pt1, uc21, uc22);
 #ifdef COROUTINING
       DO_TRAIL(pt0, (CELL)pt1);
-      if (pt0 < H0) Yap_WakeUp(pt0);
+      if (IsAttVar(pt0)) Yap_WakeUp(pt0);
     uc21:
 #endif
       GONext();
 #ifdef COROUTINING
     uc22:
       DO_TRAIL(pt1, (CELL)pt0);
-      if (pt1 < H0) Yap_WakeUp(pt1);
+      if (IsAttVar(pt1)) Yap_WakeUp(pt1);
       GONext();
 #endif
       ENDP(pt1);
@@ -5564,7 +5564,7 @@ Yap_absmi(int inp)
       BIND(pt0, d0, bind_ulvalx_loc_nonvar_var);
 #ifdef COROUTINING
       DO_TRAIL(pt0, d0);
-      if (pt0 < H0) Yap_WakeUp(pt0);
+      if (IsAttVar(pt0)) Yap_WakeUp(pt0);
   bind_ulvalx_loc_nonvar_var:
 #endif
       GONext();
@@ -5581,7 +5581,7 @@ Yap_absmi(int inp)
       BIND_GLOBAL(pt0, d1, bind_ulvalx_loc_var_nonvar);
 #ifdef COROUTINING
       DO_TRAIL(pt0, d1);
-      if (pt0 < H0) Yap_WakeUp(pt0);
+      if (IsAttVar(pt0)) Yap_WakeUp(pt0);
   bind_ulvalx_loc_var_nonvar:
 #endif
       GONext();
@@ -5593,14 +5593,14 @@ Yap_absmi(int inp)
       UnifyGlobalRegCells(pt0, pt1, uc23, uc24);
 #ifdef COROUTINING
       DO_TRAIL(pt0, (CELL)pt1);
-      if (pt0 < H0) Yap_WakeUp(pt0);
+      if (IsAttVar(pt0)) Yap_WakeUp(pt0);
     uc23:
 #endif
       GONext();
 #ifdef COROUTINING
     uc24:
       DO_TRAIL(pt1, (CELL)pt0);
-      if (pt1 < H0) Yap_WakeUp(pt1);
+      if (IsAttVar(pt1)) Yap_WakeUp(pt1);
       GONext();
 #endif
       ENDP(pt1);
@@ -5669,7 +5669,7 @@ Yap_absmi(int inp)
       BIND(pt1, d0, bind_uvaly_loc_nonvar_var);
 #ifdef COROUTINING
       DO_TRAIL(pt1, d0);
-      if (pt1 < H0) Yap_WakeUp(pt1);
+      if (IsAttVar(pt1)) Yap_WakeUp(pt1);
   bind_uvaly_loc_nonvar_var:
 #endif
       GONext();
@@ -5690,7 +5690,7 @@ Yap_absmi(int inp)
       BIND_GLOBAL(pt0, d1, bind_uvaly_loc_var_nonvar);
 #ifdef COROUTINING
       DO_TRAIL(pt0, d1);
-      if (pt0 < H0) Yap_WakeUp(pt0);
+      if (IsAttVar(pt0)) Yap_WakeUp(pt0);
   bind_uvaly_loc_var_nonvar:
 #endif
       GONext();
@@ -5704,14 +5704,14 @@ Yap_absmi(int inp)
       UnifyGlobalRegCells(pt0, pt1, uc25, uc26);
 #ifdef COROUTINING
       DO_TRAIL(pt0, (CELL)pt1);
-      if (pt0 < H0) Yap_WakeUp(pt0);
+      if (IsAttVar(pt0)) Yap_WakeUp(pt0);
     uc25:
 #endif
       GONext();
 #ifdef COROUTINING
     uc26:
       DO_TRAIL(pt1, (CELL)pt0);
-      if (pt1 < H0) Yap_WakeUp(pt1);
+      if (IsAttVar(pt1)) Yap_WakeUp(pt1);
       GONext();
 #endif
       ENDP(pt1);
@@ -5783,7 +5783,7 @@ Yap_absmi(int inp)
       BIND(pt1, d0, bind_ulvaly_loc_nonvar_var);
 #ifdef COROUTINING
       DO_TRAIL(pt1, d0);
-      if (pt1 < H0) Yap_WakeUp(pt1);
+      if (IsAttVar(pt1)) Yap_WakeUp(pt1);
   bind_ulvaly_loc_nonvar_var:
 #endif
       GONext();
@@ -5803,7 +5803,7 @@ Yap_absmi(int inp)
       BIND_GLOBAL(pt0, d1, bind_ulvaly_loc_var_nonvar);
 #ifdef COROUTINING
       DO_TRAIL(pt0, d1);
-      if (pt0 < H0) Yap_WakeUp(pt0);
+      if (IsAttVar(pt0)) Yap_WakeUp(pt0);
   bind_ulvaly_loc_var_nonvar:
 #endif
       GONext();
@@ -5816,14 +5816,14 @@ Yap_absmi(int inp)
       UnifyGlobalRegCells(pt0, pt1, uc27, uc28);
 #ifdef COROUTINING
       DO_TRAIL(pt0, (CELL)pt1);
-      if (pt0 < H0) Yap_WakeUp(pt0);
+      if (IsAttVar(pt0)) Yap_WakeUp(pt0);
     uc27:
 #endif
       GONext();
 #ifdef COROUTINING
     uc28:
       DO_TRAIL(pt1, (CELL)pt0);
-      if (pt1 < H0) Yap_WakeUp(pt1);
+      if (IsAttVar(pt1)) Yap_WakeUp(pt1);
       GONext();
 #endif
       ENDP(pt1);
@@ -5953,7 +5953,7 @@ Yap_absmi(int inp)
       BIND_GLOBAL(pt0, d0, bind_uatom);
 #ifdef COROUTINING
       DO_TRAIL(pt0, d0);
-      if (pt0 < H0) Yap_WakeUp(pt0);
+      if (IsAttVar(pt0)) Yap_WakeUp(pt0);
   bind_uatom:
 #endif
       GONext();
@@ -5986,7 +5986,7 @@ Yap_absmi(int inp)
       BIND_GLOBAL(pt0, d0, bind_ulatom);
 #ifdef COROUTINING
       DO_TRAIL(pt0, d0);
-      if (pt0 < H0) Yap_WakeUp(pt0);
+      if (IsAttVar(pt0)) Yap_WakeUp(pt0);
   bind_ulatom:
 #endif
       GONext();
@@ -6022,7 +6022,7 @@ Yap_absmi(int inp)
 	  BIND_GLOBAL(pt0, d1, bind_unlatom);
 #ifdef COROUTINING
 	  DO_TRAIL(pt0, d1);
-	  if (pt0 < H0) Yap_WakeUp(pt0);
+	  if (IsAttVar(pt0)) Yap_WakeUp(pt0);
 	bind_unlatom:
 	  continue;
 #endif
@@ -6092,7 +6092,7 @@ Yap_absmi(int inp)
       BIND_GLOBAL(pt0, d1, bind_ufloat);
 #ifdef COROUTINING
       DO_TRAIL(pt0, d1);
-      if (pt0 < H0) Yap_WakeUp(pt0);
+      if (IsAttVar(pt0)) Yap_WakeUp(pt0);
   bind_ufloat:
 #endif
       GONext();
@@ -6145,7 +6145,7 @@ Yap_absmi(int inp)
       BIND_GLOBAL(S_SREG, d1, bind_ulfloat);
 #ifdef COROUTINING
       DO_TRAIL(S_SREG, d1);
-      if (S_SREG < H0) Yap_WakeUp(S_SREG);
+      if (IsAttVar(S_SREG)) Yap_WakeUp(S_SREG);
   bind_ulfloat:
 #endif
       GONext();
@@ -6194,7 +6194,7 @@ Yap_absmi(int inp)
       BIND_GLOBAL(pt0, d1, bind_ulongint);
 #ifdef COROUTINING
       DO_TRAIL(pt0, d1);
-      if (pt0 < H0) Yap_WakeUp(pt0);
+      if (IsAttVar(pt0)) Yap_WakeUp(pt0);
   bind_ulongint:
 #endif
       GONext();
@@ -6242,7 +6242,7 @@ Yap_absmi(int inp)
       BIND_GLOBAL(S_SREG, d1, bind_ullongint);
 #ifdef COROUTINING
       DO_TRAIL(S_SREG, d1);
-      if (S_SREG < H0) Yap_WakeUp(S_SREG);
+      if (IsAttVar(S_SREG)) Yap_WakeUp(S_SREG);
   bind_ullongint:
 #endif
       GONext();
@@ -6291,7 +6291,7 @@ Yap_absmi(int inp)
       BIND_GLOBAL(pt0, d1, bind_ubigint);
 #ifdef COROUTINING
       DO_TRAIL(pt0, d1);
-      if (pt0 < H0) Yap_WakeUp(pt0);
+      if (IsAttVar(pt0)) Yap_WakeUp(pt0);
   bind_ubigint:
 #endif
       GONext();
@@ -6336,7 +6336,7 @@ Yap_absmi(int inp)
       BIND_GLOBAL(S_SREG, d1, bind_ulbigint);
 #ifdef COROUTINING
       DO_TRAIL(S_SREG, d1);
-      if (S_SREG < H0) Yap_WakeUp(S_SREG);
+      if (IsAttVar(S_SREG)) Yap_WakeUp(S_SREG);
   bind_ulbigint:
 #endif
       GONext();
@@ -6369,7 +6369,7 @@ Yap_absmi(int inp)
       BIND_GLOBAL(pt0, d1, bind_udbterm);
 #ifdef COROUTINING
       DO_TRAIL(pt0, d1);
-      if (pt0 < H0) Yap_WakeUp(pt0);
+      if (IsAttVar(pt0)) Yap_WakeUp(pt0);
   bind_udbterm:
 #endif
       GONext();
@@ -6399,7 +6399,7 @@ Yap_absmi(int inp)
       BIND_GLOBAL(S_SREG, d1, bind_uldbterm);
 #ifdef COROUTINING
       DO_TRAIL(S_SREG, d1);
-      if (S_SREG < H0) Yap_WakeUp(S_SREG);
+      if (IsAttVar(S_SREG)) Yap_WakeUp(S_SREG);
   bind_uldbterm:
 #endif
       GONext();
@@ -6441,7 +6441,7 @@ Yap_absmi(int inp)
       BIND_GLOBAL(pt0, d0, bind_ulist_var);
 #ifdef COROUTINING
       DO_TRAIL(pt0, d0);
-      if (pt0 < H0) Yap_WakeUp(pt0);
+      if (IsAttVar(pt0)) Yap_WakeUp(pt0);
   bind_ulist_var:
 #endif
       GONextW();
@@ -6501,7 +6501,7 @@ Yap_absmi(int inp)
       BIND_GLOBAL(pt0, d0, bind_ullist_var);
 #ifdef COROUTINING
       DO_TRAIL(pt0, d0);
-      if (pt0 < H0) Yap_WakeUp(pt0);
+      if (IsAttVar(pt0)) Yap_WakeUp(pt0);
   bind_ullist_var:
 #endif
       GONextW();
@@ -6566,7 +6566,7 @@ Yap_absmi(int inp)
       BIND_GLOBAL(pt0, d1, bind_ustruct);
 #ifdef COROUTINING
       DO_TRAIL(pt0, d1);
-      if (pt0 < H0) Yap_WakeUp(pt0);
+      if (IsAttVar(pt0)) Yap_WakeUp(pt0);
     bind_ustruct:
 #endif
       /* now, set pt0 to point to the heap where we are going to
@@ -6642,7 +6642,7 @@ Yap_absmi(int inp)
       BIND_GLOBAL(pt0, d1, bind_ulstruct);
 #ifdef COROUTINING
       DO_TRAIL(pt0, d1);
-      if (pt0 < H0) Yap_WakeUp(pt0);
+      if (IsAttVar(pt0)) Yap_WakeUp(pt0);
     bind_ulstruct:
 #endif
       /* now, set pt0 to point to the heap where we are going to
@@ -13461,7 +13461,7 @@ Yap_absmi(int inp)
 	BIND(pt0, d0, bind_func_nvar_var);
 #ifdef COROUTINING
 	DO_TRAIL(pt0, d0);
-	if (pt0 < H0) Yap_WakeUp(pt0);
+	if (IsAttVar(pt0)) Yap_WakeUp(pt0);
       bind_func_nvar_var:
 #endif
 	/* I have to this here so that I don't have a jump to a closing bracket */
@@ -13488,7 +13488,7 @@ Yap_absmi(int inp)
 	/* Done */
 #ifdef COROUTINING
 	DO_TRAIL(pt0, d0);
-	if (pt0 < H0) Yap_WakeUp(pt0);
+	if (IsAttVar(pt0)) Yap_WakeUp(pt0);
       bind_func_nvar3_var:
 #endif
 	GONext();
@@ -13581,7 +13581,7 @@ Yap_absmi(int inp)
       BIND(pt0, d0, bind_func_var_3nvar);
 #ifdef COROUTINING
       DO_TRAIL(pt0, d0);
-      if (pt0 < H0) Yap_WakeUp(pt0);
+      if (IsAttVar(pt0)) Yap_WakeUp(pt0);
     bind_func_var_3nvar:
 #endif
       GONext();

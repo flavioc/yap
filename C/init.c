@@ -1169,7 +1169,6 @@ InitCodes(void)
       Yap_heap_regs->wl[i].global_variables = NULL;
       Yap_heap_regs->wl[i].global_arena = 0L;
       Yap_heap_regs->wl[i].global_arena_overflows = 0;
-      Yap_heap_regs->wl[i].global_delay_arena = 0L;
       Yap_heap_regs->wl[i].allow_restart = FALSE;
       Yap_heap_regs->wl[i].tot_gc_time = 0;
       Yap_heap_regs->wl[i].tot_gc_recovered = 0;
@@ -1195,7 +1194,6 @@ InitCodes(void)
   Yap_heap_regs->wl.global_arena = 0L;
   Yap_heap_regs->wl.global_arena_overflows = 0;
   Yap_heap_regs->wl.allow_restart = FALSE;
-  Yap_heap_regs->wl.global_delay_arena = 0L;
   Yap_heap_regs->wl.tot_gc_time = 0;
   Yap_heap_regs->wl.tot_gc_recovered = 0;
   Yap_heap_regs->wl.gc_calls = 0;
