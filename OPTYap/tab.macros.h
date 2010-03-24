@@ -53,8 +53,8 @@ STD_PROTO(static inline void abolish_incomplete_subgoals, (choiceptr));
 
 STD_PROTO(static inline int build_next_subsumptive_consumer_return_list, (subcons_fr_ptr, CELL*));
 STD_PROTO(static inline continuation_ptr get_next_answer_continuation, (dep_fr_ptr dep_fr));
-STD_PROTO(static inline int is_new_generator_call, (CallLookupResults *));
-STD_PROTO(static inline int is_new_consumer_call, (CallLookupResults *));
+STD_PROTO(static inline int is_new_generator_call, (sg_fr_ptr));
+STD_PROTO(static inline int is_new_consumer_call, (sg_fr_ptr));
 STD_PROTO(static inline choiceptr freeze_current_cp, (void));
 STD_PROTO(static inline void resume_frozen_cp, (choiceptr));
 STD_PROTO(static inline void abolish_all_frozen_cps, (void));
@@ -1194,9 +1194,7 @@ get_next_answer_continuation(dep_fr_ptr dep_fr) {
  * tell if we must allocate a new generator
  */
 static inline int
-is_new_generator_call(CallLookupResults *results) {
-  sg_fr_ptr sg_fr = CallResults_subgoal_frame(results);
-  
+is_new_generator_call(sg_fr_ptr sg_fr) {
   switch(SgFr_type(sg_fr)) {
     case VARIANT_PRODUCER_SFT:
     case SUBSUMPTIVE_PRODUCER_SFT:
@@ -1213,9 +1211,7 @@ is_new_generator_call(CallLookupResults *results) {
  * tell if we must allocate a new consumer
  */
 static inline int
-is_new_consumer_call(CallLookupResults *results) {
-  sg_fr_ptr sg_fr = CallResults_subgoal_frame(results);
-  
+is_new_consumer_call(sg_fr_ptr sg_fr) {
   switch(SgFr_type(sg_fr)) {
     case VARIANT_PRODUCER_SFT:
     case SUBSUMPTIVE_PRODUCER_SFT:

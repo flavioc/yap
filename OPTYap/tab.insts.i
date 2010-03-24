@@ -457,7 +457,7 @@
     
     LOCK(SgFr_lock(sg_fr));
     
-    if (is_new_generator_call(&results)) {
+    if (is_new_generator_call(sg_fr)) {
       /* subgoal new */
       init_subgoal_frame(sg_fr);
       UNLOCK(SgFr_lock(sg_fr));
@@ -493,7 +493,7 @@
       YENV = ENV;
       GONext();
 #endif /* INCOMPLETE_TABLING */
-    } else if (is_new_consumer_call(&results)) {
+    } else if (is_new_consumer_call(sg_fr)) {
       dprintf("TABLE_TRY_SINGLE NEW_CONSUMER\n");
       /* new consumer */
       choiceptr leader_cp;
@@ -634,7 +634,7 @@ exec_compiled_trie_single:
     
     LOCK(SgFr_lock(sg_fr));
     
-    if (is_new_generator_call(&results)) {
+    if (is_new_generator_call(sg_fr)) {
       /* subgoal new */
       init_subgoal_frame(sg_fr);
       UNLOCK(SgFr_lock(sg_fr));
@@ -662,7 +662,7 @@ exec_compiled_trie_single:
       YENV = ENV;
       GONext();
 #endif /* INCOMPLETE_TABLING */
-    } else if (is_new_consumer_call(&results)) {
+    } else if (is_new_consumer_call(sg_fr)) {
       dprintf("TABLE_TRY_ME NEW_CONSUMER\n");
       /* new consumer */
       choiceptr leader_cp;
@@ -805,7 +805,7 @@ exec_compiled_trie_me:
     
     LOCK(SgFr_lock(sg_fr));
     
-    if (is_new_generator_call(&results)) {
+    if (is_new_generator_call(sg_fr)) {
       /* subgoal new */
       init_subgoal_frame(sg_fr);
       UNLOCK(SgFr_lock(sg_fr));
@@ -832,7 +832,7 @@ exec_compiled_trie_me:
       YENV = ENV;
       GONext();
 #endif /* INCOMPLETE_TABLING */
-    } else if (is_new_consumer_call(&results)) {
+    } else if (is_new_consumer_call(sg_fr)) {
       dprintf("TABLE_TRY NEW_CONSUMER\n");
       /* new consumer */
       choiceptr leader_cp;
