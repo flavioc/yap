@@ -897,7 +897,7 @@ sg_fr_ptr subsumptive_call_search(yamop *code, CELL *answer_template, CELL **new
   BTNptr btRoot = TabEnt_subgoal_trie(tab_ent);
   BTNptr btn;
   TriePathType path_type;
-  sg_fr_ptr sg_fr;
+  sg_fr_ptr sg_fr = NULL;
   
   /* emu/sub_tables_xsb_i.h */
   TermStack_ResetTOS;
@@ -942,15 +942,22 @@ sg_fr_ptr subsumptive_call_search(yamop *code, CELL *answer_template, CELL **new
       *new_local_stack = reconstruct_template_for_producer(code, subsumer, answer_template);
     }
     
-    //if((path_type != VARIANT_PATH) && (SgFr_state(subsumer) < complete)) {
-    if(path_type != VARIANT_PATH) {
-      sg_node_ptr leaf = variant_call_cont_insert(tab_ent, (sg_node_ptr)stl_restore_variant_cont(), variant_cont.bindings.num);
-      Trail_Unwind_All;
-      sg_fr = create_new_consumer_subgoal(leaf, subsumer, tab_ent, code);
-      fix_answer_template(*new_local_stack);
-    } else {
-      sg_fr = found;
-      dprintf("New variant path\n");
+    switch(path_type) {
+      case VARIANT_PATH:
+        sg_fr = found;
+        break;
+      case SUBSUMPTIVE_PATH:
+        if(SgFr_state(subsumer) < complete || TabEnt_is_load(tab_ent)) {
+            btn = variant_call_cont_insert(tab_ent, (sg_node_ptr)stl_restore_variant_cont(), variant_cont.bindings.num);
+            Trail_Unwind_All;
+            sg_fr = create_new_consumer_subgoal(btn, subsumer, tab_ent, code);
+            fix_answer_template(*new_local_stack);
+        } else
+          sg_fr = (sg_fr_ptr)subsumer;
+        break;
+      default:
+        /* NOT REACHED */
+        break;
     }
     /*
     dprintf("TEMPLATE: ");
