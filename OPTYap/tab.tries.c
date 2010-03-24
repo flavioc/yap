@@ -55,9 +55,10 @@ static void traverse_global_trie_for_answer(gt_node_ptr current_node, char *str,
 
 void subgoal_search(yamop *preg, CELL **Yaddr, CallLookupResults *results) {
   TabledCallInfo call_info;
+  CELL *local_stack = *Yaddr - 1;
 
   CallInfo_code(&call_info) = preg;
-  CallInfo_var_vector(&call_info) = *Yaddr - 1;
+  CallInfo_var_vector(&call_info) = local_stack;
   
   tab_ent_ptr tab_ent = CallInfo_table_entry(&call_info);
   
@@ -73,7 +74,7 @@ void subgoal_search(yamop *preg, CELL **Yaddr, CallLookupResults *results) {
   
   // XXX remove var_vector
   if(TabEnt_is_variant(tab_ent))
-    variant_call_search(&call_info, results);
+    variant_call_search(preg, local_stack, results);
   else
     subsumptive_call_search(&call_info, results);
   

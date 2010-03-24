@@ -129,9 +129,9 @@ variant_call_cont_insert(tab_ent_ptr tab_ent, sg_node_ptr current_node, int coun
 }
 
 void
-variant_call_search(TabledCallInfo *call_info, CallLookupResults *results) {
-  tab_ent_ptr tab_ent = CallInfo_table_entry(call_info);
-  int arity = CallInfo_arity(call_info);
+variant_call_search(yamop *code, CELL *local_stack, CallLookupResults *results) {
+  tab_ent_ptr tab_ent = CODE_TABLE_ENTRY(code);
+  int arity = CODE_ARITY(code);
   sg_node_ptr top_node = TabEnt_subgoal_trie(tab_ent);
   sg_node_ptr leaf;
   
@@ -143,10 +143,10 @@ variant_call_search(TabledCallInfo *call_info, CallLookupResults *results) {
   leaf = variant_call_cont_insert(tab_ent, top_node, 0);
   
   /* build substitution factor */
-  CallResults_var_vector(results) = extract_template_from_insertion(CallInfo_var_vector(call_info));
+  CallResults_var_vector(results) = extract_template_from_insertion(local_stack);
   
   /* get or create a subgoal frame */
-  CallResults_subgoal_frame(results) = get_subgoal_frame_from_node(leaf, tab_ent, CallInfo_code(call_info));
+  CallResults_subgoal_frame(results) = get_subgoal_frame_from_node(leaf, tab_ent, code);
   
   Trail_Unwind_All;
 }
