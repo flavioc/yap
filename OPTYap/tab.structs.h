@@ -541,14 +541,6 @@ typedef struct suspension_frame {
 #define SuspFr_trail_size(X)          ((X)->trail_block.block_size)
 #define SuspFr_next(X)                ((X)->next)
 
-typedef struct Call_Check_Insert_Results {
-  CELL *var_vector;         /* pointer to the vector of call variables */
-  sg_fr_ptr subgoal_frame;
-} CallLookupResults;
-
-#define CallResults_var_vector(X)     ((X)->var_vector)
-#define CallResults_subgoal_frame(X)  ((X)->subgoal_frame)
-
 
 /* ------------------------------- **
 **      Structs choice points      **

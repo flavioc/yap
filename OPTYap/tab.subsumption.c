@@ -891,12 +891,13 @@ CPtr reconstruct_template_for_producer(CTXTdeclc TabledCallInfo *call_info, SubP
   return ans_tmplt;
 }
 
-void subsumptive_call_search(yamop *code, CELL *answer_template, CallLookupResults *results)
+sg_fr_ptr subsumptive_call_search(yamop *code, CELL *answer_template, CELL **new_local_stack)
 {
   tab_ent_ptr tab_ent = CODE_TABLE_ENTRY(code);
   BTNptr btRoot = TabEnt_subgoal_trie(tab_ent);
   BTNptr btn;
   TriePathType path_type;
+  sg_fr_ptr sg_fr;
   
   /* emu/sub_tables_xsb_i.h */
   TermStack_ResetTOS;
@@ -919,39 +920,36 @@ void subsumptive_call_search(yamop *code, CELL *answer_template, CallLookupResul
     
     sg_node_ptr leaf = variant_call_cont_insert(tab_ent, (sg_node_ptr)stl_restore_variant_cont(),
       variant_cont.bindings.num);
-      
-    CallResults_var_vector(results) = extract_template_from_insertion(answer_template);
-    CallResults_subgoal_frame(results) = create_new_producer_subgoal(leaf,
-      tab_ent, code);
+    
+    *new_local_stack = extract_template_from_insertion(answer_template);
+    sg_fr = create_new_producer_subgoal(leaf, tab_ent, code);
+    
     Trail_Unwind_All;
     
     //printSubstitutionFactor(stdout, CallResults_var_vector(results));
   } else { /* new consumer */
     subprod_fr_ptr subsumer;
-    sg_fr_ptr sg_fr = (sg_fr_ptr)TrNode_sg_fr(btn);
+    sg_fr_ptr found = (sg_fr_ptr)TrNode_sg_fr(btn);
     
-    if(SgFr_is_sub_producer(sg_fr)) {
-      /* consume from sf_with_ans_set */
-      subsumer = (subprod_fr_ptr)sg_fr;
-      answer_template = extract_template_from_lookup(answer_template);
+    if(SgFr_is_sub_producer(found)) {
+      /* consume from 'found' */
+      subsumer = (subprod_fr_ptr)found;
+      *new_local_stack = extract_template_from_lookup(answer_template);
       Trail_Unwind_All;
     } else {
       Trail_Unwind_All;
-      subsumer = SgFr_producer((subcons_fr_ptr)sg_fr);
-      answer_template = reconstruct_template_for_producer(code, subsumer, answer_template);
+      subsumer = SgFr_producer((subcons_fr_ptr)found);
+      *new_local_stack = reconstruct_template_for_producer(code, subsumer, answer_template);
     }
-    
-    CallResults_var_vector(results) = answer_template;
     
     //if((path_type != VARIANT_PATH) && (SgFr_state(subsumer) < complete)) {
     if(path_type != VARIANT_PATH) {
       sg_node_ptr leaf = variant_call_cont_insert(tab_ent, (sg_node_ptr)stl_restore_variant_cont(), variant_cont.bindings.num);
       Trail_Unwind_All;
-      CallResults_subgoal_frame(results) = create_new_consumer_subgoal(leaf,
-              subsumer, tab_ent, code);
-      fix_answer_template(CallResults_var_vector(results));
+      sg_fr = create_new_consumer_subgoal(leaf, subsumer, tab_ent, code);
+      fix_answer_template(*new_local_stack);
     } else {
-      CallResults_subgoal_frame(results) = sg_fr;
+      sg_fr = found;
       dprintf("New variant path\n");
     }
     /*
@@ -960,6 +958,8 @@ void subsumptive_call_search(yamop *code, CELL *answer_template, CallLookupResul
     printAnswerTemplate(stdout, answer_template+tmplt_size, tmplt_size);
     */
   }
+  
+  return sg_fr;
 }
 
 /* vector de respostas é puxado de cima para baixo!! */

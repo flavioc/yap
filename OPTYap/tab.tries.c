@@ -57,6 +57,7 @@ sg_fr_ptr subgoal_search(yamop *preg, CELL **local_stack_ptr)
 {
   CELL *local_stack = *local_stack_ptr - 1;
   tab_ent_ptr tab_ent = CODE_TABLE_ENTRY(preg);
+  sg_fr_ptr sg_fr;
   
 #ifdef TABLE_LOCK_AT_ENTRY_LEVEL
   LOCK(TabEnt_lock(tab_ent));
@@ -67,23 +68,18 @@ sg_fr_ptr subgoal_search(yamop *preg, CELL **local_stack_ptr)
   printCalledSubgoal(stdout, preg);
   dprintf("\n");
 #endif
-  CallLookupResults results;
   
-  // XXX remove var_vector
-  if(TabEnt_is_variant(tab_ent)) {
-    return variant_call_search(preg, local_stack, local_stack_ptr);
-  } else
-    subsumptive_call_search(preg, local_stack, &results);
+  sg_fr = TabEnt_is_variant(tab_ent) ?
+    variant_call_search(preg, local_stack, local_stack_ptr) :
+    subsumptive_call_search(preg, local_stack, local_stack_ptr);
   
 #ifdef FDEBUG
-    dprintf("SUBGOAL IS: ");
-    printSubgoalTriePath(stdout, SgFr_leaf(CallResults_subgoal_frame(&results)), tab_ent);
-    printf("\n");
+  dprintf("SUBGOAL IS: ");
+  printSubgoalTriePath(stdout, SgFr_leaf(sg_fr), tab_ent);
+  printf("\n");
 #endif
-  
-  *local_stack_ptr = CallResults_var_vector(&results);
-  
-  return CallResults_subgoal_frame(&results);
+
+  return sg_fr;
 }
 
 ans_node_ptr answer_search(sg_fr_ptr sg_fr, CELL *subs_ptr) {
