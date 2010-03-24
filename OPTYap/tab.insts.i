@@ -442,7 +442,6 @@
 
   PBOp(table_try_single, Otapl)
     tab_ent_ptr tab_ent;
-    CallLookupResults results;
     sg_fr_ptr sg_fr;
     
     dprintf("===> TABLE_TRY_SINGLE\n");
@@ -450,10 +449,8 @@
     check_trail(TR);
     tab_ent = PREG->u.Otapl.te;
     YENV2MEM;
-    subgoal_search(PREG, YENV_ADDRESS, &results);
+    sg_fr = subgoal_search(PREG, YENV_ADDRESS);
     MEM2YENV;
-    
-    sg_fr = CallResults_subgoal_frame(&results);
     
     LOCK(SgFr_lock(sg_fr));
     
@@ -620,17 +617,14 @@ exec_compiled_trie_single:
   PBOp(table_try_me, Otapl)
     tab_ent_ptr tab_ent;
     sg_fr_ptr sg_fr;
-    CallLookupResults results;
     
     dprintf("===> TABLE_TRY_ME\n");
 
     check_trail(TR);
     tab_ent = PREG->u.Otapl.te;
     YENV2MEM;
-    subgoal_search(PREG, YENV_ADDRESS, &results);
+    sg_fr = subgoal_search(PREG, YENV_ADDRESS);
     MEM2YENV;
-    
-    sg_fr = CallResults_subgoal_frame(&results);
     
     LOCK(SgFr_lock(sg_fr));
     
@@ -790,7 +784,6 @@ exec_compiled_trie_me:
 
   PBOp(table_try, Otapl)
     tab_ent_ptr tab_ent;
-    CallLookupResults results;
     sg_fr_ptr sg_fr;
     
     dprintf("===> TABLE_TRY\n");
@@ -798,10 +791,8 @@ exec_compiled_trie_me:
     check_trail(TR);
     tab_ent = PREG->u.Otapl.te;
     YENV2MEM;
-    subgoal_search(PREG, YENV_ADDRESS, &results);
+    sg_fr = subgoal_search(PREG, YENV_ADDRESS);
     MEM2YENV;
-    
-    sg_fr = CallResults_subgoal_frame(&results);
     
     LOCK(SgFr_lock(sg_fr));
     
