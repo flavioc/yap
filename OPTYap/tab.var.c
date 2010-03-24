@@ -37,9 +37,8 @@ CPtr extract_template_from_insertion(CTXTdeclc CPtr ans_tmplt) {
   return ans_tmplt;
 }
 
-static inline
-sg_fr_ptr
-get_subgoal_frame_from_node(sg_node_ptr leaf_node, tab_ent_ptr tab_ent, yamop *code, int* old)
+static inline sg_fr_ptr
+get_subgoal_frame_from_node(sg_node_ptr leaf_node, tab_ent_ptr tab_ent, yamop *code)
 {
   sg_fr_ptr sg_fr;
   
@@ -52,12 +51,8 @@ get_subgoal_frame_from_node(sg_node_ptr leaf_node, tab_ent_ptr tab_ent, yamop *c
   if (TrNode_sg_fr(leaf_node) == NULL) {
     /* new tabled subgoal */
     new_variant_subgoal_frame(sg_fr, code, leaf_node);
-    //printf("New subgoal frame... %x at node %x\n", sg_fr, current_node);
-    *old = FALSE;
   } else {
-    *old = TRUE;
     sg_fr = (sg_fr_ptr) TrNode_sg_fr(leaf_node);
-    //printf("Node already present... %x\n", sg_fr);
 #ifdef LIMIT_TABLING
     if (SgFr_state(sg_fr) <= ready) {  /* incomplete or ready */
       remove_from_global_sg_fr_list(sg_fr);
@@ -138,20 +133,20 @@ variant_call_search(TabledCallInfo *call_info, CallLookupResults *results) {
   tab_ent_ptr tab_ent = CallInfo_table_entry(call_info);
   int arity = CallInfo_arity(call_info);
   sg_node_ptr top_node = TabEnt_subgoal_trie(tab_ent);
+  sg_node_ptr leaf;
   
   Trail_ResetTOS;
   TermStack_ResetTOS;
   TermStack_PushLowToHighVector(XREGS + 1, arity); /* push goal arguments */
   
   /* insert / check variant path */
-  CallResults_leaf(results) = variant_call_cont_insert(tab_ent, top_node, 0);
+  leaf = variant_call_cont_insert(tab_ent, top_node, 0);
   
   /* build substitution factor */
   CallResults_var_vector(results) = extract_template_from_insertion(CallInfo_var_vector(call_info));
   
   /* get or create a subgoal frame */
-  CallResults_subgoal_frame(results) = get_subgoal_frame_from_node(CallResults_leaf(results), tab_ent,
-        CallInfo_code(call_info), &CallResults_variant_found(results));
+  CallResults_subgoal_frame(results) = get_subgoal_frame_from_node(leaf, tab_ent, CallInfo_code(call_info));
   
   Trail_Unwind_All;
 }

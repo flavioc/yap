@@ -426,6 +426,7 @@ struct subsumed_consumer_subgoal_frame {
   time_stamp ts;
   subprod_fr_ptr producer;
   choiceptr cons_cp;
+  CELL* answer_template;
   subsumptive_consumer_sf *consumers; /* Chain link for properly subsumed subgoals */
 };
 
@@ -435,7 +436,8 @@ typedef subsumptive_consumer_sf *subcons_fr_ptr;
 #define SgFr_producer(X)        ((X)->producer)
 #define SgFr_consumers(X)       ((X)->consumers)
 #define SgFr_cons_cp(X)         ((X)->cons_cp)
-#define SgFr_answer_template(X) (SgFr_cons_cp(X)->cp_h - 1)
+#define SgFr_cons_cp_at(X)      (SgFr_cons_cp(X)->cp_h - 1)
+#define SgFr_answer_template(X) ((X)->answer_template)
 
 /* ------------------------------- **
 ** Subgoal frame types             **
@@ -558,17 +560,10 @@ typedef struct Tabled_Call_Info_Record {
 typedef struct Call_Check_Insert_Results {
   CELL *var_vector;         /* pointer to the vector of call variables */
   sg_fr_ptr subgoal_frame;
-  sg_fr_ptr subsumer;
-  int variant_found;
-  sg_node_ptr leaf;
 } CallLookupResults;
 
-
 #define CallResults_var_vector(X)     ((X)->var_vector)
-#define CallResults_subsumer(X)       ((X)->subsumer)
 #define CallResults_subgoal_frame(X)  ((X)->subgoal_frame)
-#define CallResults_variant_found(X)  ((X)->variant_found)
-#define CallResults_leaf(X)           ((X)->leaf)
 
 
 /* ------------------------------- **

@@ -76,7 +76,7 @@ typedef Functor Psc;
 #define BTHT_BucketArray(HASH)  Hash_buckets(HASH)
 #define BTHT_GetHashSeed(HASH)  Hash_seed(HASH)
 #define TrieHash(SYMBOL, SEED)  HASH_ENTRY(SYMBOL, SEED)
-#define TRIEVAR_BUCKET          0 /* ??? */
+#define TRIEVAR_BUCKET          0
 
 #define IsTrieVar(SYMBOL)       (IsVarTerm(SYMBOL))
 #define IsNewTrieVar(SYMBOL)    (IsNewTableVarTerm(SYMBOL))
@@ -87,10 +87,10 @@ typedef Functor Psc;
 #define IsStandardizedVariable(DerefVar)  (IsTableVarTerm(DerefVar))
 
 #define IndexOfStdVar(VAR_ENUM_ADDR)  VarIndexOfTerm(VAR_ENUM_ADDR)
-#define IsTrieRoot(NODE)   (TrNode_parent(NODE) == NULL || TrNode_is_root(NODE))
-#define IsLeafNode(NODE)   (TrNode_child(NODE) == NULL || TrNode_is_leaf(NODE)) /// XXX
-#define IsEscapeNode(NODE)  (FALSE) // XXX
-#define ESCAPE_NODE_SYMBOL    (long)0xFFFFFFF // XXX
+#define IsTrieRoot(NODE)   TrNode_is_root(NODE)
+#define IsLeafNode(NODE)   TrNode_is_leaf(NODE)
+#define IsEscapeNode(NODE)  FALSE
+#define ESCAPE_NODE_SYMBOL    (long)0xFFFFFFF
 #define IsTrieFunctor(SYMBOL) (cell_tag(SYMBOL) == TAG_STRUCT)
 #define IsTrieList(SYMBOL)  IsPairTerm(SYMBOL)
 

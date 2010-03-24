@@ -370,6 +370,7 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
         add_answer_trie_subgoal_frame(SG_FR); \
         SgFr_timestamp(SG_FR) = 0;  \
         SgFr_cons_cp(SG_FR) = NULL; \
+        SgFr_answer_template(SG_FR) = NULL; \
         SgFr_producer(SG_FR) = PRODUCER;  \
         SgFr_consumers(SG_FR) = SgFr_prod_consumers(PRODUCER);  \
         if (!SgFr_prod_consumers(PRODUCER))      \
@@ -388,6 +389,7 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
         { SgFr_init_yapor_fields(SG_FR);  \
           SgFr_state(SG_FR) = evaluating; \
           SgFr_cons_cp(SG_FR) = B;        \
+          SgFr_answer_template(SG_FR) = SgFr_cons_cp_at(SG_FR); \
         }
 
 #define SgFr_has_real_answers(SG_FR)                                      \
@@ -642,16 +644,7 @@ static inline
 void mark_consumer_as_completed(sg_fr_ptr sg_fr) {
   LOCK(SgFr_lock(sg_fr));
   
-  if(SgFr_state(sg_fr) != complete) {
-    SgFr_state(sg_fr) = complete;
-    if(TabEnt_is_exec(SgFr_tab_ent(sg_fr))) {
-      /* not needed anymore */
-      dprintf("Deleting consumer data (EXEC)\n");
-      /*free_consumer_subgoal_data((subcons_fr_ptr)sg_fr);
-      SgFr_first_answer(sg_fr) = NULL;
-      SgFr_last_answer(sg_fr) = NULL;*/
-    }
-  }
+  SgFr_state(sg_fr) = complete;
   
   UNLOCK(SgFr_lock(sg_fr));
 }
@@ -1092,7 +1085,7 @@ build_next_subsumptive_consumer_return_list(subcons_fr_ptr consumer_sg, CELL *an
   const int producer_ts = SgFr_prod_timestamp(producer_sg);
   const int consumer_ts = SgFr_timestamp(consumer_sg);
   
-  if(producer_ts <= consumer_ts)
+  if(producer_ts == consumer_ts)
     return FALSE; /* no answers were inserted */
     
   //dprintf("Producer ts %d consumer ts %d\n", producer_ts, consumer_ts);
@@ -1201,9 +1194,8 @@ is_new_generator_call(CallLookupResults *results) {
   
   switch(SgFr_type(sg_fr)) {
     case VARIANT_PRODUCER_SFT:
-      return SgFr_state(sg_fr) == ready;
     case SUBSUMPTIVE_PRODUCER_SFT:
-      return !CallResults_variant_found(results);
+      return SgFr_state(sg_fr) == ready;
     case SUBSUMED_CONSUMER_SFT:
       return FALSE;
     default:
@@ -1221,16 +1213,10 @@ is_new_consumer_call(CallLookupResults *results) {
   
   switch(SgFr_type(sg_fr)) {
     case VARIANT_PRODUCER_SFT:
-      return SgFr_state(sg_fr) == evaluating;
     case SUBSUMPTIVE_PRODUCER_SFT:
-      return CallResults_variant_found(results) && SgFr_state(sg_fr) == evaluating;
-    case SUBSUMED_CONSUMER_SFT:
-      if(SgFr_state(sg_fr) == ready) {
-        subprod_fr_ptr prod_sg = SgFr_producer((subcons_fr_ptr)sg_fr);
-        
-        return SgFr_state(prod_sg) < complete;
-      }
       return SgFr_state(sg_fr) == evaluating;
+    case SUBSUMED_CONSUMER_SFT:
+      return SgFr_state(SgFr_producer((subcons_fr_ptr)sg_fr)) == evaluating;
     default:
       /* NOT REACHABLE */
       return FALSE;

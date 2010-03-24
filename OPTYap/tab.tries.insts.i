@@ -113,7 +113,7 @@
         
 #define store_trie_node(AP)                           \
         { register choiceptr cp;                      \
-          dprintf("store_trie_node\n");                \
+          dprintf("store_trie_node\n");               \
           YENV = (CELL *) (NORM_CP(YENV) - 1);        \
           cp = NORM_CP(YENV);                         \
           HBREG = H;                                  \
@@ -132,7 +132,7 @@
         copy_arity_stack()
 
 #define restore_trie_node(AP)                         \
-        dprintf("restore_trie_node\n");                \
+        dprintf("restore_trie_node\n");               \
         H = HBREG = PROTECT_FROZEN_H(B);              \
         restore_yaam_reg_cpdepth(B);                  \
         CPREG = B->cp_cp;                             \
@@ -160,7 +160,7 @@
 
 #ifdef YAPOR
 #define pop_trie_node()                               \
-        dprintf("pop_trie_node\n");                    \
+        dprintf("pop_trie_node\n");                   \
         if (SCH_top_shared_cp(B)) {                   \
           restore_trie_node(NULL);                    \
         } else {                                      \
@@ -311,7 +311,6 @@
               }                                                                                 \
               break;  \
               default:  \
-                dprintf("AUX_SUB VAR TAG_REF DEFAULT\n");  \
                 Bind_Global((CELL *)aux_sub, aux_var);  \
                 break;  \
           } \
@@ -323,7 +322,7 @@
               Bind_Global((CELL *) aux_var, aux_sub); \
               *vars_ptr = aux_sub;  /* ok */ \
               dprintf("Bind Global 1\n");  \
-            } else {  /* XXX */ \
+            } else { \
               Bind_Local((CELL *) aux_var, aux_sub);  \
               *vars_ptr = aux_sub;  \
               dprintf("Bind local 1\n"); \

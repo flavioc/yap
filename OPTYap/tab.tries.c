@@ -71,20 +71,11 @@ void subgoal_search(yamop *preg, CELL **Yaddr, CallLookupResults *results) {
   dprintf("\n");
 #endif
   
-  if(TabEnt_is_variant(tab_ent)) {
+  // XXX remove var_vector
+  if(TabEnt_is_variant(tab_ent))
     variant_call_search(&call_info, results);
-  } else {
+  else
     subsumptive_call_search(&call_info, results);
-    
-    sg_fr_ptr sg_fr = CallResults_subgoal_frame(results);
-    if(SgFr_is_sub_consumer(sg_fr)) {
-      subcons_fr_ptr consumer = (subcons_fr_ptr)sg_fr;
-      
-      if(SgFr_cons_cp(consumer) == NULL) {
-        fix_answer_template(CallResults_var_vector(results));
-      }
-    }
-  }
   
 #ifdef FDEBUG
     dprintf("SUBGOAL IS: ");

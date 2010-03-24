@@ -916,71 +916,50 @@ void subsumptive_call_search(TabledCallInfo *call_info, CallLookupResults *resul
 #endif
   
   if(path_type == NO_PATH) { /* new producer */
-    dprintf("No path found... new producer\n");
     Trail_Unwind_All;
     
-    CallResults_subsumer(results) = NULL;
-    CallResults_variant_found(results) = NO;
-    CallResults_leaf(results) = variant_call_cont_insert(tab_ent, (sg_node_ptr)stl_restore_variant_cont(),
+    sg_node_ptr leaf = variant_call_cont_insert(tab_ent, (sg_node_ptr)stl_restore_variant_cont(),
       variant_cont.bindings.num);
       
     CallResults_var_vector(results) = extract_template_from_insertion(answer_template);
-    CallResults_subgoal_frame(results) = create_new_producer_subgoal(CallResults_leaf(results),
+    CallResults_subgoal_frame(results) = create_new_producer_subgoal(leaf,
       tab_ent, CallInfo_code(call_info));
     Trail_Unwind_All;
     
     //printSubstitutionFactor(stdout, CallResults_var_vector(results));
   } else { /* new consumer */
-    
+    subprod_fr_ptr subsumer;
     sg_fr_ptr sg_fr = (sg_fr_ptr)TrNode_sg_fr(btn);
-    sg_fr_ptr subsumer;
     
     if(SgFr_is_sub_producer(sg_fr)) {
       /* consume from sf_with_ans_set */
+      subsumer = (subprod_fr_ptr)sg_fr;
       answer_template = extract_template_from_lookup(answer_template);
       Trail_Unwind_All;
-      subsumer = sg_fr;
-      //dprintf("Consume from producer\n");
     } else {
-      subcons_fr_ptr first_consumer = (subcons_fr_ptr)sg_fr;
-      subsumer = (sg_fr_ptr)SgFr_producer(first_consumer);
-      //dprintf("Super subsumption call found\n");
       Trail_Unwind_All;
-      answer_template = reconstruct_template_for_producer(call_info,
-          (subprod_fr_ptr)subsumer, answer_template);
+      subsumer = SgFr_producer((subcons_fr_ptr)sg_fr);
+      answer_template = reconstruct_template_for_producer(call_info, subsumer, answer_template);
     }
     
-    CallResults_subsumer(results) = subsumer;
-    CallResults_variant_found(results) = (path_type == VARIANT_PATH);
     CallResults_var_vector(results) = answer_template;
     
     //if((path_type != VARIANT_PATH) && (SgFr_state(subsumer) < complete)) {
     if(path_type != VARIANT_PATH) {
-      CallResults_leaf(results) = variant_call_cont_insert(tab_ent, (sg_node_ptr)stl_restore_variant_cont(), variant_cont.bindings.num);
+      sg_node_ptr leaf = variant_call_cont_insert(tab_ent, (sg_node_ptr)stl_restore_variant_cont(), variant_cont.bindings.num);
       Trail_Unwind_All;
-      CallResults_subgoal_frame(results) = create_new_consumer_subgoal(CallResults_leaf(results),
-              (subprod_fr_ptr)CallResults_subsumer(results), tab_ent, CallInfo_code(call_info));
+      CallResults_subgoal_frame(results) = create_new_consumer_subgoal(leaf,
+              subsumer, tab_ent, CallInfo_code(call_info));
+      fix_answer_template(CallResults_var_vector(results));
     } else {
-      CallResults_leaf(results) = btn;
       CallResults_subgoal_frame(results) = sg_fr;
       dprintf("New variant path\n");
     }
-    
+    /*
     dprintf("TEMPLATE: ");
     int tmplt_size = (int)*answer_template;
     printAnswerTemplate(stdout, answer_template+tmplt_size, tmplt_size);
-    
-    /*
-    if(path_type == VARIANT_PATH) {
-      ALNptr answers = SgFr_first_answer(CallResults_subgoal_frame(results));
-      
-      dprintf("Old saved answers: \n");
-      while(answers) {
-        printAnswerTriePath(stdout, AnsList_answer(answers));
-        dprintf("\n");
-        answers = AnsList_next(answers);
-      }
-    } */
+    */
   }
 }
 
