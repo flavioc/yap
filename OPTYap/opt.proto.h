@@ -90,7 +90,7 @@ void show_global_trie(void);
 #ifdef TABLING
 inline CPtr extract_template_from_insertion(CTXTdeclc CPtr ans_tmplt);
 sg_node_ptr variant_call_cont_insert(tab_ent_ptr tab_ent, sg_node_ptr current_node, int count_vars);
-void variant_call_search(yamop *code, CELL* local_stack, CallLookupResults *results);
+void variant_call_search(yamop *code, CELL *local_stack, CallLookupResults *results);
 ans_node_ptr variant_answer_search(sg_fr_ptr sg_fr, CELL *subs_ptr);
 void consume_variant_answer(ans_node_ptr ans_node, int size, CELL *answer_template);
 #endif /* TABLING */
@@ -101,7 +101,7 @@ void consume_variant_answer(ans_node_ptr ans_node, int size, CELL *answer_templa
 
 #ifdef TABLING
 void* stl_restore_variant_cont(CTXTdecl);
-void subsumptive_call_search(TabledCallInfo *call_info, CallLookupResults *results);
+void subsumptive_call_search(yamop *code, CELL *local_stack, CallLookupResults *results);
 ans_node_ptr subsumptive_answer_search(subprod_fr_ptr sg_fr, CELL *subs_ptr);
 void *newTSTAnswerSet(void);
 #endif

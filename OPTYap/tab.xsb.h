@@ -184,6 +184,10 @@ typedef Functor Psc;
 #define hash_opcode _trie_do_hash
 
 #define ALNptr ans_list_ptr
+#define TabledCallInfo yamop
+
+#define CallInfo_arguments(INFO) CALL_ARGUMENTS()
+#define CallInfo_arity(INFO) CODE_ARITY(INFO)
 
 #define isref IsVarTerm
 #define LOG_DEBUG 0 /* NOT USED */

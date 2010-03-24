@@ -541,22 +541,6 @@ typedef struct suspension_frame {
 #define SuspFr_trail_size(X)          ((X)->trail_block.block_size)
 #define SuspFr_next(X)                ((X)->next)
 
-
-/* -------------------------------- **
-** Structure to pass information    **
-** about call                       **
-** -------------------------------- */
-typedef struct Tabled_Call_Info_Record {
-  yamop *code;
-  CELL *var_vector; /* location to store the call var vector */
-} TabledCallInfo;
-
-#define CallInfo_table_entry(CALL)	((CALL)->code->u.Otapl.te)
-#define CallInfo_arity(CALL)        ((CALL)->code->u.Otapl.s)
-#define CallInfo_var_vector(CALL)   ((CALL)->var_vector)
-#define CallInfo_code(CALL)         ((CALL)->code)
-#define CallInfo_arguments(CALL)    (XREGS + 1)
-
 typedef struct Call_Check_Insert_Results {
   CELL *var_vector;         /* pointer to the vector of call variables */
   sg_fr_ptr subgoal_frame;

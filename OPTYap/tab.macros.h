@@ -129,6 +129,7 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
 /* code related macros */
 #define CODE_TABLE_ENTRY(CODE) ((CODE)->u.Otapl.te)
 #define CODE_ARITY(CODE)       ((CODE)->u.Otapl.s)
+#define CALL_ARGUMENTS() (XREGS + 1)
 
 
 #define STACK_NOT_EMPTY(STACK, STACK_BASE)  STACK != STACK_BASE

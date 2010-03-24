@@ -891,11 +891,10 @@ CPtr reconstruct_template_for_producer(CTXTdeclc TabledCallInfo *call_info, SubP
   return ans_tmplt;
 }
 
-void subsumptive_call_search(TabledCallInfo *call_info, CallLookupResults *results)
+void subsumptive_call_search(yamop *code, CELL *answer_template, CallLookupResults *results)
 {
-  tab_ent_ptr tab_ent = CallInfo_table_entry(call_info);
+  tab_ent_ptr tab_ent = CODE_TABLE_ENTRY(code);
   BTNptr btRoot = TabEnt_subgoal_trie(tab_ent);
-  CPtr answer_template = CallInfo_var_vector(call_info);
   BTNptr btn;
   TriePathType path_type;
   
@@ -903,7 +902,7 @@ void subsumptive_call_search(TabledCallInfo *call_info, CallLookupResults *resul
   TermStack_ResetTOS;
   TermStackLog_ResetTOS;
   Trail_ResetTOS;
-  TermStack_PushLowToHighVector(CallInfo_arguments(call_info), CallInfo_arity(call_info));
+  TermStack_PushLowToHighVector(CALL_ARGUMENTS(), CODE_ARITY(code));
   
   btn = iter_sub_trie_lookup(CTXTc btRoot, &path_type);
   
@@ -923,7 +922,7 @@ void subsumptive_call_search(TabledCallInfo *call_info, CallLookupResults *resul
       
     CallResults_var_vector(results) = extract_template_from_insertion(answer_template);
     CallResults_subgoal_frame(results) = create_new_producer_subgoal(leaf,
-      tab_ent, CallInfo_code(call_info));
+      tab_ent, code);
     Trail_Unwind_All;
     
     //printSubstitutionFactor(stdout, CallResults_var_vector(results));
@@ -939,7 +938,7 @@ void subsumptive_call_search(TabledCallInfo *call_info, CallLookupResults *resul
     } else {
       Trail_Unwind_All;
       subsumer = SgFr_producer((subcons_fr_ptr)sg_fr);
-      answer_template = reconstruct_template_for_producer(call_info, subsumer, answer_template);
+      answer_template = reconstruct_template_for_producer(code, subsumer, answer_template);
     }
     
     CallResults_var_vector(results) = answer_template;
@@ -949,7 +948,7 @@ void subsumptive_call_search(TabledCallInfo *call_info, CallLookupResults *resul
       sg_node_ptr leaf = variant_call_cont_insert(tab_ent, (sg_node_ptr)stl_restore_variant_cont(), variant_cont.bindings.num);
       Trail_Unwind_All;
       CallResults_subgoal_frame(results) = create_new_consumer_subgoal(leaf,
-              subsumer, tab_ent, CallInfo_code(call_info));
+              subsumer, tab_ent, code);
       fix_answer_template(CallResults_var_vector(results));
     } else {
       CallResults_subgoal_frame(results) = sg_fr;
