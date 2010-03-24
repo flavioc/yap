@@ -126,6 +126,10 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
 #define IS_BATCHED_GEN_CP(CP)       (GEN_CP(CP)->cp_dep_fr == NULL)
 #endif /* DETERMINISTIC_TABLING */
 
+/* code related macros */
+#define CODE_TABLE_ENTRY(CODE) ((CODE)->u.Otapl.te)
+#define CODE_ARITY(CODE)       ((CODE)->u.Otapl.s)
+
 
 #define STACK_NOT_EMPTY(STACK, STACK_BASE)  STACK != STACK_BASE
 #define STACK_PUSH_UP(ITEM, STACK)          *--STACK = (CELL)(ITEM)
