@@ -70,9 +70,9 @@ sg_fr_ptr subgoal_search(yamop *preg, CELL **local_stack_ptr)
   CallLookupResults results;
   
   // XXX remove var_vector
-  if(TabEnt_is_variant(tab_ent))
-    variant_call_search(preg, local_stack, &results);
-  else
+  if(TabEnt_is_variant(tab_ent)) {
+    return variant_call_search(preg, local_stack, local_stack_ptr);
+  } else
     subsumptive_call_search(preg, local_stack, &results);
   
 #ifdef FDEBUG
@@ -81,7 +81,7 @@ sg_fr_ptr subgoal_search(yamop *preg, CELL **local_stack_ptr)
     printf("\n");
 #endif
   
-  *local_stack_ptr = CallResults_var_vector(&results)++;
+  *local_stack_ptr = CallResults_var_vector(&results);
   
   return CallResults_subgoal_frame(&results);
 }

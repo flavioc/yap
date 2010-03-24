@@ -128,12 +128,13 @@ variant_call_cont_insert(tab_ent_ptr tab_ent, sg_node_ptr current_node, int coun
   return current_node;
 }
 
-void
-variant_call_search(yamop *code, CELL *local_stack, CallLookupResults *results) {
+sg_fr_ptr
+variant_call_search(yamop *code, CELL *local_stack, CELL **new_local_stack) {
   tab_ent_ptr tab_ent = CODE_TABLE_ENTRY(code);
   int arity = CODE_ARITY(code);
   sg_node_ptr top_node = TabEnt_subgoal_trie(tab_ent);
   sg_node_ptr leaf;
+  sg_fr_ptr sg_fr;
   
   Trail_ResetTOS;
   TermStack_ResetTOS;
@@ -143,12 +144,14 @@ variant_call_search(yamop *code, CELL *local_stack, CallLookupResults *results) 
   leaf = variant_call_cont_insert(tab_ent, top_node, 0);
   
   /* build substitution factor */
-  CallResults_var_vector(results) = extract_template_from_insertion(local_stack);
+  *new_local_stack = extract_template_from_insertion(local_stack);
   
   /* get or create a subgoal frame */
-  CallResults_subgoal_frame(results) = get_subgoal_frame_from_node(leaf, tab_ent, code);
+  sg_fr = get_subgoal_frame_from_node(leaf, tab_ent, code);
   
   Trail_Unwind_All;
+  
+  return sg_fr;
 }
 
 ans_node_ptr variant_answer_search(sg_fr_ptr sg_fr, CELL *subs_ptr) {
