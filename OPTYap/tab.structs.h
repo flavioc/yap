@@ -328,15 +328,15 @@ typedef struct subgoal_frame {
   
   continuation_ptr first_answer;
   continuation_ptr last_answer;
+    
+  struct subgoal_frame *next;
+#ifdef LIMIT_TABLING
+  struct subgoal_frame *previous;
+#endif /* LIMIT_TABLING */
 
 #ifdef INCOMPLETE_TABLING
   continuation_ptr try_answer;
 #endif /* INCOMPLETE_TABLING */
-
-#ifdef LIMIT_TABLING
-  struct subgoal_frame *previous;
-#endif /* LIMIT_TABLING */
-  struct subgoal_frame *next;
   
   struct answer_trie_node *answer_trie;
   
@@ -370,7 +370,7 @@ typedef sg_fr_ptr variant_sf_ptr;
 #define SgFr_last_answer(X)    (CAST_SF(X)->last_answer)
 #define SgFr_try_answer(X)     (CAST_SF(X)->try_answer)
 #define SgFr_previous(X)       (CAST_SF(X)->previous)
-#define SgFr_next(X)           (CAST_SF(X)->next)
+#define SgFr_next(X)           ((X)->next)
 
 /* ------------------------------------------------------------------------------------------- **
    SgFr_lock:          spin-lock to modify the frame fields.
@@ -422,6 +422,8 @@ struct subsumed_consumer_subgoal_frame {
 
   continuation_ptr first_answer;
   continuation_ptr last_answer;
+  
+  struct subsumed_consumer_subgoal_frame *next;
   
   time_stamp ts;
   subprod_fr_ptr producer;

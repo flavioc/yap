@@ -383,6 +383,7 @@ struct local_data{
   /* local data related to tabling */
   struct answer_trie_node *next_free_answer_trie_node;
   struct subgoal_frame *top_subgoal_frame; /* MUST BE BASE XXXX */
+  struct subsumed_consumer_subgoal_frame *top_consumer_subgoal_frame;
   struct dependency_frame *top_dependency_frame;
 #ifdef TABLING_INNER_CUTS
   choiceptr bottom_pruning_scope;
@@ -430,6 +431,7 @@ struct local_data{
 #define LOCAL_end_trail_copy               (LOCAL->trail_copy.end)
 #define LOCAL_next_free_ans_node           (LOCAL->next_free_answer_trie_node)
 #define LOCAL_top_sg_fr                    (LOCAL->top_subgoal_frame)
+#define LOCAL_top_cons_sg_fr               (LOCAL->top_consumer_subgoal_frame)
 #define LOCAL_top_dep_fr                   (LOCAL->top_dependency_frame)
 #define LOCAL_pruning_scope                (LOCAL->bottom_pruning_scope)
 #if THREADS

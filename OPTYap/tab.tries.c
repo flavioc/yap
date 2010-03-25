@@ -289,7 +289,7 @@ CELL *load_substitution_variable(gt_node_ptr current_node, CELL *aux_stack_ptr) 
 
 
 void private_completion(sg_fr_ptr sg_fr) {
-  /* complete subgoals */
+  /* complete generator subgoals */
   dprintf("Private completion\n");
 #ifdef LIMIT_TABLING
   sg_fr_ptr aux_sg_fr;
@@ -313,14 +313,15 @@ void private_completion(sg_fr_ptr sg_fr) {
   LOCAL_top_sg_fr = SgFr_next(LOCAL_top_sg_fr);
 #endif /* LIMIT_TABLING */
 
+  /* complete consumer subgoals */
+  while(LOCAL_top_cons_sg_fr && YOUNGER_CP(SgFr_cons_cp(LOCAL_top_cons_sg_fr), B)) {
+    mark_consumer_as_completed(LOCAL_top_cons_sg_fr);
+    LOCAL_top_cons_sg_fr = SgFr_next(LOCAL_top_cons_sg_fr);
+  }
+
   /* release dependency frames */
   while (EQUAL_OR_YOUNGER_CP(DepFr_cons_cp(LOCAL_top_dep_fr), B)) {  /* never equal if batched scheduling */
     dep_fr_ptr dep_fr = DepFr_next(LOCAL_top_dep_fr);
-    sg_fr_ptr sg_fr = DepFr_sg_fr(LOCAL_top_dep_fr);
-    if(SgFr_is_sub_consumer(sg_fr) && SgFr_state(sg_fr) != complete) {
-      dprintf("One subsumptive consumer sg fr completed\n");
-      mark_consumer_as_completed(sg_fr);
-    }
     dprintf("ONE DEPENDENCY FRAME FREED\n");
     FREE_DEPENDENCY_FRAME(LOCAL_top_dep_fr);
     LOCAL_top_dep_fr = dep_fr;

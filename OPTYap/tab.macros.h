@@ -27,7 +27,7 @@
 
 STD_PROTO(static inline void adjust_freeze_registers, (void));
 STD_PROTO(static inline void mark_as_completed, (sg_fr_ptr));
-STD_PROTO(static inline void mark_consumer_as_completed, (sg_fr_ptr sg_fr));
+STD_PROTO(static inline void mark_consumer_as_completed, (subcons_fr_ptr sg_fr));
 STD_PROTO(static inline void unbind_variables, (tr_fr_ptr, tr_fr_ptr));
 STD_PROTO(static inline void rebind_variables, (tr_fr_ptr, tr_fr_ptr));
 STD_PROTO(static inline void restore_bindings, (tr_fr_ptr, tr_fr_ptr));
@@ -381,6 +381,7 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
         if (!SgFr_prod_consumers(PRODUCER))      \
           tstCreateTSIs((tst_node_ptr)SgFr_answer_trie(PRODUCER));  \
         SgFr_prod_consumers(PRODUCER) = (subcons_fr_ptr)(SG_FR);  \
+        SgFr_next(SG_FR) = NULL;  \
     }
 
 #define init_subgoal_frame(SG_FR)                                  \
@@ -391,10 +392,11 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
 	      }
 
 #define init_sub_consumer_subgoal_frame(SG_FR)  \
-        { SgFr_init_yapor_fields(SG_FR);  \
-          SgFr_state(SG_FR) = evaluating; \
+        { SgFr_state(SG_FR) = evaluating; \
           SgFr_cons_cp(SG_FR) = B;        \
           SgFr_answer_template(SG_FR) = SgFr_cons_cp_at(SG_FR); \
+          SgFr_next(SG_FR) = LOCAL_top_cons_sg_fr; \
+          LOCAL_top_cons_sg_fr = SG_FR; \
         }
 
 #define SgFr_has_real_answers(SG_FR)                                      \
@@ -646,7 +648,7 @@ void mark_as_completed(sg_fr_ptr sg_fr) {
 }
 
 static inline
-void mark_consumer_as_completed(sg_fr_ptr sg_fr) {
+void mark_consumer_as_completed(subcons_fr_ptr sg_fr) {
   LOCK(SgFr_lock(sg_fr));
   
   SgFr_state(sg_fr) = complete;
