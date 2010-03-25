@@ -225,7 +225,7 @@ stl_restore_variant_cont(CTXTdecl) {
     \
   while (IsNonNULL(alternateBTN)) { \
     if(IsTrieVar(BTN_Symbol(alternateBTN))) { \
-      CPStack_PushFrame(alternateBTN, VariableChain)  \
+      CPStack_PushFrame(alternateBTN, alternateBTN)  \
       break;  \
     } \
     alternateBTN = BTN_Sibling(alternateBTN); \
