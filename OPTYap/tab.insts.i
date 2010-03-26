@@ -228,21 +228,20 @@
         }
 
 
-#define store_loader_node(TAB_ENT, ANSWER, SG_FR)             \
+#define store_loader_node(TAB_ENT, ANSWER, LOAD_INSTR)        \
         { register choiceptr lcp;                             \
-	  /* initialize lcp */                                \
+	  /* initialize lcp */                                      \
           lcp = NORM_CP(LOAD_CP(YENV) - 1);                   \
           /* store loader choice point */                     \
           HBREG = H;                                          \
           store_yaam_reg_cpdepth(lcp);                        \
-          lcp->cp_tr = TR;         	                      \
-          lcp->cp_ap = LOAD_ANSWER;                           \
+          lcp->cp_tr = TR;         	                          \
+          lcp->cp_ap = LOAD_INSTR;                            \
           lcp->cp_h  = H;                                     \
           lcp->cp_b  = B;                                     \
           lcp->cp_env= ENV;                                   \
           lcp->cp_cp = CPREG;                                 \
           LOAD_CP(lcp)->cp_last_answer = ANSWER;              \
-          LOAD_CP(lcp)->sg_fr = SG_FR;                        \
           store_low_level_trace_info(LOAD_CP(lcp), TAB_ENT);  \
           /* set_cut((CELL *)lcp, B); --> no effect */        \
           B = lcp;                                            \
@@ -330,13 +329,34 @@
   ENDOp();
 #endif /* TABLING_INNER_CUTS */
 
-
+  PBOp(table_load_cons_answer, Otapl)
+    CELL *ans_tmplt;
+    ans_node_ptr ans_node;
+    continuation_ptr next;
+    
+    ans_tmplt = (CELL *) (LOAD_CP(B) + 1);
+    
+    next = continuation_next(LOAD_CP(B)->cp_last_answer);
+    ans_node = continuation_answer(next);
+    
+    if(continuation_next(next)) {
+      restore_loader_node(next);
+    } else {
+      pop_loader_node();
+    }
+    
+    PREG = (yamop *) CPREG;
+    PREFETCH_OP(PREG);
+    CONSUME_SUBSUMPTIVE_ANSWER(ans_node, ans_tmplt);
+    
+    YENV = ENV;
+    GONext();
+  ENDPBOp();
 
   PBOp(table_load_answer, Otapl)
     CELL *ans_tmplt;
     ans_node_ptr ans_node;
     continuation_ptr next;
-    sg_fr_ptr sg_fr;
     
     dprintf("===> TABLE_LOAD_ANSWER\n");
 
@@ -354,12 +374,11 @@
 #endif /* YAPOR */
 
     ans_tmplt = (CELL *) (LOAD_CP(B) + 1);
-    sg_fr = LOAD_CP(B)->sg_fr;
     
-    next = ContPtr_next(LOAD_CP(B)->cp_last_answer);
-    ans_node = ContPtr_answer(next);
+    next = continuation_next(LOAD_CP(B)->cp_last_answer);
+    ans_node = continuation_answer(next);
     
-    if(ContPtr_next(next)) {
+    if(continuation_next(next)) {
       restore_loader_node(next);
     } else {
       pop_loader_node();
@@ -368,7 +387,7 @@
     PREG = (yamop *) CPREG;
     PREFETCH_OP(PREG);
     
-    CONSUME_ANSWER(ans_node, ans_tmplt, sg_fr);
+    CONSUME_VARIANT_ANSWER(ans_node, ans_tmplt);
     
     YENV = ENV;
     GONext();
@@ -384,12 +403,12 @@
     continuation_ptr next_cont;
 
     sg_fr = GEN_CP(B)->cp_sg_fr;
-    next_cont = ContPtr_next(SgFr_try_answer(sg_fr));
+    next_cont = continuation_next(SgFr_try_answer(sg_fr));
     
     if(next_cont) {
       CELL *subs_ptr = (CELL *) (GEN_CP(B) + 1) + SgFr_arity(sg_fr);
 
-      ans_node = ContPtr_answer(next_cont);
+      ans_node = continuation_answer(next_cont);
       H = HBREG = PROTECT_FROZEN_H(B);
       restore_yaam_reg_cpdepth(B);
       CPREG = B->cp_cp;
@@ -475,7 +494,7 @@
       /* subgoal incomplete --> start by loading the answers already found */
       
       continuation_ptr cont = SgFr_first_answer(sg_fr);
-      ans_node_ptr ans_node = ContPtr_answer(cont);
+      ans_node_ptr ans_node = continuation_answer(cont);
       
       CELL *subs_ptr = YENV;
       init_subgoal_frame(sg_fr);
@@ -539,6 +558,31 @@
   	      YENV = ENV;
   	      GONext();
         }
+                
+        if (TabEnt_is_load(tab_ent)) {
+          /* load answers from the trie */
+#ifdef LIMIT_TABLING
+          if (SgFr_state(sg_fr) == complete || SgFr_state(sg_fr) == compiled) {
+                SgFr_state(sg_fr)++;  /* complete --> complete_in_use : compiled --> compiled_in_use */
+            remove_from_global_sg_fr_list(sg_fr);
+            TRAIL_FRAME(sg_fr);
+          }
+#endif /* LIMIT_TABLING */
+          
+          continuation_ptr cont = SgFr_first_answer(sg_fr);
+          ans_node_ptr ans_node = continuation_answer(cont);
+
+  	      UNLOCK(SgFr_lock(sg_fr));
+
+  	      if(continuation_next(cont))
+            store_loader_node(tab_ent, cont, LOAD_ANSWER);
+
+          PREG = (yamop *) CPREG;
+          PREFETCH_OP(PREG);
+          CONSUME_VARIANT_ANSWER(ans_node, answer_template);
+  	      YENV = ENV;
+          GONext();
+  	    }
       } else {
   	    /* consumer */
   	    if(TabEnt_is_load(tab_ent)) {
@@ -546,12 +590,27 @@
   	        build_next_subsumptive_consumer_return_list((subcons_fr_ptr)sg_fr, H - 1);
             SgFr_state(sg_fr) = complete;
   	      }
+  	      
   	      if (SgFr_has_no_answers(sg_fr)) {
     	      /* no answers --> fail */
     	      UNLOCK(SgFr_lock(sg_fr));
     	      goto fail;
     	    }
-          goto load_consumer_table_single;
+    	    
+    	    /* load first answer */
+    	    continuation_ptr cont = SgFr_first_answer(sg_fr);
+          ans_node_ptr ans_node = continuation_answer(cont);
+
+  	      UNLOCK(SgFr_lock(sg_fr));
+
+  	      if(continuation_next(cont))
+            store_loader_node(tab_ent, cont, LOAD_CONS_ANSWER);
+
+          PREG = (yamop *) CPREG;
+          PREFETCH_OP(PREG);
+          CONSUME_SUBSUMPTIVE_ANSWER(ans_node, answer_template);
+  	      YENV = ENV;
+          GONext();
   	    } else {
   	      if(SgFr_state(sg_fr) < compiled)
   	        SgFr_state(sg_fr) = compiled;
@@ -563,40 +622,9 @@
   	        UNLOCK(SgFr_lock(sg_fr));
     	      goto fail;
   	      }
-          goto exec_compiled_trie_single;
   	    }
       }
 
-      /* variant consumer! ... */
-      /* answers -> get first answer */
-#ifdef LIMIT_TABLING
-	    if (SgFr_state(sg_fr) == complete || SgFr_state(sg_fr) == compiled) {
-	      SgFr_state(sg_fr)++;  /* complete --> complete_in_use : compiled --> compiled_in_use */
-	      remove_from_global_sg_fr_list(sg_fr);
-	      TRAIL_FRAME(sg_fr);
-	    }
-#endif /* LIMIT_TABLING */
-
-	    if (TabEnt_is_load(tab_ent))
-load_consumer_table_single:
-      {
-        /* load answers from the trie */
-        continuation_ptr cont = SgFr_first_answer(sg_fr);
-        ans_node_ptr ans_node = ContPtr_answer(cont);
-
-	      UNLOCK(SgFr_lock(sg_fr));
-
-	      if(ContPtr_next(cont))
-          store_loader_node(tab_ent, cont, sg_fr);
-
-        PREG = (yamop *) CPREG;
-        PREFETCH_OP(PREG);
-        CONSUME_ANSWER(ans_node, answer_template, sg_fr);
-	      YENV = ENV;
-        GONext();
-	    }
-
-exec_compiled_trie_single:
 	    /* execute compiled code from the trie */
 
 	    if (SgFr_state(sg_fr) < compiled)
@@ -641,7 +669,7 @@ exec_compiled_trie_single:
     } else if (SgFr_state(sg_fr) == incomplete) {
       /* subgoal incomplete --> start by loading the answers already found */
       continuation_ptr cont = SgFr_first_answer(sg_fr);
-      ans_node_ptr ans_node = ContPtr_answer(cont);
+      ans_node_ptr ans_node = continuation_answer(cont);
       
       CELL *subs_ptr = YENV;
       init_subgoal_frame(sg_fr);
@@ -705,6 +733,31 @@ exec_compiled_trie_single:
   	      YENV = ENV;
   	      GONext();
         }
+
+        if (TabEnt_is_load(tab_ent)) {
+          /* load answers from the trie */
+#ifdef LIMIT_TABLING
+          if (SgFr_state(sg_fr) == complete || SgFr_state(sg_fr) == compiled) {
+                SgFr_state(sg_fr)++;  /* complete --> complete_in_use : compiled --> compiled_in_use */
+            remove_from_global_sg_fr_list(sg_fr);
+            TRAIL_FRAME(sg_fr);
+          }
+#endif /* LIMIT_TABLING */
+
+          continuation_ptr cont = SgFr_first_answer(sg_fr);
+          ans_node_ptr ans_node = continuation_answer(cont);
+
+  	      UNLOCK(SgFr_lock(sg_fr));
+
+  	      if(continuation_next(cont))
+            store_loader_node(tab_ent, cont, LOAD_ANSWER);
+
+          PREG = (yamop *) CPREG;
+          PREFETCH_OP(PREG);
+          CONSUME_VARIANT_ANSWER(ans_node, answer_template);
+  	      YENV = ENV;
+          GONext();
+  	    }
       } else {
   	    /* consumer */
   	    if(TabEnt_is_load(tab_ent)) {
@@ -712,57 +765,41 @@ exec_compiled_trie_single:
   	        build_next_subsumptive_consumer_return_list((subcons_fr_ptr)sg_fr, H - 1);
             SgFr_state(sg_fr) = complete;
   	      }
+
   	      if (SgFr_has_no_answers(sg_fr)) {
     	      /* no answers --> fail */
     	      UNLOCK(SgFr_lock(sg_fr));
     	      goto fail;
     	    }
-          goto load_consumer_table_me;
+
+    	    /* load first answer */
+    	    continuation_ptr cont = SgFr_first_answer(sg_fr);
+          ans_node_ptr ans_node = continuation_answer(cont);
+
+  	      UNLOCK(SgFr_lock(sg_fr));
+
+  	      if(continuation_next(cont))
+            store_loader_node(tab_ent, cont, LOAD_CONS_ANSWER);
+
+          PREG = (yamop *) CPREG;
+          PREFETCH_OP(PREG);
+          CONSUME_SUBSUMPTIVE_ANSWER(ans_node, answer_template);
+  	      YENV = ENV;
+          GONext();
   	    } else {
   	      if(SgFr_state(sg_fr) < compiled)
   	        SgFr_state(sg_fr) = compiled;
           UNLOCK(SgFr_lock(sg_fr));
   	      sg_fr = (sg_fr_ptr)SgFr_producer((subcons_fr_ptr)sg_fr);
-          LOCK(SgFr_lock(sg_fr));
+  	      LOCK(SgFr_lock(sg_fr));
   	      if(SgFr_has_no_answers(sg_fr)) {
   	        /* no answers --> fail */
-            UNLOCK(SgFr_lock(sg_fr));
+  	        UNLOCK(SgFr_lock(sg_fr));
     	      goto fail;
   	      }
-          goto exec_compiled_trie_me;
   	    }
       }
 
-      /* variant consumer! ... */
-      /* answers -> get first answer */
-#ifdef LIMIT_TABLING
-	    if (SgFr_state(sg_fr) == complete || SgFr_state(sg_fr) == compiled) {
-	      SgFr_state(sg_fr)++;  /* complete --> complete_in_use : compiled --> compiled_in_use */
-	      remove_from_global_sg_fr_list(sg_fr);
-	      TRAIL_FRAME(sg_fr);
-	    }
-#endif /* LIMIT_TABLING */
-
-	    if (TabEnt_is_load(tab_ent))
-load_consumer_table_me:
-      {
-        /* load answers from the trie */
-        continuation_ptr cont = SgFr_first_answer(sg_fr);
-        ans_node_ptr ans_node = ContPtr_answer(cont);
-
-	      UNLOCK(SgFr_lock(sg_fr));
-
-	      if(ContPtr_next(cont))
-          store_loader_node(tab_ent, cont, sg_fr);
-
-        PREG = (yamop *) CPREG;
-        PREFETCH_OP(PREG);
-        CONSUME_ANSWER(ans_node, answer_template, sg_fr);
-	      YENV = ENV;
-        GONext();
-	    }
-
-exec_compiled_trie_me:
 	    /* execute compiled code from the trie */
 
 	    if (SgFr_state(sg_fr) < compiled)
@@ -809,7 +846,7 @@ exec_compiled_trie_me:
     } else if (SgFr_state(sg_fr) == incomplete) {
       /* subgoal incomplete --> start by loading the answers already found */
       continuation_ptr cont = SgFr_first_answer(sg_fr);
-      ans_node_ptr ans_node = ContPtr_answer(cont);
+      ans_node_ptr ans_node = continuation_answer(cont);
 
       CELL *subs_ptr = YENV;
       init_subgoal_frame(sg_fr);
@@ -858,6 +895,7 @@ exec_compiled_trie_me:
       dprintf("TABLE_TRY COMPLETE SUBGOAL\n");
       CELL* answer_template = YENV;
       
+
       if(SgFr_is_variant(sg_fr) || SgFr_is_sub_producer(sg_fr)) {
         if (SgFr_has_no_answers(sg_fr)) {
   	      /* no answers --> fail */
@@ -872,6 +910,31 @@ exec_compiled_trie_me:
   	      YENV = ENV;
   	      GONext();
         }
+
+        if (TabEnt_is_load(tab_ent)) {
+          /* load answers from the trie */
+#ifdef LIMIT_TABLING
+          if (SgFr_state(sg_fr) == complete || SgFr_state(sg_fr) == compiled) {
+                SgFr_state(sg_fr)++;  /* complete --> complete_in_use : compiled --> compiled_in_use */
+            remove_from_global_sg_fr_list(sg_fr);
+            TRAIL_FRAME(sg_fr);
+          }
+#endif /* LIMIT_TABLING */
+
+          continuation_ptr cont = SgFr_first_answer(sg_fr);
+          ans_node_ptr ans_node = continuation_answer(cont);
+
+  	      UNLOCK(SgFr_lock(sg_fr));
+
+  	      if(continuation_next(cont))
+            store_loader_node(tab_ent, cont, LOAD_ANSWER);
+
+          PREG = (yamop *) CPREG;
+          PREFETCH_OP(PREG);
+          CONSUME_VARIANT_ANSWER(ans_node, answer_template);
+  	      YENV = ENV;
+          GONext();
+  	    }
       } else {
   	    /* consumer */
   	    if(TabEnt_is_load(tab_ent)) {
@@ -879,12 +942,27 @@ exec_compiled_trie_me:
   	        build_next_subsumptive_consumer_return_list((subcons_fr_ptr)sg_fr, H - 1);
             SgFr_state(sg_fr) = complete;
   	      }
+
   	      if (SgFr_has_no_answers(sg_fr)) {
     	      /* no answers --> fail */
     	      UNLOCK(SgFr_lock(sg_fr));
     	      goto fail;
     	    }
-          goto load_consumer_table;
+
+    	    /* load first answer */
+    	    continuation_ptr cont = SgFr_first_answer(sg_fr);
+          ans_node_ptr ans_node = continuation_answer(cont);
+
+  	      UNLOCK(SgFr_lock(sg_fr));
+
+  	      if(continuation_next(cont))
+            store_loader_node(tab_ent, cont, LOAD_CONS_ANSWER);
+
+          PREG = (yamop *) CPREG;
+          PREFETCH_OP(PREG);
+          CONSUME_SUBSUMPTIVE_ANSWER(ans_node, answer_template);
+  	      YENV = ENV;
+          GONext();
   	    } else {
   	      if(SgFr_state(sg_fr) < compiled)
   	        SgFr_state(sg_fr) = compiled;
@@ -896,40 +974,9 @@ exec_compiled_trie_me:
   	        UNLOCK(SgFr_lock(sg_fr));
     	      goto fail;
   	      }
-          goto exec_compiled_trie;
   	    }
       }
-      
-      /* variant consumer! ... */
-      /* answers -> get first answer */
-#ifdef LIMIT_TABLING
-	    if (SgFr_state(sg_fr) == complete || SgFr_state(sg_fr) == compiled) {
-	      SgFr_state(sg_fr)++;  /* complete --> complete_in_use : compiled --> compiled_in_use */
-	      remove_from_global_sg_fr_list(sg_fr);
-	      TRAIL_FRAME(sg_fr);
-	    }
-#endif /* LIMIT_TABLING */
 
-	    if (TabEnt_is_load(tab_ent))
-load_consumer_table:
-      {
-        /* load answers from the trie */
-        continuation_ptr cont = SgFr_first_answer(sg_fr);
-        ans_node_ptr ans_node = ContPtr_answer(cont);
-
-	      UNLOCK(SgFr_lock(sg_fr));
-
-	      if(ContPtr_next(cont))
-          store_loader_node(tab_ent, cont, sg_fr);
-
-        PREG = (yamop *) CPREG;
-        PREFETCH_OP(PREG);
-        CONSUME_ANSWER(ans_node, answer_template, sg_fr);
-	      YENV = ENV;
-        GONext();
-	    }
-	    
-exec_compiled_trie:
 	    /* execute compiled code from the trie */
 
 	    if (SgFr_state(sg_fr) < compiled)
@@ -1230,13 +1277,13 @@ exec_compiled_trie:
       
       alloc_answer_continuation(next);
       
-      ContPtr_answer(next) = ans_node;
-      ContPtr_next(next) = NULL;
+      continuation_answer(next) = ans_node;
+      continuation_next(next) = NULL;
       
       if(SgFr_first_answer(sg_fr) == NULL)
         SgFr_first_answer(sg_fr) = next;
       else
-        ContPtr_next(SgFr_last_answer(sg_fr)) = next;
+        continuation_next(SgFr_last_answer(sg_fr)) = next;
       
       SgFr_last_answer(sg_fr) = next;
 
@@ -1246,9 +1293,9 @@ exec_compiled_trie:
         continuation_ptr aux = SgFr_first_answer(sg_fr);
           
         do {
-          if(!IS_ANSWER_LEAF_NODE(ContPtr_answer(aux)))
-            TABLING_ERROR_MESSAGE("! IS_ANSWER_LEAF_NODE(ContPtr_answer(aux)) (table_new_answer)");
-        } while((aux = ContPtr_next(aux)));
+          if(!IS_ANSWER_LEAF_NODE(continuation_answer(aux)))
+            TABLING_ERROR_MESSAGE("! IS_ANSWER_LEAF_NODE(continuation_answer(aux)) (table_new_answer)");
+        } while((aux = continuation_next(aux)));
       }
 #endif /* TABLING_ERRORS */
       UNLOCK(SgFr_lock(sg_fr));
@@ -1342,7 +1389,7 @@ exec_compiled_trie:
     
     if(next) {
       /* unconsumed answer */
-      ans_node = ContPtr_answer(next);
+      ans_node = continuation_answer(next);
       DepFr_last_answer(dep_fr) = next;
       UNLOCK(DepFr_lock(dep_fr));
       consume_answer_and_procceed(dep_fr, ans_node);
@@ -1402,7 +1449,7 @@ exec_compiled_trie:
         
         if(next) {
           /* dependency frame with unconsumed answers */
-          ans_node = ContPtr_answer(next);
+          ans_node = continuation_answer(next);
           DepFr_last_answer(dep_fr) = next;
         }
 
@@ -1688,7 +1735,7 @@ exec_compiled_trie:
       
       if(next) {
         /* dependency frame with unconsumed answers */
-        ans_node = ContPtr_answer(next);
+        ans_node = continuation_answer(next);
         DepFr_last_answer(dep_fr) = next;
       }
       
@@ -1886,7 +1933,7 @@ exec_compiled_trie:
           /* unconsumed answer */
           UNLOCK_OR_FRAME(LOCAL_top_or_fr);
           
-          ans_node = ContPtr_answer(next);
+          ans_node = continuation_answer(next);
           DepFr_last_answer(LOCAL_top_dep_fr) = next;
           UNLOCK(DepFr_lock(LOCAL_top_dep_fr));
           consume_answer_and_procceed(LOCAL_top_dep_fr, ans_node);
@@ -1980,19 +2027,19 @@ exec_compiled_trie:
 	        remove_from_global_sg_fr_list(sg_fr);
 	        TRAIL_FRAME(sg_fr);
 #endif /* LIMIT_TABLING */
-          if (IsMode_LoadAnswers(TabEnt_mode(tab_ent))) {
+          if (TabEnt_is_load(tab_ent)) {
             /* load answers from the trie */
             continuation_ptr cont = SgFr_first_answer(sg_fr);
-            continuation_ptr next = ContPtr_next(cont);
+            continuation_ptr next = continuation_next(cont);
             
-            ans_node = ContPtr_answer(cont);
+            ans_node = continuation_answer(cont);
             
             if(next)
-              store_loader_node(tab_ent, cont, sg_fr);
+              store_loader_node(tab_ent, cont, LOAD_ANSWER);
             
             PREG = (yamop *) CPREG;
             PREFETCH_OP(PREG);
-            CONSUME_ANSWER(ans_node, YENV, sg_fr);
+            CONSUME_VARIANT_ANSWER(ans_node, YENV);
             YENV = ENV;
             GONext();
           } else {
