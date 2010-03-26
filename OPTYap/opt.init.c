@@ -105,9 +105,9 @@ void Yap_init_global(int max_table_size, int n_workers, int sch_loop, int delay_
   INIT_PAGES(GLOBAL_PAGES_gt_hash, struct global_trie_hash);
 #endif /* GLOBAL_TRIE */
 
-#ifdef TABLING_PROD_ANSWER_LIST || TABLING_CONS_ANSWER_LIST
+#ifdef TABLING_ANSWER_LIST
   INIT_PAGES(GLOBAL_PAGES_ans_list, struct answer_list);
-#endif
+#endif /* TABLING_ANSWER_LIST */
 
   INIT_PAGES(GLOBAL_PAGES_tab_ent, struct table_entry);
   

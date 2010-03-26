@@ -77,22 +77,16 @@
 /* #define TABLING_ERRORS 1 */
 
 /* --------------------------------------------------------------------- **
-**  answer set organization scheme for producers (mandatory, define one) **
+**       answer set organization scheme (mandatory, define one)          **
 ** --------------------------------------------------------------------- */
-/* #define TABLING_PROD_ANSWER_CHILD 1 */
-#define TABLING_PROD_ANSWER_LIST 1
-/* #define TABLING_PROD_ANSWER_BLOCKS 1 */
+/* #define TABLING_ANSWER_CHILD 1 */
+#define TABLING_ANSWER_LIST 1
+/* #define TABLING_ANSWER_BLOCKS 1 */
 
 /* ----------------------------------------------------------------- **
 **      use call-subsumption method for tabled evaluation            **
 ** ----------------------------------------------------------------- */
 #define TABLING_CALL_SUBSUMPTION 1
-
-/* -------------------------------------------------------------------- **
-** answer set organization scheme for consumers (mandatory, define one) **
-** -------------------------------------------------------------------- */
-#define TABLING_CONS_ANSWER_LIST 1
-/* #define TABLING_CONS_ANSWER_BLOCKS 1 */
 
 
 /* ---------------------------------------------------------------- **
@@ -216,7 +210,7 @@
 #if defined(GLOBAL_TRIE_FOR_CALLS_ANSWERS) || defined(GLOBAL_TRIE_FOR_TERMS) || defined(GLOBAL_TRIE_FOR_SUBTERMS)
 #define GLOBAL_TRIE
 #endif /* GLOBAL_TRIE_FOR_CALLS_ANSWERS || GLOBAL_TRIE_FOR_TERMS || GLOBAL_TRIE_FOR_SUBTERMS */
-#if !defined(TABLING_PROD_ANSWER_CHILD) && !defined(TABLING_PROD_ANSWER_LIST) && !defined(TABLING_PROD_ANSWER_BLOCKS)
+#if !defined(TABLING_ANSWER_CHILD) && !defined(TABLING_ANSWER_LIST) && !defined(TABLING_ANSWER_BLOCKS)
 #error "Define an answer set organization scheme"
 #endif
 #endif /* TABLING */

@@ -119,9 +119,9 @@ struct global_pages {
   struct pages subsumptive_producer_subgoal_frame_pages;
   struct pages subsumed_consumer_subgoal_frame_pages;
   
-#ifdef TABLING_CONS_ANSWER_LIST || TABLING_PROD_ANSWER_LIST 
+#ifdef TABLING_ANSWER_LIST 
   struct pages answer_list_pages;
-#endif
+#endif /* TABLING_ANSWER_LIST */
   
   struct pages subgoal_trie_node_pages;
   struct pages long_subgoal_trie_node_pages;

@@ -274,19 +274,19 @@ typedef struct answer_list {
 #define AnsList_answer(X)       ((X)->answer)
 #define AnsList_next(X)         ((X)->next)
 
-#ifdef TABLING_PROD_ANSWER_LIST
+#ifdef TABLING_ANSWER_LIST
 typedef ans_list_ptr continuation_ptr;
 
 #define continuation_next(X)   AnsList_next(X)
 #define continuation_answer(X) AnsList_answer(X)
 
-#elif defined(TABLING_PROD_ANSWER_CHILD)
+#elif defined(TABLING_ANSWER_CHILD)
 
 typedef ans_node_ptr continuation_ptr;
 #define continuation_next(X)   TrNode_child(X)
 #define continuation_answer(X) (X)
 
-#endif /* TABLING_PROD_ANSWER_LIST */
+#endif /* TABLING_ANSWER_LIST */
 
 /* ------------------------------- **
 **     Subgoal frames data         **

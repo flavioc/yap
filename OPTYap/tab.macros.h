@@ -59,9 +59,9 @@ STD_PROTO(static inline choiceptr freeze_current_cp, (void));
 STD_PROTO(static inline void resume_frozen_cp, (choiceptr));
 STD_PROTO(static inline void abolish_all_frozen_cps, (void));
 
-#ifdef TABLING_PROD_ANSWER_LIST || TABLING_CONS_ANSWER_LIST
+#ifdef TABLING_ANSWER_LIST
 STD_PROTO(static inline void free_answer_list, (ans_list_ptr));
-#endif
+#endif /* TABLING_ANSWER_LIST */
 
 #ifdef YAPOR
 STD_PROTO(static inline void pruning_over_tabling_data_structures, (void));
@@ -412,13 +412,13 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
 /* complete --> compiled : complete_in_use --> compiled_in_use */
 #define SgFr_mark_compiled(SG_FR) SgFr_state(SG_FR) += 2
   
-#ifdef TABLING_PROD_ANSWER_LIST || TABLING_CONS_ANSWER_LIST
+#ifdef TABLING_ANSWER_LIST
 #define free_answer_continuation(CONT) free_answer_list(CONT)
 #define alloc_answer_continuation(CONT) ALLOC_ANSWER_LIST(CONT)
-#else
+#else defined(TABLING_ANSWER_CHILD)
 #define free_answer_continuation(CONT)
 #define alloc_answer_continuation(CONT)
-#endif
+#endif /* TABLING_ANSWER_LIST */
 
 #define new_dependency_frame(DEP_FR, DEP_ON_STACK, TOP_OR_FR, LEADER_CP, CONS_CP, SG_FR, NEXT)         \
         ALLOC_DEPENDENCY_FRAME(DEP_FR);                                                                \
@@ -839,7 +839,7 @@ free_answer_trie_node(ans_node_ptr node) {
   }
 }
 
-#ifdef TABLING_PROD_ANSWER_LIST || TABLING_CONS_ANSWER_LIST
+#ifdef TABLING_ANSWER_LIST
 static inline
 void free_answer_list(ans_list_ptr list) {
   ans_list_ptr next;
@@ -850,7 +850,7 @@ void free_answer_list(ans_list_ptr list) {
     list = next;
   }
 }
-#endif
+#endif /* TABLING_ANSWER_LIST */
 
 static inline
 void free_producer_subgoal_data(sg_fr_ptr sg_fr, int delete_all) {
@@ -1155,15 +1155,16 @@ build_next_subsumptive_consumer_return_list(subcons_fr_ptr consumer_sg, CELL *an
 static inline continuation_ptr
 get_next_answer_continuation(dep_fr_ptr dep_fr) {
   sg_fr_ptr sg_fr = DepFr_sg_fr(dep_fr);
-  continuation_ptr last_cont = DepFr_last_answer(dep_fr);
-  continuation_ptr next = continuation_next(last_cont);
   
   switch(SgFr_type(sg_fr)) {
     case VARIANT_PRODUCER_SFT:
     case SUBSUMPTIVE_PRODUCER_SFT:
-      return next;
+      return continuation_next(DepFr_last_answer(dep_fr));
     case SUBSUMED_CONSUMER_SFT:
       {
+        continuation_ptr last_cont = DepFr_last_answer(dep_fr);
+        continuation_ptr next = continuation_next(last_cont);
+        
         if(next)
           return next;
         else {
