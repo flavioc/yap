@@ -329,6 +329,7 @@
 #ifdef TABLING_INNER_CUTS
   OPCODE(clause_with_cut            ,e),
 #endif
+  OPCODE(table_load_cons_answer     ,Otapl),
   OPCODE(table_load_answer          ,Otapl),
   OPCODE(table_try_answer           ,Otapl),
   OPCODE(table_try_single           ,Otapl),

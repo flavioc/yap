@@ -591,6 +591,7 @@
     case _table_answer_resolution:
     case _table_completion:
     case _table_load_answer:
+    case _table_load_cons_answer:
     case _table_retry:
     case _table_retry_me:
     case _table_trust:

@@ -598,6 +598,7 @@ PredForChoicePt(yamop *p_code) {
     case _trie_do_float_val:
       return NULL;
     case _table_load_answer:
+    case _table_load_cons_answer:
     case _table_try_answer:
     case _table_answer_resolution:
     case _table_completion:
@@ -5446,6 +5447,7 @@ p_choicepoint_info(void)
     switch (opnum) {
 #ifdef TABLING
     case _table_load_answer:
+    case _table_load_cons_answer:
 #ifdef LOW_LEVEL_TRACER
       pe = LOAD_CP(cptr)->cp_pred_entry;
 #else

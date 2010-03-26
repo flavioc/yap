@@ -2031,6 +2031,7 @@ mark_choicepoints(register choiceptr gc_B, tr_fr_ptr saved_TR, int very_verbose)
 	break;
 #ifdef TABLING
       case _table_load_answer:
+      case _table_load_cons_answer:
 	{
 	  CELL *vars_ptr, vars;
 	  vars_ptr = (CELL *) (LOAD_CP(gc_B) + 1);
@@ -2937,6 +2938,7 @@ sweep_choicepoints(choiceptr gc_B)
       goto restart_cp;
 #ifdef TABLING
     case _table_load_answer:
+    case _table_load_cons_answer:
       {
 	CELL *vars_ptr, vars;
 	sweep_environments(gc_B->cp_env, EnvSize(gc_B->cp_cp), EnvBMap(gc_B->cp_cp));

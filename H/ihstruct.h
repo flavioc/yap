@@ -191,6 +191,7 @@
 #endif /* YAPOR */
 #ifdef TABLING
   InitOtaplInst(LOAD_ANSWER,_table_load_answer,PredFail);
+  InitOtaplInst(LOAD_CONS_ANSWER,_table_load_cons_answer,PredFail);
   InitOtaplInst(TRY_ANSWER,_table_try_answer,PredFail);
   InitOtaplInst(ANSWER_RESOLUTION,_table_answer_resolution,PredFail);
   InitOtaplInst(COMPLETION,_table_completion,PredFail);

@@ -191,6 +191,7 @@
 #endif /* YAPOR */
 #ifdef TABLING
   RestoreOtaplInst(LOAD_ANSWER,_table_load_answer,PredFail);
+  RestoreOtaplInst(LOAD_CONS_ANSWER,_table_load_cons_answer,PredFail);
   RestoreOtaplInst(TRY_ANSWER,_table_try_answer,PredFail);
   RestoreOtaplInst(ANSWER_RESOLUTION,_table_answer_resolution,PredFail);
   RestoreOtaplInst(COMPLETION,_table_completion,PredFail);
