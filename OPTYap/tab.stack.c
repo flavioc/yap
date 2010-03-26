@@ -15,6 +15,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "tab.stack.h"
+#include "Yap.h"
+#include "Yatom.h"
 
 void dynamic_stack_print(DynamicStack ds)
 {
@@ -32,7 +34,7 @@ void dynamic_stack_init(DynamicStack *ds, size_t stack_size, size_t frame_size, 
 {
   size_t total_bytes = stack_size * frame_size;
   
-  DynStk_Base(*ds) = malloc(total_bytes); // XXX
+  ALLOC_BLOCK(DynStk_Base(*ds), total_bytes);
   DynStk_Top(*ds) = DynStk_Base(*ds);
   DynStk_Ceiling(*ds) = (char*)DynStk_Base(*ds) + total_bytes;
   DynStk_FrameSize(*ds) = frame_size;
@@ -57,8 +59,7 @@ void dynamic_stack_expand(DynamicStack *ds, int num_frames)
     new_size = new_size + num_frames;
   
   total_bytes = new_size * DynStk_FrameSize(*ds);
-  new_base = realloc(DynStk_Base(*ds), total_bytes);
-  // XXX
+  REALLOC_BLOCK(new_base, DynStk_Base(*ds), total_bytes);
   DynStk_Top(*ds) = new_base + DynStk_CurBytes(*ds);
   DynStk_Base(*ds) = new_base;
   DynStk_Ceiling(*ds) = new_base + total_bytes;
