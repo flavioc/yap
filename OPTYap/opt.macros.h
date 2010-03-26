@@ -379,12 +379,19 @@ extern int Yap_page_size;
           Yap_Error(FATAL_ERROR, TermNil, "Yap_AllocCodeSpace error (ALLOC_BLOCK)")
 #define FREE_BLOCK(BLOCK)                                                                               \
         Yap_FreeCodeSpace((char *) (BLOCK))
+#define REALLOC_BLOCK(NEW_BLOCK, BLOCK, SIZE)                                                           \
+        if((NEW_BLOCK = Yap_ReallocCodeSpace(BLOCK, SIZE)) == NULL)                                     \
+          Yap_Error(FATAL_ERROR, TermNil, "Yap_ReallocCodeSpace error (REALLOC_BLOCK)")
 #else /* TABLING */
 #define ALLOC_BLOCK(BLOCK, SIZE)                                                                        \
         if ((BLOCK = malloc(SIZE)) == NULL)                                                             \
           Yap_Error(FATAL_ERROR, TermNil, "malloc error (ALLOC_BLOCK)")
 #define FREE_BLOCK(BLOCK)                                                                               \
         free(BLOCK)
+#define REALLOC_BLOCK(NEW_BLOCK, BLOCK, SIZE)                                                           \
+        if ((NEW_BLOCK = realloc(BLOCK, SIZE)) == NULL)                                                 \
+          Yap_Error(FATAL_ERROR, TermNil, "realloc error (REALLOC_BLOCK)")
+          
 #endif /* YAPOR - TABLING */
 
 #define ALLOC_HASH_BUCKETS(BUCKET_PTR, NUM_BUCKETS)                                                     \
