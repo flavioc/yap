@@ -1911,7 +1911,7 @@ dprintf("stack_trie_atom_instr\n");                                    \
     if(IsVarTerm(term)) {
       tst_node_ptr *first_bucket = TSTHT_buckets(hash);
       tst_node_ptr *end_bucket = first_bucket + TSTHT_num_buckets(hash);
-      tst_node_ptr *final_bucket;
+      tst_node_ptr *final_bucket = NULL;
       
       /* find last valid bucket */
       while(--end_bucket != first_bucket) {
