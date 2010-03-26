@@ -14,11 +14,6 @@
 #include "tab.macros.h"
 #include "tab.tst.h"
 
-#ifdef TABLING_CALL_SUBSUMPTION
-
-static inline void fix_functor(Term t, CELL* placeholder);
-static inline void fix_list(Term t, CELL* placeholder);
-static inline void fix_rec(Term t, CELL* placeholder);
 
 typedef enum {
   PRINT_ANSWER_VAR,
@@ -59,6 +54,12 @@ inline CellTag cell_tag(Term t)
   
   return TAG_UNKNOWN;
 }
+
+#ifdef TABLING_CALL_SUBSUMPTION
+
+static inline void fix_functor(Term t, CELL* placeholder);
+static inline void fix_list(Term t, CELL* placeholder);
+static inline void fix_rec(Term t, CELL* placeholder);
 
 CellTag TrieSymbolType(Term t)
 {

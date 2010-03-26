@@ -25,14 +25,14 @@
 #endif	/* YAPOR */
 #ifdef TABLING
 #include "tab.macros.h"
-#ifdef TABLING_CALL_SUBSUMPTION
-#include "tab.tst.h"
 #include "tab.utils.h"
-#include "tab.retrv.h"
 DynamicStack tstTermStack; /* term stack for subsumption */
 DynamicStack tstTermStackLog; /* term log stack for subsumption */
 DynamicStack tstTrail; /* trail stack for subsumption */
 DynamicStack tstSymbolStack; /* symbol stack for subsumption */
+#ifdef TABLING_CALL_SUBSUMPTION
+#include "tab.tst.h"
+#include "tab.retrv.h"
 struct tstCCPStack_t tstCCPStack; /* frame stack for subsumption */
 Cell TrieVarBindings[MAX_TABLE_VARS];
 struct VariantContinuation variant_cont;
@@ -229,12 +229,12 @@ void Yap_init_local(void) {
   Set_LOCAL_top_cp_on_stack((choiceptr) Yap_LocalBase); /* ??? */
   LOCAL_top_susp_or_fr = GLOBAL_root_or_fr;
 #endif /* YAPOR */
-#ifdef TABLING_CALL_SUBSUMPTION
   DynStk_Init(&tstTermStack, TST_TERMSTACK_INITSIZE, CPtr, "tstTermStack");
   DynStk_Init(&tstTermStackLog, TST_TERMSTACKLOG_INITSIZE, tstLogFrame, "tstTermStackLog");
   DynStk_Init(&tstTrail, TST_TRAIL_INITSIZE, CPtr, "tstTrail");
   DynStk_Init(&tstSymbolStack, TST_SYMBOLSTACK_INITSIZE, Cell, "tstSymbolStack");
   
+#ifdef TABLING_CALL_SUBSUMPTION
   /* initSubsumptiveLookup */
   tstCCPStack.ceiling = tstCCPStack.base + CALL_CPSTACK_SIZE;
   

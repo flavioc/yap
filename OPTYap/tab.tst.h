@@ -12,7 +12,7 @@
 #define TAB_TST_H
 
 #include "opt.config.h"
-#ifdef TABLING
+#ifdef TABLING_CALL_SUBSUMPTION
 #include "tab.xsb.h"
 #include "tab.utils.h"
 #include "tab.structs.h"
@@ -145,6 +145,6 @@ struct hash_choicept {
 };
 typedef struct hash_choicept *hash_cp_ptr;
 
-#endif /* TABLING */
+#endif /* TABLING_CALL_SUBSUMPTION */
 
 #endif

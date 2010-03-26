@@ -1221,7 +1221,9 @@ fix_tabling_info(void)
      pointing back to the global stack. */
   dep_fr_ptr df;
   sg_fr_ptr sg;
+#ifdef TABLING_CALL_SUBSUMPTION
   subcons_fr_ptr cons;
+#endif /* TABLING_CALL_SUBSUMPTION */
 
   df = LOCAL_top_dep_fr;
   while (df) {
@@ -1234,6 +1236,7 @@ fix_tabling_info(void)
   sg = LOCAL_top_sg_fr;
   while (sg) {
     SgFr_gen_cp(sg) = GeneratorChoicePtrAdjust(SgFr_gen_cp(sg));
+#ifdef TABLING_CALL_SUBSUMPTION
     if(SgFr_is_sub_producer(sg)) {
       cons = SgFr_prod_consumers((subprod_fr_ptr)sg);
       
@@ -1243,6 +1246,7 @@ fix_tabling_info(void)
         cons = SgFr_consumers(cons);
       }
     }
+#endif /* TABLING_CALL_SUBSUMPTION */
     sg = SgFr_next(sg);
   }
 }

@@ -5,7 +5,10 @@
 #include "yapio.h"
 #include "tab.tst.h"
 #include "tab.xsb.h"
+#include "tab.utils.h"
 #include "tab.macros.h"
+
+#ifdef TABLING_CALL_SUBSUMPTION
 
 /* prototypes */
 STD_PROTO(static inline void expand_trie_ht, (CTXTdeclc BTHTptr));
@@ -597,3 +600,5 @@ void print_hash_table(TSTHTptr ht) {
   }
   
 }
+
+#endif /* TABLING_CALL_SUBSUMPTION */

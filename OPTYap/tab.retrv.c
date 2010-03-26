@@ -14,7 +14,7 @@
 ** ------------------ */
 
 #include "Yap.h"
-#ifdef TABLING
+#ifdef TABLING_CALL_SUBSUMPTION
 #include <stdio.h>
 #ifdef HAVE_STRING_H
 #include <string.h>
@@ -1137,4 +1137,4 @@ While_TSnotEmpty:
 	goto While_TSnotEmpty;
 }
 
-#endif /* TABLING */
+#endif /* TABLING_CALL_SUBSUMPTION */

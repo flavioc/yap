@@ -1037,4 +1037,4 @@ ans_node_ptr subsumptive_answer_search(subprod_fr_ptr sf, CELL *subs_ptr) {
   return (ans_node_ptr)tstn;
 }
 
-#endif /* TABLING && TABLING_CALL_SUBSUMPTION */
+#endif /* TABLING_CALL_SUBSUMPTION */

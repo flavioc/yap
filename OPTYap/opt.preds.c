@@ -29,6 +29,7 @@
 #include "or.macros.h"
 #endif /* YAPOR */
 #ifdef TABLING
+#include "tab.utils.h"
 #include "tab.macros.h"
 #endif /* TABLING */
 
@@ -70,9 +71,10 @@ static Int p_wake_choice_point(void);
 static Int p_abolish_all_frozen_choice_points(void);
 static Int p_table(void);
 
-/* XSB compat */
+#ifdef TABLING_CALL_SUBSUMPTION
 static Int p_use_variant_tabling(void);
 static Int p_use_subsumptive_tabling(void);
+#endif /* TABLING_CALL_SUBSUMPTION */
 
 static Int p_tabling_mode(void);
 static Int p_abolish_table(void);
@@ -155,8 +157,10 @@ void Yap_init_optyap_preds(void) {
   Yap_InitCPred("abolish_all_frozen_choice_points", 0, p_abolish_all_frozen_choice_points, SafePredFlag|SyncPredFlag);
   Yap_InitCPred("$c_table", 2, p_table, SafePredFlag|SyncPredFlag|HiddenPredFlag);
   Yap_InitCPred("$c_tabling_mode", 3, p_tabling_mode, SafePredFlag|SyncPredFlag|HiddenPredFlag);
+#ifdef TABLING_CALL_SUBSUMPTION
   Yap_InitCPred("$c_use_variant_tabling", 2, p_use_variant_tabling, SafePredFlag|SyncPredFlag|HiddenPredFlag);
   Yap_InitCPred("$c_use_subsumptive_tabling", 2, p_use_subsumptive_tabling, SafePredFlag|SyncPredFlag|HiddenPredFlag);
+#endif /* TABLING_CALL_SUBSUMPTION */
   Yap_InitCPred("$c_abolish_table", 2, p_abolish_table, SafePredFlag|SyncPredFlag|HiddenPredFlag);
   Yap_InitCPred("abolish_all_tables", 0, p_abolish_all_tables, SafePredFlag|SyncPredFlag);
   Yap_InitCPred("show_tabled_predicates", 0, p_show_tabled_predicates, SafePredFlag|SyncPredFlag);
@@ -630,8 +634,10 @@ Int p_table(void) {
     SetMode_Local(TabEnt_mode(tab_ent));
   if (IsMode_LoadAnswers(yap_flags[TABLING_MODE_FLAG]))
     SetMode_LoadAnswers(TabEnt_mode(tab_ent));
+#ifdef TABLING_CALL_SUBSUMPTION
   if (IsMode_Subsumptive(yap_flags[TABLING_MODE_FLAG]))
     SetMode_Subsumptive(TabEnt_mode(tab_ent));
+#endif
   pe->TableOfPred = tab_ent;
   return (TRUE);
 }
@@ -647,6 +653,7 @@ get_pred_table_entry(Term mod, Term t) {
     return (NULL);
 }
 
+#ifdef TABLING_CALL_SUBSUMPTION
 static inline
 void tab_entry_set_variant_mode(tab_ent_ptr tab_ent) {
   SetDefaultMode_Variant(TabEnt_mode(tab_ent));
@@ -688,6 +695,7 @@ Int p_use_subsumptive_tabling(void) {
   } else
     return TabEnt_is_subsumptive(tab_ent);
 }
+#endif /* TABLING_CALL_SUBSUMPTION */
 
 static
 Int p_tabling_mode(void) {
@@ -720,12 +728,14 @@ Int p_tabling_mode(void) {
       mode = MkAtomTerm(Yap_LookupAtom("batched"));
     t = MkPairTerm(mode, t);
     
+#ifdef TABLING_CALL_SUBSUMPTION
     /* subsumptive / variant */
     if (IsDefaultMode_Subsumptive(TabEnt_mode(tab_ent)))
       mode = MkAtomTerm(Yap_LookupAtom("subsumptive"));
     else
       mode = MkAtomTerm(Yap_LookupAtom("variant"));
     t = MkPairTerm(mode, t);
+#endif /* TABLING_CALL_SUBSUMPTION */
     
     mode = MkAtomTerm(Yap_LookupAtom("default"));
     t = MkPairTerm(mode, t);
@@ -745,12 +755,14 @@ Int p_tabling_mode(void) {
       mode = MkAtomTerm(Yap_LookupAtom("batched"));
     t = MkPairTerm(mode, t);
     
+#ifdef TABLING_CALL_SUBSUMPTION
     /* subsumptive / variant */
     if(IsMode_Subsumptive(TabEnt_mode(tab_ent)))
       mode = MkAtomTerm(Yap_LookupAtom("subsumptive"));
     else
       mode = MkAtomTerm(Yap_LookupAtom("variant"));
     t = MkPairTerm(mode, t);
+#endif /* TABLING_CALL_SUBSUMPTION */
     
     Bind((CELL *)val, t);
     return(TRUE);
@@ -788,17 +800,17 @@ Int p_tabling_mode(void) {
       return TabEnt_is_load(tab_ent);
     }
     
+#ifdef TABLING_CALL_SUBSUMPTION
     if(strcmp(str_val,"variant") == 0) {
       tab_entry_set_variant_mode(tab_ent);
       return(TRUE);
     }
     
-    
     if(strcmp(str_val,"subsumptive") == 0) {
       tab_entry_set_subsumptive_mode(tab_ent);
       return(TRUE);
     }
-    
+#endif /* TABLING_CALL_SUBSUMPTION */
   }
   return (FALSE);
 }
@@ -953,10 +965,12 @@ Int p_tabling_statistics(void) {
   /* subgoal frame pages */
   fprintf(Yap_stdout, "  Variant subgoal frames:                %10ld structs in use\n", Pg_str_in_use(GLOBAL_PAGES_variant_sg_fr));
   bytes_in_use += Pg_str_in_use(GLOBAL_PAGES_variant_sg_fr) * sizeof(struct variant_subgoal_frame);
+#ifdef TABLING_CALL_SUBSUMPTION
   fprintf(Yap_stdout, "  Subsumptive producer subgoal frames:   %10ld structs in use\n", Pg_str_in_use(GLOBAL_PAGES_subprod_sg_fr));
   bytes_in_use += Pg_str_in_use(GLOBAL_PAGES_subprod_sg_fr) * sizeof(struct subsumptive_producer_subgoal_frame);
   fprintf(Yap_stdout, "  Subsumed consumer subgoal frames:      %10ld structs in use\n", Pg_str_in_use(GLOBAL_PAGES_subcons_sg_fr));
   bytes_in_use += Pg_str_in_use(GLOBAL_PAGES_subcons_sg_fr) * sizeof(struct subsumed_consumer_subgoal_frame);
+#endif /* TABLING_CALL_SUBSUMPTION */
   
   fprintf(Yap_stdout, "  Subgoal trie nodes:                    %10ld structs in use\n", Pg_str_in_use(GLOBAL_PAGES_sg_node));
   bytes_in_use += Pg_str_in_use(GLOBAL_PAGES_sg_node) * sizeof(struct subgoal_trie_node);

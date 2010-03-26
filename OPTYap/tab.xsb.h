@@ -13,10 +13,15 @@
 
 #include "opt.config.h"
 
+#define CTXTdeclc
+#define CTXTdecl void
+#define CTXTc
+#define CTXT
+
+#define bld_free(ADDR)      *((CELL *)ADDR) = (CELL)(ADDR)
+
 #ifdef TABLING_CALL_SUBSUMPTION
 
-typedef CELL Cell;
-typedef Cell *CPtr;
 typedef unsigned long int counter;
 typedef sg_node_ptr BTNptr;
 typedef int xsbBool;
@@ -30,16 +35,11 @@ typedef Functor Psc;
 #define clref_val(REF)      RepAppl(REF)
 #define clrefp_val(REF)     RepPair(REF)
 #define cs_val(REF)	RepAppl(REF)
-#define bld_free(ADDR)      *((CELL *)ADDR) = (CELL)(ADDR)
 #define bld_ref(ADDR, VAL)  *((CELL *)ADDR) = (CELL)(VAL)
 #define cell(REF) *(REF)
 
 #define IsNonNULL(ptr)   ( (ptr) != NULL )
 #define IsNULL(ptr) ((ptr) == NULL)
-#define CTXTdeclc
-#define CTXTdecl void
-#define CTXTc
-#define CTXT
 #define YES TRUE
 #define NO  FALSE
 
@@ -95,24 +95,6 @@ typedef Functor Psc;
 #define IsTrieList(SYMBOL)  IsPairTerm(SYMBOL)
 
 #define xsb_abort(MSG, ...) Yap_Error(PURE_ABORT, TermNil, MSG, ##__VA_ARGS__)
-
-#ifdef BITS64
-#define IntegerFormatString	"%ld"
-#else
-#define IntegerFormatString	"%d"
-#endif
-
-#if SHORT_INTS
-#define LongIntFormatString "%ld"
-#else
-#define LongIntFormatString "%d"
-#endif
-
-#if SIZEOF_DOUBLE == 2 * SIZEOF_INT_P
-#define FloatFormatString "%lf"
-#else
-#define FloatFormatString "%f"
-#endif
 
 #define int_val(SYMBOL) IntOfTerm(SYMBOL)
 #define string_val(SYMBOL)  AtomName(AtomOfTerm(SYMBOL))

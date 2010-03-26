@@ -13,9 +13,30 @@
 
 #include "opt.config.h"
 
-#ifdef TABLING_CALL_SUBSUMPTION
+#ifdef TABLING
 #include "tab.xsb.h"
 #include "tab.stack.h"
+
+#ifdef BITS64
+#define IntegerFormatString	"%ld"
+#else
+#define IntegerFormatString	"%d"
+#endif
+
+#if SHORT_INTS
+#define LongIntFormatString "%ld"
+#else
+#define LongIntFormatString "%d"
+#endif
+
+#if SIZEOF_DOUBLE == 2 * SIZEOF_INT_P
+#define FloatFormatString "%lf"
+#else
+#define FloatFormatString "%f"
+#endif
+
+typedef CELL Cell;
+typedef CELL *CPtr;
 
 // emu/tst_aux.h
 
@@ -289,80 +310,44 @@ extern DynamicStack tstTrail;
     Trail_PopAndReset; \
 }
 
-/* --------------------------------------------- */
+typedef enum {
+  TAG_ATOM,
+  TAG_INT,
+  TAG_LONG_INT,
+  TAG_BIG_INT,
+  TAG_FLOAT,
+  TAG_STRUCT,
+  TAG_LIST,
+  TAG_REF,
+  TAG_DB_REF,
+  TAG_UNKNOWN
+} CellTag;
 
-#define ProcessNextSubtermFromTrieStacks(Symbol,NodeType,StdVarNum) {  \
-  Cell subterm; \
-  TermStack_Pop(subterm); \
-  XSB_Deref(subterm); \
-  NodeType = INTERIOR_NT; \
-  switch(cell_tag(subterm)) { \
-    case XSB_REF: \
-      if(!IsStandardizedVariable(subterm)) {  \
-        StandardizeVariable(subterm, StdVarNum);  \
-        Trail_Push(subterm);  \
-        Symbol = EncodeNewTrieVar(StdVarNum); \
-        StdVarNum++;  \
-      } \
-      else  \
-        Symbol = EncodeTrieVar(IndexOfStdVar(subterm)); \
-      break;  \
-    case XSB_STRING:  \
-    case XSB_INT: \
-      Symbol = EncodeTrieConstant(subterm); \
-      break;  \
-    case XSB_STRUCT:  \
-      Symbol = EncodeTrieFunctor(subterm);  \
-      TermStack_PushFunctorArgs(subterm); \
-      break;  \
-    case XSB_LIST:  \
-      Symbol = EncodeTrieList(subterm); \
-      TermStack_PushListArgs(subterm);  \
-      break;  \
-    case TAG_LONG_INT:                  \
-      dprintf("Long int ...\n");         \
-      li = LongIntOfTerm(subterm);      \
-      Symbol = (Cell)&li;               \
-      NodeType |= LONG_INT_NT;          \
-      break;  \
-    case TAG_FLOAT:                     \
-      flt = FloatOfTerm(subterm);     \
-      symbol = (Cell)&flt;              \
-      NodeType |= FLOAT_NT;                 \
-      break;                                \
-    default:  \
-      Symbol = 0; \
-      TrieError_UnknownSubtermTag(subterm); \
-    } \
-}
-// TODO: floats, longints
+#define TAG_TrieVar TAG_REF
 
-/* --------------------------------------------- */
+inline CellTag cell_tag(Term t);
 
-/* emu/tries.h */
-typedef enum Trie_Path_Type {
-  NO_PATH, VARIANT_PATH, SUBSUMPTIVE_PATH
-} TriePathType;
+void printTrieSymbol(FILE* fp, Cell symbol);
+void printAnswerTriePath(FILE *fp, ans_node_ptr leaf);
 
-typedef struct {
-  BTNptr alt_node;
-  BTNptr var_chain;
-  int termstk_top_index;
-  int log_top_index;
-  int trail_top_index;
-} tstCallChoicePointFrame;
-  
-typedef tstCallChoicePointFrame *pCPFrame;
+void printSubterm(FILE *fp, Term term);
+void printCalledSubgoal(FILE *fp, yamop *preg);
+void printAnswerTemplate(FILE *fp, CPtr ans_tmplt, int size);
+void printSubstitutionFactor(FILE *fp, CELL* factor);
 
-#define CALL_CPSTACK_SIZE 1024
+void printTermStack(FILE *fp);
 
-struct tstCCPStack_t {
-  pCPFrame top;
-  pCPFrame ceiling;
-  tstCallChoicePointFrame base[CALL_CPSTACK_SIZE];
-};
+#ifdef TABLING_CALL_SUBSUMPTION
 
-extern struct tstCCPStack_t tstCCPStack;
+CellTag TrieSymbolType(Term t);
+xsbBool are_identical_terms(Cell term1, Cell term2);
+void fix_answer_template(CELL *ans_tmplt);
+void printSubsumptiveAnswer(FILE *fp, CELL* vars);
+CELL* construct_subgoal_heap(BTNptr pLeaf, CPtr* var_pointer, int arity);
+CPtr reconstruct_template_for_producer_no_args(SubProdSF subsumer, CELL* ans_tmplt);
+void printTriePath(CTXTdeclc FILE *fp, BTNptr pLeaf, xsbBool print_address);
+void printSubgoalTriePath(CTXTdeclc FILE *fp, BTNptr pLeaf, tab_ent_ptr tab_entry);
+void printTrieNode(FILE *fp, BTNptr pTN);
 
 /* -------------------------------- */
 /* emu/tries.h */
@@ -390,6 +375,26 @@ struct VariantContinuation {
 
 extern struct VariantContinuation variant_cont;
 
+typedef struct {
+  BTNptr alt_node;
+  BTNptr var_chain;
+  int termstk_top_index;
+  int log_top_index;
+  int trail_top_index;
+} tstCallChoicePointFrame;
+  
+typedef tstCallChoicePointFrame *pCPFrame;
+
+#define CALL_CPSTACK_SIZE 1024
+
+struct tstCCPStack_t {
+  pCPFrame top;
+  pCPFrame ceiling;
+  tstCallChoicePointFrame base[CALL_CPSTACK_SIZE];
+};
+
+extern struct tstCCPStack_t tstCCPStack;
+
 extern Cell TrieVarBindings[MAX_TABLE_VARS];
 
 /* emu/trie_internals.h */
@@ -397,38 +402,6 @@ extern Cell TrieVarBindings[MAX_TABLE_VARS];
   ( ((CPtr)(dFreeVar) >= TrieVarBindings) &&  \
     ((CPtr)(dFreeVar) <= (TrieVarBindings + MAX_TABLE_VARS - 1))  )
 
-typedef enum {
-  TAG_ATOM,
-  TAG_INT,
-  TAG_LONG_INT,
-  TAG_BIG_INT,
-  TAG_FLOAT,
-  TAG_STRUCT,
-  TAG_LIST,
-  TAG_REF,
-  TAG_DB_REF,
-  TAG_UNKNOWN
-} CellTag;
-
-#define TAG_TrieVar TAG_REF
-
-inline CellTag cell_tag(Term t);
-CellTag TrieSymbolType(Term t);
-xsbBool are_identical_terms(Cell term1, Cell term2);
-void printTrieSymbol(FILE* fp, Cell symbol);
-void printTriePath(CTXTdeclc FILE *fp, BTNptr pLeaf, xsbBool print_address);
-void printSubgoalTriePath(CTXTdeclc FILE *fp, BTNptr pLeaf, tab_ent_ptr tab_entry);
-void printAnswerTriePath(FILE *fp, ans_node_ptr leaf);
-void printSubsumptiveAnswer(FILE *fp, CELL* vars);
-void printTrieNode(FILE *fp, BTNptr pTN);
-void printSubterm(FILE *fp, Term term);
-void printCalledSubgoal(FILE *fp, yamop *preg);
-void printAnswerTemplate(FILE *fp, CPtr ans_tmplt, int size);
-void printSubstitutionFactor(FILE *fp, CELL* factor);
-CELL* construct_subgoal_heap(BTNptr pLeaf, CPtr* var_pointer, int arity);
-void printTermStack(FILE *fp);
-CPtr reconstruct_template_for_producer_no_args(SubProdSF subsumer, CELL* ans_tmplt);
-void fix_answer_template(CELL *ans_tmplt);
 
 extern int AnsVarCtr;
 
@@ -442,7 +415,63 @@ extern int AnsVarCtr;
  if(IsTrieVar(Symbol)) {	\
    Symbol = TrieVarBindings[DecodeTrieVar(Symbol)];	\
    XSB_Deref(Symbol);	\
- }
+ } 
+
+/* --------------------------------------------- */
+
+#define ProcessNextSubtermFromTrieStacks(Symbol,NodeType,StdVarNum) {  \
+ Cell subterm; \
+ TermStack_Pop(subterm); \
+ XSB_Deref(subterm); \
+ NodeType = INTERIOR_NT; \
+ switch(cell_tag(subterm)) { \
+   case XSB_REF: \
+     if(!IsStandardizedVariable(subterm)) {  \
+       StandardizeVariable(subterm, StdVarNum);  \
+       Trail_Push(subterm);  \
+       Symbol = EncodeNewTrieVar(StdVarNum); \
+       StdVarNum++;  \
+     } \
+     else  \
+       Symbol = EncodeTrieVar(IndexOfStdVar(subterm)); \
+     break;  \
+   case XSB_STRING:  \
+   case XSB_INT: \
+     Symbol = EncodeTrieConstant(subterm); \
+     break;  \
+   case XSB_STRUCT:  \
+     Symbol = EncodeTrieFunctor(subterm);  \
+     TermStack_PushFunctorArgs(subterm); \
+     break;  \
+   case XSB_LIST:  \
+     Symbol = EncodeTrieList(subterm); \
+     TermStack_PushListArgs(subterm);  \
+     break;  \
+   case TAG_LONG_INT:                  \
+     dprintf("Long int ...\n");         \
+     li = LongIntOfTerm(subterm);      \
+     Symbol = (Cell)&li;               \
+     NodeType |= LONG_INT_NT;          \
+     break;  \
+   case TAG_FLOAT:                     \
+     flt = FloatOfTerm(subterm);     \
+     symbol = (Cell)&flt;              \
+     NodeType |= FLOAT_NT;                 \
+     break;                                \
+   default:  \
+     Symbol = 0; \
+     TrieError_UnknownSubtermTag(subterm); \
+   } \
+}
+
+/* --------------------------------------------- */
+
+/* emu/tries.h */
+typedef enum Trie_Path_Type {
+ NO_PATH, VARIANT_PATH, SUBSUMPTIVE_PATH
+} TriePathType;
+
+#endif /* TABLING_CALL_SUBSUMPTION */
 
 // deactivate to test
 //#define FDEBUG
@@ -452,6 +481,6 @@ extern int AnsVarCtr;
 #define dprintf(MESG, ARGS...)
 #endif
 
-#endif /* TABLING_CALL_SUBSUMPTION */
+#endif /* TABLING */
 
 #endif

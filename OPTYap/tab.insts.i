@@ -288,6 +288,8 @@
         ENV = YENV
 #endif /* DEPTH_LIMIT */
 
+#ifdef TABLING_CALL_SUBSUMPTION
+
 /* Consume subsuming answer ANS_NODE using ANS_TMPLT
  * as the pointer to the answer template.
  * the size of the answer template is calculated and
@@ -302,6 +304,12 @@
   /*dprintf("Subsumptive variables now:\n");*/ \
   /*printAnswerTemplate(stdout, sub_answer_template - arity + 1, arity); */  \
 }
+
+#else
+
+#define CONSUME_SUBSUMPTIVE_ANSWER(ANS_NODE, ANS_TMPLT) Yap_Error(INTERNAL_ERROR, TermNil, "tabling by call subsumption not supported")
+
+#endif /* TABLING_CALL_SUBSUMPTION */
 
 /* Consume a variant answer ANS_NODE using ANS_TMPLT
  * as the pointer to the answer template.
@@ -330,6 +338,7 @@
 #endif /* TABLING_INNER_CUTS */
 
   PBOp(table_load_cons_answer, Otapl)
+#ifdef TABLING_CALL_SUBSUMPTION
     CELL *ans_tmplt;
     ans_node_ptr ans_node;
     continuation_ptr next;
@@ -339,7 +348,7 @@
     next = continuation_next(LOAD_CP(B)->cp_last_answer);
     ans_node = continuation_answer(next);
     
-    if(continuation_next(next)) {
+    if(continuation_has_next(next)) {
       restore_loader_node(next);
     } else {
       pop_loader_node();
@@ -351,6 +360,9 @@
     
     YENV = ENV;
     GONext();
+#else
+    Yap_Error(INTERNAL_ERROR, TermNil, "invalid instruction (table_load_cons_answer)");
+#endif
   ENDPBOp();
 
   PBOp(table_load_answer, Otapl)
@@ -378,7 +390,7 @@
     next = continuation_next(LOAD_CP(B)->cp_last_answer);
     ans_node = continuation_answer(next);
     
-    if(continuation_next(next)) {
+    if(continuation_has_next(next)) {
       restore_loader_node(next);
     } else {
       pop_loader_node();
@@ -520,9 +532,12 @@
       find_leader_node(leader_cp, leader_dep_on_stack);
       store_consumer_node(tab_ent, sg_fr, leader_cp, leader_dep_on_stack);
       
+#ifdef TABLING_CALL_SUBSUMPTION
+      /* XXX */
       if(SgFr_is_sub_consumer(sg_fr) && SgFr_state(sg_fr) < evaluating) 
         init_sub_consumer_subgoal_frame((subcons_fr_ptr)sg_fr);
-        
+#endif /* TABLING_CALL_SUBSUMPTION */
+
 #ifdef OPTYAP_ERRORS
       if (PARALLEL_EXECUTION_MODE) {
 	      choiceptr aux_cp;
@@ -574,7 +589,7 @@
 
   	      UNLOCK(SgFr_lock(sg_fr));
 
-  	      if(continuation_next(cont))
+  	      if(continuation_has_next(cont))
             store_loader_node(tab_ent, cont, LOAD_ANSWER);
 
           PREG = (yamop *) CPREG;
@@ -583,6 +598,7 @@
   	      YENV = ENV;
           GONext();
   	    }
+#ifdef TABLING_CALL_SUBSUMPTION
       } else {
   	    /* consumer */
   	    if(TabEnt_is_load(tab_ent)) {
@@ -603,7 +619,7 @@
 
   	      UNLOCK(SgFr_lock(sg_fr));
 
-  	      if(continuation_next(cont))
+  	      if(continuation_has_next(cont))
             store_loader_node(tab_ent, cont, LOAD_CONS_ANSWER);
 
           PREG = (yamop *) CPREG;
@@ -623,6 +639,7 @@
     	      goto fail;
   	      }
   	    }
+#endif /* TABLING_CALL_SUBSUMPTION */
       }
 
 	    /* execute compiled code from the trie */
@@ -694,9 +711,12 @@
       UNLOCK(SgFr_lock(sg_fr));
       find_leader_node(leader_cp, leader_dep_on_stack);
       store_consumer_node(tab_ent, sg_fr, leader_cp, leader_dep_on_stack);
-      
+
+#ifdef TABLING_CALL_SUBSUMPTION
+      /* XXX */
       if(SgFr_is_sub_consumer(sg_fr) && SgFr_state(sg_fr) < evaluating) 
         init_sub_consumer_subgoal_frame((subcons_fr_ptr)sg_fr);
+#endif /* TABLING_CALL_SUBSUMPTION */
         
 #ifdef OPTYAP_ERRORS
       if (PARALLEL_EXECUTION_MODE) {
@@ -749,7 +769,7 @@
 
   	      UNLOCK(SgFr_lock(sg_fr));
 
-  	      if(continuation_next(cont))
+  	      if(continuation_has_next(cont))
             store_loader_node(tab_ent, cont, LOAD_ANSWER);
 
           PREG = (yamop *) CPREG;
@@ -758,6 +778,7 @@
   	      YENV = ENV;
           GONext();
   	    }
+#ifdef TABLING_CALL_SUBSUMPTION
       } else {
   	    /* consumer */
   	    if(TabEnt_is_load(tab_ent)) {
@@ -778,7 +799,7 @@
 
   	      UNLOCK(SgFr_lock(sg_fr));
 
-  	      if(continuation_next(cont))
+  	      if(continuation_has_next(cont))
             store_loader_node(tab_ent, cont, LOAD_CONS_ANSWER);
 
           PREG = (yamop *) CPREG;
@@ -798,6 +819,7 @@
     	      goto fail;
   	      }
   	    }
+#endif /* TABLING_CALL_SUBSUMPTION */
       }
 
 	    /* execute compiled code from the trie */
@@ -871,9 +893,12 @@
       find_leader_node(leader_cp, leader_dep_on_stack);
       store_consumer_node(tab_ent, sg_fr, leader_cp, leader_dep_on_stack);
       
+#ifdef TABLING_CALL_SUBSUMPTION
+      /* XXX */
       if(SgFr_is_sub_consumer(sg_fr) && SgFr_state(sg_fr) < evaluating) 
         init_sub_consumer_subgoal_frame((subcons_fr_ptr)sg_fr);
-        
+#endif /* TABLING_CALL_SUBSUMPTION */  
+      
 #ifdef OPTYAP_ERRORS
       if (PARALLEL_EXECUTION_MODE) {
 	      choiceptr aux_cp;
@@ -895,7 +920,6 @@
       dprintf("TABLE_TRY COMPLETE SUBGOAL\n");
       CELL* answer_template = YENV;
       
-
       if(SgFr_is_variant(sg_fr) || SgFr_is_sub_producer(sg_fr)) {
         if (SgFr_has_no_answers(sg_fr)) {
   	      /* no answers --> fail */
@@ -926,7 +950,7 @@
 
   	      UNLOCK(SgFr_lock(sg_fr));
 
-  	      if(continuation_next(cont))
+  	      if(continuation_has_next(cont))
             store_loader_node(tab_ent, cont, LOAD_ANSWER);
 
           PREG = (yamop *) CPREG;
@@ -935,6 +959,7 @@
   	      YENV = ENV;
           GONext();
   	    }
+#ifdef TABLING_CALL_SUBSUMPTION
       } else {
   	    /* consumer */
   	    if(TabEnt_is_load(tab_ent)) {
@@ -955,7 +980,7 @@
 
   	      UNLOCK(SgFr_lock(sg_fr));
 
-  	      if(continuation_next(cont))
+  	      if(continuation_has_next(cont))
             store_loader_node(tab_ent, cont, LOAD_CONS_ANSWER);
 
           PREG = (yamop *) CPREG;
@@ -975,6 +1000,7 @@
     	      goto fail;
   	      }
   	    }
+#endif /* TABLING_CALL_SUBSUMPTION */
       }
 
 	    /* execute compiled code from the trie */
@@ -1264,7 +1290,9 @@
         SCHEDULER_GET_WORK();
       }
 #endif /* TABLING_INNER_CUTS */
+
       TAG_AS_ANSWER_LEAF_NODE(ans_node);
+
 #if defined(TABLE_LOCK_AT_NODE_LEVEL)
       UNLOCK(TrNode_lock(ans_node));
       LOCK(SgFr_lock(sg_fr));
@@ -1273,19 +1301,7 @@
       LOCK(SgFr_lock(sg_fr));
 #endif /* TABLE_LOCK_LEVEL */
 
-      continuation_ptr next;
-      
-      alloc_answer_continuation(next);
-      
-      continuation_answer(next) = ans_node;
-      continuation_next(next) = NULL;
-      
-      if(SgFr_first_answer(sg_fr) == NULL)
-        SgFr_first_answer(sg_fr) = next;
-      else
-        continuation_next(SgFr_last_answer(sg_fr)) = next;
-      
-      SgFr_last_answer(sg_fr) = next;
+      push_new_answer_set(ans_node, SgFr_first_answer(sg_fr), SgFr_last_answer(sg_fr));
 
 #ifdef TABLING_ERRORS
       if(SgFr_first_answer(sg_fr)) {

@@ -11,7 +11,7 @@
 #ifndef TAB_STACK_H
 #define TAB_STACK_H
 
-#ifdef TABLING_CALL_SUBSUMPTION
+#ifdef TABLING
 
 // emu/dynamic_stack.h
 typedef struct {
@@ -117,5 +117,5 @@ extern void dynamic_stack_expand(DynamicStack *, int);
 #define DynStk_BlindPeek(DS, Frame) \
   Frame = DynStk_PrevFrame(DS)
 
-#endif /* TABLING_CALL_SUBSUMPTION */
+#endif /* TABLING */
 #endif

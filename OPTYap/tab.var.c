@@ -22,18 +22,18 @@
 #include "Yatom.h"
 #include "YapHeap.h"
 #include "yapio.h"
-#include "tab.macros.h"
 #include "tab.utils.h"
+#include "tab.macros.h"
 #include "tab.tries.h"
 
 inline
-CPtr extract_template_from_insertion(CTXTdeclc CPtr ans_tmplt) {
+CELL* extract_template_from_insertion(CELL* ans_tmplt) {
   int i;
   
   i = 0;
   while(i < (int)Trail_NumBindings)
     *ans_tmplt-- = (Cell)Trail_Base[i++];
-  *ans_tmplt = makeint(i);
+  *ans_tmplt = (CELL)i;
   return ans_tmplt;
 }
 
@@ -266,6 +266,7 @@ void consume_variant_answer(ans_node_ptr current_ans_node, int subs_arity, CELL 
     while(!TrNode_is_root(current_node)) {
       t = TrNode_entry(current_node);
       
+#ifdef TABLING_CALL_SUBSUMPTION
       if(TrNode_is_long(current_node)) {
         t = MkLongIntTerm(TSTN_long_int((long_tst_node_ptr)current_node));
     	  STACK_CHECK_EXPAND(stack_terms, stack_vars, stack_terms_base);
@@ -274,7 +275,9 @@ void consume_variant_answer(ans_node_ptr current_ans_node, int subs_arity, CELL 
         t = MkFloatTerm(TSTN_float((float_tst_node_ptr)current_node));
         STACK_CHECK_EXPAND(stack_terms, stack_vars, stack_terms_base);
         STACK_PUSH_UP(t, stack_terms);
-      } else if (IsVarTerm(t)) {
+      } else
+#endif /* TABLING_CALL_SUBSUMPTION */
+      if (IsVarTerm(t)) {
         int var_index = VarIndexOfTableTerm(t);
         STACK_CHECK_EXPAND(stack_terms, stack_vars_base + var_index + 1, stack_terms_base);
         if (var_index >= vars_arity) {

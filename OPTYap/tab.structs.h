@@ -12,6 +12,8 @@
 #ifndef TAB_STRUCTS_H
 #define TAB_STRUCTS_H
 
+#include "tab.blocks.h"
+
 /* ---------------------------- **
 **      Tabling mode flags      **
 **  C/stdpreds.c                **
@@ -30,7 +32,9 @@
 
 #define DefaultMode_Local       0x00000001L  /* struct table_entry */
 #define DefaultMode_LoadAnswers 0x00000002L  /* struct table_entry */
+#ifdef TABLING_CALL_SUBSUMPTION
 #define DefaultMode_Subsumptive 0x00000004L  /* struct table_entry */
+#endif /* TABLING_CALL_SUBSUMPTION */
 
 #define SetMode_SchedulingOn(X)        (X) |= Mode_SchedulingOn
 #define SetMode_CompletedOn(X)         (X) |= Mode_CompletedOn
@@ -46,28 +50,35 @@
 #define SetMode_Batched(X)             (X) &= ~Mode_Local
 #define SetMode_LoadAnswers(X)         (X) |= Mode_LoadAnswers
 #define SetMode_ExecAnswers(X)         (X) &= ~Mode_LoadAnswers
+#ifdef TABLING_CALL_SUBSUMPTION
 #define SetMode_Subsumptive(X)         (X) |= Mode_Subsumptive
 #define SetMode_Variant(X)             (X) &= ~Mode_Subsumptive
+#endif /* TABLING_CALL_SUBSUMPTION */
 #define IsMode_Local(X)                ((X) & Mode_Local)
 #define IsMode_Batched(X)              (!IsMode_Local(X))
 #define IsMode_LoadAnswers(X)          ((X) & Mode_LoadAnswers)
 #define IsMode_ExecAnswers(X)          (!IsMode_LoadAnswers(X))
+#ifdef TABLING_CALL_SUBSUMPTION
 #define IsMode_Subsumptive(X)          ((X) & Mode_Subsumptive)
 #define IsMode_Variant(X)              (!IsMode_Subsumptive(X))
+#endif /* TABLING_CALL_SUBSUMPTION */
 
 #define SetDefaultMode_Local(X)        (X) |= DefaultMode_Local
 #define SetDefaultMode_Batched(X)      (X) &= ~DefaultMode_Local
 #define SetDefaultMode_LoadAnswers(X)  (X) |= DefaultMode_LoadAnswers
 #define SetDefaultMode_ExecAnswers(X)  (X) &= ~DefaultMode_LoadAnswers
+#ifdef TABLING_CALL_SUBSUMPTION
 #define SetDefaultMode_Subsumptive(X)  (X) |= DefaultMode_Subsumptive
 #define SetDefaultMode_Variant(X)      (X) &= ~DefaultMode_Subsumptive
+#endif /* TABLING_CALL_SUBSUMPTION */
 #define IsDefaultMode_Local(X)         ((X) & DefaultMode_Local)
 #define IsDefaultMode_Batched(X)       (!IsDefaultMode_Local(X))
 #define IsDefaultMode_LoadAnswers(X)   ((X) & DefaultMode_LoadAnswers)
 #define IsDefaultMode_ExecAnswers(X)   (!IsDefaultMode_LoadAnswers(X))
+#ifdef TABLING_CALL_SUBSUMPTION
 #define IsDefaultMode_Subsumptive(X)   ((X) & DefaultMode_Subsumptive)
 #define IsDefaultMode_Variant(X)       (!IsDefaultMode_Subsumptive(X))
-
+#endif /* TABLING_CALL_SUBSUMPTION */
 
 /* ---------------------------- **
 **      Struct table_entry      **
@@ -95,16 +106,20 @@ typedef struct table_entry {
 #define TabEnt_hash_chain(X)      ((X)->hash_chain)
 #define TabEnt_next(X)            ((X)->next)
 
-#define TabEnt_is_variant(X)      (IsMode_Variant(TabEnt_mode(X)))
-#define TabEnt_is_subsumptive(X)  (IsMode_Subsumptive(TabEnt_mode(X)))
 #define TabEnt_is_load(X)         (IsMode_LoadAnswers(TabEnt_mode(X)))
 #define TabEnt_is_exec(X)         (IsMode_ExecAnswers(TabEnt_mode(X)))
 #define TabEnt_is_empty(X)        (TrNode_child(TabEnt_subgoal_trie(X)) == NULL)
+#ifdef TABLING_CALL_SUBSUMPTION
+#define TabEnt_is_variant(X)      (IsMode_Variant(TabEnt_mode(X)))
+#define TabEnt_is_subsumptive(X)  (IsMode_Subsumptive(TabEnt_mode(X)))
 #define TabEnt_set_variant(X)     { if(TabEnt_is_empty(X)) SetMode_Variant(TabEnt_mode(X)); }
 #define TabEnt_set_subsumptive(X) { if(TabEnt_is_empty(X)) SetMode_Subsumptive(TabEnt_mode(X)); }
 #define TabEnt_set_load(X)        { if(TabEnt_is_empty(X) || TabEnt_is_variant(X)) SetMode_LoadAnswers(TabEnt_mode(X)); }
 #define TabEnt_set_exec(X)        { if(TabEnt_is_empty(X) || TabEnt_is_variant(X)) SetMode_ExecAnswers(TabEnt_mode(X)); }
-
+#else
+#define TabEnt_set_load(X)        { SetMode_LoadAnswers(TabEnt_mode(X)); }
+#define TabEnt_set_exec(X)        { SetMode_ExecAnswers(TabEnt_mode(X)); }
+#endif /* TABLING_CALL_SUBSUMPTION */
 
 /* ------------------------- **
 **    Trie definitions       **
@@ -275,16 +290,12 @@ typedef struct answer_list {
 #define AnsList_next(X)         ((X)->next)
 
 #ifdef TABLING_ANSWER_LIST
-typedef ans_list_ptr continuation_ptr;
 
-#define continuation_next(X)   AnsList_next(X)
-#define continuation_answer(X) AnsList_answer(X)
+typedef ans_list_ptr continuation_ptr;
 
 #elif defined(TABLING_ANSWER_CHILD)
 
 typedef ans_node_ptr continuation_ptr;
-#define continuation_next(X)   TrNode_child(X)
-#define continuation_answer(X) (X)
 
 #endif /* TABLING_ANSWER_LIST */
 
@@ -398,6 +409,8 @@ typedef sg_fr_ptr variant_sf_ptr;
    SgFr_next:          a pointer to the next subgoal frame on the chain.
 ** ------------------------------------------------------------------------------------------- */
 
+#ifdef TABLING_CALL_SUBSUMPTION
+
 typedef struct subsumed_consumer_subgoal_frame subsumptive_consumer_sf;
 typedef struct subsumptive_producer_subgoal_frame {
   variant_sf var_sf;
@@ -408,6 +421,8 @@ typedef subsumptive_producer_sf *subprod_fr_ptr;
 
 #define SgFr_prod_consumers(X) ((X)->consumers)
 #define SgFr_prod_timestamp(X) TSTN_time_stamp((tst_node_ptr)SgFr_answer_trie(X))
+#define SgFr_subsumes_subgoals(X) \
+(SgFr_is_sub_producer(X) && SgFr_prod_consumers(X) != NULL)
 
 struct subsumed_consumer_subgoal_frame {
   subgoal_frame_type type; /* subgoal frame type */
@@ -442,6 +457,8 @@ typedef subsumptive_consumer_sf *subcons_fr_ptr;
 #define SgFr_cons_cp_at(X)      (SgFr_cons_cp(X)->cp_h - 1)
 #define SgFr_answer_template(X) ((X)->answer_template)
 
+#endif /* TABLING_CALL_SUBSUMPTION */
+
 /* ------------------------------- **
 ** Subgoal frame types             **
 ** ------------------------------- */
@@ -452,9 +469,6 @@ typedef subsumptive_consumer_sf *subcons_fr_ptr;
   (SgFr_type(X) == SUBSUMPTIVE_PRODUCER_SFT)
 #define SgFr_is_sub_consumer(X)   \
   (SgFr_type(X) == SUBSUMED_CONSUMER_SFT)
-  
-#define SgFr_subsumes_subgoals(X) \
-  (SgFr_is_sub_producer(X) && SgFr_prod_consumers(X) != NULL)
 
 /* --------------------------------- **
 **      Struct dependency_frame      **

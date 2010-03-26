@@ -14,7 +14,7 @@
 ** ------------------ */
 
 #include "Yap.h"
-#ifdef TABLING
+#ifdef TABLING_CALL_SUBSUMPTION
 #include <stdio.h>
 #ifdef HAVE_STRING_H
 #include <string.h>
@@ -593,4 +593,4 @@ void consume_subsumptive_answer(CTXTdeclc BTNptr pAnsLeaf, int sizeTmplt,
   }
   Trail_Unwind_All;  /* unbind TrieVarBindings[] elements */
 }
-#endif /* TABLING */
+#endif /* TABLING_CALL_SUBSUMPTION */

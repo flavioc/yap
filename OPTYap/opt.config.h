@@ -86,7 +86,7 @@
 /* ----------------------------------------------------------------- **
 **      use call-subsumption method for tabled evaluation            **
 ** ----------------------------------------------------------------- */
-#define TABLING_CALL_SUBSUMPTION 1
+/*#define TABLING_CALL_SUBSUMPTION 1*/
 
 
 /* ---------------------------------------------------------------- **
@@ -212,6 +212,9 @@
 #endif /* GLOBAL_TRIE_FOR_CALLS_ANSWERS || GLOBAL_TRIE_FOR_TERMS || GLOBAL_TRIE_FOR_SUBTERMS */
 #if !defined(TABLING_ANSWER_CHILD) && !defined(TABLING_ANSWER_LIST) && !defined(TABLING_ANSWER_BLOCKS)
 #error "Define an answer set organization scheme"
+#endif
+#if defined(TABLING_CALL_SUBSUMPTION) && defined(TABLING_ANSWER_CHILD)
+#error "Call by subsumption can't use this organization scheme"
 #endif
 #endif /* TABLING */
 

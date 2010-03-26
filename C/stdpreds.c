@@ -3789,12 +3789,13 @@ p_set_yap_flags(void)
 	      else
           TabEnt_set_exec(tab_ent)
 	        
+#ifdef TABLING_CALL_SUBSUMPTION
 	      /* subsumptive / variant */
 	      if (IsDefaultMode_Subsumptive(TabEnt_mode(tab_ent)))
           TabEnt_set_subsumptive(tab_ent)
         else
           TabEnt_set_variant(tab_ent)
-          
+#endif /* TABLING_CALL_SUBSUMPTION */
 	      tab_ent = TabEnt_next(tab_ent);
       }
       yap_flags[TABLING_MODE_FLAG] = 0;
@@ -3830,6 +3831,7 @@ p_set_yap_flags(void)
       }
       SetMode_LoadAnswers(yap_flags[TABLING_MODE_FLAG]);
       SetMode_CompletedOn(yap_flags[TABLING_MODE_FLAG]);
+#ifdef TABLING_CALL_SUBSUMPTION
     } else if(value == 5) { /* variant */
       tab_ent_ptr tab_ent = GLOBAL_root_tab_ent;
       while(tab_ent) {
@@ -3846,6 +3848,7 @@ p_set_yap_flags(void)
       }
       SetMode_Subsumptive(yap_flags[TABLING_MODE_FLAG]);
       SetMode_ChecksOn(yap_flags[TABLING_MODE_FLAG]);
+#endif /* TABLING_CALL_SUBSUMPTION */
     }
     break;
 #endif /* TABLING */

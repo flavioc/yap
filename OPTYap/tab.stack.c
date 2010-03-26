@@ -10,7 +10,7 @@
 
 #include "opt.config.h"
 
-#ifdef TABLING_CALL_SUBSUMPTION
+#ifdef TABLING
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -65,4 +65,4 @@ void dynamic_stack_expand(DynamicStack *ds, int num_frames)
   DynStk_CurSize(*ds) = new_size;
 }
 
-#endif /* TABLING_CALL_SUBSUMPTION */
+#endif /* TABLING */

@@ -1708,7 +1708,9 @@ dprintf("stack_trie_atom_instr\n");                                    \
   ENDBOp();
   
   BOp(trie_do_float_val, e)
+#ifdef TABLING_CALL_SUBSUMPTION
     dprintf("trie_do_float_val\n");
+    
     register tst_node_ptr node = (tst_node_ptr) PREG;
     register CELL *aux_stack_ptr = YENV;
     int heap_arity = *aux_stack_ptr;
@@ -1716,9 +1718,13 @@ dprintf("stack_trie_atom_instr\n");                                    \
     int subs_arity = *(aux_stack_ptr + heap_arity + 2);
 
     stack_trie_float_instr();
+#else
+    Yap_Error(INTERNAL_ERROR, TermNil, "invalid instruction (trie_do_float_val)");
+#endif /* TABLING_CALL_SUBSUMPTION */
   ENDBOp();
   
   BOp(trie_trust_float_val, e)
+#ifdef TABLING_CALL_SUBSUMPTION
     dprintf("trie_trust_float_val\n");
     register tst_node_ptr node = (tst_node_ptr) PREG;
     register CELL *aux_stack_ptr = (CELL *) (B + 1);
@@ -1729,9 +1735,13 @@ dprintf("stack_trie_atom_instr\n");                                    \
     pop_trie_node();
     
     stack_trie_float_instr();
+#else
+    Yap_Error(INTERNAL_ERROR, TermNil, "invalid instruction (trie_trust_float_val)");
+#endif /* TABLING_CALL_SUBSUMPTION */
   ENDBOp();
   
   BOp(trie_try_float_val, e)
+#ifdef TABLING_CALL_SUBSUMPTION
     dprintf("trie_try_float_val\n");
     register tst_node_ptr node = (tst_node_ptr) PREG;
     register CELL *aux_stack_ptr = YENV;
@@ -1742,9 +1752,13 @@ dprintf("stack_trie_atom_instr\n");                                    \
     store_trie_node(TrNode_next(node));
     
     stack_trie_float_instr();
+#else
+    Yap_Error(INTERNAL_ERROR, TermNil, "invalid instruction (trie_try_float_val)");
+#endif /* TABLING_CALL_SUBSUMPTION */
   ENDBOp();
   
   BOp(trie_retry_float_val, e)
+#ifdef TABLING_CALL_SUBSUMPTION
     dprintf("trie_retry_float\n");
     register tst_node_ptr node = (tst_node_ptr) PREG;
     register CELL *aux_stack_ptr = (CELL *) (B + 1);
@@ -1755,6 +1769,9 @@ dprintf("stack_trie_atom_instr\n");                                    \
     restore_trie_node(TrNode_next(node));
     
     stack_trie_float_instr();
+#else
+    Yap_Error(INTERNAL_ERROR, TermNil, "invalid instruction (trie_retry_float_val)");
+#endif /* TABLING_CALL_SUBSUMPTION */
   ENDBOp();
 
   PBOp(trie_do_long, e)
@@ -1790,6 +1807,7 @@ dprintf("stack_trie_atom_instr\n");                                    \
   ENDBOp();
   
   BOp(trie_do_long_int, e)
+#ifdef TABLING_CALL_SUBSUMPTION
     dprintf("trie_do_long_int\n");
     register tst_node_ptr node = (tst_node_ptr) PREG;
     register CELL *aux_stack_ptr = YENV;
@@ -1798,9 +1816,13 @@ dprintf("stack_trie_atom_instr\n");                                    \
     int subs_arity = *(aux_stack_ptr + heap_arity + 2);
 
     stack_trie_long_instr();
+#else
+    Yap_Error(INTERNAL_ERROR, TermNil, "invalid instruction (trie_do_long_int)");
+#endif /* TABLING_CALL_SUBSUMPTION */
   ENDBOp();
   
   BOp(trie_trust_long_int, e)
+#ifdef TABLING_CALL_SUBSUMPTION
     dprintf("trie_trust_long_int\n");
     register tst_node_ptr node = (tst_node_ptr) PREG;
     register CELL *aux_stack_ptr = (CELL *) (B + 1);
@@ -1811,9 +1833,13 @@ dprintf("stack_trie_atom_instr\n");                                    \
     pop_trie_node();
     
     stack_trie_long_instr();
+#else
+    Yap_Error(INTERNAL_ERROR, TermNil, "invalid instruction (trie_trust_long_int)");
+#endif /* TABLING_CALL_SUBSUMPTION */
   ENDBOp();
   
   BOp(trie_try_long_int, e)
+#ifdef TABLING_CALL_SUBSUMPTION
     dprintf("trie_try_long_int\n");
     register tst_node_ptr node = (tst_node_ptr) PREG;
     register CELL *aux_stack_ptr = YENV;
@@ -1823,9 +1849,13 @@ dprintf("stack_trie_atom_instr\n");                                    \
     store_trie_node(TrNode_next(node));
     
     stack_trie_long_instr();
+#else
+    Yap_Error(INTERNAL_ERROR, TermNil, "invalid instruction (trie_try_long_int)");
+#endif /* TABLING_CALL_SUBSUMPTION */
   ENDBOp();
   
   BOp(trie_retry_long_int, e)
+#ifdef TABLING_CALL_SUBSUMPTION
     dprintf("trie_retry_long_int\n");
     register tst_node_ptr node = (tst_node_ptr) PREG;
     register CELL *aux_stack_ptr = (CELL *) (B + 1);
@@ -1836,6 +1866,9 @@ dprintf("stack_trie_atom_instr\n");                                    \
     restore_trie_node(TrNode_next(node));
     
     stack_trie_long_instr();
+#else
+    Yap_Error(INTERNAL_ERROR, TermNil, "invalid instruction (trie_retry_long_int)");
+#endif /* TABLING_CALL_SUBSUMPTION */
   ENDBOp();
   
 #define store_hash_node()                             \
@@ -1895,6 +1928,7 @@ dprintf("stack_trie_atom_instr\n");                                    \
     }
   
   BOp(trie_do_hash, e)
+#ifdef TABLING_CALL_SUBSUMPTION
     register tst_ans_hash_ptr hash = (tst_ans_hash_ptr) PREG;
     register CELL *aux_stack_ptr = YENV;
     int heap_arity = *aux_stack_ptr;
@@ -1989,9 +2023,13 @@ dprintf("stack_trie_atom_instr\n");                                    \
       /* run the only valid bucket */
       next_node_instruction(bucket ? bucket : var_bucket);
     }
+#else
+    Yap_Error(INTERNAL_ERROR, TermNil, "tabling by call subsumption not supported (trie_do_hash)");
+#endif /* TABLING_CALL_SUBSUMPTION */
   ENDBOp();
   
   BOp(trie_retry_hash, e)
+#ifdef TABLING_CALL_SUBSUMPTION
     hash_cp_ptr hash_cp = HASH_CP(B);
   
     if(hash_cp->final_bucket) {
@@ -2014,4 +2052,7 @@ dprintf("stack_trie_atom_instr\n");                                    \
         
       next_node_instruction((tst_node_ptr)hash_cp->last_bucket);
     }
+#else
+    Yap_Error(INTERNAL_ERROR, TermNil, "tabling by call subsumption not supported (trie_retry_hash)");
+#endif /* TABLING_CALL_SUBSUMPTION */
   ENDBOp();

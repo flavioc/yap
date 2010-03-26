@@ -22,8 +22,8 @@
 #include "Yatom.h"
 #include "YapHeap.h"
 #include "yapio.h"
-#include "tab.macros.h"
 #include "tab.utils.h"
+#include "tab.macros.h"
 #include "tab.tries.h"
 
 /* ------------------------------------- **
@@ -55,8 +55,8 @@ static void traverse_global_trie_for_answer(gt_node_ptr current_node, char *str,
 
 sg_fr_ptr subgoal_search(yamop *preg, CELL **local_stack_ptr)
 {
-  CELL *local_stack = *local_stack_ptr - 1;
   tab_ent_ptr tab_ent = CODE_TABLE_ENTRY(preg);
+  CELL *local_stack = *local_stack_ptr - 1;
   sg_fr_ptr sg_fr;
   
 #ifdef TABLE_LOCK_AT_ENTRY_LEVEL
@@ -69,9 +69,13 @@ sg_fr_ptr subgoal_search(yamop *preg, CELL **local_stack_ptr)
   dprintf("\n");
 #endif
   
+#ifdef TABLING_CALL_SUBSUMPTION  
   sg_fr = TabEnt_is_variant(tab_ent) ?
     variant_call_search(preg, local_stack, local_stack_ptr) :
     subsumptive_call_search(preg, local_stack, local_stack_ptr);
+#else
+  sg_fr = variant_call_search(preg, local_stack, local_stack_ptr);
+#endif /* TABLING_CALL_SUBSUMPTION */
   
 #ifdef FDEBUG
   dprintf("SUBGOAL IS: ");
@@ -85,10 +89,12 @@ sg_fr_ptr subgoal_search(yamop *preg, CELL **local_stack_ptr)
 ans_node_ptr answer_search(sg_fr_ptr sg_fr, CELL *subs_ptr) {
   if(SgFr_is_variant(sg_fr))
     return variant_answer_search(sg_fr, subs_ptr);
+#ifdef TABLING_CALL_SUBSUMPTION
   else if(SgFr_is_sub_producer(sg_fr)) {
     return subsumptive_answer_search((subprod_fr_ptr)sg_fr, subs_ptr);
-  } else
-    return variant_answer_search(sg_fr, subs_ptr);
+  }
+#endif /* TABLING_CALL_SUBSUMPTION */
+  return NULL;
 }
 
 void delete_subgoal_path(sg_fr_ptr sg_fr) {
@@ -313,11 +319,13 @@ void private_completion(sg_fr_ptr sg_fr) {
   LOCAL_top_sg_fr = SgFr_next(LOCAL_top_sg_fr);
 #endif /* LIMIT_TABLING */
 
+#ifdef TABLING_CALL_SUBSUMPTION
   /* complete consumer subgoals */
   while(LOCAL_top_cons_sg_fr && YOUNGER_CP(SgFr_cons_cp(LOCAL_top_cons_sg_fr), B)) {
     mark_consumer_as_completed(LOCAL_top_cons_sg_fr);
     LOCAL_top_cons_sg_fr = SgFr_next(LOCAL_top_cons_sg_fr);
   }
+#endif /* TABLING_CALL_SUBSUMPTION */
 
   /* release dependency frames */
   while (EQUAL_OR_YOUNGER_CP(DepFr_cons_cp(LOCAL_top_dep_fr), B)) {  /* never equal if batched scheduling */
@@ -400,6 +408,7 @@ void free_subgoal_trie_branch(sg_node_ptr current_node, int nodes_left, int node
         free_variant_subgoal_data(sg_fr, TRUE);
         FREE_VARIANT_SUBGOAL_FRAME(sg_fr);
         break;
+#ifdef TABLING_CALL_SUBSUMPTION
       case SUBSUMPTIVE_PRODUCER_SFT:
         free_producer_subgoal_data(sg_fr, TRUE);
         FREE_SUBPROD_SUBGOAL_FRAME(sg_fr);
@@ -408,6 +417,7 @@ void free_subgoal_trie_branch(sg_node_ptr current_node, int nodes_left, int node
         free_consumer_subgoal_data((subcons_fr_ptr)sg_fr);
         FREE_SUBCONS_SUBGOAL_FRAME(sg_fr);
         break;
+#endif /* TABLING_CALL_SUBSUMPTION */
       default:
 #ifdef TABLING_ERRORS
         TABLING_ERROR_MESSAGE("unrecognized subgoal frame type (free_subgoal_trie_branch)");
@@ -698,6 +708,7 @@ int update_answer_trie_branch(ans_node_ptr current_node) {
 #else /* TABLING */
 static
 void update_answer_trie_branch(ans_node_ptr current_node, int position) {
+#ifdef TABLING_CALL_SUBSUMPTION
   if(IS_ANSWER_TRIE_HASH(current_node)) {
     /* we can only be here if the answer trie is a time stamped trie! */
     tst_node_ptr chain_node, *bucket, *last_bucket;
@@ -717,6 +728,7 @@ void update_answer_trie_branch(ans_node_ptr current_node, int position) {
     tstht_remove_index(hash);
     return;
   }
+#endif /* TABLING_CALL_SUBSUMPTION */
   
   if (! IS_ANSWER_LEAF_NODE(current_node))
     update_answer_trie_branch(TrNode_child(current_node), TRAVERSE_POSITION_FIRST);  /* retry --> try */
@@ -817,6 +829,7 @@ void traverse_subgoal_trie(sg_node_ptr current_node, char *str, int str_index, i
 	        SHOW_TABLE_STRUCTURE("    ---> INCOMPLETE\n");
         }
       }
+#ifdef TABLING_CALL_SUBSUMPTION
     } else {
       subcons_fr_ptr cons_sg = (subcons_fr_ptr)sg_fr;
       subprod_fr_ptr prod_sg = SgFr_producer(cons_sg);
@@ -879,6 +892,7 @@ void traverse_subgoal_trie(sg_node_ptr current_node, char *str, int str_index, i
 	        SHOW_TABLE_STRUCTURE("    ---> INCOMPLETE\n");
         }
       }
+#endif /* TABLING_CALL_SUBSUMPTION */
     }
   }
 
@@ -1019,8 +1033,10 @@ void traverse_trie_node(void* node, char *str, int *str_index_ptr, int *arity, i
     if(IS_FLOAT_FLAG(flags)) {
       if(TrNode_is_call((sg_node_ptr)node))
         dbl = TrNode_float((float_sg_node_ptr)node);
+#ifdef TABLING_CALL_SUBSUMPTION
       else
         dbl = TSTN_float((float_tst_node_ptr)node);
+#endif /* TABLING_CALL_SUBSUMPTION */
     } else {
       volatile Term *t_dbl = (Term *)((void *) &dbl);
       *t_dbl = t;
@@ -1076,13 +1092,15 @@ void traverse_trie_node(void* node, char *str, int *str_index_ptr, int *arity, i
   } else if (mode == TRAVERSE_MODE_FLOAT_END) {
     mode = TRAVERSE_MODE_NORMAL;
   } else if (IS_LONG_INT_FLAG(flags) || mode == TRAVERSE_MODE_LONG) {
-    Int li;
+    Int li = 0;
     
     if(IS_LONG_INT_FLAG(flags)) {
       if(TrNode_is_call((sg_node_ptr)node))
         li = TrNode_long_int((long_sg_node_ptr)node);
+#ifdef TABLING_CALL_SUBSUMPTION
       else
         li = TSTN_long_int((long_tst_node_ptr)node);
+#endif /* TABLING_CALL_SUBSUMPTION */
     } else
       li = (Int) t;
       
