@@ -850,7 +850,7 @@ void traverse_subgoal_trie(sg_node_ptr current_node, char *str, int str_index, i
           HB = H;
           
           while(cont) {
-            tst_node_ptr ans = (tst_node_ptr)ContPtr_answer(cont);
+            tst_node_ptr ans = (tst_node_ptr)continuation_answer(cont);
           
             TrStat_sub_answers++;
             TrStat_answers++;
@@ -863,7 +863,7 @@ void traverse_subgoal_trie(sg_node_ptr current_node, char *str, int str_index, i
               trail_unwind(saved_TR);
             }
           
-            cont = ContPtr_next(cont);
+            cont = continuation_next(cont);
           }
           
           /* restore TR and HB */

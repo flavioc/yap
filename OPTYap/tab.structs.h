@@ -266,7 +266,6 @@ typedef struct answer_trie_hash {
 **      Struct answer_list        **
 ** ------------------------------ */
 
-#ifdef TABLING_ANSWER_LIST
 typedef struct answer_list {
   struct answer_trie_node *answer;
   struct answer_list *next;
@@ -275,17 +274,19 @@ typedef struct answer_list {
 #define AnsList_answer(X)       ((X)->answer)
 #define AnsList_next(X)         ((X)->next)
 
+#ifdef TABLING_PROD_ANSWER_LIST
 typedef ans_list_ptr continuation_ptr;
-#define ContPtr_next(X)   AnsList_next(X)
-#define ContPtr_answer(X) AnsList_answer(X)
 
-#else
+#define continuation_next(X)   AnsList_next(X)
+#define continuation_answer(X) AnsList_answer(X)
+
+#elif defined(TABLING_PROD_ANSWER_CHILD)
 
 typedef ans_node_ptr continuation_ptr;
-#define ContPtr_next(X)   TrNode_child(X)
-#define ContPtr_answer(X) (X)
+#define continuation_next(X)   TrNode_child(X)
+#define continuation_answer(X) (X)
 
-#endif /* TABLING_ANSWER_LIST */
+#endif /* TABLING_PROD_ANSWER_LIST */
 
 /* ------------------------------- **
 **     Subgoal frames data         **

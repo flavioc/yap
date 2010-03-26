@@ -468,7 +468,7 @@ extern int Yap_page_size;
 #define ALLOC_DEPENDENCY_FRAME(STR)    ALLOC_STRUCT(STR, GLOBAL_PAGES_dep_fr, struct dependency_frame)
 #define FREE_DEPENDENCY_FRAME(STR)     FREE_STRUCT(STR, GLOBAL_PAGES_dep_fr, struct dependency_frame)
 
-#ifdef TABLING_ANSWER_LIST
+#ifdef TABLING_PROD_ANSWER_LIST || TABLING_CONS_ANSWER_LIST
 #define ALLOC_ANSWER_LIST(STR)         ALLOC_STRUCT(STR, GLOBAL_PAGES_ans_list, struct answer_list)
 #define FREE_ANSWER_LIST(STR)          FREE_STRUCT(STR, GLOBAL_PAGES_ans_list, struct answer_list)
 #endif /* TABLING_ANSWER_LIST */

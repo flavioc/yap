@@ -97,14 +97,18 @@ void Yap_init_global(int max_table_size, int n_workers, int sch_loop, int delay_
   INIT_PAGES(GLOBAL_PAGES_tg_sol_fr, struct table_subgoal_solution_frame);
   INIT_PAGES(GLOBAL_PAGES_tg_ans_fr, struct table_subgoal_answer_frame);
 #endif /* TABLING_INNER_CUTS */
+
 #ifdef TABLING
+
 #ifdef GLOBAL_TRIE
   INIT_PAGES(GLOBAL_PAGES_gt_node, struct global_trie_node);
   INIT_PAGES(GLOBAL_PAGES_gt_hash, struct global_trie_hash);
 #endif /* GLOBAL_TRIE */
-#ifdef TABLING_ANSWER_LIST
+
+#ifdef TABLING_PROD_ANSWER_LIST || TABLING_CONS_ANSWER_LIST
   INIT_PAGES(GLOBAL_PAGES_ans_list, struct answer_list);
-#endif /* TABLING_ANSWER_LIST */
+#endif
+
   INIT_PAGES(GLOBAL_PAGES_tab_ent, struct table_entry);
   
   INIT_PAGES(GLOBAL_PAGES_variant_sg_fr, struct variant_subgoal_frame);

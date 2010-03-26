@@ -59,7 +59,7 @@ STD_PROTO(static inline choiceptr freeze_current_cp, (void));
 STD_PROTO(static inline void resume_frozen_cp, (choiceptr));
 STD_PROTO(static inline void abolish_all_frozen_cps, (void));
 
-#ifdef TABLING_ANSWER_LIST
+#ifdef TABLING_PROD_ANSWER_LIST || TABLING_CONS_ANSWER_LIST
 STD_PROTO(static inline void free_answer_list, (ans_list_ptr));
 #endif
 
@@ -401,18 +401,18 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
 
 #define SgFr_has_real_answers(SG_FR)                                      \
   (SgFr_first_answer(SG_FR) &&                                            \
-    ContPtr_answer(SgFr_first_answer(SG_FR)) != SgFr_answer_trie(SG_FR))
+    continuation_answer(SgFr_first_answer(SG_FR)) != SgFr_answer_trie(SG_FR))
 
 #define SgFr_has_yes_answer(SG_FR)                                        \
     (SgFr_first_answer(SG_FR) &&                                          \
-      ContPtr_answer(SgFr_first_answer(SG_FR)) == SgFr_answer_trie(SG_FR))
+      continuation_answer(SgFr_first_answer(SG_FR)) == SgFr_answer_trie(SG_FR))
       
 #define SgFr_has_no_answers(SG_FR)  SgFr_first_answer(SG_FR) == NULL
 
 /* complete --> compiled : complete_in_use --> compiled_in_use */
 #define SgFr_mark_compiled(SG_FR) SgFr_state(SG_FR) += 2
   
-#ifdef TABLING_ANSWER_LIST
+#ifdef TABLING_PROD_ANSWER_LIST || TABLING_CONS_ANSWER_LIST
 #define free_answer_continuation(CONT) free_answer_list(CONT)
 #define alloc_answer_continuation(CONT) ALLOC_ANSWER_LIST(CONT)
 #else
@@ -431,7 +431,7 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
         DepFr_sg_fr(DEP_FR) = SG_FR;                                                                   \
         DepFr_last_answer(DEP_FR) = (continuation_ptr)((unsigned long int) (SG_FR) +                   \
                                     (unsigned long int) (&SgFr_first_answer((sg_fr_ptr)DEP_FR)) -      \
-                                    (unsigned long int) (&ContPtr_next((continuation_ptr)DEP_FR)))
+                                    (unsigned long int) (&continuation_next((continuation_ptr)DEP_FR)))
 
 
 #define new_table_entry(TAB_ENT, PRED_ENTRY, ATOM, ARITY)       \
@@ -839,7 +839,7 @@ free_answer_trie_node(ans_node_ptr node) {
   }
 }
 
-#ifdef TABLING_ANSWER_LIST
+#ifdef TABLING_PROD_ANSWER_LIST || TABLING_CONS_ANSWER_LIST
 static inline
 void free_answer_list(ans_list_ptr list) {
   ans_list_ptr next;
@@ -1156,7 +1156,7 @@ static inline continuation_ptr
 get_next_answer_continuation(dep_fr_ptr dep_fr) {
   sg_fr_ptr sg_fr = DepFr_sg_fr(dep_fr);
   continuation_ptr last_cont = DepFr_last_answer(dep_fr);
-  continuation_ptr next = ContPtr_next(last_cont);
+  continuation_ptr next = continuation_next(last_cont);
   
   switch(SgFr_type(sg_fr)) {
     case VARIANT_PRODUCER_SFT:
@@ -1180,7 +1180,7 @@ get_next_answer_continuation(dep_fr_ptr dep_fr) {
            */
           subcons_fr_ptr consumer_sg = (subcons_fr_ptr)sg_fr;
           if(build_next_subsumptive_consumer_return_list(consumer_sg, SgFr_answer_template(consumer_sg)))
-            return ContPtr_next(last_cont);
+            return continuation_next(last_cont);
           else
             return NULL;
         }
@@ -1334,7 +1334,7 @@ susp_fr_ptr suspension_frame_to_resume(or_fr_ptr susp_or_fr) {
   while (susp_fr) {
     dep_fr = SuspFr_top_dep_fr(susp_fr);
     do {
-      if (ContPtr_next(DepFr_last_answer(dep_fr))) {
+      if (continuation_next(DepFr_last_answer(dep_fr))) {
         /* unconsumed answers in susp_fr */
         *susp_ptr = SuspFr_next(susp_fr);
         return susp_fr;
@@ -1504,10 +1504,10 @@ void CUT_validate_tg_answers(tg_sol_fr_ptr valid_solutions) {
             TAG_AS_ANSWER_LEAF_NODE(ans_node);
             
             alloc_answer_continuation(next_cont);
-            ContPtr_answer(next_cont) = ans_node;
+            continuation_answer(next_cont) = ans_node;
             
             if(first_cont)
-              ContPtr_next(last_cont) = next_cont;
+              continuation_next(last_cont) = next_cont;
             else
               first_cont = next_cont;
             
@@ -1531,14 +1531,14 @@ void CUT_validate_tg_answers(tg_sol_fr_ptr valid_solutions) {
     } while (ltt_valid_solutions);
     
     if(first_cont) {
-      ContPtr_next(last_cont) = NULL;
+      continuation_next(last_cont) = NULL;
       
       LOCK(SgFr_lock(sg_fr));
       
       if(SgFr_has_no_answers(sg_fr))
         SgFr_first_answer(sg_fr) = first_cont;
       else
-        ContPtr_next(SgFr_last_answer(sg_fr)) = first_cont;
+        continuation_next(SgFr_last_answer(sg_fr)) = first_cont;
       
       SgFr_last_answer(sg_fr) = last_cont;
       
