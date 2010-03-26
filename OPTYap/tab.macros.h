@@ -456,6 +456,11 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
   SgFr_last_answer(SG_FR) = LAST; \
 }
 
+#define CONSUMER_DEFAULT_LAST_ANSWER(SG_FR, DEP_FR)                   \
+  ((unsigned long int) (SG_FR) +                                      \
+   (unsigned long int) (&SgFr_first_answer((sg_fr_ptr)(DEP_FR))) -   \
+   (unsigned long int) (&AnsList_next((ans_list_ptr)(DEP_FR))))
+
 #elif defined(TABLING_ANSWER_CHILD)
 
 #define continuation_has_next(X) TrNode_child(X)
@@ -481,6 +486,11 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
 #define free_answer_continuation(CONT)
 #define alloc_answer_continuation(CONT)
 
+#define CONSUMER_DEFAULT_LAST_ANSWER(SG_FR, DEP_FR)                   \
+  ((unsigned long int) (SG_FR) +                                      \
+   (unsigned long int) (&SgFr_first_answer((sg_fr_ptr)(DEP_FR))) -   \
+   (unsigned long int) (&TrNode_child((ans_node_ptr)(DEP_FR))))
+                                       
 #endif /* TABLING_ANSWER_LIST */
 
 /* complete --> compiled : complete_in_use --> compiled_in_use */
@@ -495,10 +505,7 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
         DepFr_cons_cp(DEP_FR) = NORM_CP(CONS_CP);                                                      \
         DepFr_next(DEP_FR) = NEXT;                                                                     \
         DepFr_sg_fr(DEP_FR) = SG_FR;                                                                   \
-        DepFr_last_answer(DEP_FR) = (continuation_ptr)((unsigned long int) (SG_FR) +                   \
-                                    (unsigned long int) (&SgFr_first_answer((sg_fr_ptr)DEP_FR)) -      \
-                                    (unsigned long int) (&continuation_next((continuation_ptr)DEP_FR)))
-
+        DepFr_last_answer(DEP_FR) = (continuation_ptr)CONSUMER_DEFAULT_LAST_ANSWER(SG_FR, DEP_FR)
 
 #define new_table_entry(TAB_ENT, PRED_ENTRY, ATOM, ARITY)       \
         { register sg_node_ptr sg_node;                         \
