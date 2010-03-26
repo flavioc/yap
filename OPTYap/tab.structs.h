@@ -463,12 +463,18 @@ typedef subsumptive_consumer_sf *subcons_fr_ptr;
 ** Subgoal frame types             **
 ** ------------------------------- */
 
+#ifdef TABLING_CALL_SUBSUMPTION
 #define SgFr_is_variant(X)  \
   (SgFr_type(X) == VARIANT_PRODUCER_SFT)
 #define SgFr_is_sub_producer(X)  \
   (SgFr_type(X) == SUBSUMPTIVE_PRODUCER_SFT)
 #define SgFr_is_sub_consumer(X)   \
   (SgFr_type(X) == SUBSUMED_CONSUMER_SFT)
+#else
+#define SgFr_is_variant(X) TRUE
+#define SgFr_is_sub_producer(X) FALSE
+#define SgFr_is_sub_consumer(X) FALSE
+#endif /* TABLING_CALL_SUBSUMPTION */
 
 /* --------------------------------- **
 **      Struct dependency_frame      **

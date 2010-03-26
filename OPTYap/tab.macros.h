@@ -1231,13 +1231,13 @@ build_next_subsumptive_consumer_return_list(subcons_fr_ptr consumer_sg, CELL *an
  */
 static inline continuation_ptr
 get_next_answer_continuation(dep_fr_ptr dep_fr) {
+#ifdef TABLING_CALL_SUBSUMPTION
   sg_fr_ptr sg_fr = DepFr_sg_fr(dep_fr);
   
   switch(SgFr_type(sg_fr)) {
     case VARIANT_PRODUCER_SFT:
     case SUBSUMPTIVE_PRODUCER_SFT:
       return continuation_next(DepFr_last_answer(dep_fr));
-#ifdef TABLING_CALL_SUBSUMPTION
     case SUBSUMED_CONSUMER_SFT:
       {
         continuation_ptr last_cont = DepFr_last_answer(dep_fr);
@@ -1265,11 +1265,13 @@ get_next_answer_continuation(dep_fr_ptr dep_fr) {
         }
       }
       break;
-#endif /* TABLING_CALL_SUBSUMPTION */
     default:
       /* NOT REACHABLE */
       return NULL;
   }
+#else
+  return continuation_next(DepFr_last_answer(dep_fr));
+#endif /* TABLING_CALL_SUBSUMPTION */
 }
 
 /* Given a subgoal call result struct
