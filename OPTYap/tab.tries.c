@@ -91,7 +91,10 @@ ans_node_ptr answer_search(sg_fr_ptr sg_fr, CELL *subs_ptr) {
     return variant_answer_search(sg_fr, subs_ptr);
 #ifdef TABLING_CALL_SUBSUMPTION
   else if(SgFr_is_sub_producer(sg_fr)) {
-    return subsumptive_answer_search((subprod_fr_ptr)sg_fr, subs_ptr);
+    int nTerms = *subs_ptr;
+    CELL* answerVector = subs_ptr + nTerms;
+    int new;
+    return (ans_node_ptr)subsumptive_answer_search((subprod_fr_ptr)sg_fr, nTerms, answerVector, &new);
   }
 #endif /* TABLING_CALL_SUBSUMPTION */
   return NULL;

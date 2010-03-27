@@ -99,11 +99,13 @@ void consume_variant_answer(ans_node_ptr ans_node, int size, CELL *answer_templa
 ** ----------------- */
 
 #ifdef TABLING
-void* stl_restore_variant_cont(CTXTdecl);
 #ifdef TABLING_CALL_SUBSUMPTION
+void* stl_restore_variant_cont(CTXTdecl);
+void *iter_sub_trie_lookup(CTXTdeclc void *trieNode, TriePathType *pathType);
 void initSubsumptiveLookup(CTXTdecl);
 sg_fr_ptr subsumptive_call_search(yamop *code, CELL *local_stack, CELL **new_local_stack);
-ans_node_ptr subsumptive_answer_search(subprod_fr_ptr sg_fr, CELL *subs_ptr);
+TSTNptr subsumptive_tst_search(CTXTdeclc TSTNptr tstRoot, int nTerms, CPtr termVector, xsbBool maintainTSI, xsbBool *isNew);
+inline TSTNptr subsumptive_answer_search(CTXTdeclc SubProdSF sf, int nTerms, CPtr answerVector, xsbBool *isNew);
 void *newTSTAnswerSet(void);
 #endif /* TABLING_CALL_SUBSUMPTION */
 #endif /* TABLING */

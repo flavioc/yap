@@ -197,35 +197,6 @@ TSTNptr subsumptive_tst_search(CTXTdeclc TSTNptr tstRoot, int nTerms, CPtr termV
   return tstn;
 }
 
-/*
- * Create an Empty Answer Set, represented as a Time-Stamped Trie.
- * Note that the root of the TST is labelled with a ret/n symbol,
- * where `n' is the number of terms in an answer.
- */
-void *newTSTAnswerSet(void) {
-  TSTNptr root;
-  
-  New_TSTN(root, TST_TRIE_NT, TRIE_ROOT_NT, 0, NULL, NULL);
-  TSTN_TimeStamp(root) = EMPTY_TST_TIMESTAMP;
-  
-  return root;
-}
-
-ans_node_ptr subsumptive_answer_search(subprod_fr_ptr sf, CELL *subs_ptr) {
-  TSTNptr root, tstn;
-  int nTerms = *subs_ptr;
-  CPtr answerVector = subs_ptr + nTerms;
-  int new;
-  int *isNew = &new;
-  
-  AnsVarCtr = 0;
-  
-  root = (TSTNptr)subg_ans_root_ptr(sf);
-  tstn = subsumptive_tst_search(CTXTc root, nTerms, answerVector,
-    (xsbBool)ProducerSubsumesSubgoals(sf), isNew );
-  Trail_Unwind_All;
-  
-  return (ans_node_ptr)tstn;
-}
+#include "xsb.sub.c"
 
 #endif /* TABLING_CALL_SUBSUMPTION */
