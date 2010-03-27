@@ -80,25 +80,6 @@ create_new_producer_subgoal(sg_node_ptr leaf_node, tab_ent_ptr tab_ent, yamop *c
 }
 
 static inline
-CPtr construct_variant_answer_template_from_sub(CELL *var_vector) {
-  CPtr *binding, termptr;
-  int i;
-  
-  for(i = 0, binding = Trail_Base; binding < Trail_Top; binding++) {
-    termptr = *binding;
-    
-    if(!IsUnboundTrieVar(termptr)) {
-      *var_vector-- = (CELL)termptr;
-      ++i;
-    }
-  }
-  
-  *var_vector = makeint(i);
-  
-  return var_vector;
-}
-
-static inline
 CPtr extract_template_from_lookup(CTXTdeclc CPtr ans_tmplt) {
   int i;
   
