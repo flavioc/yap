@@ -659,7 +659,9 @@ join_answers_subgoal_frame(sg_fr_ptr sg_fr, continuation_ptr first, continuation
 #define MAX_NODES_PER_TRIE_LEVEL           8
 #define MAX_NODES_PER_BUCKET               (MAX_NODES_PER_TRIE_LEVEL / 2)
 #define BASE_HASH_BUCKETS                  64
-#define HASH_ENTRY(ENTRY, SEED)            (IsVarTerm(ENTRY) ? 0 : (((unsigned long int) ENTRY) >> NumberOfLowTagBits) & (SEED))
+#define HASH_ENTRY(ENTRY, SEED)   \
+          (IsVarTerm(ENTRY) ? 0 : \
+              (((unsigned long int) ENTRY) >> NumberOfLowTagBits) & (SEED))
 #ifdef GLOBAL_TRIE
 #define GLOBAL_TRIE_HASH_MARK              ((Term) MakeTableVarTerm(MAX_TABLE_VARS))
 #define IS_GLOBAL_TRIE_HASH(NODE)          (TrNode_entry(NODE) == GLOBAL_TRIE_HASH_MARK)
