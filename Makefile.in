@@ -539,6 +539,7 @@ absmi.o: $(srcdir)/C/absmi.c \
 	$(srcdir)/OPTYap/tab.insts.i \
 	$(srcdir)/OPTYap/opt.structs.h \
 	$(srcdir)/OPTYap/or.macros.h \
+	$(srcdir)/OPTYap/tab.blocks.h \
 	$(srcdir)/OPTYap/tab.macros.h \
 	$(srcdir)/OPTYap/opt.macros.h \
 	$(srcdir)/OPTYap/tab.structs.h \

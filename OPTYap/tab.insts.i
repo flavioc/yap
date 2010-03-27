@@ -230,7 +230,7 @@
 
 #define store_loader_node(TAB_ENT, ANSWER, LOAD_INSTR)        \
         { register choiceptr lcp;                             \
-	  /* initialize lcp */                                      \
+	        /* initialize lcp */                                \
           lcp = NORM_CP(LOAD_CP(YENV) - 1);                   \
           /* store loader choice point */                     \
           HBREG = H;                                          \
@@ -583,7 +583,6 @@
             TRAIL_FRAME(sg_fr);
           }
 #endif /* LIMIT_TABLING */
-          
           continuation_ptr cont = SgFr_first_answer(sg_fr);
           ans_node_ptr ans_node = continuation_answer(cont);
 

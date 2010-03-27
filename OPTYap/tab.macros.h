@@ -19,6 +19,7 @@
 #endif
 #include "opt.mavar.h"
 #include "tab.utils.h"
+#include "tab.blocks.h"
 
 
 
@@ -434,7 +435,6 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
 #define continuation_answer(X) AnsList_answer(X)
 
 #define free_answer_continuation(CONT)  free_answer_list(CONT)
-#define alloc_answer_continuation(CONT) ALLOC_ANSWER_LIST(CONT)
 
 #define push_new_answer_set(ANS, FIRST, LAST)       \
     { continuation_ptr new_list;                    \
@@ -484,13 +484,66 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
 }
 
 #define free_answer_continuation(CONT)
-#define alloc_answer_continuation(CONT)
 
 #define CONSUMER_DEFAULT_LAST_ANSWER(SG_FR, DEP_FR)                   \
   ((unsigned long int) (SG_FR) +                                      \
    (unsigned long int) (&SgFr_first_answer((sg_fr_ptr)(DEP_FR))) -   \
    (unsigned long int) (&TrNode_child((ans_node_ptr)(DEP_FR))))
-                                       
+
+#elif defined(TABLING_ANSWER_BLOCKS)
+
+#define ANSWER_BLOCK_SIZE 15
+
+#define free_answer_continuation(CONT) blocks_free(CONT, ANSWER_BLOCK_SIZE)
+#define continuation_answer(X) (*(X))
+#define push_new_answer_set(ANS, FIRST, LAST) block_push(ANS, FIRST, LAST, ANSWER_BLOCK_SIZE, continuation_ptr)
+
+static inline continuation_ptr
+continuation_next(continuation_ptr cont)
+{
+  if(IS_BLOCK_TAG(cont)) {
+    return SgFr_first_answer((sg_fr_ptr)UNTAG_BLOCK_MASK(cont));
+  }
+  
+  return (continuation_ptr)block_get_next((void**)cont);
+}
+
+static inline int
+continuation_has_next(continuation_ptr cont)
+{
+  if(IS_BLOCK_TAG(cont))
+    return (int)SgFr_first_answer((sg_fr_ptr)UNTAG_BLOCK_MASK(cont));
+  
+  return block_has_next(cont);
+}
+
+static inline void
+join_answers_subgoal_frame(sg_fr_ptr sg_fr, continuation_ptr first, continuation_ptr last)
+{
+  if(SgFr_has_no_answers(sg_fr)) {
+    SgFr_first_answer(sg_fr) = first;
+    SgFr_last_answer(sg_fr) = last;
+  } else {
+    continuation_ptr ptr = first;
+    
+    while(TRUE) {
+      block_push(*ptr, SgFr_first_answer(sg_fr), SgFr_last_answer(sg_fr), ANSWER_BLOCK_SIZE, continuation_ptr);
+      
+      if(ptr == last)
+        break;
+      
+      ++ptr;
+      
+      if(IS_BLOCK_TAG(*ptr))
+        ptr = (continuation_ptr)UNTAG_BLOCK_MASK(*ptr);
+    }
+    
+    blocks_free(first, ANSWER_BLOCK_SIZE);
+  }
+}
+
+#define CONSUMER_DEFAULT_LAST_ANSWER(SG_FR, DEP_FR) TAG_BLOCK_MASK(SG_FR)
+                 
 #endif /* TABLING_ANSWER_LIST */
 
 /* complete --> compiled : complete_in_use --> compiled_in_use */

@@ -12,8 +12,6 @@
 #ifndef TAB_STRUCTS_H
 #define TAB_STRUCTS_H
 
-#include "tab.blocks.h"
-
 /* ---------------------------- **
 **      Tabling mode flags      **
 **  C/stdpreds.c                **
@@ -296,6 +294,10 @@ typedef ans_list_ptr continuation_ptr;
 #elif defined(TABLING_ANSWER_CHILD)
 
 typedef ans_node_ptr continuation_ptr;
+
+#elif defined(TABLING_ANSWER_BLOCKS)
+
+typedef ans_node_ptr* continuation_ptr;
 
 #endif /* TABLING_ANSWER_LIST */
 
