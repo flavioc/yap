@@ -117,7 +117,7 @@ struct tst_answer_trie_hash {
 #define TSTHT_node_type(X)      (TrNode_node_type(X))
 #define TSTHT_trie_type(X)      (TrNode_trie_type(X))
 
-#define EMPTY_TST_TIMESTAMP 0
+#include "xsb.tst.h"
 
 TSTNptr tst_insert(CTXTdeclc TSTNptr tstRoot, TSTNptr lastMatch, Cell firstSymbol,
   xsbBool maintainTSI);
@@ -126,17 +126,6 @@ TSTNptr new_tstn(CTXTdeclc int trie_t, int node_t, Cell symbol, TSTNptr parent,
 void tstCreateTSIs(CTXTdeclc TSTNptr pTST);
 void tstht_remove_index(TSTHTptr ht);
 void print_hash_table(TSTHTptr ht);
-
-/* XSB macros */
-  
-#define New_TSTN(TSTN,TrieType,NodeType,Symbol,Parent,Sibling)  \
-  TSTN = new_tstn(CTXTc TrieType,NodeType,Symbol,Parent,Sibling)
-  
-/* For Hashed TSTNs
-   ---------------- */
-#define TSTN_SetTSIN(pTSTN,TSIN) TSTN_TimeStamp(pTSTN) = (TimeStamp)(TSIN)
-#define TSTN_GetTSIN(pTSTN) ((TSINptr)TSTN_TimeStamp(pTSTN))
-#define TSTN_GetTSfromTSIN(pTSIN) TSIN_TimeStamp(TSTN_GetTSIN(pTSIN))
 
 struct hash_choicept {
    struct choicept cp;

@@ -82,7 +82,6 @@ typedef Functor Psc;
 #define SubsumptiveTrieLookupError(MSG) \
   Yap_Error(FATAL_ERROR, TermNil, MSG);
 
-
 /* subgoal frames */
 #define BTN_Child(NODE)         TrNode_child(NODE)
 #define BTN_Sibling(NODE)       TrNode_next(NODE)
@@ -119,11 +118,18 @@ typedef Functor Psc;
 #define TSTNptr tst_node_ptr
 #define TSTHTptr tst_ans_hash_ptr
 #define TSINptr tst_index_ptr
+
 #define NO_INSERT_SYMBOL 0
+
 #define TSTN_TrieType(X)  TSTN_trie_type(X)
 #define TSTN_Child(X) TSTN_child(X)
 #define TSTN_TimeStamp(X) TSTN_time_stamp(X)
 #define TSTN_Sibling(X) TSTN_next(X)
+#define TSTN_GetHashHdr(X)  (TSTHTptr)TN_GetHashHdr(X)
+#define TSTN_SetHashHdr(pTSTN,pTSTHT)   TN_SetHashHdr(pTSTN,pTSTHT)
+#define TSTN_Parent(X) TSTN_parent(X)
+#define TSTN_Symbol(X)	TSTN_entry(X)
+
 #define TN_Child(X) TSTN_child(X)
 #define TN_Sibling(X) TSTN_next(X)
 #define TN_Parent(X) TSTN_parent(X)
@@ -131,34 +137,43 @@ typedef Functor Psc;
 #define TN_Instr(X)   TSTN_instr(X)
 #define TN_TrieType(X)  TSTN_trie_type(X)
 #define TN_NodeType(X)  TSTN_node_type(X)
-#define TSTN_GetHashHdr(X)  (TSTHTptr)TN_GetHashHdr(X)
+#define TN_SetHashHdr(pTN,pTHT)         TN_Child(pTN) = (void *)(pTHT)
+#define TN_GetHashHdr(pTN)              TN_Child(pTN)
+
+#define BTN_SetHashHdr(pBTN,pTHT)       TN_SetHashHdr(pBTN,pTHT)
+#define BTN_GetHashHdr(pTN)             ((BTHTptr)TN_GetHashHdr(pTN))
+
 #define TrieHT_BucketArray(X) TSTHT_buckets(X)
 #define TrieHT_GetHashSeed(X) TSTHT_seed(X)
-#define TSC_NodeType(X) TSTN_node_type(X)
-#define TSTHT_NumContents(X) TSTHT_num_nodes(X)
-#define TSTHT_BucketArray(X) TSTHT_buckets(X)
-#define TSIN_TSTNode(X) TSIN_node(X)
-#define TSIN_TimeStamp(X) TSIN_time_stamp(X)
-#define TSTHT_IndexHead(X)  TSTHT_index_head(X)
-#define TSTHT_IndexTail(X)  TSTHT_index_tail(X)
 #define TrieHT_NumContents(X) TSTHT_num_nodes(X)
 #define TrieHT_NumBuckets(X) TSTHT_num_buckets(X)
+#define TrieHT_NewSize(X)  TSTHT_new_size(X)
+
+#define TSC_NodeType(X) TSTN_node_type(X)
+
+#define TSTHT_NumContents(X) TSTHT_num_nodes(X)
+#define TSTHT_BucketArray(X) TSTHT_buckets(X)
+#define TSTHT_IndexHead(X)  TSTHT_index_head(X)
+#define TSTHT_IndexTail(X)  TSTHT_index_tail(X)
+#define TSTHT_InternalLink(X) TSTHT_next(X)
+#define TSTHT_GetHashSeed(X) TSTHT_seed(X)
+#define TSTHT_Instr(X) TSTHT_instr(X)
+#define TSTHT_TrieType(X) TSTHT_trie_type(X)
+#define TSTHT_NodeType(X) TSTHT_node_type(X)
+#define TSTHT_NumBuckets(X) TSTHT_num_buckets(X)
+
+#define TSIN_TSTNode(X) TSIN_node(X)
+#define TSIN_TimeStamp(X) TSIN_time_stamp(X)
 #define TSIN_Prev(X)  TSIN_prev(X)
 #define TSIN_Next(X)  TSIN_next(X)
-#define TrieHT_NewSize(X)  TSTHT_new_size(X)
+
+
 #define BTHT_NumBuckets(X)  TSTHT_num_buckets(X)
 #define BTHT_Instr(X) TSTHT_instr(X)
 #define BTHT_TrieType(X)  TSTHT_trie_type(X)
 #define BTHT_NodeType(X)  TSTHT_node_type(X)
 #define BTHT_NumContents(X) TSTHT_num_nodes(X)
-#define TSTHT_Instr(X) TSTHT_instr(X)
-#define TSTHT_TrieType(X) TSTHT_trie_type(X)
-#define TSTHT_NodeType(X) TSTHT_node_type(X)
-#define TSTHT_NumBuckets(X) TSTHT_num_buckets(X)
-#define TSTN_Parent(X) TSTN_parent(X)
-#define TSTHT_InternalLink(X) TSTHT_next(X)
-#define TSTHT_GetHashSeed(X) TSTHT_seed(X)
-#define TSTN_Symbol(X)	TSTN_entry(X)
+
 
 #define IsEmptyTrie(Root)      IsNULL(TN_Child(Root))
 

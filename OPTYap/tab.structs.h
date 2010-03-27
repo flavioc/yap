@@ -137,9 +137,11 @@ enum Types_of_Trie_Nodes {
   TST_TRIE_NT = 0x80
 };
 
-#define TRIE_TYPE_MASK 0xC0
-#define IS_LONG_INT_FLAG(FLAG) ((FLAG) & LONG_INT_NT)
-#define IS_FLOAT_FLAG(FLAG) ((FLAG) & FLOAT_NT)
+#define HASHED_NODE_MASK        0x01
+#define LEAF_NODE_MASK          0x02
+#define TRIE_TYPE_MASK          0xC0
+#define IS_LONG_INT_FLAG(FLAG)  ((FLAG) & LONG_INT_NT)
+#define IS_FLOAT_FLAG(FLAG)     ((FLAG) & FLOAT_NT)
 
 typedef unsigned long time_stamp;
 
