@@ -37,7 +37,6 @@ struct tstCCPStack_t tstCCPStack; /* frame stack for subsumption */
 Cell TrieVarBindings[MAX_TABLE_VARS];
 struct VariantContinuation variant_cont;
 int AnsVarCtr;
-struct tstCPStack_t tstCPStack;
 #endif
 #endif /* TABLING */
 #if defined(TABLING) || !defined(ACOW)
@@ -239,7 +238,7 @@ void Yap_init_local(void) {
   tstCCPStack.ceiling = tstCCPStack.base + CALL_CPSTACK_SIZE;
   
   /* initCollectRelevantAnswers */
-  tstCPStack.ceiling = tstCPStack.base + TST_CPSTACK_SIZE;
+  initCollectRelevantAnswers();
   
   variant_cont.subterms.stack.ptr = NULL;
   variant_cont.bindings.stack.ptr = NULL;

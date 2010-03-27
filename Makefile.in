@@ -477,6 +477,7 @@ tab.unify.o: $(srcdir)/OPTYap/tab.unify.c \
 	$(CC) -c $(CFLAGS) $(srcdir)/OPTYap/tab.unify.c -o $@
 
 tab.retrv.o: $(srcdir)/OPTYap/tab.retrv.c \
+	$(srcdir)/OPTYap/xsb.retrv.c \
 	$(srcdir)/OPTYap/tab.retrv.h \
 	$(srcdir)/OPTYap/tab.utils.h \
 	$(srcdir)/OPTYap/tab.structs.h \

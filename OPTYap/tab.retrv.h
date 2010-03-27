@@ -39,7 +39,7 @@ struct tstCPStack_t {
 	tstChoicePointFrame base[TST_CPSTACK_SIZE];
 };
 
-extern struct tstCPStack_t tstCPStack;
+void initCollectRelevantAnswers(CTXTdecl);
 
 xsbBool tst_collect_relevant_answers(CTXTdeclc TSTNptr tstRoot, TimeStamp ts,
   int numTerms, CPtr termsRev, subcons_fr_ptr sg_fr);
