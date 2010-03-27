@@ -33,9 +33,7 @@ DynamicStack tstSymbolStack; /* symbol stack for subsumption */
 #ifdef TABLING_CALL_SUBSUMPTION
 #include "tab.tst.h"
 #include "tab.retrv.h"
-struct tstCCPStack_t tstCCPStack; /* frame stack for subsumption */
 Cell TrieVarBindings[MAX_TABLE_VARS];
-struct VariantContinuation variant_cont;
 int AnsVarCtr;
 #endif
 #endif /* TABLING */
@@ -234,21 +232,8 @@ void Yap_init_local(void) {
   DynStk_Init(&tstSymbolStack, TST_SYMBOLSTACK_INITSIZE, Cell, "tstSymbolStack");
   
 #ifdef TABLING_CALL_SUBSUMPTION
-  /* initSubsumptiveLookup */
-  tstCCPStack.ceiling = tstCCPStack.base + CALL_CPSTACK_SIZE;
-  
-  /* initCollectRelevantAnswers */
   initCollectRelevantAnswers();
-  
-  variant_cont.subterms.stack.ptr = NULL;
-  variant_cont.bindings.stack.ptr = NULL;
-  variant_cont.subterms.stack.size =
-    variant_cont.bindings.stack.size = 0;
-  
-  /* set entries to unbound */
-  int i;
-  for (i = 0; i < MAX_TABLE_VARS; i++)
-    TrieVarBindings[i] = (Cell)(TrieVarBindings + i);
+  initSubsumptiveLookup();
 #endif /* TABLING_CALL_SUBSUMPTION */
 #endif /* TABLING */
   return;

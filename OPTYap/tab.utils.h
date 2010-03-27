@@ -369,8 +369,6 @@ struct VariantContinuation {
   } bindings;
 };
 
-extern struct VariantContinuation variant_cont;
-
 typedef struct {
   BTNptr alt_node;
   BTNptr var_chain;
@@ -388,8 +386,6 @@ struct tstCCPStack_t {
   pCPFrame ceiling;
   tstCallChoicePointFrame base[CALL_CPSTACK_SIZE];
 };
-
-extern struct tstCCPStack_t tstCCPStack;
 
 extern Cell TrieVarBindings[MAX_TABLE_VARS];
 

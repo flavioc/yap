@@ -79,9 +79,6 @@ typedef Functor Psc;
 #define EncodeTrieFunctor(TERM)   AbsAppl((Term *)FunctorOfTerm(TERM))
 #define EncodeTrieList(TERM)  AbsPair(NULL)
 
-#define SubsumptiveTrieLookupError(MSG) \
-  Yap_Error(FATAL_ERROR, TermNil, MSG);
-
 /* subgoal frames */
 #define BTN_Child(NODE)         TrNode_child(NODE)
 #define BTN_Sibling(NODE)       TrNode_next(NODE)
@@ -93,6 +90,7 @@ typedef Functor Psc;
 #define BTHT_GetHashSeed(HASH)  Hash_seed(HASH)
 #define TrieHash(SYMBOL, SEED)  HASH_ENTRY(SYMBOL, SEED)
 #define TRIEVAR_BUCKET          0
+#define NUM_TRIEVARS MAX_TABLE_VARS
 
 #define IsTrieVar(SYMBOL)       (IsVarTerm(SYMBOL))
 #define IsNewTrieVar(SYMBOL)    (IsNewTableVarTerm(SYMBOL))
