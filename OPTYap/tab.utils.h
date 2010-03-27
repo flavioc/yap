@@ -35,9 +35,6 @@
 #define FloatFormatString "%f"
 #endif
 
-typedef CELL Cell;
-typedef CELL *CPtr;
-
 // emu/tst_aux.h
 
 extern DynamicStack tstTermStack;
@@ -334,8 +331,9 @@ void printSubterm(FILE *fp, Term term);
 void printCalledSubgoal(FILE *fp, yamop *preg);
 void printAnswerTemplate(FILE *fp, CPtr ans_tmplt, int size);
 void printSubstitutionFactor(FILE *fp, CELL* factor);
-
 void printTermStack(FILE *fp);
+void printTriePath(CTXTdeclc FILE *fp, sg_node_ptr pLeaf, xsbBool print_address);
+void printSubgoalTriePath(CTXTdeclc FILE *fp, sg_node_ptr pLeaf, tab_ent_ptr tab_entry);
 
 #ifdef TABLING_CALL_SUBSUMPTION
 
@@ -345,8 +343,6 @@ void fix_answer_template(CELL *ans_tmplt);
 void printSubsumptiveAnswer(FILE *fp, CELL* vars);
 CELL* construct_subgoal_heap(BTNptr pLeaf, CPtr* var_pointer, int arity);
 CPtr reconstruct_template_for_producer_no_args(SubProdSF subsumer, CELL* ans_tmplt);
-void printTriePath(CTXTdeclc FILE *fp, BTNptr pLeaf, xsbBool print_address);
-void printSubgoalTriePath(CTXTdeclc FILE *fp, BTNptr pLeaf, tab_ent_ptr tab_entry);
 void printTrieNode(FILE *fp, BTNptr pTN);
 
 /* -------------------------------- */

@@ -13,24 +13,47 @@
 
 #include "opt.config.h"
 
+typedef CELL Cell;
+typedef CELL *CPtr;
+typedef int xsbBool;
+typedef sg_node_ptr BTNptr;
+
 #define CTXTdeclc
 #define CTXTdecl void
 #define CTXTc
 #define CTXT
+#define YES TRUE
+#define NO  FALSE
+
+#define XSB_Deref(X) ((X) = Deref(X))
+
+#define StandardizeVariable(DerefedVar, Index)  \
+    (*((CELL *)DerefedVar) = GLOBAL_table_var_enumerator(Index))
+#define IsStandardizedVariable(DerefVar)  (IsTableVarTerm(DerefVar))
+
+#define IndexOfStdVar(VAR_ENUM_ADDR)  VarIndexOfTerm(VAR_ENUM_ADDR)
 
 #define bld_free(ADDR)      *((CELL *)ADDR) = (CELL)(ADDR)
+
+#define int_val(SYMBOL) IntOfTerm(SYMBOL)
+#define string_val(SYMBOL)  AtomName(AtomOfTerm(SYMBOL))
+#define DecodeTrieFunctor(SYMBOL) ((Functor) RepAppl(SYMBOL))
+#define DecodeTrieVar(VAR)      VarIndexOfTableTerm(VAR)
+#define get_arity(FUNCTOR)  ArityOfFunctor(FUNCTOR)
+#define get_name(FUNCTOR)   AtomName(NameOfFunctor(FUNCTOR))
+
+#define IsTrieRoot(NODE)   TrNode_is_root(NODE)
+
+#define BTN_Symbol(NODE)        TrNode_entry(NODE)
+#define BTN_Parent(NODE)        TrNode_parent(NODE)
 
 #ifdef TABLING_CALL_SUBSUMPTION
 
 typedef unsigned long int counter;
-typedef sg_node_ptr BTNptr;
-typedef int xsbBool;
 typedef sg_hash_ptr BTHTptr;
 typedef Functor Psc;
 
 #define get_str_psc(FUNCTOR) FunctorOfTerm(FUNCTOR)
-#define get_arity(FUNCTOR)  ArityOfFunctor(FUNCTOR)
-#define get_name(FUNCTOR)   AtomName(NameOfFunctor(FUNCTOR))
 /* FunctorOfTerm(t) === *RepAppl (t) */
 #define clref_val(REF)      RepAppl(REF)
 #define clrefp_val(REF)     RepPair(REF)
@@ -40,8 +63,6 @@ typedef Functor Psc;
 
 #define IsNonNULL(ptr)   ( (ptr) != NULL )
 #define IsNULL(ptr) ((ptr) == NULL)
-#define YES TRUE
-#define NO  FALSE
 
 #define XSB_STRING  TAG_ATOM
 #define XSB_INT     TAG_INT
@@ -58,17 +79,13 @@ typedef Functor Psc;
 #define EncodeTrieFunctor(TERM)   AbsAppl((Term *)FunctorOfTerm(TERM))
 #define EncodeTrieList(TERM)  AbsPair(NULL)
 
-#define XSB_Deref(X) ((X) = Deref(X))
-
 #define SubsumptiveTrieLookupError(MSG) \
   Yap_Error(FATAL_ERROR, TermNil, MSG);
 
 
 /* subgoal frames */
 #define BTN_Child(NODE)         TrNode_child(NODE)
-#define BTN_Symbol(NODE)        TrNode_entry(NODE)
 #define BTN_Sibling(NODE)       TrNode_next(NODE)
-#define BTN_Parent(NODE)        TrNode_parent(NODE)
 #define BTN_NodeType(NODE)      TrNode_node_type(NODE)
 
 #define IsHashHeader(NODE)      (TrNode_node_type(NODE) & HASH_HEADER_NT)
@@ -80,14 +97,7 @@ typedef Functor Psc;
 
 #define IsTrieVar(SYMBOL)       (IsVarTerm(SYMBOL))
 #define IsNewTrieVar(SYMBOL)    (IsNewTableVarTerm(SYMBOL))
-#define DecodeTrieVar(VAR)      VarIndexOfTableTerm(VAR)
 
-#define StandardizeVariable(DerefedVar, Index)  \
-    (*((CELL *)DerefedVar) = GLOBAL_table_var_enumerator(Index))
-#define IsStandardizedVariable(DerefVar)  (IsTableVarTerm(DerefVar))
-
-#define IndexOfStdVar(VAR_ENUM_ADDR)  VarIndexOfTerm(VAR_ENUM_ADDR)
-#define IsTrieRoot(NODE)   TrNode_is_root(NODE)
 #define IsLeafNode(NODE)   TrNode_is_leaf(NODE)
 #define IsEscapeNode(NODE)  FALSE
 #define ESCAPE_NODE_SYMBOL    (long)0xFFFFFFF
@@ -95,10 +105,6 @@ typedef Functor Psc;
 #define IsTrieList(SYMBOL)  IsPairTerm(SYMBOL)
 
 #define xsb_abort(MSG, ...) Yap_Error(PURE_ABORT, TermNil, MSG, ##__VA_ARGS__)
-
-#define int_val(SYMBOL) IntOfTerm(SYMBOL)
-#define string_val(SYMBOL)  AtomName(AtomOfTerm(SYMBOL))
-#define DecodeTrieFunctor(SYMBOL) ((Functor) RepAppl(SYMBOL))
 
 #define SUBSUMPTION_YAP 1
 /* #define SUBSUMPTION_XSB 1 */
