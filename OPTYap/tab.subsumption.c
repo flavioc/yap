@@ -79,59 +79,8 @@ create_new_producer_subgoal(sg_node_ptr leaf_node, tab_ent_ptr tab_ent, yamop *c
   return (sg_fr_ptr)sg_fr;
 }
 
-static inline
-CPtr extract_template_from_lookup(CTXTdeclc CPtr ans_tmplt) {
-  int i;
-  
-  i = 0;
-  while(TrieVarBindings[i] != (Cell)(& TrieVarBindings[i])) {
-    *ans_tmplt-- = TrieVarBindings[i++];
-  }
-  *ans_tmplt = makeint(i);
-  return ans_tmplt;
-}
-
-static inline
-CPtr reconstruct_template_for_producer(CTXTdeclc TabledCallInfo *call_info, SubProdSF subsumer, CPtr ans_tmplt) {
-  int sizeAnsTmplt;
-  Cell subterm, symbol;
-  
-  /*
-   * Store the symbols along the path of the more general call.
-   */
-  SymbolStack_ResetTOS;
-  SymbolStack_PushPath(subg_leaf_ptr(subsumer));
-  
-  /*
-   * Push the arguments of the subsumed call.
-   */
-  TermStack_ResetTOS;
-  TermStack_PushLowToHighVector(CallInfo_arguments(call_info),
-    CallInfo_arity(call_info));
-    
-  /*
-   * Create the answer template while we process.  Since we know we have a
-   * more general subsuming call, we can greatly simplify the "matching"
-   * process: we know we either have exact matches of non-variable symbols
-   * or a variable paired with some subterm of the current call.
-   */
-  sizeAnsTmplt = 0;
-  while(!TermStack_IsEmpty) {
-    TermStack_Pop(subterm);
-    XSB_Deref(subterm);
-    SymbolStack_Pop(symbol);
-    if(IsTrieVar(symbol) && IsNewTrieVar(symbol)) {
-      *ans_tmplt-- = subterm;
-      sizeAnsTmplt++;
-    }
-    else if(IsTrieFunctor(symbol))
-      TermStack_PushFunctorArgs(subterm)
-    else if(IsTrieList(symbol))
-      TermStack_PushListArgs(subterm)
-  }
-  *ans_tmplt = makeint(sizeAnsTmplt);
-  return ans_tmplt;
-}
+/* answer template functions */
+#include "xsb.at.c"
 
 sg_fr_ptr subsumptive_call_search(yamop *code, CELL *answer_template, CELL **new_local_stack)
 {

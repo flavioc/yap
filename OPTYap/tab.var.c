@@ -26,16 +26,7 @@
 #include "tab.macros.h"
 #include "tab.tries.h"
 
-inline
-CELL* extract_template_from_insertion(CELL* ans_tmplt) {
-  int i;
-  
-  i = 0;
-  while(i < (int)Trail_NumBindings)
-    *ans_tmplt-- = (Cell)Trail_Base[i++];
-  *ans_tmplt = (CELL)i;
-  return ans_tmplt;
-}
+#include "xsb.at.c"
 
 static inline sg_fr_ptr
 get_subgoal_frame_from_node(sg_node_ptr leaf_node, tab_ent_ptr tab_ent, yamop *code)

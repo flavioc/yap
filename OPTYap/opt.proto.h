@@ -88,7 +88,6 @@ void show_global_trie(void);
 ** --------------- */
 
 #ifdef TABLING
-inline CELL* extract_template_from_insertion(CELL *ans_tmplt);
 sg_node_ptr variant_call_cont_insert(tab_ent_ptr tab_ent, sg_node_ptr current_node, int count_vars);
 sg_fr_ptr variant_call_search(yamop *code, CELL *local_stack, CELL **new_local_stack);
 ans_node_ptr variant_answer_search(sg_fr_ptr sg_fr, CELL *subs_ptr);

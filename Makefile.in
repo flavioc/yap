@@ -430,6 +430,7 @@ tab.tries.o: $(srcdir)/OPTYap/tab.tries.c \
 
 tab.subsumption.o: $(srcdir)/OPTYap/tab.subsumption.c \
 	$(srcdir)/OPTYap/xsb.lookup.c \
+	$(srcdir)/OPTYap/xsb.at.c \
 	$(srcdir)/OPTYap/tab.utils.h \
 	$(srcdir)/OPTYap/tab.utils.o \
 	$(srcdir)/OPTYap/tab.macros.h \

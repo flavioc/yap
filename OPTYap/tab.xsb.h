@@ -47,6 +47,8 @@ typedef sg_node_ptr BTNptr;
 #define BTN_Symbol(NODE)        TrNode_entry(NODE)
 #define BTN_Parent(NODE)        TrNode_parent(NODE)
 
+#define makeint(I)  (I)
+
 #ifdef TABLING_CALL_SUBSUMPTION
 
 typedef unsigned long int counter;
@@ -106,7 +108,6 @@ typedef Functor Psc;
 #define SUBSUMPTION_YAP 1
 /* #define SUBSUMPTION_XSB 1 */
 
-#define makeint(I)  (I)
 #define SubProdSF subprod_fr_ptr
 
 #define subg_leaf_ptr(X)  SgFr_leaf(X)
@@ -186,9 +187,6 @@ typedef Functor Psc;
 
 #define ALNptr ans_list_ptr
 #define TabledCallInfo yamop
-
-#define CallInfo_arguments(INFO) CALL_ARGUMENTS()
-#define CallInfo_arity(INFO) CODE_ARITY(INFO)
 
 #define isref IsVarTerm
 #define LOG_DEBUG 0 /* NOT USED */
