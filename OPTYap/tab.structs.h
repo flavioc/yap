@@ -426,7 +426,7 @@ typedef subsumptive_producer_sf *subprod_fr_ptr;
 #define SgFr_prod_consumers(X) ((X)->consumers)
 #define SgFr_prod_timestamp(X) TSTN_time_stamp((tst_node_ptr)SgFr_answer_trie(X))
 #define SgFr_subsumes_subgoals(X) \
-(SgFr_is_sub_producer(X) && SgFr_prod_consumers(X) != NULL)
+  (SgFr_is_sub_producer(X) && SgFr_prod_consumers(X) != NULL)
 
 struct subsumed_consumer_subgoal_frame {
   subgoal_frame_type type; /* subgoal frame type */

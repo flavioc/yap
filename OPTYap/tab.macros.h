@@ -505,8 +505,8 @@ static inline continuation_ptr
 continuation_next(continuation_ptr cont)
 {
   if(IS_BLOCK_TAG(cont))
-    return SgFr_first_answer((sg_fr_ptr)UNTAG_BLOCK_MASK(cont));
-  
+    return *(continuation_ptr*)UNTAG_BLOCK_MASK(cont);
+    
   return (continuation_ptr)block_get_next((void**)cont);
 }
 
@@ -514,7 +514,7 @@ static inline int
 continuation_has_next(continuation_ptr cont)
 {
   if(IS_BLOCK_TAG(cont))
-    return (int)SgFr_first_answer((sg_fr_ptr)UNTAG_BLOCK_MASK(cont));
+    return (int)*(continuation_ptr*)UNTAG_BLOCK_MASK(cont);
   
   return block_has_next(cont);
 }
@@ -545,7 +545,7 @@ join_answers_subgoal_frame(sg_fr_ptr sg_fr, continuation_ptr first, continuation
   }
 }
 
-#define CONSUMER_DEFAULT_LAST_ANSWER(SG_FR, DEP_FR) TAG_BLOCK_MASK(SG_FR)
+#define CONSUMER_DEFAULT_LAST_ANSWER(SG_FR, DEP_FR) TAG_BLOCK_MASK(&SgFr_first_answer(SG_FR))
                  
 #endif /* TABLING_ANSWER_LIST */
 
