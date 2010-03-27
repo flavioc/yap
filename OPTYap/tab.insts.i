@@ -533,7 +533,6 @@
       store_consumer_node(tab_ent, sg_fr, leader_cp, leader_dep_on_stack);
       
 #ifdef TABLING_CALL_SUBSUMPTION
-      /* XXX */
       if(SgFr_is_sub_consumer(sg_fr) && SgFr_state(sg_fr) < evaluating) 
         init_sub_consumer_subgoal_frame((subcons_fr_ptr)sg_fr);
 #endif /* TABLING_CALL_SUBSUMPTION */
@@ -712,7 +711,6 @@
       store_consumer_node(tab_ent, sg_fr, leader_cp, leader_dep_on_stack);
 
 #ifdef TABLING_CALL_SUBSUMPTION
-      /* XXX */
       if(SgFr_is_sub_consumer(sg_fr) && SgFr_state(sg_fr) < evaluating) 
         init_sub_consumer_subgoal_frame((subcons_fr_ptr)sg_fr);
 #endif /* TABLING_CALL_SUBSUMPTION */
@@ -893,7 +891,6 @@
       store_consumer_node(tab_ent, sg_fr, leader_cp, leader_dep_on_stack);
       
 #ifdef TABLING_CALL_SUBSUMPTION
-      /* XXX */
       if(SgFr_is_sub_consumer(sg_fr) && SgFr_state(sg_fr) < evaluating) 
         init_sub_consumer_subgoal_frame((subcons_fr_ptr)sg_fr);
 #endif /* TABLING_CALL_SUBSUMPTION */  
