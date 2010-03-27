@@ -410,12 +410,12 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
           LOCAL_top_sg_fr = SG_FR;                                 \
 	      }
 
-#define init_sub_consumer_subgoal_frame(SG_FR)  \
-        { SgFr_state(SG_FR) = evaluating; \
-          SgFr_cons_cp(SG_FR) = B;        \
-          SgFr_answer_template(SG_FR) = SgFr_cons_cp_at(SG_FR); \
-          SgFr_next(SG_FR) = LOCAL_top_cons_sg_fr; \
-          LOCAL_top_cons_sg_fr = SG_FR; \
+#define init_sub_consumer_subgoal_frame(SG_FR)                     \
+        { SgFr_state(SG_FR) = evaluating;                          \
+          SgFr_cons_cp(SG_FR) = B;                                 \
+          SgFr_answer_template(SG_FR) = SgFr_cons_cp_at(SG_FR);    \
+          SgFr_next(SG_FR) = LOCAL_top_cons_sg_fr;                 \
+          LOCAL_top_cons_sg_fr = SG_FR;                            \
         }
 
 #define SgFr_has_real_answers(SG_FR)                                      \
@@ -430,16 +430,16 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
 
 #ifdef TABLING_ANSWER_LIST
 
-#define continuation_next(X)   AnsList_next(X)
+#define continuation_next(X)      AnsList_next(X)
 #define continuation_has_next(X)  AnsList_next(X)
-#define continuation_answer(X) AnsList_answer(X)
+#define continuation_answer(X)    AnsList_answer(X)
 
 #define free_answer_continuation(CONT)  free_answer_list(CONT)
 
 #define push_new_answer_set(ANS, FIRST, LAST)       \
     { continuation_ptr new_list;                    \
       ALLOC_ANSWER_LIST(new_list);                  \
-      AnsList_answer(new_list) = ANS;               \
+      AnsList_answer(new_list) = (ans_node_ptr)ANS; \
       AnsList_next(new_list) = NULL;                \
       if((FIRST) == NULL)                           \
         FIRST = new_list;                           \
@@ -449,61 +449,60 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
     }
 
 #define join_answers_subgoal_frame(SG_FR, FIRST, LAST) {  \
-  if(SgFr_has_no_answers(SG_FR)) \
-    SgFr_first_answer(SG_FR) = FIRST; \
-  else  \
-    AnsList_next(SgFr_last_answer(SG_FR)) = FIRST;  \
-  SgFr_last_answer(SG_FR) = LAST; \
+  if(SgFr_has_no_answers(SG_FR))                          \
+    SgFr_first_answer(SG_FR) = FIRST;                     \
+  else                                                    \
+    AnsList_next(SgFr_last_answer(SG_FR)) = FIRST;        \
+  SgFr_last_answer(SG_FR) = LAST;                         \
 }
 
 #define CONSUMER_DEFAULT_LAST_ANSWER(SG_FR, DEP_FR)                   \
   ((unsigned long int) (SG_FR) +                                      \
-   (unsigned long int) (&SgFr_first_answer((sg_fr_ptr)(DEP_FR))) -   \
+   (unsigned long int) (&SgFr_first_answer((sg_fr_ptr)(DEP_FR))) -    \
    (unsigned long int) (&AnsList_next((ans_list_ptr)(DEP_FR))))
 
 #elif defined(TABLING_ANSWER_CHILD)
 
-#define continuation_has_next(X) TrNode_child(X)
-#define continuation_next(X)   TrNode_child(X)
-#define continuation_answer(X) (X)
+#define continuation_has_next(X)  TrNode_child(X)
+#define continuation_next(X)      TrNode_child(X)
+#define continuation_answer(X)    (X)
 
 #define push_new_answer_set(ANS, FIRST, LAST) { \
-  if((FIRST) == NULL) \
-    FIRST = ANS;  \
-  else  \
-    TrNode_child(LAST) = ANS; \
-  LAST = ANS; \
+  if((FIRST) == NULL)                           \
+    FIRST = ANS;                                \
+  else                                          \
+    TrNode_child(LAST) = ANS;                   \
+  LAST = ANS;                                   \
 }
 
 #define join_answers_subgoal_frame(SG_FR, FIRST, LAST) {  \
-  if(SgFr_has_no_answers(SG_FR))  \
-    SgFr_first_answer(SG_FR) = FIRST; \
-  else  \
-    TrNode_child(SgFr_last_answer(SG_FR)) = FIRST;  \
-  SgFr_last_answer(SG_FR) = LAST; \
+  if(SgFr_has_no_answers(SG_FR))                          \
+    SgFr_first_answer(SG_FR) = FIRST;                     \
+  else                                                    \
+    TrNode_child(SgFr_last_answer(SG_FR)) = FIRST;        \
+  SgFr_last_answer(SG_FR) = LAST;                         \
 }
 
 #define free_answer_continuation(CONT)
 
 #define CONSUMER_DEFAULT_LAST_ANSWER(SG_FR, DEP_FR)                   \
   ((unsigned long int) (SG_FR) +                                      \
-   (unsigned long int) (&SgFr_first_answer((sg_fr_ptr)(DEP_FR))) -   \
+   (unsigned long int) (&SgFr_first_answer((sg_fr_ptr)(DEP_FR))) -    \
    (unsigned long int) (&TrNode_child((ans_node_ptr)(DEP_FR))))
 
 #elif defined(TABLING_ANSWER_BLOCKS)
 
 #define ANSWER_BLOCK_SIZE 15
 
-#define free_answer_continuation(CONT) blocks_free(CONT, ANSWER_BLOCK_SIZE)
-#define continuation_answer(X) (*(X))
+#define free_answer_continuation(CONT)        blocks_free(CONT, ANSWER_BLOCK_SIZE)
+#define continuation_answer(X)                (*(X))
 #define push_new_answer_set(ANS, FIRST, LAST) block_push(ANS, FIRST, LAST, ANSWER_BLOCK_SIZE, continuation_ptr)
 
 static inline continuation_ptr
 continuation_next(continuation_ptr cont)
 {
-  if(IS_BLOCK_TAG(cont)) {
+  if(IS_BLOCK_TAG(cont))
     return SgFr_first_answer((sg_fr_ptr)UNTAG_BLOCK_MASK(cont));
-  }
   
   return (continuation_ptr)block_get_next((void**)cont);
 }
@@ -527,7 +526,8 @@ join_answers_subgoal_frame(sg_fr_ptr sg_fr, continuation_ptr first, continuation
     continuation_ptr ptr = first;
     
     while(TRUE) {
-      block_push(*ptr, SgFr_first_answer(sg_fr), SgFr_last_answer(sg_fr), ANSWER_BLOCK_SIZE, continuation_ptr);
+      block_push(*ptr, SgFr_first_answer(sg_fr),
+          SgFr_last_answer(sg_fr), ANSWER_BLOCK_SIZE, continuation_ptr);
       
       if(ptr == last)
         break;
@@ -1252,25 +1252,24 @@ build_next_subsumptive_consumer_return_list(subcons_fr_ptr consumer_sg, CELL *an
   dprintf("Answer template before collect: ");
   printAnswerTemplate(stdout, answer_template, size);
 #endif
+
+  SgFr_timestamp(consumer_sg) = producer_ts;
   
-  ans_list_ptr first, last;
   if(!tst_collect_relevant_answers((tst_node_ptr)SgFr_answer_trie(producer_sg),
-        consumer_ts, size, answer_template, &first, &last)) {
+        consumer_ts, size, answer_template, consumer_sg)) {
 #ifdef FDEBUG
   dprintf("failed to collect, Answer template after collect: ");
   printAnswerTemplate(stdout, answer_template, size);
 #endif
-    
-    SgFr_timestamp(consumer_sg) = producer_ts;
     return FALSE;
   }
-  
     
 #ifdef FDEBUG
   dprintf("Answer template after collect: ");
   printAnswerTemplate(stdout, answer_template, size);
 #endif
   
+#if 0
   if(!SgFr_first_answer(consumer_sg)) {
     /* first subsumptive answer found */
     SgFr_first_answer(consumer_sg) = first;
@@ -1279,7 +1278,7 @@ build_next_subsumptive_consumer_return_list(subcons_fr_ptr consumer_sg, CELL *an
     AnsList_next(SgFr_last_answer(consumer_sg)) = first;
   }
   SgFr_last_answer(consumer_sg) = last;
-  SgFr_timestamp(consumer_sg) = producer_ts;
+#endif
   
   return TRUE;
 }

@@ -79,14 +79,14 @@
 /* --------------------------------------------------------------------- **
 **       answer set organization scheme (mandatory, define one)          **
 ** --------------------------------------------------------------------- */
-/* #define TABLING_ANSWER_CHILD 1 */
+/* #define TABLING_ANSWER_CHILD 1*/
 /* #define TABLING_ANSWER_LIST 1 */
 #define TABLING_ANSWER_BLOCKS 1
 
 /* ----------------------------------------------------------------- **
 **      use call-subsumption method for tabled evaluation            **
 ** ----------------------------------------------------------------- */
-/* #define TABLING_CALL_SUBSUMPTION 1 */
+#define TABLING_CALL_SUBSUMPTION 1
 
 
 /* ---------------------------------------------------------------- **

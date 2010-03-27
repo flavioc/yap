@@ -841,13 +841,23 @@ Unify_with_Variable(CTXTdeclc Cell symbol, Cell subterm, TSTNptr node) {
  *  In the code, we push a CPF before doing any of this recording.
  *  However, the log info is, in fact, saved.  */
  
+#ifdef SUBSUMPTION_XSB
+ALNptr tst_collect_relevant_answers(CTXTdeclc TSTNptr tstRoot, TimeStamp ts,
+            int numTerms, CPtr termsRev)
+#else
 xsbBool tst_collect_relevant_answers(CTXTdeclc TSTNptr tstRoot, TimeStamp ts,
-				    int numTerms, CPtr termsRev, ALNptr *firstAnswer, ALNptr *lastAnswer)
+				    int numTerms, CPtr termsRev, subcons_fr_ptr sg_fr)
+#endif /* SUBSUMPTION_XSB */
 {
 	/* numTerms -- size of Answer Template */
 	/* termsRev -- Answer template (on heap) */
 	
+#ifdef SUBSUMPTION_YAP
   xsbBool any_answers = FALSE;
+  continuation_ptr first, last;
+#else
+ ALNptr tstAnswerList; /* for collecting leaves to be returned */
+#endif /* SUBSUMPTION_YAP */
   
 	TSTNptr cur_chain;     /* main ptr for stepping through siblings; under
 			    normal (non-hashed) circumstances, variable and
@@ -877,7 +887,11 @@ xsbBool tst_collect_relevant_answers(CTXTdeclc TSTNptr tstRoot, TimeStamp ts,
 	
 	parentTSTN = tstRoot;
 	cur_chain = TSTN_Child(tstRoot);
-  *firstAnswer = NULL;
+#ifdef SUBSUMPTION_XSB
+  tstAnswerList = NULL;
+#else
+  first = last = NULL;
+#endif /* SUBSUMPTION_XSB */
 	symbol = 0; /* suppress compiler warning */
 	
 	/* Major loop of the algorithm
@@ -1095,9 +1109,7 @@ While_TSnotEmpty:
 		 */
 		
 		if(CPStack_IsEmpty) {
-			Sys_Trail_Unwind(trail_base);
-			Restore_WAM_Registers;
-			return any_answers;
+      goto end_retrv;
 		}
 		TST_Backtrack;
 	} /* END while( ! TermStack_IsEmpty ) */
@@ -1122,19 +1134,36 @@ While_TSnotEmpty:
 		fprintf(stdwarn, "Attempting to continue...\n");
 	}
 	else {
-		ALN_InsertAnswer(*firstAnswer, parentTSTN);
-		if(!any_answers) {
-      *lastAnswer = *firstAnswer;
+#ifdef SUBSUMPTION_XSB
+    ALN_InsertAnswer(tstAnswerList, parentTSTN);
+#else
+	  if(!any_answers) {
       any_answers = TRUE;
-    }
+      first = SgFr_first_answer(sg_fr);
+      last = SgFr_last_answer(sg_fr);
+	  }
+    push_new_answer_set(parentTSTN, first, last);
+#endif /* SUBSUMPTION_XSB */
 	}
 	if(CPStack_IsEmpty) {
-		Sys_Trail_Unwind(trail_base);
-		Restore_WAM_Registers;
-		return any_answers;
+    goto end_retrv;
 	}
 	TST_Backtrack;
 	goto While_TSnotEmpty;
+end_retrv:
+#ifdef SUBSUMPTION_YAP
+  if(any_answers) {
+    SgFr_first_answer(sg_fr) = first;
+    SgFr_last_answer(sg_fr) = last;
+  }
+#endif /* SUBSUMPTION_YAP */
+  Sys_Trail_Unwind(trail_base);
+	Restore_WAM_Registers;
+#ifdef SUBSUMPTION_YAP
+	return any_answers;
+#else
+  return tstAnswerList;
+#endif /* SUBSUMPTION_YAP */
 }
 
 #endif /* TABLING_CALL_SUBSUMPTION */

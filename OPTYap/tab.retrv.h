@@ -42,7 +42,7 @@ struct tstCPStack_t {
 extern struct tstCPStack_t tstCPStack;
 
 xsbBool tst_collect_relevant_answers(CTXTdeclc TSTNptr tstRoot, TimeStamp ts,
-  int numTerms, CPtr termsRev, ALNptr *firstAnswer, ALNptr *lastAnswer);
+  int numTerms, CPtr termsRev, subcons_fr_ptr sg_fr);
 
 #endif /* TABLING_CALL_SUBSUMPTION */
 #endif
