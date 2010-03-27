@@ -377,29 +377,32 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
         }
         
 #define new_variant_subgoal_frame(SG_FR, CODE, LEAF)  { \
-        new_basic_subgoal_frame(SG_FR, CODE, LEAF, VARIANT_PRODUCER_SFT, ALLOC_VARIANT_SUBGOAL_FRAME);  \
-        add_answer_trie_subgoal_frame(SG_FR); \
+        new_basic_subgoal_frame(SG_FR, CODE, LEAF,                \
+          VARIANT_PRODUCER_SFT, ALLOC_VARIANT_SUBGOAL_FRAME);     \
+        add_answer_trie_subgoal_frame(SG_FR);                     \
     }
 
 #ifdef TABLING_CALL_SUBSUMPTION
 #define new_subsumptive_producer_subgoal_frame(SG_FR, CODE, LEAF) { \
-        new_basic_subgoal_frame(SG_FR, CODE, LEAF, SUBSUMPTIVE_PRODUCER_SFT, ALLOC_SUBPROD_SUBGOAL_FRAME);  \
-        SgFr_prod_consumers(SG_FR) = NULL;  \
-        SgFr_answer_trie(SG_FR) = newTSTAnswerSet();  \
+        new_basic_subgoal_frame(SG_FR, CODE, LEAF,                  \
+          SUBSUMPTIVE_PRODUCER_SFT, ALLOC_SUBPROD_SUBGOAL_FRAME);   \
+        SgFr_prod_consumers(SG_FR) = NULL;                          \
+        SgFr_answer_trie(SG_FR) = newTSTAnswerSet();                \
     }
     
 #define new_subsumed_consumer_subgoal_frame(SG_FR, CODE, LEAF, PRODUCER) {  \
-        new_basic_subgoal_frame(SG_FR, CODE, LEAF, SUBSUMED_CONSUMER_SFT, ALLOC_SUBCONS_SUBGOAL_FRAME);  \
-        add_answer_trie_subgoal_frame(SG_FR); \
-        SgFr_timestamp(SG_FR) = 0;  \
-        SgFr_cons_cp(SG_FR) = NULL; \
-        SgFr_answer_template(SG_FR) = NULL; \
-        SgFr_producer(SG_FR) = PRODUCER;  \
-        SgFr_consumers(SG_FR) = SgFr_prod_consumers(PRODUCER);  \
-        if (!SgFr_prod_consumers(PRODUCER))      \
-          tstCreateTSIs((tst_node_ptr)SgFr_answer_trie(PRODUCER));  \
-        SgFr_prod_consumers(PRODUCER) = (subcons_fr_ptr)(SG_FR);  \
-        SgFr_next(SG_FR) = NULL;  \
+        new_basic_subgoal_frame(SG_FR, CODE, LEAF,                          \
+            SUBSUMED_CONSUMER_SFT, ALLOC_SUBCONS_SUBGOAL_FRAME);            \
+        add_answer_trie_subgoal_frame(SG_FR);                               \
+        SgFr_timestamp(SG_FR) = 0;                                          \
+        SgFr_cons_cp(SG_FR) = NULL;                                         \
+        SgFr_answer_template(SG_FR) = NULL;                                 \
+        SgFr_producer(SG_FR) = PRODUCER;                                    \
+        SgFr_consumers(SG_FR) = SgFr_prod_consumers(PRODUCER);              \
+        if (!SgFr_prod_consumers(PRODUCER))                                 \
+          tstCreateTSIs((tst_node_ptr)SgFr_answer_trie(PRODUCER));          \
+        SgFr_prod_consumers(PRODUCER) = (subcons_fr_ptr)(SG_FR);            \
+        SgFr_next(SG_FR) = NULL;                                            \
     }
 #endif /* TABLING_CALL_SUBSUMPTION */
 
@@ -589,34 +592,36 @@ join_answers_subgoal_frame(sg_fr_ptr sg_fr, continuation_ptr first, continuation
 
 #define new_subgoal_trie_node(NODE, ENTRY, CHILD, PARENT, NEXT, TYPE)               \
         INCREMENT_GLOBAL_TRIE_REFS(ENTRY);                                          \
-        ALLOC_SUBGOAL_TRIE_NODE(NODE);                                            \
+        ALLOC_SUBGOAL_TRIE_NODE(NODE);                                              \
         init_subgoal_trie_node(NODE, ENTRY, CHILD, PARENT, NEXT, TYPE)
     
 #define new_long_subgoal_trie_node(NODE, LONG, CHILD, PARENT, NEXT, TYPE) \
-        { INCREMENT_GLOBAL_TRIE_REFS((Term)(LONG));                   \
-          long_sg_node_ptr long_node;                                 \
-          ALLOC_LONG_SUBGOAL_TRIE_NODE(long_node);                    \
-          NODE = (sg_node_ptr)long_node;                                           \
-          init_subgoal_trie_node(NODE, EncodedLongFunctor, CHILD, PARENT, NEXT, TYPE);  \
-          TrNode_long_int(long_node) = LONG;                          \
+        { INCREMENT_GLOBAL_TRIE_REFS((Term)(LONG));                       \
+          long_sg_node_ptr long_node;                                     \
+          ALLOC_LONG_SUBGOAL_TRIE_NODE(long_node);                        \
+          NODE = (sg_node_ptr)long_node;                                  \
+          init_subgoal_trie_node(NODE, EncodedLongFunctor, CHILD,         \
+              PARENT, NEXT, TYPE);                                        \
+          TrNode_long_int(long_node) = LONG;                              \
         }
         
 #define new_float_subgoal_trie_node(NODE, FLOAT, CHILD, PARENT, NEXT, TYPE) \
-        { INCREMENT_GLOBAL_TRIE_REFS((Term)(FLOAT));                    \
-          float_sg_node_ptr float_node;                                 \
-          ALLOC_FLOAT_SUBGOAL_TRIE_NODE(float_node);                    \
-          NODE = (sg_node_ptr)float_node;                               \
-          init_subgoal_trie_node(NODE, EncodedFloatFunctor, CHILD, PARENT, NEXT, TYPE); \
-          TrNode_float(float_node) = FLOAT;                               \
+        { INCREMENT_GLOBAL_TRIE_REFS((Term)(FLOAT));                        \
+          float_sg_node_ptr float_node;                                     \
+          ALLOC_FLOAT_SUBGOAL_TRIE_NODE(float_node);                        \
+          NODE = (sg_node_ptr)float_node;                                   \
+          init_subgoal_trie_node(NODE, EncodedFloatFunctor, CHILD,          \
+              PARENT, NEXT, TYPE);                                          \
+          TrNode_float(float_node) = FLOAT;                                 \
         }
         
 #define new_general_subgoal_trie_node(NODE, DATA, CHILD, PARENT, NEXT, TYPE)  \
         if(IS_FLOAT_FLAG(TYPE)) {                                             \
           Float flt = *(Float *)(DATA);                                       \
-          new_float_subgoal_trie_node(NODE, flt, CHILD, PARENT, NEXT, TYPE);   \
+          new_float_subgoal_trie_node(NODE, flt, CHILD, PARENT, NEXT, TYPE);  \
         } else if(IS_LONG_INT_FLAG(TYPE)) {                                   \
           Int li = *(Int *)(DATA);                                            \
-          new_long_subgoal_trie_node(NODE, li, CHILD, PARENT, NEXT, TYPE);   \
+          new_long_subgoal_trie_node(NODE, li, CHILD, PARENT, NEXT, TYPE);    \
         } else {                                                              \
           Term t = (Term)(DATA);                                              \
           new_subgoal_trie_node(NODE, t, CHILD, PARENT, NEXT, TYPE);          \
@@ -645,7 +650,8 @@ join_answers_subgoal_frame(sg_fr_ptr sg_fr, continuation_ptr first, continuation
 #define new_answer_trie_node(NODE, INSTR, ENTRY, CHILD, PARENT, NEXT)   \
         INCREMENT_GLOBAL_TRIE_REFS(ENTRY);                              \
         ALLOC_ANSWER_TRIE_NODE(NODE);                                   \
-        init_answer_trie_node(NODE, INSTR, ENTRY, CHILD, PARENT, NEXT, INTERIOR_NT)
+        init_answer_trie_node(NODE, INSTR, ENTRY, CHILD,                \
+            PARENT, NEXT, INTERIOR_NT)
 #define init_answer_trie_node(NODE, INSTR, ENTRY, CHILD, PARENT, NEXT, FLAGS)  \
         TrNode_instr(NODE) = INSTR;                                     \
         TrNode_entry(NODE) = ENTRY;                                     \
