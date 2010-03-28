@@ -933,21 +933,21 @@ xsbBool tst_collect_relevant_answers(CTXTdeclc TSTNptr tstRoot, TimeStamp ts,
        *  NOTE:  A Trie constant looks like a Prolog constant.
        */
       if ( IsHashHeader(cur_chain) ) {
-	symbol = EncodeTrieConstant(subterm);
-	SetMatchAndUnifyChains(symbol,cur_chain,alt_chain);
-	if ( cur_chain != alt_chain ) {
-	  SearchChain_ExactMatch(cur_chain,symbol,ts,alt_chain,
-				 TermStack_NOOP);
-	  cur_chain = alt_chain;
-	}
-	if ( IsNULL(cur_chain) )
-	  backtrack;
+	      symbol = EncodeTrieConstant(subterm);
+	      SetMatchAndUnifyChains(symbol,cur_chain,alt_chain);
+	      if ( cur_chain != alt_chain ) {
+	        SearchChain_ExactMatch(cur_chain,symbol,ts,alt_chain,
+				      TermStack_NOOP);
+	        cur_chain = alt_chain;
+	      }
+	      if ( IsNULL(cur_chain) )
+	        backtrack;
       }
       if ( IsHashedNode(cur_chain) )
-	SearchChain_UnifyWithConstant(cur_chain,subterm,ts,
+	      SearchChain_UnifyWithConstant(cur_chain,subterm,ts,
 				      TSTN_GetTSfromTSIN)
       else
-	SearchChain_UnifyWithConstant(cur_chain,subterm,ts,TSTN_TimeStamp)
+	      SearchChain_UnifyWithConstant(cur_chain,subterm,ts,TSTN_TimeStamp)
       break;
 
     /* SUBTERM IS A STRUCTURE
