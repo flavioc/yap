@@ -798,7 +798,7 @@ fix_rec(CELL val, CELL* placeholder)
   }
 }
 
-void
+int
 fix_answer_template(CELL *ans_tmplt)
 {
   int size = (int)*ans_tmplt++;
@@ -817,10 +817,9 @@ fix_answer_template(CELL *ans_tmplt)
     *H++ = term;
   }
   
-  /* put total */
-  *H++ = MkIntegerTerm(size);
-  
   Trail_Unwind_All;
+
+  return size;
 }
 
 #endif /* TABLING_CALL_SUBSUMPTION */

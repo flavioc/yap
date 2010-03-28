@@ -339,7 +339,7 @@ void printSubgoalTriePath(CTXTdeclc FILE *fp, sg_node_ptr pLeaf, tab_ent_ptr tab
 
 CellTag TrieSymbolType(Term t);
 xsbBool are_identical_terms(Cell term1, Cell term2);
-void fix_answer_template(CELL *ans_tmplt);
+int fix_answer_template(CELL *ans_tmplt);
 void printSubsumptiveAnswer(FILE *fp, CELL* vars);
 CELL* construct_subgoal_heap(BTNptr pLeaf, CPtr* var_pointer, int arity);
 CPtr reconstruct_template_for_producer_no_args(SubProdSF subsumer, CELL* ans_tmplt);

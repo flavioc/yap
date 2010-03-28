@@ -449,6 +449,7 @@ struct subsumed_consumer_subgoal_frame {
   subprod_fr_ptr producer;
   choiceptr cons_cp;
   CELL* answer_template;
+  int at_size;
   subsumptive_consumer_sf *consumers; /* Chain link for properly subsumed subgoals */
 };
 
@@ -460,6 +461,7 @@ typedef subsumptive_consumer_sf *subcons_fr_ptr;
 #define SgFr_cons_cp(X)         ((X)->cons_cp)
 #define SgFr_cons_cp_at(X)      (SgFr_cons_cp(X)->cp_h - 1)
 #define SgFr_answer_template(X) ((X)->answer_template)
+#define SgFr_at_size(X)         ((X)->at_size)
 
 #endif /* TABLING_CALL_SUBSUMPTION */
 

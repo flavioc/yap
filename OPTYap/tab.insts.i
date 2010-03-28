@@ -601,7 +601,7 @@
   	    /* consumer */
   	    if(TabEnt_is_load(tab_ent)) {
   	      if(SgFr_state(sg_fr) < complete) {
-  	        build_next_subsumptive_consumer_return_list((subcons_fr_ptr)sg_fr, H - 1);
+  	        build_next_subsumptive_consumer_return_list((subcons_fr_ptr)sg_fr);
             SgFr_state(sg_fr) = complete;
   	      }
   	      
@@ -780,7 +780,7 @@
   	    /* consumer */
   	    if(TabEnt_is_load(tab_ent)) {
   	      if(SgFr_state(sg_fr) < complete) {
-  	        build_next_subsumptive_consumer_return_list((subcons_fr_ptr)sg_fr, H - 1);
+  	        build_next_subsumptive_consumer_return_list((subcons_fr_ptr)sg_fr);
             SgFr_state(sg_fr) = complete;
   	      }
 
@@ -960,7 +960,7 @@
   	    /* consumer */
   	    if(TabEnt_is_load(tab_ent)) {
   	      if(SgFr_state(sg_fr) < complete) {
-  	        build_next_subsumptive_consumer_return_list((subcons_fr_ptr)sg_fr, H - 1);
+  	        build_next_subsumptive_consumer_return_list((subcons_fr_ptr)sg_fr);
             SgFr_state(sg_fr) = complete;
   	      }
 
