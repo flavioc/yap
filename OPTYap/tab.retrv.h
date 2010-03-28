@@ -24,7 +24,6 @@
 #include "tab.tst.h"
 
 typedef struct {
-	TSTNptr alt_node; /* sibling of the TSTN whose child ptr we took */
 	int ts_top_index; /* current top-of-tstTermStack at CP creation */
 	int log_top_index; /* current top-of-tstTermStackLog at CP creation */
 	tr_fr_ptr trail_top; /* current top-of-trail at CP creation */

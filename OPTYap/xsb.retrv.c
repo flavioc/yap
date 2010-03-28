@@ -132,7 +132,6 @@ static struct tstCPStack_t tstCPStack;
 
 /* Use these to access the frame to which `top' points */
 #define Cast_Frame(X) ((tstChoicePointFrame*)(X))
-#define tstCPF_AlternateNode    (Cast_Frame(tstCPStack.top)->alt_node)
 #define tstCPF_TermStackTopIndex     (Cast_Frame(tstCPStack.top)->ts_top_index)
 #define tstCPF_TSLogTopIndex         (Cast_Frame(tstCPStack.top)->log_top_index)
 #define tstCPF_TrailTop         (Cast_Frame(tstCPStack.top)->trail_top)
@@ -149,13 +148,16 @@ void initCollectRelevantAnswers(CTXTdecl) {
 #define CPStack_PushFrame(AlternateTSTN)				\
    if ( IsNonNULL(AlternateTSTN) ) {					\
      CPStack_OverflowCheck						\
-     tstCPF_AlternateNode = AlternateTSTN;				\
      tstCPF_TermStackTopIndex = TermStack_Top - TermStack_Base + 1;	\
      tstCPF_TSLogTopIndex = TermStackLog_Top - TermStackLog_Base;	\
      tstCPF_TrailTop = trreg;						\
      tstCPF_HBreg = hbreg;						\
      hbreg = hreg;							\
      tstCPStack.top += SIZEOF_CHOICE_POINT_FRAME;							\
+     *(TSTNptr*)tstCPStack.top = AlternateTSTN;                \
+     tstCPStack.top++;              \
+     *tstCPStack.top = 1;                                      \
+     tstCPStack.top++;                              \
    }
 
 #define CPStack_Pop     tstCPStack.top -= SIZEOF_CHOICE_POINT_FRAME
@@ -163,13 +165,19 @@ void initCollectRelevantAnswers(CTXTdecl) {
 /*
  *  Backtracking to a previous juncture in the trie.
  */
-#define TST_Backtrack				\
-   CPStack_Pop;					\
-   ResetParentAndCurrentNodes;			\
-   RestoreTermStack;				\
-   Sys_Trail_Unwind(tstCPF_TrailTop);		\
+#define TST_Backtrack		{		\
+   int total = *(tstCPStack.top-1); \
+   TSTNptr alternative = *(TSTNptr*)(tstCPStack.top-2); \
+   int *framePos = tstCPStack.top - (1 + total + SIZEOF_CHOICE_POINT_FRAME); \
+   ResetParentAndCurrentNodes(alternative);			\
+   tstChoicePointFrame *frame = (tstChoicePointFrame*)framePos; \
+   RestoreTermStack(frame);				\
+   Sys_Trail_Unwind(frame->trail_top);		\
    mode = BACKTRACK_MODE;               \
-   ResetHeap_fromCPF
+   ResetHeap_fromCPF(frame);               \
+   if(total == 1) \
+    tstCPStack.top = framePos; \
+ }
 
 /*
  *  For continuing with forward execution.  When we match, we continue
@@ -187,19 +195,19 @@ void initCollectRelevantAnswers(CTXTdecl) {
  * leaf is reached and we step (too far) down into the trie, but that's
  * when its value is set.
  */
-#define ResetParentAndCurrentNodes		\
-   cur_chain = tstCPF_AlternateNode;		\
+#define ResetParentAndCurrentNodes(Node)		\
+   cur_chain = Node;		\
    parentTSTN = TSTN_Parent(cur_chain)
 
 
-#define RestoreTermStack			\
-   TermStackLog_Unwind(tstCPF_TSLogTopIndex);	\
-   TermStack_SetTOS(tstCPF_TermStackTopIndex)
+#define RestoreTermStack(Frame)			\
+   TermStackLog_Unwind(Frame->log_top_index);	\
+   TermStack_SetTOS(Frame->ts_top_index)
 
 
-#define ResetHeap_fromCPF			\
+#define ResetHeap_fromCPF(Frame)			\
    hreg = hbreg;				\
-   hbreg = tstCPF_HBreg
+   hbreg = Frame->heap_bktrk
 
 
 #define CPStack_OverflowCheck						\
@@ -1148,7 +1156,7 @@ xsbBool tst_collect_relevant_answers(CTXTdeclc TSTNptr tstRoot, TimeStamp ts,
     if ( CPStack_IsEmpty ) {
       goto end_retrv;
     }
-    TST_Backtrack;
+    TST_Backtrack
 
   } /* END while( ! TermStack_IsEmpty ) */
 
@@ -1187,7 +1195,7 @@ xsbBool tst_collect_relevant_answers(CTXTdeclc TSTNptr tstRoot, TimeStamp ts,
   if ( CPStack_IsEmpty ) {
     goto end_retrv;
   }
-  TST_Backtrack;
+  TST_Backtrack
   goto While_TSnotEmpty;
 end_retrv:
 #ifdef SUBSUMPTION_YAP
