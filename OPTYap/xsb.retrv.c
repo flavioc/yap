@@ -479,14 +479,12 @@ static void tstCollectionError(CTXTdeclc char *string, xsbBool cleanup_needed) {
  */
 #define SearchChain_UnifyWithFloat(Chain,Subterm,TS,Get_TS_Op) { \
   Float flt = FloatOfTerm(Subterm);            \
-  dprintf("Unify with float %lf\n", flt);  \
   Chain_NextValidTSTN(Chain,TS,Get_TS_Op);  \
   while(IsNonNULL(Chain)) { \
     alt_chain = TSTN_Sibling(Chain);  \
     Chain_NextValidTSTN(alt_chain,TS,Get_TS_Op);  \
     symbol = TSTN_Symbol(Chain);  \
     TrieSymbol_Deref(symbol); \
-    dprintf("Search one float\n"); \
     if(isref(symbol)) { \
       /*                              \
        * Either an unbound TrieVar or some unbound prolog var.  \
@@ -507,7 +505,6 @@ static void tstCollectionError(CTXTdeclc char *string, xsbBool cleanup_needed) {
       } \
         \
       if(go) {  \
-        dprintf("Float ok\n");      \
         CPStack_PushFrame(alt_chain);         \
         TermStackLog_PushFrame; \
         Descend_Into_TST_and_Continue_Search; \
