@@ -1,6 +1,10 @@
 /*  Data Structures and Related Macros
     ==================================  */
 
+typedef enum {
+  DESCEND_MODE, BACKTRACK_MODE
+} SearchMode;
+    
 /*
  *  Trailing
  *  --------
@@ -127,11 +131,12 @@ static struct tstCPStack_t tstCPStack;
 #endif
 
 /* Use these to access the frame to which `top' points */
-#define tstCPF_AlternateNode    ((tstCPStack.top)->alt_node)
-#define tstCPF_TermStackTopIndex     ((tstCPStack.top)->ts_top_index)
-#define tstCPF_TSLogTopIndex         ((tstCPStack.top)->log_top_index)
-#define tstCPF_TrailTop         ((tstCPStack.top)->trail_top)
-#define tstCPF_HBreg            ((tstCPStack.top)->heap_bktrk)
+#define Cast_Frame(X) ((tstChoicePointFrame*)(X))
+#define tstCPF_AlternateNode    (Cast_Frame(tstCPStack.top)->alt_node)
+#define tstCPF_TermStackTopIndex     (Cast_Frame(tstCPStack.top)->ts_top_index)
+#define tstCPF_TSLogTopIndex         (Cast_Frame(tstCPStack.top)->log_top_index)
+#define tstCPF_TrailTop         (Cast_Frame(tstCPStack.top)->trail_top)
+#define tstCPF_HBreg            (Cast_Frame(tstCPStack.top)->heap_bktrk)
 
 #define CPStack_IsEmpty    (tstCPStack.top == tstCPStack.base)
 #define CPStack_IsFull     (tstCPStack.top == tstCPStack.ceiling)
@@ -150,10 +155,10 @@ void initCollectRelevantAnswers(CTXTdecl) {
      tstCPF_TrailTop = trreg;						\
      tstCPF_HBreg = hbreg;						\
      hbreg = hreg;							\
-     tstCPStack.top++;							\
+     tstCPStack.top += SIZEOF_CHOICE_POINT_FRAME;							\
    }
 
-#define CPStack_Pop     tstCPStack.top--
+#define CPStack_Pop     tstCPStack.top -= SIZEOF_CHOICE_POINT_FRAME
 
 /*
  *  Backtracking to a previous juncture in the trie.
@@ -163,6 +168,7 @@ void initCollectRelevantAnswers(CTXTdecl) {
    ResetParentAndCurrentNodes;			\
    RestoreTermStack;				\
    Sys_Trail_Unwind(tstCPF_TrailTop);		\
+   mode = BACKTRACK_MODE;               \
    ResetHeap_fromCPF
 
 /*
@@ -173,6 +179,7 @@ void initCollectRelevantAnswers(CTXTdecl) {
 #define Descend_Into_TST_and_Continue_Search	\
    parentTSTN = cur_chain;			\
    cur_chain = TSTN_Child(cur_chain);		\
+   mode = DESCEND_MODE;                 \
    goto While_TSnotEmpty
 
 /*
@@ -885,7 +892,7 @@ xsbBool tst_collect_relevant_answers(CTXTdeclc TSTNptr tstRoot, TimeStamp ts,
 
   Cell subterm;          /* the part of the term we are inspecting */
   Cell symbol;
-
+  SearchMode mode;
 
 
   /* Check that a term was passed in
@@ -902,6 +909,7 @@ xsbBool tst_collect_relevant_answers(CTXTdeclc TSTNptr tstRoot, TimeStamp ts,
   tstCPStack.top = tstCPStack.base;
   trail_base = top_of_trail;
   Save_and_Set_WAM_Registers;
+  mode = DESCEND_MODE;
 
   parentTSTN = tstRoot;
   cur_chain = TSTN_Child(tstRoot);

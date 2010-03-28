@@ -32,11 +32,12 @@ typedef struct {
 } tstChoicePointFrame;
 
 #define TST_CPSTACK_SIZE 1024
+#define SIZEOF_CHOICE_POINT_FRAME sizeof(tstChoicePointFrame)
 
 struct tstCPStack_t {
-	tstChoicePointFrame *top; /* next available location to place an entry */
-	tstChoicePointFrame *ceiling; /* overflow pointer: points beyond array end */
-	tstChoicePointFrame base[TST_CPSTACK_SIZE];
+	int *top; /* next available location to place an entry */
+	int *ceiling; /* overflow pointer: points beyond array end */
+	int base[TST_CPSTACK_SIZE * SIZEOF_CHOICE_POINT_FRAME];
 };
 
 void initCollectRelevantAnswers(CTXTdecl);
