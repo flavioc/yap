@@ -2309,7 +2309,7 @@ mark_answer_templates(subcons_fr_ptr sg_fr)
   while (sg_fr) {
     at = SgFr_answer_template(sg_fr);
     size = SgFr_at_size(sg_fr);
-    for(; size > 0; --size, --at)
+    for(; size > 0; --size, ++at)
       mark_variable(at);
     sg_fr = SgFr_next(sg_fr);
   }

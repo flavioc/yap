@@ -707,23 +707,11 @@ fix_functor(Term t, CELL* placeholder)
   Functor f = FunctorOfTerm(t);
   
   if(f == FunctorDouble) {
-    if(placeholder)
-      *placeholder = MkFloatTerm(FloatOfTerm(t));
-    else {
-      TermStack_Push(MkFloatTerm(FloatOfTerm(t)));
-    }
+    *placeholder = MkFloatTerm(FloatOfTerm(t));
   } else if(f == FunctorLongInt) {
-    if(placeholder)
-      *placeholder = MkLongIntTerm(LongIntOfTerm(t));
-    else {
-      TermStack_Push(MkLongIntTerm(LongIntOfTerm(t)));
-    }
+    *placeholder = MkLongIntTerm(LongIntOfTerm(t));
   } else {
-    if(placeholder)
-      *placeholder = AbsAppl(H);
-    else {
-      TermStack_Push(AbsAppl(H));
-    }
+    *placeholder = AbsAppl(H);
     *H++ = (CELL)f;
   
     CELL *arguments = H;
@@ -739,11 +727,7 @@ fix_functor(Term t, CELL* placeholder)
 static inline void
 fix_list(Term t, CELL* placeholder)
 {
-  if(placeholder)
-    *placeholder = AbsPair(H);
-  else {
-    TermStack_Push(AbsPair(H));
-  }
+  *placeholder = AbsPair(H);
   
   CELL* arguments = H;
   
@@ -757,37 +741,21 @@ static inline void
 fix_rec(CELL val, CELL* placeholder)
 {
   if(IsAtomOrIntTerm(val)) {
-    if(placeholder)
-      *placeholder = val;
-    else {
-      TermStack_Push(val);
-    }
+    *placeholder = val;
   } else if(IsVarTerm(val)) {
     if(IsStandardizedVariable(val)) {
       dprintf("Old variable\n");
       val = TrieVarBindings[IndexOfStdVar(val)];
-      if(placeholder)
-        *placeholder = val;
-      else {
-        TermStack_Push(val);
-      }
+      *placeholder = val;
     } else {
       dprintf("New variable\n");
       Trail_Push(val);
       StandardizeVariable(val, variable_counter);
       Trail_Push(&TrieVarBindings[variable_counter]);
-      if(placeholder) {
-        *placeholder = (CELL)placeholder;
-        TrieVarBindings[variable_counter] = (CELL)placeholder;
-      } else {
-        *H = (CELL)H;
-        TrieVarBindings[variable_counter] = (CELL)H;
-        TermStack_Push((CELL)H);
-        ++H;
-      }
+      *placeholder = (CELL)placeholder;
+      TrieVarBindings[variable_counter] = (CELL)placeholder;
       ++variable_counter;
     }
-    
     
   } else if(IsApplTerm(val)) {
     fix_functor(val, placeholder);
@@ -803,19 +771,14 @@ fix_answer_template(CELL *ans_tmplt)
 {
   int size = (int)*ans_tmplt++;
   int i;
+  CELL *arguments = H;
   
   Trail_ResetTOS;
-  TermStack_ResetTOS;
   variable_counter = 0;
   
-  for(i = size - 1; i >= 0; --i)
-    fix_rec(Deref(*(ans_tmplt + i)), NULL);
-    
-  CELL term;
-  while(!TermStack_IsEmpty) {
-    TermStack_Pop(term);
-    *H++ = term;
-  }
+  H += size;
+  for(i = 0; i < size; ++i)
+    fix_rec(Deref(*(ans_tmplt + i)), arguments + i);
   
   Trail_Unwind_All;
 

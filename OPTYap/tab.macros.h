@@ -1261,7 +1261,7 @@ build_next_subsumptive_consumer_return_list(subcons_fr_ptr consumer_sg) {
   SgFr_timestamp(consumer_sg) = producer_ts;
   
   if(!tst_collect_relevant_answers((tst_node_ptr)SgFr_answer_trie(producer_sg),
-        consumer_ts, size, answer_template, consumer_sg)) {
+        consumer_ts, size, answer_template + size - 1, consumer_sg)) {
 #ifdef FDEBUG
   dprintf("failed to collect, Answer template after collect: ");
   printAnswerTemplate(stdout, answer_template, size);

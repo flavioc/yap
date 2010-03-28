@@ -1243,7 +1243,7 @@ fix_tabling_info(void)
   cons = LOCAL_top_cons_sg_fr;
   while (cons) {
     SgFr_cons_cp(cons) = ConsumerChoicePtrAdjust(SgFr_cons_cp(cons));
-    SgFr_answer_template(cons) = SgFr_cons_cp_at(cons);
+    SgFr_answer_template(cons) = SgFr_cons_cp(cons)->cp_h - SgFr_at_len(cons);
     cons = SgFr_next(cons);
   }
 #endif /* TABLING_CALL_SUBSUMPTION */
