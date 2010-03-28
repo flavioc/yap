@@ -61,7 +61,7 @@ STD_PROTO(static inline void abolish_incomplete_producer_subgoal, (sg_fr_ptr sg_
 STD_PROTO(static inline void abolish_incomplete_subgoals, (choiceptr));
 
 #ifdef TABLING_CALL_SUBSUMPTION
-STD_PROTO(static inline int build_next_subsumptive_consumer_return_list, (subcons_fr_ptr, CELL*));
+STD_PROTO(static inline int build_next_subsumptive_consumer_return_list, (subcons_fr_ptr));
 #endif /* TABLING_CALL_SUBSUMPTION */
 STD_PROTO(static inline continuation_ptr get_next_answer_continuation, (dep_fr_ptr dep_fr));
 STD_PROTO(static inline int is_new_generator_call, (sg_fr_ptr));
@@ -1229,7 +1229,7 @@ void free_tst_hash_index(tst_ans_hash_ptr hash) {
 }
 
 static inline int
-build_next_subsumptive_consumer_return_list(subcons_fr_ptr consumer_sg, CELL *answer_template) {
+build_next_subsumptive_consumer_return_list(subcons_fr_ptr consumer_sg) {
   subprod_fr_ptr producer_sg = SgFr_producer(consumer_sg);
   const int producer_ts = SgFr_prod_timestamp(producer_sg);
   const int consumer_ts = SgFr_timestamp(consumer_sg);
@@ -1240,6 +1240,7 @@ build_next_subsumptive_consumer_return_list(subcons_fr_ptr consumer_sg, CELL *an
   //dprintf("Producer ts %d consumer ts %d\n", producer_ts, consumer_ts);
   dprintf("build_next\n");
   int size = SgFr_at_size(consumer_sg);
+  CELL *answer_template = SgFr_answer_template(consumer_sg);
   /* skip size */
   // --answer_template;
 
@@ -1323,7 +1324,7 @@ get_next_answer_continuation(dep_fr_ptr dep_fr) {
            *     are available and no continuation is returned
            */
           subcons_fr_ptr consumer_sg = (subcons_fr_ptr)sg_fr;
-          if(build_next_subsumptive_consumer_return_list(consumer_sg, SgFr_answer_template(consumer_sg)))
+          if(build_next_subsumptive_consumer_return_list(consumer_sg))
             return continuation_next(last_cont);
           else
             return NULL;
