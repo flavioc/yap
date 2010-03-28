@@ -103,7 +103,7 @@ typedef Functor Psc;
 #define IsTrieFunctor(SYMBOL) (cell_tag(SYMBOL) == TAG_STRUCT)
 #define IsTrieList(SYMBOL)  IsPairTerm(SYMBOL)
 
-#define xsb_abort(MSG, ...) Yap_Error(PURE_ABORT, TermNil, MSG, ##__VA_ARGS__)
+#define xsb_abort(MSG, ...) Yap_Error(FATAL_ERROR, TermNil, MSG, ##__VA_ARGS__)
 
 #define SUBSUMPTION_YAP 1
 /* #define SUBSUMPTION_XSB 1 */

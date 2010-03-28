@@ -35,6 +35,8 @@ DynamicStack tstSymbolStack; /* symbol stack for subsumption */
 #include "tab.retrv.h"
 Cell TrieVarBindings[MAX_TABLE_VARS];
 int AnsVarCtr;
+CELL at_stack[ANSWER_TEMPLATE_STACK_SIZE];
+CELL* AT = at_stack;
 #endif
 #endif /* TABLING */
 #if defined(TABLING) || !defined(ACOW)

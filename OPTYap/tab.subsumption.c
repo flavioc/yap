@@ -142,7 +142,8 @@ sg_fr_ptr subsumptive_call_search(yamop *code, CELL *answer_template, CELL **new
             btn = variant_call_cont_insert(tab_ent, (sg_node_ptr)stl_restore_variant_cont(), variant_cont.bindings.num);
             Trail_Unwind_All;
             sg_fr = create_new_consumer_subgoal(btn, subsumer, tab_ent, code);
-            fix_answer_template(*new_local_stack);
+            SgFr_at_size((subcons_fr_ptr)sg_fr) = fix_answer_template(*new_local_stack);
+            SgFr_answer_template((subcons_fr_ptr)sg_fr) = AT-1;
         } else
           sg_fr = (sg_fr_ptr)subsumer;
         break;

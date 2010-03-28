@@ -1242,7 +1242,6 @@ fix_tabling_info(void)
       
       while(cons) {
         SgFr_cons_cp(cons) = ConsumerChoicePtrAdjust(SgFr_cons_cp(cons));
-        SgFr_answer_template(cons) = SgFr_cons_cp_at(cons);
         cons = SgFr_consumers(cons);
       }
     }

@@ -43,9 +43,6 @@ STATIC_PROTO(void mark_regs, (tr_fr_ptr));
 STATIC_PROTO(void mark_trail, (tr_fr_ptr, tr_fr_ptr, CELL *, choiceptr));
 STATIC_PROTO(void mark_environments, (CELL *, OPREG, CELL *));
 STATIC_PROTO(void mark_choicepoints, (choiceptr, tr_fr_ptr, int));
-#ifdef TABLING_CALL_SUBSUMPTION
-STATIC_PROTO(void mark_answer_templates, (sg_fr_ptr));
-#endif
 STATIC_PROTO(void into_relocation_chain, (CELL *, CELL *));
 STATIC_PROTO(void sweep_trail, (choiceptr, tr_fr_ptr));
 STATIC_PROTO(void sweep_environments, (CELL *, OPREG, CELL *));
@@ -2299,36 +2296,6 @@ mark_choicepoints(register choiceptr gc_B, tr_fr_ptr saved_TR, int very_verbose)
   }
 }
 
-#ifdef TABLING_CALL_SUBSUMPTION
-static void
-mark_answer_templates(sg_fr_ptr sg_fr)
-{
-  subprod_fr_ptr prod;
-  subcons_fr_ptr cons;
-  int size;
-  CELL *at;
-
-  while(sg_fr) {
-    if(SgFr_is_sub_producer(sg_fr)) {
-      prod = (subprod_fr_ptr)sg_fr;
-      cons = SgFr_prod_consumers(prod);
-
-      while(cons) {
-        at = SgFr_answer_template(cons);
-        size = IntOfTerm(*at);
-        for(; size >= 0; --size, --at)
-          mark_variable(at);
-
-        cons = SgFr_consumers(cons);
-      }
-    }
-
-    sg_fr = SgFr_next(sg_fr);
-  }
-}
-#endif /* TABLING_CALL_SUBSUMPTION */
-
-
 /*
  * insert a cell which points to a heap object into relocation chain of that
  * object 
@@ -3645,9 +3612,6 @@ marking_phase(tr_fr_ptr old_TR, CELL *current_env, yamop *curp)
   mark_regs(old_TR);		/* active registers & trail */
   /* active environments */
   mark_environments(current_env, EnvSize(curp), EnvBMap(curp));
-#ifdef TABLING_CALL_SUBSUMPTION
-  mark_answer_templates(LOCAL_top_sg_fr);
-#endif
   mark_choicepoints(B, old_TR, is_gc_very_verbose());	/* choicepoints, and environs  */
 #ifdef EASY_SHUNTING
   set_conditionals(sTR);

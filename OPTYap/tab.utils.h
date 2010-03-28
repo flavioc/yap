@@ -339,7 +339,7 @@ void printSubgoalTriePath(CTXTdeclc FILE *fp, sg_node_ptr pLeaf, tab_ent_ptr tab
 
 CellTag TrieSymbolType(Term t);
 xsbBool are_identical_terms(Cell term1, Cell term2);
-void fix_answer_template(CELL *ans_tmplt);
+int fix_answer_template(CELL *ans_tmplt);
 void printSubsumptiveAnswer(FILE *fp, CELL* vars);
 CELL* construct_subgoal_heap(BTNptr pLeaf, CPtr* var_pointer, int arity);
 CPtr reconstruct_template_for_producer_no_args(SubProdSF subsumer, CELL* ans_tmplt);
@@ -462,6 +462,12 @@ extern int AnsVarCtr;
 typedef enum Trie_Path_Type {
  NO_PATH, VARIANT_PATH, SUBSUMPTIVE_PATH
 } TriePathType;
+
+#define ANSWER_TEMPLATE_STACK_SIZE (4 * 1000000)
+extern CELL at_stack[ANSWER_TEMPLATE_STACK_SIZE];
+extern CELL* AT;
+
+#define IsAnswerTemplateVar(VAR) ((CPtr)(VAR) >= at_stack && ((CPtr)(VAR) <= (at_stack + ANSWER_TEMPLATE_STACK_SIZE)))
 
 #endif /* TABLING_CALL_SUBSUMPTION */
 

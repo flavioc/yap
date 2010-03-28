@@ -720,16 +720,16 @@ fix_functor(Term t, CELL* placeholder)
     }
   } else {
     if(placeholder)
-      *placeholder = AbsAppl(H);
+      *placeholder = AbsAppl(AT);
     else {
-      TermStack_Push(AbsAppl(H));
+      TermStack_Push(AbsAppl(AT));
     }
-    *H++ = (CELL)f;
+    *AT++ = (CELL)f;
   
-    CELL *arguments = H;
+    CELL *arguments = AT;
     int i, arity = ArityOfFunctor(f);
      
-    H += arity;
+    AT += arity;
 
     for(i = 1; i <= arity; ++i)
       fix_rec(Deref(*(RepAppl(t) + i)), arguments + i - 1);
@@ -740,14 +740,14 @@ static inline void
 fix_list(Term t, CELL* placeholder)
 {
   if(placeholder)
-    *placeholder = AbsPair(H);
+    *placeholder = AbsPair(AT);
   else {
-    TermStack_Push(AbsPair(H));
+    TermStack_Push(AbsPair(AT));
   }
   
-  CELL* arguments = H;
+  CELL* arguments = AT;
   
-  H += 2;
+  AT += 2;
   
   fix_rec(Deref(*(RepPair(t))), arguments);
   fix_rec(Deref(*(RepPair(t) + 1)), arguments + 1);
@@ -780,10 +780,10 @@ fix_rec(CELL val, CELL* placeholder)
         *placeholder = (CELL)placeholder;
         TrieVarBindings[variable_counter] = (CELL)placeholder;
       } else {
-        *H = (CELL)H;
-        TrieVarBindings[variable_counter] = (CELL)H;
-        TermStack_Push((CELL)H);
-        ++H;
+        *AT = (CELL)AT;
+        TrieVarBindings[variable_counter] = (CELL)AT;
+        TermStack_Push((CELL)AT);
+        ++AT;
       }
       ++variable_counter;
     }
@@ -798,11 +798,14 @@ fix_rec(CELL val, CELL* placeholder)
   }
 }
 
-void
+static int total_ats = 0;
+
+int
 fix_answer_template(CELL *ans_tmplt)
 {
   int size = (int)*ans_tmplt++;
   int i;
+  CELL* start_at = AT;
   
   Trail_ResetTOS;
   TermStack_ResetTOS;
@@ -814,13 +817,15 @@ fix_answer_template(CELL *ans_tmplt)
   CELL term;
   while(!TermStack_IsEmpty) {
     TermStack_Pop(term);
-    *H++ = term;
+    *AT++ = term;
   }
   
-  /* put total */
-  *H++ = MkIntegerTerm(size);
+  total_ats += AT - start_at;
+  //printf("total_ats %d. start_at %x at %x\n", total_ats, start_at, AT);
   
   Trail_Unwind_All;
+  
+  return size;
 }
 
 #endif /* TABLING_CALL_SUBSUMPTION */

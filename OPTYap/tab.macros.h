@@ -395,9 +395,9 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
             SUBSUMED_CONSUMER_SFT, ALLOC_SUBCONS_SUBGOAL_FRAME);            \
         add_answer_trie_subgoal_frame(SG_FR);                               \
         SgFr_timestamp(SG_FR) = 0;                                          \
-        SgFr_cons_cp(SG_FR) = NULL;                                         \
         SgFr_answer_template(SG_FR) = NULL;                                 \
         SgFr_producer(SG_FR) = PRODUCER;                                    \
+        SgFr_cons_cp(SG_FR) = NULL;                                         \
         SgFr_consumers(SG_FR) = SgFr_prod_consumers(PRODUCER);              \
         if (!SgFr_prod_consumers(PRODUCER))                                 \
           tstCreateTSIs((tst_node_ptr)SgFr_answer_trie(PRODUCER));          \
@@ -415,8 +415,7 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
 
 #define init_sub_consumer_subgoal_frame(SG_FR)                     \
         { SgFr_state(SG_FR) = evaluating;                          \
-          SgFr_cons_cp(SG_FR) = B;                                 \
-          SgFr_answer_template(SG_FR) = SgFr_cons_cp_at(SG_FR);    \
+            SgFr_cons_cp(SG_FR) = B;                                 \
           SgFr_next(SG_FR) = LOCAL_top_cons_sg_fr;                 \
           LOCAL_top_cons_sg_fr = SG_FR;                            \
         }
@@ -1240,10 +1239,9 @@ build_next_subsumptive_consumer_return_list(subcons_fr_ptr consumer_sg, CELL *an
     
   //dprintf("Producer ts %d consumer ts %d\n", producer_ts, consumer_ts);
   dprintf("build_next\n");
-  int size = IntOfTerm(*answer_template);
-  
+  int size = SgFr_at_size(consumer_sg);
   /* skip size */
-  --answer_template;
+  // --answer_template;
 
 #ifdef FDEBUG
   if(!SgFr_leaf(consumer_sg))

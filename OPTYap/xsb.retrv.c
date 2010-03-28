@@ -91,7 +91,7 @@ static CPtr orig_hbreg;
   *(Addr) = Val
 
 #define Trie_Conditionally_Trail(Addr, Val)		\
-   if ( IsUnboundTrieVar(Addr) || conditional(Addr) )	\
+   if ( IsAnswerTemplateVar(Addr) || IsUnboundTrieVar(Addr) || conditional(Addr) )	\
      { pushtrail0(Addr, Val) }
 
 #define Bind_and_Conditionally_Trail(Addr, Val)	Trie_bind_copy(Addr,Val) \
