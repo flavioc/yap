@@ -460,7 +460,6 @@ typedef subsumptive_consumer_sf *subcons_fr_ptr;
 #define SgFr_producer(X)        ((X)->producer)
 #define SgFr_consumers(X)       ((X)->consumers)
 #define SgFr_cons_cp(X)         ((X)->cons_cp)
-#define SgFr_cons_cp_at(X)      (SgFr_cons_cp(X)->cp_h - 1)
 #define SgFr_answer_template(X) ((X)->answer_template)
 #define SgFr_at_size(X)         ((X)->at_size)
 #define SgFr_at_len(X)          ((X)->at_len)
