@@ -463,6 +463,12 @@ typedef enum Trie_Path_Type {
  NO_PATH, VARIANT_PATH, SUBSUMPTIVE_PATH
 } TriePathType;
 
+#define ANSWER_TEMPLATE_STACK_SIZE (4 * 1000000)
+extern CELL at_stack[ANSWER_TEMPLATE_STACK_SIZE];
+extern CELL* AT;
+
+#define IsAnswerTemplateVar(VAR) ((CPtr)(VAR) >= at_stack && ((CPtr)(VAR) <= (at_stack + ANSWER_TEMPLATE_STACK_SIZE)))
+
 #endif /* TABLING_CALL_SUBSUMPTION */
 
 // deactivate to test

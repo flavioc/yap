@@ -701,23 +701,57 @@ void printSubsumptiveAnswer(FILE *fp, CELL* vars)
   Trail_Unwind_All;
 }
 
+#ifdef SIZEOF_DOUBLE == 2*SIZEOF_INT_P
+static inline Term
+MakeFloatTerm(Float dbl)
+{
+  AT[0] = (CELL)FunctorDouble;
+  *(Float *)(AT + 1) = dbl;
+  AT[3] = EndSpecials;
+  AT += 4;
+  return AbsAppl(AT - 4);
+}
+#else
+static inline Term
+MakeFloatTerm(Float dbl)
+{
+  printf("AQUI\n");
+  AT[0] = (CELL)FunctorDouble;
+  *(Float *) (AT + 1) = dbl;
+  AT[2] = EndSpecials;
+  AT += 3;
+  
+  return AbsAppl(AT - 3);
+}
+#endif /* SIZEOF_DOUBLE == 2*SIZEOF_INT_P */
+
+static inline Term
+MakeLongIntTerm(Int i)
+{
+  AT[0] = (CELL)FunctorLongInt;
+  AT[1] = (CELL)(i);
+  AT[2] = EndSpecials;
+  AT += 3;
+  return AbsAppl(AT - 3);
+}
+
 static inline void
 fix_functor(Term t, CELL* placeholder)
 {
   Functor f = FunctorOfTerm(t);
   
   if(f == FunctorDouble) {
-    *placeholder = MkFloatTerm(FloatOfTerm(t));
+    *placeholder = MakeFloatTerm(FloatOfTerm(t));
   } else if(f == FunctorLongInt) {
-    *placeholder = MkLongIntTerm(LongIntOfTerm(t));
+    *placeholder = MakeLongIntTerm(LongIntOfTerm(t));
   } else {
-    *placeholder = AbsAppl(H);
-    *H++ = (CELL)f;
+    *placeholder = AbsAppl(AT);
+    *AT++ = (CELL)f;
   
-    CELL *arguments = H;
+    CELL *arguments = AT;
     int i, arity = ArityOfFunctor(f);
      
-    H += arity;
+    AT += arity;
 
     for(i = 1; i <= arity; ++i)
       fix_rec(Deref(*(RepAppl(t) + i)), arguments + i - 1);
@@ -727,11 +761,11 @@ fix_functor(Term t, CELL* placeholder)
 static inline void
 fix_list(Term t, CELL* placeholder)
 {
-  *placeholder = AbsPair(H);
+  *placeholder = AbsPair(AT);
   
-  CELL* arguments = H;
+  CELL* arguments = AT;
   
-  H += 2;
+  AT += 2;
   
   fix_rec(Deref(*(RepPair(t))), arguments);
   fix_rec(Deref(*(RepPair(t) + 1)), arguments + 1);
@@ -771,12 +805,12 @@ fix_answer_template(CELL *ans_tmplt)
 {
   int size = (int)*ans_tmplt++;
   int i;
-  CELL *arguments = H;
+  CELL *arguments = AT;
   
   Trail_ResetTOS;
   variable_counter = 0;
   
-  H += size;
+  AT += size;
   for(i = 0; i < size; ++i)
     fix_rec(Deref(*(ans_tmplt + i)), arguments + i);
   
