@@ -701,6 +701,8 @@ void printSubsumptiveAnswer(FILE *fp, CELL* vars)
   Trail_Unwind_All;
 }
 
+static CELL* WRITER;
+
 static inline void
 fix_functor(Term t, CELL* placeholder)
 {
@@ -711,13 +713,13 @@ fix_functor(Term t, CELL* placeholder)
   } else if(f == FunctorLongInt) {
     *placeholder = MkLongIntTerm(LongIntOfTerm(t));
   } else {
-    *placeholder = AbsAppl(H);
-    *H++ = (CELL)f;
+    *placeholder = AbsAppl(WRITER);
+    *WRITER++ = (CELL)f;
   
-    CELL *arguments = H;
+    CELL *arguments = WRITER;
     int i, arity = ArityOfFunctor(f);
      
-    H += arity;
+    WRITER += arity;
 
     for(i = 1; i <= arity; ++i)
       fix_rec(Deref(*(RepAppl(t) + i)), arguments + i - 1);
@@ -727,11 +729,11 @@ fix_functor(Term t, CELL* placeholder)
 static inline void
 fix_list(Term t, CELL* placeholder)
 {
-  *placeholder = AbsPair(H);
+  *placeholder = AbsPair(WRITER);
   
-  CELL* arguments = H;
+  CELL* arguments = WRITER;
   
-  H += 2;
+  WRITER += 2;
   
   fix_rec(Deref(*(RepPair(t))), arguments);
   fix_rec(Deref(*(RepPair(t) + 1)), arguments + 1);
@@ -767,21 +769,25 @@ fix_rec(CELL val, CELL* placeholder)
 }
 
 int
-fix_answer_template(CELL *ans_tmplt)
+fix_answer_template(CELL *ans_tmplt, CELL **dest)
 {
+  WRITER = *dest;
+  
   int size = (int)*ans_tmplt++;
   int i;
-  CELL *arguments = H;
+  CELL *arguments = WRITER;
   
   Trail_ResetTOS;
   variable_counter = 0;
   
-  H += size;
+  WRITER += size;
   for(i = 0; i < size; ++i)
     fix_rec(Deref(*(ans_tmplt + i)), arguments + i);
   
   Trail_Unwind_All;
 
+  *dest = WRITER;
+  
   return size;
 }
 

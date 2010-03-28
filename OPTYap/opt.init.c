@@ -34,6 +34,7 @@ DynamicStack tstSymbolStack; /* symbol stack for subsumption */
 #include "tab.tst.h"
 #include "tab.retrv.h"
 Cell TrieVarBindings[MAX_TABLE_VARS];
+CELL* consumer_template;
 int AnsVarCtr;
 #endif
 #endif /* TABLING */

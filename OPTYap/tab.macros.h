@@ -396,7 +396,8 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
         add_answer_trie_subgoal_frame(SG_FR);                               \
         SgFr_timestamp(SG_FR) = 0;                                          \
         SgFr_cons_cp(SG_FR) = NULL;                                         \
-        SgFr_answer_template(SG_FR) = NULL;                                 \
+        SgFr_answer_template(SG_FR) = SgFr_at_block(SG_FR);                 \
+        SgFr_last_at(SG_FR) = SgFr_at_block(SG_FR);                         \
         SgFr_producer(SG_FR) = PRODUCER;                                    \
         SgFr_consumers(SG_FR) = SgFr_prod_consumers(PRODUCER);              \
         if (!SgFr_prod_consumers(PRODUCER))                                 \
@@ -1236,7 +1237,7 @@ build_next_subsumptive_consumer_return_list(subcons_fr_ptr consumer_sg) {
   
   if(producer_ts == consumer_ts)
     return FALSE; /* no answers were inserted */
-    
+  
   //dprintf("Producer ts %d consumer ts %d\n", producer_ts, consumer_ts);
   dprintf("build_next\n");
   CELL *answer_template = SgFr_answer_template(consumer_sg);
@@ -1258,6 +1259,7 @@ build_next_subsumptive_consumer_return_list(subcons_fr_ptr consumer_sg) {
   printAnswerTemplate(stdout, answer_template, size);
 #endif
 
+  consumer_template = SgFr_at_block(consumer_sg);
   SgFr_timestamp(consumer_sg) = producer_ts;
   
   if(!tst_collect_relevant_answers((tst_node_ptr)SgFr_answer_trie(producer_sg),

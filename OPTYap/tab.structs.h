@@ -427,6 +427,8 @@ typedef subsumptive_producer_sf *subprod_fr_ptr;
 #define SgFr_prod_timestamp(X) TSTN_time_stamp((tst_node_ptr)SgFr_answer_trie(X))
 #define SgFr_subsumes_subgoals(X) \
   (SgFr_is_sub_producer(X) && SgFr_prod_consumers(X) != NULL)
+  
+#define ANSWER_TEMPLATE_BLOCK_SIZE 3
 
 struct subsumed_consumer_subgoal_frame {
   subgoal_frame_type type; /* subgoal frame type */
@@ -450,9 +452,12 @@ struct subsumed_consumer_subgoal_frame {
   choiceptr cons_cp;
   CELL* answer_template;
   int at_size;
-  int at_len;
   subsumptive_consumer_sf *consumers; /* Chain link for properly subsumed subgoals */
+  CELL answer_template_block[ANSWER_TEMPLATE_BLOCK_SIZE];
+  CELL *last_at;
 };
+
+#define IsTemplateVar(VAR) ((VAR) >= consumer_template && (VAR) <= ((CELL*)(consumer_template + ANSWER_TEMPLATE_BLOCK_SIZE)))
 
 typedef subsumptive_consumer_sf *subcons_fr_ptr;
 
@@ -463,6 +468,8 @@ typedef subsumptive_consumer_sf *subcons_fr_ptr;
 #define SgFr_answer_template(X) ((X)->answer_template)
 #define SgFr_at_size(X)         ((X)->at_size)
 #define SgFr_at_len(X)          ((X)->at_len)
+#define SgFr_at_block(X)        ((X)->answer_template_block)
+#define SgFr_last_at(X)         ((X)->last_at)
 
 #endif /* TABLING_CALL_SUBSUMPTION */
 
