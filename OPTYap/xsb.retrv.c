@@ -145,20 +145,30 @@ void initCollectRelevantAnswers(CTXTdecl) {
   tstCPStack.ceiling = tstCPStack.base + TST_CPSTACK_SIZE;
 }
 
+#define CPStack_PushRealFrame \
+  CPStack_OverflowCheck						\
+  tstCPF_TermStackTopIndex = TermStack_Top - TermStack_Base + 1;	\
+  tstCPF_TSLogTopIndex = TermStackLog_Top - TermStackLog_Base;	\
+  tstCPF_TrailTop = trreg;						\
+  tstCPF_HBreg = hbreg;						\
+  hbreg = hreg; \
+  tstCPStack.top += SIZEOF_CHOICE_POINT_FRAME
+
 #define CPStack_PushFrame(AlternateTSTN)				\
    if ( IsNonNULL(AlternateTSTN) ) {					\
-     CPStack_OverflowCheck						\
-     tstCPF_TermStackTopIndex = TermStack_Top - TermStack_Base + 1;	\
-     tstCPF_TSLogTopIndex = TermStackLog_Top - TermStackLog_Base;	\
-     tstCPF_TrailTop = trreg;						\
-     tstCPF_HBreg = hbreg;						\
-     hbreg = hreg;							\
-     tstCPStack.top += SIZEOF_CHOICE_POINT_FRAME;							\
-     *(TSTNptr*)tstCPStack.top = AlternateTSTN;                \
-     tstCPStack.top++;              \
-     *tstCPStack.top = 1;                                      \
-     tstCPStack.top++;                              \
+     CPStack_PushRealFrame; \
+     CPStack_AddAltNode(AlternateTSTN); \
+     CPStack_MarkTotalAlternatives(1);  \
    }
+   
+#define CPStack_MarkTotalAlternatives(Total) \
+   /*printf("Total alternatives: %d\n", Total);*/ \
+   *tstCPStack.top = Total; \
+   tstCPStack.top++
+
+#define CPStack_AddAltNode(AlternateTSTN) \
+   *(TSTNptr*)tstCPStack.top = AlternateTSTN; \
+   tstCPStack.top++
 
 #define CPStack_Pop     tstCPStack.top -= SIZEOF_CHOICE_POINT_FRAME
 
@@ -177,7 +187,25 @@ void initCollectRelevantAnswers(CTXTdecl) {
    ResetHeap_fromCPF(frame);               \
    if(total == 1) \
     tstCPStack.top = framePos; \
+   else { \
+     *(tstCPStack.top-2) = total - 1; \
+     tstCPStack.top--;  \
+   }  \
  }
+ 
+#define Backtrack_Node(Location) {  \
+    int total = *(tstCPStack.top-1); \
+    if(total == 0) {  \
+      tstCPStack.top -= (1 + SIZEOF_CHOICE_POINT_FRAME);  \
+      break;  \
+    } else {  \
+     TSTNptr alternative = *(TSTNptr*)(tstCPStack.top-2); \
+     ResetParentAndCurrentNodes(alternative);			\
+     *(tstCPStack.top-2) = total - 1; \
+     tstCPStack.top--;  \
+     goto Location; \
+  } \
+}
 
 /*
  *  For continuing with forward execution.  When we match, we continue
@@ -204,11 +232,9 @@ void initCollectRelevantAnswers(CTXTdecl) {
    TermStackLog_Unwind(Frame->log_top_index);	\
    TermStack_SetTOS(Frame->ts_top_index)
 
-
 #define ResetHeap_fromCPF(Frame)			\
    hreg = hbreg;				\
    hbreg = Frame->heap_bktrk
-
 
 #define CPStack_OverflowCheck						\
    if (CPStack_IsFull)							\
@@ -302,6 +328,66 @@ static void tstCollectionError(CTXTdeclc char *string, xsbBool cleanup_needed) {
    SymChain = buckets[TrieHash(Symbol,TSTHT_GetHashSeed(ht))];	\
    VarChain = buckets[TRIEVAR_BUCKET];				\
  }
+ 
+#define Push_All_Variables(ContChain,TS,Get_TS_Op) { \
+ /*printf("Push_All_Variables\n");*/  \
+ int total = 0; \
+ Chain_NextValidTSTN(ContChain,TS,Get_TS_Op); \
+ while(ContChain) { \
+   if(IsTrieVar(TSTN_Symbol(ContChain))) { \
+     if(!total) { \
+       CPStack_PushRealFrame; \
+     }  \
+     CPStack_AddAltNode(ContChain); \
+     ++total; \
+   }  \
+   ContChain = TSTN_Sibling(ContChain); \
+   Chain_NextValidTSTN(ContChain,TS,Get_TS_Op); \
+ }  \
+ if(total) { \
+   CPStack_MarkTotalAlternatives(total);  \
+ }  \
+}
+
+#define Push_Variables_Or_Exact(ContChain, TS, Get_TS_Op, Exact) {  \
+/*printf("Push_Variables_Or_Exact\n");*/  \
+  int total = 0;  \
+  Chain_NextValidTSTN(ContChain, TS, Get_TS_Op);  \
+  while(ContChain) { \
+    if(Exact == TSTN_Symbol(ContChain) || IsTrieVar(TSTN_Symbol(ContChain))) { \
+      if(!total) { \
+        CPStack_PushRealFrame;  \
+      } \
+      CPStack_AddAltNode(ContChain);  \
+      ++total;  \
+    } \
+    ContChain = TSTN_Sibling(ContChain);  \
+    Chain_NextValidTSTN(ContChain,TS,Get_TS_Op);  \
+  } \
+  if(total) { \
+     CPStack_MarkTotalAlternatives(total);  \
+  }  \
+}
+
+#define SearchChain_BacktrackUnifyWithConstant(Chain,Subterm) { \
+  /*printf("backtrack unify\n");*/  \
+  symbol = TSTN_Symbol(Chain);					\
+  TrieSymbol_Deref(symbol);						\
+  if ( isref(symbol) ) {						\
+    /*								\
+	   *  Either an unbound TrieVar or some unbound prolog var.	\
+	   */								\
+    Bind_and_Conditionally_Trail((CPtr)symbol, Subterm);		\
+    TermStackLog_PushFrame;						\
+    Descend_Into_TST_and_Continue_Search;				\
+  }									\
+  else if (symbol == Subterm) {					\
+    TermStackLog_PushFrame;  \
+    Descend_Into_TST_and_Continue_Search;				\
+  } \
+  /* FAILED */ \
+  Backtrack_Node(retrv_unify_constant) \
+}
 
 /* ------------------------------------------------------------------------- */
 
@@ -326,8 +412,7 @@ static void tstCollectionError(CTXTdeclc char *string, xsbBool cleanup_needed) {
    while ( IsNonNULL(SearchChain) ) {					\
      if ( TrieEncodedSubterm == TSTN_Symbol(SearchChain) ) {		\
        if ( IsValidTS(TSTN_GetTSfromTSIN(SearchChain),TS) ) {		\
-	 Chain_NextValidTSTN(ContChain,TS,TSTN_GetTSfromTSIN);		\
-	 CPStack_PushFrame(ContChain);					\
+         Push_All_Variables(ContChain,TS,TSTN_GetTSfromTSIN); \
 	 TermStackLog_PushFrame;					\
 	 TermStack_PushOp;						\
 	 Descend_Into_TST_and_Continue_Search;				\
@@ -372,25 +457,26 @@ static void tstCollectionError(CTXTdeclc char *string, xsbBool cleanup_needed) {
 #define SearchChain_UnifyWithConstant(Chain,Subterm,TS,Get_TS_Op) {	\
    Chain_NextValidTSTN(Chain,TS,Get_TS_Op);				\
    while ( IsNonNULL(Chain) ) {						\
-     alt_chain = TSTN_Sibling(Chain);					\
-     Chain_NextValidTSTN(alt_chain,TS,Get_TS_Op);			\
      symbol = TSTN_Symbol(Chain);					\
      TrieSymbol_Deref(symbol);						\
      if ( isref(symbol) ) {						\
        /*								\
-	*  Either an unbound TrieVar or some unbound prolog var.	\
-	*/								\
-       CPStack_PushFrame(alt_chain);					\
+	      *  Either an unbound TrieVar or some unbound prolog var.	\
+	      */								\
+       alt_chain = TSTN_Sibling(Chain);  \
+       Push_Variables_Or_Exact(alt_chain, TS, Get_TS_Op, Subterm); \
        Bind_and_Conditionally_Trail((CPtr)symbol, Subterm);		\
        TermStackLog_PushFrame;						\
        Descend_Into_TST_and_Continue_Search;				\
      }									\
      else if (symbol == Subterm) {					\
-       CPStack_PushFrame(alt_chain);					\
+       alt_chain = TSTN_Sibling(Chain);  \
+       Push_All_Variables(alt_chain,TS,Get_TS_Op);  \
        TermStackLog_PushFrame;						\
        Descend_Into_TST_and_Continue_Search;				\
      }									\
-     Chain = alt_chain;							\
+     Chain = TSTN_Sibling(Chain); \
+     Chain_NextValidTSTN(Chain,TS,Get_TS_Op);			\
    }									\
  }
  
@@ -949,6 +1035,7 @@ xsbBool tst_collect_relevant_answers(CTXTdeclc TSTNptr tstRoot, TimeStamp ts,
        *  NOTE:  A Trie constant looks like a Prolog constant.
        */
       if ( IsHashHeader(cur_chain) ) {
+        /* DESCEND_MODE */
 	      symbol = EncodeTrieConstant(subterm);
 	      SetMatchAndUnifyChains(symbol,cur_chain,alt_chain);
 	      if ( cur_chain != alt_chain ) {
@@ -959,11 +1046,17 @@ xsbBool tst_collect_relevant_answers(CTXTdeclc TSTNptr tstRoot, TimeStamp ts,
 	      if ( IsNULL(cur_chain) )
 	        backtrack;
       }
-      if ( IsHashedNode(cur_chain) )
-	      SearchChain_UnifyWithConstant(cur_chain,subterm,ts,
+      if(mode == DESCEND_MODE) {
+        if ( IsHashedNode(cur_chain) )
+	        SearchChain_UnifyWithConstant(cur_chain,subterm,ts,
 				      TSTN_GetTSfromTSIN)
-      else
-	      SearchChain_UnifyWithConstant(cur_chain,subterm,ts,TSTN_TimeStamp)
+        else
+	        SearchChain_UnifyWithConstant(cur_chain,subterm,ts,TSTN_TimeStamp)
+      } else {
+retrv_unify_constant:
+        /* BACKTRACK_MODE */
+        SearchChain_BacktrackUnifyWithConstant(cur_chain,subterm)
+      }
       break;
 
     /* SUBTERM IS A STRUCTURE
