@@ -162,7 +162,6 @@ void initCollectRelevantAnswers(CTXTdecl) {
    }
    
 #define CPStack_MarkTotalAlternatives(Total) \
-   /*printf("Total alternatives: %d\n", Total);*/ \
    *tstCPStack.top = Total; \
    tstCPStack.top++
 
@@ -179,33 +178,36 @@ void initCollectRelevantAnswers(CTXTdecl) {
    int total = *(tstCPStack.top-1); \
    TSTNptr alternative = *(TSTNptr*)(tstCPStack.top-2); \
    int *framePos = tstCPStack.top - (1 + total + SIZEOF_CHOICE_POINT_FRAME); \
-   ResetParentAndCurrentNodes(alternative);			\
    tstChoicePointFrame *frame = (tstChoicePointFrame*)framePos; \
+   ResetParentAndCurrentNodes(alternative);			\
    RestoreTermStack(frame);				\
    Sys_Trail_Unwind(frame->trail_top);		\
    mode = BACKTRACK_MODE;               \
    ResetHeap_fromCPF(frame);               \
-   if(total == 1) \
+   if(total == 1) { \
+    moreOptions = FALSE; \
     tstCPStack.top = framePos; \
-   else { \
-     *(tstCPStack.top-2) = total - 1; \
+   } else { \
+     moreOptions = TRUE;  \
      tstCPStack.top--;  \
+     *(tstCPStack.top-1) = total - 1; \
    }  \
  }
  
-#define Backtrack_Node(Location) {  \
+#define Backtrack_Node(Location)  \
+  if(moreOptions) { \
     int total = *(tstCPStack.top-1); \
-    if(total == 0) {  \
+    tstCPStack.top--; \
+    TSTNptr alternative = *(TSTNptr*)(tstCPStack.top-1); \
+    ResetParentAndCurrentNodes(alternative);			\
+    if(total == 1) {  \
+      moreOptions = FALSE;  \
       tstCPStack.top -= (1 + SIZEOF_CHOICE_POINT_FRAME);  \
-      break;  \
     } else {  \
-     TSTNptr alternative = *(TSTNptr*)(tstCPStack.top-2); \
-     ResetParentAndCurrentNodes(alternative);			\
-     *(tstCPStack.top-2) = total - 1; \
-     tstCPStack.top--;  \
-     goto Location; \
-  } \
-}
+      *(tstCPStack.top-1) = total - 1; \
+    } \
+    goto Location; \
+  }
 
 /*
  *  For continuing with forward execution.  When we match, we continue
@@ -987,6 +989,7 @@ xsbBool tst_collect_relevant_answers(CTXTdeclc TSTNptr tstRoot, TimeStamp ts,
   Cell subterm;          /* the part of the term we are inspecting */
   Cell symbol;
   SearchMode mode;
+  xsbBool moreOptions;
 
 
   /* Check that a term was passed in
@@ -1004,6 +1007,7 @@ xsbBool tst_collect_relevant_answers(CTXTdeclc TSTNptr tstRoot, TimeStamp ts,
   trail_base = top_of_trail;
   Save_and_Set_WAM_Registers;
   mode = DESCEND_MODE;
+  moreOptions = FALSE;
 
   parentTSTN = tstRoot;
   cur_chain = TSTN_Child(tstRoot);
