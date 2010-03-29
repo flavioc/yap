@@ -20,41 +20,6 @@ typedef enum {
   PRINT_VAR
 } PrintVarType;
 
-inline CellTag cell_tag(Term t)
-{
-  if(IsVarTerm(t))
-    return TAG_REF;
-  
-  if(IsAtomTerm(t))
-    return TAG_ATOM;
-  
-  if(IsIntTerm(t))
-    return TAG_INT;
-  
-  if(IsPairTerm(t))
-    return TAG_LIST;
-  
-  if (IsApplTerm(t)) {
-    Functor f = FunctorOfTerm(t);
-    
-    if (f == FunctorDouble)
-      return TAG_FLOAT;
-      
-    if (f == FunctorLongInt)
-      return TAG_LONG_INT;
-    
-    if (f == FunctorDBRef)
-      return TAG_DB_REF;
-    
-    if (f == FunctorBigInt)
-      return TAG_BIG_INT;
-    
-    return TAG_STRUCT;
-  }
-  
-  return TAG_UNKNOWN;
-}
-
 static
 void symstkPrintNextTrieTerm(CTXTdeclc FILE *fp, xsbBool list_recursion)
 {
