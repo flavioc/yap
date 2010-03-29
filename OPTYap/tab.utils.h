@@ -370,7 +370,43 @@ void printSubgoalTriePath(CTXTdeclc FILE *fp, sg_node_ptr pLeaf, tab_ent_ptr tab
 
 #ifdef TABLING_CALL_SUBSUMPTION
 
-CellTag TrieSymbolType(Term t);
+static inline CellTag TrieSymbolType(Term t)
+{
+  if(IsVarTerm(t))
+    return XSB_TrieVar;
+    
+  if(IsIntTerm(t))
+    return TAG_INT;
+  
+  if(IsAtomTerm(t))
+    return TAG_ATOM;
+  
+  if(IsPairTerm(t))
+    return TAG_LIST;
+  
+  if(IsApplTerm(t)) {
+    Functor f = (Functor)RepAppl(t);
+    
+    switch ((CELL)f) {
+      case (CELL)FunctorDouble: return TAG_FLOAT;
+      case (CELL)FunctorLongInt: return TAG_LONG_INT;
+      case (CELL)FunctorDBRef: return TAG_DB_REF;
+      case (CELL)FunctorBigInt: return TAG_BIG_INT;
+      default: /* functor maybe somewhere else */
+        f = (Functor)*(CELL *)f;
+        switch((CELL)f) {
+          case (CELL)FunctorDouble: return TAG_FLOAT;
+          case (CELL)FunctorLongInt: return TAG_LONG_INT;
+          case (CELL)FunctorDBRef: return TAG_DB_REF;
+          case (CELL)FunctorBigInt: return TAG_BIG_INT;
+          default: return TAG_STRUCT;
+        }
+    }
+  }
+  
+  return TAG_UNKNOWN;
+}
+
 xsbBool are_identical_terms(Cell term1, Cell term2);
 int fix_answer_template(CELL *ans_tmplt);
 void printSubsumptiveAnswer(FILE *fp, CELL* vars);
