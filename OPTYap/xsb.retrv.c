@@ -1147,11 +1147,11 @@ retrv_unify_constant:
             /* push all nodes into the choice point stack */
             while(tsin) {
               if(!total) {
-                //CPStack_PushRealFrame;
+                CPStack_PushRealFrame;
               }
               ++total;
-              CPStack_PushFrame(TSIN_TSTNode(tsin));
-              //CPStack_AddAltNode(TSIN_TSTNode(tsin));
+              //CPStack_PushFrame(TSIN_TSTNode(tsin));
+              CPStack_AddAltNode(TSIN_TSTNode(tsin));
               tsin = TSI_NextValidTSIN(tsin, ts);
             }
   	      } else
@@ -1166,11 +1166,11 @@ retrv_unify_constant:
   	      
   	      while(alt_chain) {
   	        if(!total) {
-              //CPStack_PushRealFrame;
+              CPStack_PushRealFrame;
   	        }
             ++total;
-            //CPStack_AddAltNode(alt_chain);
-            CPStack_PushFrame(alt_chain);
+            CPStack_AddAltNode(alt_chain);
+            //CPStack_PushFrame(alt_chain);
             alt_chain = TSTN_Sibling(alt_chain);
             Chain_NextValidTSTN(alt_chain,ts,TSTN_TimeStamp);
   	      }
@@ -1178,7 +1178,7 @@ retrv_unify_constant:
         
         if(total) {
           //printf("Total %d\n", total);
-          //CPStack_MarkTotalAlternatives(total);
+          CPStack_MarkTotalAlternatives(total);
         }
       }
       
