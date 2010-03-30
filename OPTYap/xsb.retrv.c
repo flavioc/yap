@@ -1,6 +1,11 @@
 /*  Data Structures and Related Macros
     ==================================  */
 
+typedef enum {
+  DESCEND_MODE,
+  BACKTRACK_MODE
+} SearchMode;
+  
 /*
  *  Trailing
  *  --------
@@ -145,10 +150,12 @@ void initCollectRelevantAnswers(CTXTdecl) {
    if ( IsNonNULL(AlternateTSTN) ) {					\
      CPStack_OverflowCheck						\
      tstCPF_AlternateNode = AlternateTSTN;				\
-     tstCPF_TermStackTopIndex = TermStack_Top - TermStack_Base + 1;	\
-     tstCPF_TSLogTopIndex = TermStackLog_Top - TermStackLog_Base;	\
-     tstCPF_TrailTop = trreg;						\
-     tstCPF_HBreg = hbreg;						\
+     if(mode == DESCEND_MODE) {                 \
+       tstCPF_TermStackTopIndex = TermStack_Top - TermStack_Base + 1;	\
+       tstCPF_TSLogTopIndex = TermStackLog_Top - TermStackLog_Base;	\
+       tstCPF_TrailTop = trreg;						\
+       tstCPF_HBreg = hbreg;						\
+     }  \
      hbreg = hreg;							\
      tstCPStack.top++;							\
    }
@@ -159,6 +166,7 @@ void initCollectRelevantAnswers(CTXTdecl) {
  *  Backtracking to a previous juncture in the trie.
  */
 #define TST_Backtrack				\
+   mode = BACKTRACK_MODE; \
    CPStack_Pop;					\
    ResetParentAndCurrentNodes;			\
    RestoreTermStack;				\
@@ -173,6 +181,7 @@ void initCollectRelevantAnswers(CTXTdecl) {
 #define Descend_Into_TST_and_Continue_Search	\
    parentTSTN = cur_chain;			\
    cur_chain = TSTN_Child(cur_chain);		\
+   mode = DESCEND_MODE;                 \
    goto While_TSnotEmpty
 
 /*
@@ -885,6 +894,7 @@ xsbBool tst_collect_relevant_answers(CTXTdeclc TSTNptr tstRoot, TimeStamp ts,
 
   Cell subterm;          /* the part of the term we are inspecting */
   Cell symbol;
+  SearchMode mode;
 
 
 
@@ -902,6 +912,7 @@ xsbBool tst_collect_relevant_answers(CTXTdeclc TSTNptr tstRoot, TimeStamp ts,
   tstCPStack.top = tstCPStack.base;
   trail_base = top_of_trail;
   Save_and_Set_WAM_Registers;
+  mode = DESCEND_MODE;
 
   parentTSTN = tstRoot;
   cur_chain = TSTN_Child(tstRoot);
