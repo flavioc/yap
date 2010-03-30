@@ -31,12 +31,16 @@ typedef struct {
 } tstChoicePointFrame;
 
 #define TST_CPSTACK_SIZE 1024
+<<<<<<< Updated upstream
 #define SIZEOF_CHOICE_POINT_FRAME (sizeof(tstChoicePointFrame) / sizeof(int))
+=======
+#define SIZEOF_CHOICE_POINT_FRAME (sizeof(tstChoicePointFrame) / sizeof(unsigned int))
+>>>>>>> Stashed changes
 
 struct tstCPStack_t {
-	int *top; /* next available location to place an entry */
-	int *ceiling; /* overflow pointer: points beyond array end */
-	int base[TST_CPSTACK_SIZE * SIZEOF_CHOICE_POINT_FRAME];
+	unsigned int *top; /* next available location to place an entry */
+	unsigned int *ceiling; /* overflow pointer: points beyond array end */
+	unsigned int base[TST_CPSTACK_SIZE * SIZEOF_CHOICE_POINT_FRAME];
 };
 
 void initCollectRelevantAnswers(CTXTdecl);

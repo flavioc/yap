@@ -145,45 +145,46 @@ void initCollectRelevantAnswers(CTXTdecl) {
   tstCPStack.ceiling = tstCPStack.base + TST_CPSTACK_SIZE;
 }
 
-#define CPStack_PushRealFrame \
-  CPStack_OverflowCheck						\
+#define CPStack_PushRealFrame                                     \
+  CPStack_OverflowCheck						                                \
   tstCPF_TermStackTopIndex = TermStack_Top - TermStack_Base + 1;	\
-  tstCPF_TSLogTopIndex = TermStackLog_Top - TermStackLog_Base;	\
-  tstCPF_TrailTop = trreg;						\
-  tstCPF_HBreg = hbreg;						\
-  hbreg = hreg; \
+  tstCPF_TSLogTopIndex = TermStackLog_Top - TermStackLog_Base;	  \
+  tstCPF_TrailTop = trreg;						                            \
+  tstCPF_HBreg = hbreg;						                                \
+  hbreg = hreg;                                                   \
   tstCPStack.top += SIZEOF_CHOICE_POINT_FRAME
 
 #define CPStack_PushFrame(AlternateTSTN)				\
-   if ( IsNonNULL(AlternateTSTN) ) {					\
-     CPStack_PushRealFrame; \
-     CPStack_AddAltNode(AlternateTSTN); \
-     CPStack_MarkTotalAlternatives(1);  \
+   if ( IsNonNULL(AlternateTSTN) ) {					  \
+     CPStack_PushRealFrame;                     \
+     CPStack_AddAltNode(AlternateTSTN);         \
+     CPStack_MarkTotalAlternatives(1);          \
    }
    
 #define CPStack_MarkTotalAlternatives(Total) \
-   *tstCPStack.top = Total; \
+   *tstCPStack.top = Total;                  \
    tstCPStack.top++
 
-#define CPStack_AddAltNode(AlternateTSTN) \
+#define CPStack_AddAltNode(AlternateTSTN)     \
    *(TSTNptr*)tstCPStack.top = AlternateTSTN; \
    tstCPStack.top++
-
-#define CPStack_Pop     tstCPStack.top -= SIZEOF_CHOICE_POINT_FRAME
+   
+#define Calculate_Offset(Total) (-(1 + Total + SIZEOF_CHOICE_POINT_FRAME))
 
 /*
  *  Backtracking to a previous juncture in the trie.
  */
 #define TST_Backtrack		{		\
-   int total = *(tstCPStack.top-1); \
+   int total = *(int *)(tstCPStack.top-1); \
    TSTNptr alternative = *(TSTNptr*)(tstCPStack.top-2); \
-   int *framePos = tstCPStack.top - (1 + total + SIZEOF_CHOICE_POINT_FRAME); \
+   unsigned int *framePos = tstCPStack.top + Calculate_Offset(total); \
    tstChoicePointFrame *frame = (tstChoicePointFrame*)framePos; \
    ResetParentAndCurrentNodes(alternative);			\
    RestoreTermStack(frame);				\
    Sys_Trail_Unwind(frame->trail_top);		\
    mode = BACKTRACK_MODE;               \
    ResetHeap_fromCPF(frame);               \
+   /*printf("Removed one... now: %d\n", total-1);*/ \
    if(total == 1) { \
     moreOptions = FALSE; \
     tstCPStack.top = framePos; \
@@ -194,19 +195,19 @@ void initCollectRelevantAnswers(CTXTdecl) {
    }  \
  }
  
-#define Backtrack_Node(Location)  \
-  if(moreOptions) { \
-    int total = *(tstCPStack.top-1); \
-    tstCPStack.top--; \
-    TSTNptr alternative = *(TSTNptr*)(tstCPStack.top-1); \
-    ResetParentAndCurrentNodes(alternative);			\
-    if(total == 1) {  \
-      moreOptions = FALSE;  \
+#define Backtrack_Node(Location)                          \
+  if(moreOptions) {                                       \
+    int total = *(tstCPStack.top-1);                      \
+    tstCPStack.top--;                                     \
+    TSTNptr alternative = *(TSTNptr*)(tstCPStack.top-1);  \
+    ResetParentAndCurrentNodes(alternative);			        \
+    if(total == 1) {                                      \
+      moreOptions = FALSE;                                \
       tstCPStack.top -= (1 + SIZEOF_CHOICE_POINT_FRAME);  \
-    } else {  \
-      *(tstCPStack.top-1) = total - 1; \
-    } \
-    goto Location; \
+    } else {                                              \
+      *(tstCPStack.top-1) = total - 1;                    \
+    }                                                     \
+    goto Location;                                        \
   }
 
 /*
@@ -215,9 +216,9 @@ void initCollectRelevantAnswers(CTXTdecl) {
  *  of the trie node that was matched.
  */
 #define Descend_Into_TST_and_Continue_Search	\
-   parentTSTN = cur_chain;			\
-   cur_chain = TSTN_Child(cur_chain);		\
-   mode = DESCEND_MODE;                 \
+   parentTSTN = cur_chain;			              \
+   cur_chain = TSTN_Child(cur_chain);		      \
+   mode = DESCEND_MODE;                       \
    goto While_TSnotEmpty
 
 /*
@@ -226,20 +227,20 @@ void initCollectRelevantAnswers(CTXTdecl) {
  * when its value is set.
  */
 #define ResetParentAndCurrentNodes(Node)		\
-   cur_chain = Node;		\
+   cur_chain = Node;		                    \
    parentTSTN = TSTN_Parent(cur_chain)
 
 
-#define RestoreTermStack(Frame)			\
+#define RestoreTermStack(Frame)			          \
    TermStackLog_Unwind(Frame->log_top_index);	\
    TermStack_SetTOS(Frame->ts_top_index)
 
 #define ResetHeap_fromCPF(Frame)			\
-   hreg = hbreg;				\
+   hreg = hbreg;				              \
    hbreg = Frame->heap_bktrk
 
-#define CPStack_OverflowCheck						\
-   if (CPStack_IsFull)							\
+#define CPStack_OverflowCheck					\
+   if (CPStack_IsFull)							  \
      TST_Collection_Error("tstCPStack overflow.", RequiresCleanup)
 
 /* ========================================================================= */
@@ -257,10 +258,10 @@ void initCollectRelevantAnswers(CTXTdecl) {
  *  and place it at the head of a chain of answer-list nodes.
  *  For MT engine: use only for private,subsumed tables.
  */
-#define ALN_InsertAnswer(pAnsListHead,pAnswerNode) {			\
-    ALNptr newAnsListNode;						\
+#define ALN_InsertAnswer(pAnsListHead,pAnswerNode) {			            \
+    ALNptr newAnsListNode;						                                \
     New_Private_ALN(newAnsListNode,(void *)pAnswerNode,pAnsListHead);	\
-    pAnsListHead = newAnsListNode;					\
+    pAnsListHead = newAnsListNode;					                          \
   }
 
 /*
@@ -276,8 +277,8 @@ void initCollectRelevantAnswers(CTXTdecl) {
 #endif /* SUBSUMPTION_YAP */
 
 #define TST_Collection_Error(String, DoesRequireCleanup) {	\
-   tstCollectionError(CTXTc String, DoesRequireCleanup);	\
-   return ReturnErrorCode;							\
+   tstCollectionError(CTXTc String, DoesRequireCleanup);	  \
+   return ReturnErrorCode;							                    \
  }
 
 static void tstCollectionError(CTXTdeclc char *string, xsbBool cleanup_needed) {
@@ -306,7 +307,7 @@ static void tstCollectionError(CTXTdeclc char *string, xsbBool cleanup_needed) {
  *  Return the first TSTN in a chain with a valid timestamp (if one exists),
  *  otherwise return NULL.
  */
-#define Chain_NextValidTSTN(Chain,TS,tsAccessMacro)			\
+#define Chain_NextValidTSTN(Chain,TS,tsAccessMacro)			                \
    while ( IsNonNULL(Chain) && (! IsValidTS(tsAccessMacro(Chain),TS)) )	\
      Chain = TSTN_Sibling(Chain)
 
@@ -314,11 +315,21 @@ static void tstCollectionError(CTXTdeclc char *string, xsbBool cleanup_needed) {
  *  Return the next TSTN in the TSI with a valid timestamp (if one exists),
  *  otherwise return NULL.
  */
-#define TSI_NextValidTSTN(ValidTSIN,TS)				\
-   ( ( IsNonNULL(TSIN_Next(ValidTSIN)) &&			\
+#define TSI_NextValidTSTN(ValidTSIN,TS)				              \
+   ( ( IsNonNULL(TSIN_Next(ValidTSIN)) &&			              \
        IsValidTS(TSIN_TimeStamp(TSIN_Next(ValidTSIN)),TS) )	\
-     ? TSIN_TSTNode(TSIN_Next(ValidTSIN))			\
+     ? TSIN_TSTNode(TSIN_Next(ValidTSIN))			              \
      : NULL )
+     
+/*
+ * Return the next TSIN in the TSI with a valid timestamp (if one exists),
+ * otherwise return NULL.
+ */
+#define TSI_NextValidTSIN(ValidTSIN,TS)                   \
+  ( (IsNonNULL(TSIN_Next(ValidTSIN)) &&                   \
+    IsValidTS(TSIN_TimeStamp(TSIN_Next(ValidTSIN)), TS))  \
+    ? TSIN_Next(ValidTSIN)                                \
+    : NULL)
 
 /* ------------------------------------------------------------------------- */
 
@@ -461,23 +472,22 @@ static void tstCollectionError(CTXTdeclc char *string, xsbBool cleanup_needed) {
    while ( IsNonNULL(Chain) ) {						\
      symbol = TSTN_Symbol(Chain);					\
      TrieSymbol_Deref(symbol);						\
+     alt_chain = TSTN_Sibling(Chain);  \
      if ( isref(symbol) ) {						\
        /*								\
 	      *  Either an unbound TrieVar or some unbound prolog var.	\
 	      */								\
-       alt_chain = TSTN_Sibling(Chain);  \
        Push_Variables_Or_Exact(alt_chain, TS, Get_TS_Op, Subterm); \
        Bind_and_Conditionally_Trail((CPtr)symbol, Subterm);		\
        TermStackLog_PushFrame;						\
        Descend_Into_TST_and_Continue_Search;				\
      }									\
      else if (symbol == Subterm) {					\
-       alt_chain = TSTN_Sibling(Chain);  \
        Push_All_Variables(alt_chain,TS,Get_TS_Op);  \
        TermStackLog_PushFrame;						\
        Descend_Into_TST_and_Continue_Search;				\
      }									\
-     Chain = TSTN_Sibling(Chain); \
+     Chain = alt_chain; \
      Chain_NextValidTSTN(Chain,TS,Get_TS_Op);			\
    }									\
  }
@@ -913,18 +923,6 @@ Unify_with_Variable(CTXTdeclc Cell symbol, Cell subterm, TSTNptr node) {
    return TRUE;
 }
 
-#define CurrentTSTN_UnifyWithVariable(Chain,Subterm,Continuation)	   \
-   CPStack_PushFrame(Continuation);					   \
-   TermStackLog_PushFrame;						   \
-   symbol = TSTN_Symbol(Chain);						   \
-   TrieSymbol_Deref(symbol);						   \
-   if(!Unify_with_Variable(CTXTc symbol,Subterm,Chain)) { \
-     fprintf(stderr, "subterm: unbound var (%ld),  symbol: unknown "	   \
- 	     "(%ld)\n", (long int)cell_tag(Subterm), (long int)TrieSymbolType(symbol));	   \
-      TST_Collection_Error("Trie symbol with bogus tag!", RequiresCleanup); \
-   } \
-   Descend_Into_TST_and_Continue_Search
-
 
 /* ========================================================================= */
 
@@ -1133,38 +1131,68 @@ retrv_unify_constant:
        *  cur_chain to be valid in this case.  In all cases, if a valid
        *  node cannot be found (for cur_chain), we backtrack.
        */
-      if ( IsHashedNode(cur_chain) )
-	/*
-	 *  Can only be here via backtracking...
-	 *  cur_chain should be valid by virtue that we only save valid
-	 *  hashed alt_chains.  Find the next valid TSTN in the chain.
-	 */
-	alt_chain = TSI_NextValidTSTN(TSTN_GetTSIN(cur_chain),ts);
-      else if ( IsHashHeader(cur_chain) ) {
-	/* Can only be here if stepping down onto this level... */
-	TSINptr tsin = TSTHT_IndexHead((TSTHTptr)cur_chain);
-
-	if ( IsNULL(tsin) )
-	  TST_Collection_Error("TSI Structures don't exist", RequiresCleanup);
-	if ( IsValidTS(TSIN_TimeStamp(tsin),ts) ) {
-	  cur_chain = TSIN_TSTNode(tsin);
-	  alt_chain = TSI_NextValidTSTN(tsin,ts);
-	}
-	else
-	  backtrack;
+      if(mode == DESCEND_MODE) {
+        /* fetch next node and all alternatives */
+        int total = 0;
+        
+        if(IsHashHeader(cur_chain)) {
+          TSINptr tsin = TSTHT_IndexHead((TSTHTptr)cur_chain);
+          
+          if (IsNULL(tsin))
+  	        TST_Collection_Error("TSI Structures don't exist", RequiresCleanup);
+  	      if(IsValidTS(TSIN_TimeStamp(tsin),ts)) {
+            cur_chain = TSIN_TSTNode(tsin);
+            tsin = TSI_NextValidTSIN(tsin, ts);
+            
+            /* push all nodes into the choice point stack */
+            while(tsin) {
+              if(!total) {
+                //CPStack_PushRealFrame;
+              }
+              ++total;
+              CPStack_PushFrame(TSIN_TSTNode(tsin));
+              //CPStack_AddAltNode(TSIN_TSTNode(tsin));
+              tsin = TSI_NextValidTSIN(tsin, ts);
+            }
+  	      } else
+            backtrack;
+        } else {
+          /* simple chain */
+          Chain_NextValidTSTN(cur_chain,ts,TSTN_TimeStamp);
+  	      if ( IsNULL(cur_chain) )
+  	        backtrack;
+  	      alt_chain = TSTN_Sibling(cur_chain);
+  	      Chain_NextValidTSTN(alt_chain,ts,TSTN_TimeStamp);
+  	      
+  	      while(alt_chain) {
+  	        if(!total) {
+              //CPStack_PushRealFrame;
+  	        }
+            ++total;
+            //CPStack_AddAltNode(alt_chain);
+            CPStack_PushFrame(alt_chain);
+            alt_chain = TSTN_Sibling(alt_chain);
+            Chain_NextValidTSTN(alt_chain,ts,TSTN_TimeStamp);
+  	      }
+        }
+        
+        if(total) {
+          //printf("Total %d\n", total);
+          //CPStack_MarkTotalAlternatives(total);
+        }
       }
-      else {
-	/*
-	 *  Can get here through forword OR backward execution...
-	 *  Find the next timestamp-valid node in this UnHashed chain.
-	 */
-	Chain_NextValidTSTN(cur_chain,ts,TSTN_TimeStamp);
-	if ( IsNULL(cur_chain) )
-	  backtrack;
-	alt_chain = TSTN_Sibling(cur_chain);
-	Chain_NextValidTSTN(alt_chain,ts,TSTN_TimeStamp);
+      
+      /* backtrack mode or match first node */
+      symbol = TSTN_Symbol(cur_chain);
+      TrieSymbol_Deref(symbol);
+      TermStackLog_PushFrame;
+      if(Unify_with_Variable(CTXTc symbol, subterm, cur_chain)) {
+        Descend_Into_TST_and_Continue_Search;
+      } else {
+        fprintf(stderr, "subterm: unbound var (%ld),  symbol: unknown "
+       	    "(%ld)\n", (long int)cell_tag(subterm), (long int)TrieSymbolType(symbol));
+          TST_Collection_Error("Trie symbol with bogus tag!", RequiresCleanup);
       }
-      CurrentTSTN_UnifyWithVariable(cur_chain,subterm,alt_chain);
       break;
 #ifdef SUBSUMPTION_YAP
       /* SUBTERM IS A LONG INT
@@ -1203,14 +1231,12 @@ retrv_unify_constant:
     /* SUBTERM IS A FLOAT
        ------------------ */
     case TAG_FLOAT:
-      dprintf("Float\n");
       if(IsHashHeader(cur_chain)) {
         Float flt = FloatOfTerm(subterm);
         
         SetMatchAndUnifyChains((Term)flt,cur_chain,alt_chain);
 
-        if(cur_chain != alt_chain) {  
-          dprintf("Flt %lf\n", flt);
+        if(cur_chain != alt_chain) {
           while(IsNonNULL(cur_chain)) {
             if(TrNode_is_float(cur_chain) && TSTN_float((float_tst_node_ptr)cur_chain) == flt) {
               if(IsValidTS(TSTN_GetTSfromTSIN(cur_chain), ts)) {
