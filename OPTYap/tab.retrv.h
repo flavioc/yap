@@ -31,7 +31,7 @@ typedef struct {
 } tstChoicePointFrame;
 
 #define TST_CPSTACK_SIZE 1024
-#define SIZEOF_CHOICE_POINT_FRAME sizeof(tstChoicePointFrame)
+#define SIZEOF_CHOICE_POINT_FRAME (sizeof(tstChoicePointFrame) / sizeof(int))
 
 struct tstCPStack_t {
 	int *top; /* next available location to place an entry */
