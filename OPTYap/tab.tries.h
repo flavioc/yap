@@ -35,6 +35,8 @@ STD_PROTO(static inline ans_node_ptr answer_trie_node_check_insert, (sg_fr_ptr, 
 #else
 #define SUBGOAL_TOKEN_CHECK_INSERT(TAB_ENT, NODE, TOKEN, FLAGS)         \
         NODE = subgoal_trie_node_check_insert(TAB_ENT, NODE, (void*)(TOKEN), FLAGS)
+#define SUB_SUBGOAL_TOKEN_CHECK_INSERT(TAB_ENT, NODE, TOKEN, FLAGS, USE_INDEX)     \
+        NODE = sub_subgoal_trie_node_check_insert(TAB_ENT, NODE, (void*)(TOKEN), FLAGS, USE_INDEX)
 #define ANSWER_TOKEN_CHECK_INSERT(SG_FR, NODE, TOKEN, INSTR)	        \
         NODE = answer_trie_node_check_insert(SG_FR, NODE, TOKEN, INSTR)
 #endif /* GLOBAL_TRIE */
@@ -598,23 +600,42 @@ HASH_SUBGOAL_NODE(sg_node_ptr node) {
 }
 
 static inline void
-hashify_node_list(sg_node_ptr parent_node, sg_node_ptr child_node, int count_nodes, tab_ent_ptr tab_ent) {
+hashify_node_list(sg_node_ptr parent_node, sg_node_ptr child_node, int count_nodes, tab_ent_ptr tab_ent, int flags) {
   /* alloc a new hash */
   sg_hash_ptr hash;
   sg_node_ptr chain_node, next_node, *bucket;
   int entry;
   
-  new_subgoal_trie_hash(hash, count_nodes, tab_ent);
   chain_node = child_node;
-  do {
-    entry = HASH_ENTRY(HASH_SUBGOAL_NODE(chain_node), BASE_HASH_BUCKETS - 1);
-    bucket = Hash_bucket(hash, entry);
-    next_node = TrNode_next(chain_node);
-    TrNode_node_type(chain_node) |= HASHED_INTERIOR_NT;
-    TrNode_next(chain_node) = *bucket;
-    *bucket = chain_node;
-    chain_node = next_node;
-  } while (chain_node);
+  if(IS_SUB_FLAG(flags)) {
+    new_sub_subgoal_trie_hash(hash, count_nodes, tab_ent);
+    
+    do {
+      entry = HASH_ENTRY(HASH_SUBGOAL_NODE(chain_node), BASE_HASH_BUCKETS - 1);
+      bucket = Hash_bucket(hash, entry);
+      next_node = TrNode_next(chain_node);
+      TrNode_node_type(chain_node) |= HASHED_INTERIOR_NT;
+      TrNode_next(chain_node) = *bucket;
+      *bucket = chain_node;
+    
+      if(TrNode_num_gen((subg_node_ptr)chain_node) > 0)
+        gen_index_add((subg_node_ptr)chain_node, (subg_hash_ptr)hash,
+            TrNode_num_gen((subg_node_ptr)chain_node));
+      
+      chain_node = next_node;
+    } while (chain_node);
+  } else {
+    new_subgoal_trie_hash(hash, count_nodes, tab_ent);
+    do {
+      entry = HASH_ENTRY(HASH_SUBGOAL_NODE(chain_node), BASE_HASH_BUCKETS - 1);
+      bucket = Hash_bucket(hash, entry);
+      next_node = TrNode_next(chain_node);
+      TrNode_node_type(chain_node) |= HASHED_INTERIOR_NT;
+      TrNode_next(chain_node) = *bucket;
+      *bucket = chain_node;
+      chain_node = next_node;
+    } while (chain_node);
+  }
   
   TrNode_child(parent_node) = (sg_node_ptr) hash;
 }
@@ -673,7 +694,7 @@ sg_node_ptr subgoal_trie_node_check_insert(tab_ent_ptr tab_ent, sg_node_ptr pare
     count_nodes++;
     if (count_nodes >= MAX_NODES_PER_TRIE_LEVEL) {
       /* alloc a new hash */
-      hashify_node_list(parent_node, child_node, count_nodes, tab_ent);
+      hashify_node_list(parent_node, child_node, count_nodes, tab_ent, flags);
     } else {
       TrNode_child(parent_node) = child_node;
     }

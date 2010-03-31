@@ -427,6 +427,9 @@ extern int Yap_page_size;
 #define ALLOC_SUBGOAL_TRIE_NODE(STR)   ALLOC_STRUCT(STR, GLOBAL_PAGES_sg_node, struct subgoal_trie_node)
 #define FREE_SUBGOAL_TRIE_NODE(STR)    FREE_STRUCT(STR, GLOBAL_PAGES_sg_node, struct subgoal_trie_node)
 
+#define ALLOC_SUB_SUBGOAL_TRIE_NODE(STR) ALLOC_STRUCT(STR, GLOBAL_PAGES_subg_node, struct sub_subgoal_trie_node)
+#define FREE_SUB_SUBGOAL_TRIE_NODE(STR) FREE_STRUCT(STR, GLOBAL_PAGES_subg_node, struct sub_subgoal_trie_node)
+
 #define ALLOC_LONG_SUBGOAL_TRIE_NODE(STR) ALLOC_STRUCT(STR, GLOBAL_PAGES_long_sg_node, struct long_subgoal_trie_node)
 #define FREE_LONG_SUBGOAL_TRIE_NODE(STR)  FREE_STRUCT(STR, GLOBAL_PAGES_long_sg_node, struct long_subgoal_trie_node)
 
@@ -475,10 +478,8 @@ extern int Yap_page_size;
 #define ALLOC_DEPENDENCY_FRAME(STR)    ALLOC_STRUCT(STR, GLOBAL_PAGES_dep_fr, struct dependency_frame)
 #define FREE_DEPENDENCY_FRAME(STR)     FREE_STRUCT(STR, GLOBAL_PAGES_dep_fr, struct dependency_frame)
 
-#ifdef TABLING_ANSWER_LIST
-#define ALLOC_ANSWER_LIST(STR)         ALLOC_STRUCT(STR, GLOBAL_PAGES_ans_list, struct answer_list)
-#define FREE_ANSWER_LIST(STR)          FREE_STRUCT(STR, GLOBAL_PAGES_ans_list, struct answer_list)
-#endif /* TABLING_ANSWER_LIST */
+#define ALLOC_NODE_LIST(STR)         ALLOC_STRUCT(STR, GLOBAL_PAGES_node_list, struct node_list)
+#define FREE_NODE_LIST(STR)          FREE_STRUCT(STR, GLOBAL_PAGES_node_list, struct node_list)
 
 #define ALLOC_SUSPENSION_FRAME(STR)    ALLOC_STRUCT(STR, GLOBAL_PAGES_susp_fr, struct suspension_frame)
 #define FREE_SUSPENSION_FRAME(STR)     FREE_BLOCK(SuspFr_global_start(STR));                         \
@@ -490,11 +491,17 @@ extern int Yap_page_size;
 #define ALLOC_SUBGOAL_TRIE_HASH(STR)   ALLOC_STRUCT(STR, GLOBAL_PAGES_sg_hash, struct subgoal_trie_hash)
 #define FREE_SUBGOAL_TRIE_HASH(STR)    FREE_STRUCT(STR, GLOBAL_PAGES_sg_hash, struct subgoal_trie_hash)
 
+#define ALLOC_SUB_SUBGOAL_TRIE_HASH(STR) ALLOC_STRUCT(STR, GLOBAL_PAGES_subg_hash, struct sub_subgoal_trie_hash)
+#define FREE_SUB_SUBGOAL_TRIE_HASH(STR) FREE_STRUCT(STR, GLOBAL_PAGES_subg_hash, struct sub_subgoal_trie_hash)
+
 #define ALLOC_ANSWER_TRIE_HASH(STR)    ALLOC_STRUCT(STR, GLOBAL_PAGES_ans_hash, struct answer_trie_hash)
 #define FREE_ANSWER_TRIE_HASH(STR)     FREE_STRUCT(STR, GLOBAL_PAGES_ans_hash, struct answer_trie_hash)
 
 #define ALLOC_TST_ANSWER_TRIE_HASH(STR)   ALLOC_STRUCT(STR, GLOBAL_PAGES_tst_answer_trie_hash, struct tst_answer_trie_hash)
 #define FREE_TST_ANSWER_TRIE_HASH(STR)    FREE_STRUCT(STR, GLOBAL_PAGES_tst_answer_trie_hash, struct tst_answer_trie_hash)
+
+#define ALLOC_GEN_INDEX_NODE(STR) ALLOC_STRUCT(STR, GLOBAL_PAGES_gen_index_node, struct gen_index_node)
+#define FREE_GEN_INDEX_NODE(STR) FREE_STRUCT(STR, GLOBAL_PAGES_gen_index_node, struct gen_index_node)
 
 
 /* ------------------------------------- **

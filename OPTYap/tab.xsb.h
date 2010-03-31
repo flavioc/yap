@@ -185,7 +185,7 @@ typedef Functor Psc;
 #define TrieHT_INIT_SIZE BASE_HASH_BUCKETS
 #define hash_opcode _trie_do_hash
 
-#define ALNptr ans_list_ptr
+#define ALNptr node_list_ptr
 #define TabledCallInfo yamop
 
 #define isref IsVarTerm
@@ -197,6 +197,11 @@ typedef Functor Psc;
 #define my_xsb_debug(LOG_LEVEL, MSG) printf("%s", MSG)
 #define dbg_printAnswerTemplate(LOG_LEVEL, OUTPUT, TERM_VECTOR, NUMTERMS)
 #define dbg_printTrieNode(LOG_LEVEL, OUTPUT, LEAF)
+
+#define New_Private_ALN(ListNode, Elem, ListHead) \
+  ALLOC_NODE_LIST(ListNode);  \
+  NodeList_node(ListNode) = Elem; \
+  NodeList_next(ListNode) = ListHead
 
 /* amiops.h */
 #define conditional(Addr) (OUTSIDE(HBREG, Addr, B) || ((Addr) > (CELL *)B_FZ))

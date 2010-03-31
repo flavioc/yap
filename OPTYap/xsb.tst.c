@@ -341,7 +341,6 @@ inline static  void update_timestamps(TSTNptr tstLeaf, TSTNptr tstRoot,
 
   TimeStamp tsNewAnswer;
 
-
   tsNewAnswer = TSTN_TimeStamp(tstRoot) + 1;
   if ( containsTSIs )
     do {

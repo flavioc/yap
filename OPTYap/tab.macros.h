@@ -39,6 +39,8 @@ STD_PROTO(static inline void restore_bindings, (tr_fr_ptr, tr_fr_ptr));
 STD_PROTO(static inline void free_subgoal_trie_hash_chain, (sg_hash_ptr));
 STD_PROTO(static inline void free_answer_trie_hash_chain, (ans_hash_ptr));
 #ifdef TABLING_CALL_SUBSUMPTION
+STD_PROTO(static inline void gen_index_remove, (subg_node_ptr, subg_hash_ptr));
+STD_PROTO(static inline void gen_index_add, (subg_node_ptr, subg_hash_ptr, int));
 STD_PROTO(static inline void free_tst_hash_chain, (tst_ans_hash_ptr));
 STD_PROTO(static inline void free_tst_hash_index, (tst_ans_hash_ptr hash));
 #endif /* TABLING_CALL_SUBSUMPTION */
@@ -70,9 +72,7 @@ STD_PROTO(static inline choiceptr freeze_current_cp, (void));
 STD_PROTO(static inline void resume_frozen_cp, (choiceptr));
 STD_PROTO(static inline void abolish_all_frozen_cps, (void));
 
-#ifdef TABLING_ANSWER_LIST
-STD_PROTO(static inline void free_answer_list, (ans_list_ptr));
-#endif /* TABLING_ANSWER_LIST */
+STD_PROTO(static inline void free_node_list, (node_list_ptr));
 
 #ifdef YAPOR
 STD_PROTO(static inline void pruning_over_tabling_data_structures, (void));
@@ -432,21 +432,21 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
 
 #ifdef TABLING_ANSWER_LIST
 
-#define continuation_next(X)      AnsList_next(X)
-#define continuation_has_next(X)  AnsList_next(X)
-#define continuation_answer(X)    AnsList_answer(X)
+#define continuation_next(X)      NodeList_next(X)
+#define continuation_has_next(X)  NodeList_next(X)
+#define continuation_answer(X)    NodeList_node(X)
 
-#define free_answer_continuation(CONT)  free_answer_list(CONT)
+#define free_answer_continuation(CONT)  free_node_list(CONT)
 
 #define push_new_answer_set(ANS, FIRST, LAST)       \
     { continuation_ptr new_list;                    \
-      ALLOC_ANSWER_LIST(new_list);                  \
-      AnsList_answer(new_list) = (ans_node_ptr)ANS; \
-      AnsList_next(new_list) = NULL;                \
+      ALLOC_NODE_LIST(new_list);                    \
+      NodeList_node(new_list) = (ans_node_ptr)ANS;  \
+      NodeList_next(new_list) = NULL;               \
       if((FIRST) == NULL)                           \
         FIRST = new_list;                           \
       else                                          \
-        AnsList_next(LAST) = new_list;              \
+        NodeList_next(LAST) = new_list;             \
       LAST = new_list;                              \
     }
 
@@ -454,14 +454,14 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
   if(SgFr_has_no_answers(SG_FR))                          \
     SgFr_first_answer(SG_FR) = FIRST;                     \
   else                                                    \
-    AnsList_next(SgFr_last_answer(SG_FR)) = FIRST;        \
+    NodeList_next(SgFr_last_answer(SG_FR)) = FIRST;       \
   SgFr_last_answer(SG_FR) = LAST;                         \
 }
 
 #define CONSUMER_DEFAULT_LAST_ANSWER(SG_FR, DEP_FR)                   \
   ((unsigned long int) (SG_FR) +                                      \
    (unsigned long int) (&SgFr_first_answer((sg_fr_ptr)(DEP_FR))) -    \
-   (unsigned long int) (&AnsList_next((ans_list_ptr)(DEP_FR))))
+   (unsigned long int) (&NodeList_next((node_list_ptr)(DEP_FR))))
 
 #elif defined(TABLING_ANSWER_CHILD)
 
@@ -563,20 +563,17 @@ join_answers_subgoal_frame(sg_fr_ptr sg_fr, continuation_ptr first, continuation
         DepFr_last_answer(DEP_FR) = (continuation_ptr)CONSUMER_DEFAULT_LAST_ANSWER(SG_FR, DEP_FR)
 
 #define new_table_entry(TAB_ENT, PRED_ENTRY, ATOM, ARITY)       \
-        { register sg_node_ptr sg_node;                         \
-          new_root_subgoal_trie_node(sg_node);                  \
-          ALLOC_TABLE_ENTRY(TAB_ENT);                           \
+        { ALLOC_TABLE_ENTRY(TAB_ENT);                           \
           TabEnt_init_lock_field(TAB_ENT);                      \
           TabEnt_pe(TAB_ENT) = PRED_ENTRY;                      \
           TabEnt_atom(TAB_ENT) = ATOM;                          \
           TabEnt_arity(TAB_ENT) = ARITY;                        \
           TabEnt_mode(TAB_ENT) = 0;                             \
-          TabEnt_subgoal_trie(TAB_ENT) = sg_node;               \
+          TabEnt_subgoal_trie(TAB_ENT) = NULL;                  \
           TabEnt_hash_chain(TAB_ENT) = NULL;                    \
           TabEnt_next(TAB_ENT) = GLOBAL_root_tab_ent;           \
           GLOBAL_root_tab_ent = TAB_ENT;                        \
         }
-
 
 #define new_global_trie_node(NODE, ENTRY, CHILD, PARENT, NEXT)  \
         ALLOC_GLOBAL_TRIE_NODE(NODE);                           \
@@ -588,11 +585,30 @@ join_answers_subgoal_frame(sg_fr_ptr sg_fr, continuation_ptr first, continuation
 #define new_root_subgoal_trie_node(NODE)                                  \
         ALLOC_SUBGOAL_TRIE_NODE(NODE);                                    \
         init_subgoal_trie_node(NODE, 0, NULL, NULL, NULL, TRIE_ROOT_NT)
+        
+#define new_root_sub_subgoal_trie_node(NODE)                              \
+        { subg_node_ptr sub_node;                                         \
+          ALLOC_SUB_SUBGOAL_TRIE_NODE(sub_node);                          \
+          NODE = (sg_node_ptr)sub_node;                                   \
+          init_subgoal_trie_node(NODE, 0, NULL, NULL, NULL,               \
+              TRIE_ROOT_NT | CALL_SUB_TRIE_NT);                           \
+          TrNode_num_gen(sub_node) = 0;                                   \
+        }
 
 #define new_subgoal_trie_node(NODE, ENTRY, CHILD, PARENT, NEXT, TYPE)               \
         INCREMENT_GLOBAL_TRIE_REFS(ENTRY);                                          \
         ALLOC_SUBGOAL_TRIE_NODE(NODE);                                              \
         init_subgoal_trie_node(NODE, ENTRY, CHILD, PARENT, NEXT, TYPE)
+        
+#define new_sub_subgoal_trie_node(NODE, ENTRY, CHILD, PARENT, NEXT, TYPE)     \
+      { INCREMENT_GLOBAL_TRIE_REFS(ENTRY);                                    \
+        subg_node_ptr sub_node;                                               \
+        ALLOC_SUB_SUBGOAL_TRIE_NODE(sub_node);                                \
+        NODE = (sg_node_ptr)sub_node;                                         \
+        init_subgoal_trie_node(NODE, ENTRY,                                   \
+            CHILD, PARENT, NEXT, TYPE | CALL_SUB_TRIE_NT);                    \
+        TrNode_num_gen(sub_node) = 0;                                         \
+      }
     
 #define new_long_subgoal_trie_node(NODE, LONG, CHILD, PARENT, NEXT, TYPE) \
         { INCREMENT_GLOBAL_TRIE_REFS((Term)(LONG));                       \
@@ -615,7 +631,10 @@ join_answers_subgoal_frame(sg_fr_ptr sg_fr, continuation_ptr first, continuation
         }
         
 #define new_general_subgoal_trie_node(NODE, DATA, CHILD, PARENT, NEXT, TYPE)  \
-        if(IS_FLOAT_FLAG(TYPE)) {                                             \
+        if(IS_SUB_FLAG(TYPE)) {                                               \
+          Term t = (Term)(DATA);                                              \
+          new_sub_subgoal_trie_node(NODE, t, CHILD, PARENT, NEXT, TYPE);      \
+        } else if(IS_FLOAT_FLAG(TYPE)) {                                      \
           Float flt = *(Float *)(DATA);                                       \
           new_float_subgoal_trie_node(NODE, flt, CHILD, PARENT, NEXT, TYPE);  \
         } else if(IS_LONG_INT_FLAG(TYPE)) {                                   \
@@ -635,7 +654,9 @@ join_answers_subgoal_frame(sg_fr_ptr sg_fr, continuation_ptr first, continuation
         TrNode_node_type(NODE) = TYPE | CALL_TRIE_NT
         
 #define free_subgoal_trie_node(NODE)                                    \
-        if(TrNode_is_long(NODE))  {                                     \
+        if(TrNode_is_sub_call(NODE)) {                                  \
+          FREE_SUB_SUBGOAL_TRIE_NODE(NODE);                             \
+        } else if(TrNode_is_long(NODE))  {                                   \
           FREE_LONG_SUBGOAL_TRIE_NODE(NODE);                            \
         } else if(TrNode_is_float(NODE)) {                              \
           FREE_FLOAT_SUBGOAL_TRIE_NODE(NODE);                           \
@@ -686,12 +707,48 @@ join_answers_subgoal_frame(sg_fr_ptr sg_fr, continuation_ptr first, continuation
 
 #define new_subgoal_trie_hash(HASH, NUM_NODES, TAB_ENT)             \
         ALLOC_SUBGOAL_TRIE_HASH(HASH);                              \
-        TrNode_node_type(HASH) = HASH_HEADER_NT | CALL_TRIE_NT;     \
+        printf("NORMAL HASH TABLE :D :D\n");                        \
+        init_subgoal_trie_hash(HASH, NUM_NODES, TAB_ENT, CALL_TRIE_NT)
+        
+#define init_subgoal_trie_hash(HASH, NUM_NODES, TAB_ENT, TYPE)      \
+        TrNode_node_type(HASH) = HASH_HEADER_NT | TYPE;             \
         Hash_num_buckets(HASH) = BASE_HASH_BUCKETS;                 \
         ALLOC_HASH_BUCKETS(Hash_buckets(HASH), BASE_HASH_BUCKETS);  \
         Hash_num_nodes(HASH) = NUM_NODES;                           \
         SgHash_init_next_field(HASH, TAB_ENT)
-
+        
+#define new_sub_subgoal_trie_hash(HASH, NUM_NODES, TAB_ENT)         \
+        { subg_hash_ptr sub_hash;                                   \
+          ALLOC_SUB_SUBGOAL_TRIE_HASH(sub_hash);                    \
+          HASH = (sg_hash_ptr)sub_hash;                             \
+          init_subgoal_trie_hash(HASH, NUM_NODES, TAB_ENT,          \
+                CALL_SUB_TRIE_NT);                                  \
+          Hash_index_head(sub_hash) = NULL;                         \
+        }
+        
+#define new_general_subgoal_trie_hash(HASH, NUM_NODES, TAB_ENT, FLAGS)  \
+        if(IS_SUB_FLAG(FLAGS)) {                                        \
+          new_sub_subgoal_trie_hash(HASH, NUM_NODES, TAB_ENT);          \
+        } else {                                                        \
+          new_subgoal_trie_hash(HASH, NUM_NODES, TAB_ENT)               \
+        }
+        
+#define free_sub_subgoal_trie_hash(HASH)                            \
+        { gen_index_ptr gen_index;                                  \
+          gen_index = Hash_index_head((subg_hash_ptr)(HASH));       \
+          while(gen_index) {                                        \
+            FREE_GEN_INDEX_NODE(gen_index);                         \
+            gen_index = GNIN_next(gen_index);                       \
+          }                                                         \
+          FREE_SUB_SUBGOAL_TRIE_HASH(HASH);                         \
+        }
+        
+#define free_subgoal_trie_hash(HASH)                                \
+        if(TrNode_is_sub_call(HASH)) {                              \
+          free_sub_subgoal_trie_hash(HASH);                         \
+        } else {                                                    \
+          FREE_SUBGOAL_TRIE_HASH(HASH);                             \
+        }
 
 #define new_answer_trie_hash(HASH, NUM_NODES, SG_FR)                \
         ALLOC_ANSWER_TRIE_HASH(HASH);                               \
@@ -769,8 +826,11 @@ void mark_as_completed(sg_fr_ptr sg_fr) {
 #endif
     SgFr_state(sg_fr) = complete;
 #ifdef TABLING_CALL_SUBSUMPTION
-    if(SgFr_is_sub_producer(sg_fr) && TabEnt_is_exec(SgFr_tab_ent(sg_fr))) {
-      free_tst_hash_index((tst_ans_hash_ptr)SgFr_hash_chain(sg_fr));
+    if(SgFr_is_sub_producer(sg_fr)) {
+      if(TabEnt_is_exec(SgFr_tab_ent(sg_fr))) {
+        free_tst_hash_index((tst_ans_hash_ptr)SgFr_hash_chain(sg_fr));
+      }
+      decrement_generator_path(SgFr_leaf(sg_fr));
     }
     else
 #endif /* TABLING_CALL_SUBSUMPTION */
@@ -960,6 +1020,49 @@ TABLING_ERROR_MESSAGE("rebind_tr < end_tr (function restore_bindings)");
   return;
 }
 
+#ifdef TABLING_CALL_SUBSUMPTION
+static inline void
+gen_index_remove(subg_node_ptr sub_node, subg_hash_ptr hash) {
+  gen_index_ptr gen_index = (gen_index_ptr)TrNode_num_gen(sub_node);
+  gen_index_ptr previous = GNIN_prev(gen_index);
+  gen_index_ptr next = GNIN_next(gen_index);
+  
+  if(previous)
+    GNIN_next(previous) = next;
+  else {
+    if(Hash_index_head(hash) == gen_index)
+      Hash_index_head(hash) = next;
+  }
+  
+  FREE_GEN_INDEX_NODE(gen_index);
+  
+  if(next)
+    GNIN_prev(next) = previous;
+    
+  TrNode_num_gen(sub_node) = 0;
+}
+
+static inline void
+gen_index_add(subg_node_ptr sub_node, subg_hash_ptr hash, int num_gen) {
+  gen_index_ptr index_node;
+  
+  ALLOC_GEN_INDEX_NODE(index_node);
+  
+  GNIN_prev(index_node) = NULL;
+  GNIN_node(index_node) = sub_node;
+  GNIN_num_gen(index_node) = num_gen;
+  
+  gen_index_ptr head = Hash_index_head(hash);
+  
+  GNIN_next(index_node) = head;
+  Hash_index_head(hash) = index_node;
+  if(head)
+    GNIN_prev(head) = index_node;
+    
+  TrNode_num_gen(sub_node) = (unsigned int)index_node;
+}
+#endif /* TABLING_CALL_SUBSUMPTION */
+
 static inline void
 free_answer_trie_node(ans_node_ptr node) {
   if(TrNode_is_answer(node)) {
@@ -976,18 +1079,16 @@ free_answer_trie_node(ans_node_ptr node) {
   }
 }
 
-#ifdef TABLING_ANSWER_LIST
 static inline
-void free_answer_list(ans_list_ptr list) {
-  ans_list_ptr next;
-  
+void free_node_list(node_list_ptr list) {
+  node_list_ptr next;
+
   while(list) {
-    next = AnsList_next(list);
-    FREE_ANSWER_LIST(list);
+    next = NodeList_next(list);
+    FREE_NODE_LIST(list);
     list = next;
   }
 }
-#endif /* TABLING_ANSWER_LIST */
 
 #ifdef TABLING_CALL_SUBSUMPTION
 static inline
@@ -1149,7 +1250,7 @@ void free_subgoal_trie_hash_chain(sg_hash_ptr hash) {
     }
     next_hash = Hash_next(hash);
     FREE_HASH_BUCKETS(Hash_buckets(hash));
-    FREE_SUBGOAL_TRIE_HASH(hash);
+    free_subgoal_trie_hash(hash);
     hash = next_hash;
   }
   return;
@@ -1272,17 +1373,6 @@ build_next_subsumptive_consumer_return_list(subcons_fr_ptr consumer_sg) {
 #ifdef FDEBUG
   dprintf("Answer template after collect: ");
   printAnswerTemplate(stdout, answer_template, size);
-#endif
-  
-#if 0
-  if(!SgFr_first_answer(consumer_sg)) {
-    /* first subsumptive answer found */
-    SgFr_first_answer(consumer_sg) = first;
-  } else {
-    /* append new answers found */
-    AnsList_next(SgFr_last_answer(consumer_sg)) = first;
-  }
-  SgFr_last_answer(consumer_sg) = last;
 #endif
   
   return TRUE;

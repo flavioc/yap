@@ -27,6 +27,7 @@
 #include "tab.tst.h"
 #include "tab.xsb.h"
 #include "tab.utils.h"
+#include "tab.tries.h"
 
 #include "xsb.lookup.c"
 
@@ -82,6 +83,48 @@ create_new_producer_subgoal(sg_node_ptr leaf_node, tab_ent_ptr tab_ent, yamop *c
 /* answer template functions */
 #include "xsb.at.c"
 
+void
+decrement_generator_path(sg_node_ptr node) {
+  dprintf("decrement_generator_path\n");
+  
+  while(!TrNode_is_root(node)) {
+    if(IsHashedNode(node)) {
+      gen_index_ptr gen_index = TrNode_index_node((subg_node_ptr)node);
+      if(GNIN_num_gen(gen_index) == 1) {
+        /* remove index node */
+        gen_index_remove((subg_node_ptr)node, (subg_hash_ptr)TrNode_child(TrNode_parent(node)));
+      } else
+        GNIN_num_gen(gen_index)--;
+    } else
+      TrNode_num_gen((subg_node_ptr)node)--;
+    
+    node = TrNode_parent(node);
+  }
+  
+  TrNode_num_gen((subg_node_ptr)node)--;
+}
+
+static inline void
+update_generator_path(sg_node_ptr leaf, sg_node_ptr root) {
+  dprintf("update_generator_path %x\n", root);
+  
+  while(leaf != root) {
+    if(IsHashedNode(leaf)) {
+      if(TrNode_num_gen((subg_node_ptr)leaf) == 0) {
+        gen_index_add((subg_node_ptr)leaf, (subg_hash_ptr)TrNode_child(TrNode_parent(leaf)), 1);
+      } else {
+        GNIN_num_gen((gen_index_ptr)TrNode_num_gen((subg_node_ptr)leaf))++;
+      }
+    } else {
+      TrNode_num_gen((subg_node_ptr)leaf)++;
+    }
+    
+    leaf = TrNode_parent(leaf);
+  }
+  
+  TrNode_num_gen((subg_node_ptr)root)++;
+}
+
 sg_fr_ptr subsumptive_call_search(yamop *code, CELL *answer_template, CELL **new_local_stack)
 {
   tab_ent_ptr tab_ent = CODE_TABLE_ENTRY(code);
@@ -110,10 +153,12 @@ sg_fr_ptr subsumptive_call_search(yamop *code, CELL *answer_template, CELL **new
     Trail_Unwind_All;
     
     sg_node_ptr leaf = variant_call_cont_insert(tab_ent, (sg_node_ptr)stl_restore_variant_cont(),
-      variant_cont.bindings.num);
+      variant_cont.bindings.num, CALL_SUB_TRIE_NT);
     
     *new_local_stack = extract_template_from_insertion(answer_template);
     sg_fr = create_new_producer_subgoal(leaf, tab_ent, code);
+    
+    update_generator_path(leaf, btRoot);
     
     Trail_Unwind_All;
     
@@ -139,7 +184,7 @@ sg_fr_ptr subsumptive_call_search(yamop *code, CELL *answer_template, CELL **new
         break;
       case SUBSUMPTIVE_PATH:
         if(SgFr_state(subsumer) < complete || TabEnt_is_load(tab_ent)) {
-            btn = variant_call_cont_insert(tab_ent, (sg_node_ptr)stl_restore_variant_cont(), variant_cont.bindings.num);
+            btn = variant_call_cont_insert(tab_ent, (sg_node_ptr)stl_restore_variant_cont(), variant_cont.bindings.num, CALL_SUB_TRIE_NT);
             Trail_Unwind_All;
             sg_fr = create_new_consumer_subgoal(btn, subsumer, tab_ent, code);
             SgFr_answer_template((subcons_fr_ptr)sg_fr) = AT;

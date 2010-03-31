@@ -62,6 +62,16 @@ sg_fr_ptr subgoal_search(yamop *preg, CELL **local_stack_ptr)
 #ifdef TABLE_LOCK_AT_ENTRY_LEVEL
   LOCK(TabEnt_lock(tab_ent));
 #endif /* TABLE_LOCK_LEVEL */
+
+  if(TabEnt_subgoal_trie(tab_ent) == NULL) {
+    sg_node_ptr root;
+    if(TabEnt_is_variant(tab_ent)) {
+      new_root_subgoal_trie_node(root);
+    } else {
+      new_root_sub_subgoal_trie_node(root);
+    }
+    TabEnt_subgoal_trie(tab_ent) = root;
+  }
   
 #ifdef FDEBUG
   dprintf("subgoal_search for ");
@@ -104,6 +114,7 @@ void delete_subgoal_path(sg_fr_ptr sg_fr) {
   sg_node_ptr node = SgFr_leaf(sg_fr);
   sg_node_ptr parent, first_child, old_node, *bucket;
   sg_hash_ptr hash = NULL;
+  int update_generators = TrNode_is_sub_call(node) && TrNode_num_gen((subg_node_ptr)node) > 0;
 
   TrNode_child(node) = NULL;
   
@@ -138,13 +149,17 @@ void delete_subgoal_path(sg_fr_ptr sg_fr) {
   
 process_next:
     
-    if(hash && Hash_num_nodes(hash) == 0) {
-      /* hash without nodes! */
-      TrNode_child(parent) = NULL;
-      FREE_SUBGOAL_TRIE_HASH(hash);
-      dprintf("FREE SUBGOAL TRIE HASH\n");
+    if(hash) {
+      if(Hash_num_nodes(hash) == 0) {
+        /* hash without nodes! */
+        TrNode_child(parent) = NULL;
+        free_subgoal_trie_hash(hash);
+        dprintf("FREE SUBGOAL TRIE HASH\n");
+      } else if(update_generators)
+        /* if we got here then the index exists and GNIN_num_gen(index) == 1 */
+        gen_index_remove((subg_node_ptr)node, (subg_hash_ptr)hash);
     }
-    
+
     old_node = node;
     node = parent;
     free_subgoal_trie_node(old_node);
@@ -153,6 +168,10 @@ process_next:
     hash = NULL;
   }
   
+  printf("Delete_path %d\n", update_generators);
+
+  if(update_generators)
+    decrement_generator_path(node);
 }
 
 #ifdef GLOBAL_TRIE
@@ -561,8 +580,9 @@ void show_table(tab_ent_ptr tab_ent, int show_mode) {
     (show_mode == SHOW_MODE_STATISTICS ? "statistics" : "structure"),
     AtomName(TabEnt_atom(tab_ent)), TabEnt_arity(tab_ent));
     
-  sg_node = TrNode_child(TabEnt_subgoal_trie(tab_ent));
+  sg_node = TabEnt_subgoal_trie(tab_ent);
   if (sg_node) {
+    sg_node = TrNode_child(sg_node);
     if (TabEnt_arity(tab_ent)) {
       char *str = (char *) malloc(sizeof(char) * STR_ARRAY_SIZE);
       int str_index = sprintf(str, "  ?- %s(", AtomName(TabEnt_atom(tab_ent)));
@@ -1035,7 +1055,8 @@ void traverse_trie_node(void* node, char *str, int *str_index_ptr, int *arity, i
   } else if (mode == TRAVERSE_MODE_FLOAT2 || IS_FLOAT_FLAG(flags)) {
     volatile Float dbl;
     if(IS_FLOAT_FLAG(flags)) {
-      if(TrNode_is_call((sg_node_ptr)node))
+      /* XXX */
+      if(TrNode_is_var_call((sg_node_ptr)node))
         dbl = TrNode_float((float_sg_node_ptr)node);
 #ifdef TABLING_CALL_SUBSUMPTION
       else
@@ -1052,7 +1073,8 @@ void traverse_trie_node(void* node, char *str, int *str_index_ptr, int *arity, i
   if (mode == TRAVERSE_MODE_FLOAT || IS_FLOAT_FLAG(flags)) {
     volatile Float dbl;
     if(IS_FLOAT_FLAG(flags)) {
-      if(TrNode_is_call((sg_node_ptr)node))
+      /* XXX */
+      if(TrNode_is_var_call((sg_node_ptr)node))
         flt = TrNode_float((float_sg_node_ptr)node);
       else
         flt = TSTN_float((float_tst_node_ptr)node);
@@ -1099,7 +1121,8 @@ void traverse_trie_node(void* node, char *str, int *str_index_ptr, int *arity, i
     Int li = 0;
     
     if(IS_LONG_INT_FLAG(flags)) {
-      if(TrNode_is_call((sg_node_ptr)node))
+      /* XXX */
+      if(TrNode_is_var_call((sg_node_ptr)node))
         li = TrNode_long_int((long_sg_node_ptr)node);
 #ifdef TABLING_CALL_SUBSUMPTION
       else

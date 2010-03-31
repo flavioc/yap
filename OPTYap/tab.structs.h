@@ -26,12 +26,16 @@
 
 #define Mode_Local              0x10000000L  /* yap_flags[TABLING_MODE_FLAG] + struct table_entry */
 #define Mode_LoadAnswers        0x20000000L  /* yap_flags[TABLING_MODE_FLAG] + struct table_entry */
+#ifdef TABLING_CALL_SUBSUMPTION
 #define Mode_Subsumptive        0x40000000L  /* yap_flags[TABLING_MODE_FLAG] + struct table_entry */
+#define Mode_Grounded           0x80000000L  /* yap_flags[TABLING_MODE_FLAG] + struct table_entry */
+#endif /* TABLING_CALL_SUBSUMPTION */
 
 #define DefaultMode_Local       0x00000001L  /* struct table_entry */
 #define DefaultMode_LoadAnswers 0x00000002L  /* struct table_entry */
 #ifdef TABLING_CALL_SUBSUMPTION
 #define DefaultMode_Subsumptive 0x00000004L  /* struct table_entry */
+#define DefaultMode_Grounded    0x00000008L  /* struct table_entry */
 #endif /* TABLING_CALL_SUBSUMPTION */
 
 #define SetMode_SchedulingOn(X)        (X) |= Mode_SchedulingOn
@@ -49,16 +53,18 @@
 #define SetMode_LoadAnswers(X)         (X) |= Mode_LoadAnswers
 #define SetMode_ExecAnswers(X)         (X) &= ~Mode_LoadAnswers
 #ifdef TABLING_CALL_SUBSUMPTION
-#define SetMode_Subsumptive(X)         (X) |= Mode_Subsumptive
-#define SetMode_Variant(X)             (X) &= ~Mode_Subsumptive
+#define SetMode_Subsumptive(X)         (X) = ((X) | Mode_Subsumptive) & ~Mode_Grounded
+#define SetMode_Variant(X)             (X) &= ~(Mode_Subsumptive | Mode_Grounded)
+#define SetMode_Grounded(X)            (X) = ((X) | Mode_Grounded) & ~Mode_Subsumptive
 #endif /* TABLING_CALL_SUBSUMPTION */
 #define IsMode_Local(X)                ((X) & Mode_Local)
 #define IsMode_Batched(X)              (!IsMode_Local(X))
 #define IsMode_LoadAnswers(X)          ((X) & Mode_LoadAnswers)
 #define IsMode_ExecAnswers(X)          (!IsMode_LoadAnswers(X))
 #ifdef TABLING_CALL_SUBSUMPTION
+#define IsMode_Variant(X)              (!IsMode_Subsumptive(X) && !IsMode_Grounded(X))
 #define IsMode_Subsumptive(X)          ((X) & Mode_Subsumptive)
-#define IsMode_Variant(X)              (!IsMode_Subsumptive(X))
+#define IsMode_Grounded(X)             ((X) & Mode_Grounded)
 #endif /* TABLING_CALL_SUBSUMPTION */
 
 #define SetDefaultMode_Local(X)        (X) |= DefaultMode_Local
@@ -66,8 +72,9 @@
 #define SetDefaultMode_LoadAnswers(X)  (X) |= DefaultMode_LoadAnswers
 #define SetDefaultMode_ExecAnswers(X)  (X) &= ~DefaultMode_LoadAnswers
 #ifdef TABLING_CALL_SUBSUMPTION
-#define SetDefaultMode_Subsumptive(X)  (X) |= DefaultMode_Subsumptive
-#define SetDefaultMode_Variant(X)      (X) &= ~DefaultMode_Subsumptive
+#define SetDefaultMode_Subsumptive(X)  (X) = ((X) | DefaultMode_Subsumptive) & ~DefaultMode_Grounded
+#define SetDefaultMode_Variant(X)      (X) &= ~(DefaultMode_Subsumptive | DefaultMode_Grounded)
+#define SetDefaultMode_Grounded(X)     (X) = ((X) | DefaultMode_Grounded) & ~DefaultMode_Subsumptive
 #endif /* TABLING_CALL_SUBSUMPTION */
 #define IsDefaultMode_Local(X)         ((X) & DefaultMode_Local)
 #define IsDefaultMode_Batched(X)       (!IsDefaultMode_Local(X))
@@ -75,7 +82,8 @@
 #define IsDefaultMode_ExecAnswers(X)   (!IsDefaultMode_LoadAnswers(X))
 #ifdef TABLING_CALL_SUBSUMPTION
 #define IsDefaultMode_Subsumptive(X)   ((X) & DefaultMode_Subsumptive)
-#define IsDefaultMode_Variant(X)       (!IsDefaultMode_Subsumptive(X))
+#define IsDefaultMode_Variant(X)       (!IsDefaultMode_Subsumptive(X) && !IsDefaultMode_Grounded(X))
+#define IsDefaultMode_Grounded(X)      ((X) & DefaultMode_Grounded)
 #endif /* TABLING_CALL_SUBSUMPTION */
 
 /* ---------------------------- **
@@ -106,12 +114,14 @@ typedef struct table_entry {
 
 #define TabEnt_is_load(X)         (IsMode_LoadAnswers(TabEnt_mode(X)))
 #define TabEnt_is_exec(X)         (IsMode_ExecAnswers(TabEnt_mode(X)))
-#define TabEnt_is_empty(X)        (TrNode_child(TabEnt_subgoal_trie(X)) == NULL)
+#define TabEnt_is_empty(X)        (TabEnt_subgoal_trie(X) == NULL)
 #ifdef TABLING_CALL_SUBSUMPTION
 #define TabEnt_is_variant(X)      (IsMode_Variant(TabEnt_mode(X)))
 #define TabEnt_is_subsumptive(X)  (IsMode_Subsumptive(TabEnt_mode(X)))
+#define TabEnt_is_grounded(X)     (IsMode_Grounded(TabEnt_mode(X)))
 #define TabEnt_set_variant(X)     { if(TabEnt_is_empty(X)) SetMode_Variant(TabEnt_mode(X)); }
 #define TabEnt_set_subsumptive(X) { if(TabEnt_is_empty(X)) SetMode_Subsumptive(TabEnt_mode(X)); }
+#define TabEnt_set_grounded(X)    { if(TabEnt_is_empty(X)) SetMode_Grounded(TabEnt_mode(X)); }
 #define TabEnt_set_load(X)        { if(TabEnt_is_empty(X) || TabEnt_is_variant(X)) SetMode_LoadAnswers(TabEnt_mode(X)); }
 #define TabEnt_set_exec(X)        { if(TabEnt_is_empty(X) || TabEnt_is_variant(X)) SetMode_ExecAnswers(TabEnt_mode(X)); }
 #else
@@ -134,7 +144,8 @@ enum Types_of_Trie_Nodes {
   FLOAT_NT = 0x20,
   CALL_TRIE_NT = 0x00,
   ANSWER_TRIE_NT = 0x40,
-  TST_TRIE_NT = 0x80
+  TST_TRIE_NT = 0x80,
+  CALL_SUB_TRIE_NT = 0xC0
 };
 
 #define HASHED_NODE_MASK        0x01
@@ -142,6 +153,7 @@ enum Types_of_Trie_Nodes {
 #define TRIE_TYPE_MASK          0xC0
 #define IS_LONG_INT_FLAG(FLAG)  ((FLAG) & LONG_INT_NT)
 #define IS_FLOAT_FLAG(FLAG)     ((FLAG) & FLOAT_NT)
+#define IS_SUB_FLAG(FLAG)       ((FLAG) & CALL_SUB_TRIE_NT)
 
 typedef unsigned long time_stamp;
 
@@ -163,6 +175,7 @@ typedef struct global_trie_node {
 } *gt_node_ptr;
 #endif /* GLOBAL_TRIE */
 
+/* Subgoal trie nodes */
 typedef struct subgoal_trie_node {
   struct basic_trie_info basic_info;
 #ifdef TABLE_LOCK_AT_NODE_LEVEL
@@ -181,15 +194,28 @@ typedef struct subgoal_trie_node {
 
 } *sg_node_ptr;
 
-typedef struct long_subgoal_trie_node {
-  struct subgoal_trie_node base;
-  Int long_int;
-} *long_sg_node_ptr;
+#define EXTEND_STRUCT(BASE_STRUCT, BASE_POINTER, NAME, NEW_FIELD) \
+  typedef struct NAME##_##BASE_STRUCT { \
+    struct BASE_STRUCT base;  \
+    NEW_FIELD;  \
+  } * NAME##_##BASE_POINTER
 
-typedef struct float_subgoal_trie_node {
+EXTEND_STRUCT(subgoal_trie_node, sg_node_ptr, long, Int long_int);
+EXTEND_STRUCT(subgoal_trie_node, sg_node_ptr, float, Float float_val);
+
+#ifdef TABLING_CALL_SUBSUMPTION
+typedef struct sub_subgoal_trie_node {
   struct subgoal_trie_node base;
-  Float float_val;
-} *float_sg_node_ptr;
+  unsigned num_generators;
+} *subg_node_ptr;
+
+#define TrNode_num_gen(X)     ((X)->num_generators)
+#define TrNode_index_node(X)  ((gen_index_ptr)TrNode_num_gen(X))
+#endif /* TABLING_CALL_SUBSUMPTION */
+
+/* XXX */
+EXTEND_STRUCT(sub_subgoal_trie_node, subg_node_ptr, long, Int long_int);
+EXTEND_STRUCT(sub_subgoal_trie_node, subg_node_ptr, float, Float float_val);
 
 typedef struct answer_trie_node {
   struct basic_trie_info basic_info;
@@ -207,7 +233,7 @@ typedef struct answer_trie_node {
 #else
   Term entry;
 #endif /* GLOBAL_TRIE */
-  
+
 #ifdef YAPOR
   int or_arg;               /* u.Otapl.or_arg */
 #endif /* YAPOR */
@@ -229,7 +255,8 @@ typedef struct answer_trie_node {
 #define TrNode_is_float(X)     (IS_FLOAT_FLAG(TrNode_node_type(X)))
 #define TrNode_long_int(X)     ((X)->long_int)
 #define TrNode_float(X)        ((X)->float_val)
-#define TrNode_is_call(X)      (TrNode_trie_type(X) == CALL_TRIE_NT)
+#define TrNode_is_var_call(X)  (TrNode_trie_type(X) == CALL_TRIE_NT)
+#define TrNode_is_sub_call(X)  (TrNode_trie_type(X) == CALL_SUB_TRIE_NT)
 #define TrNode_is_tst(X)       (TrNode_trie_type(X) == TST_TRIE_NT)
 #define TrNode_is_answer(X)    (TrNode_trie_type(X) == ANSWER_TRIE_NT)
 #define TrNode_is_root(X)      (TrNode_node_type(X) & TRIE_ROOT_NT)
@@ -260,6 +287,34 @@ typedef struct subgoal_trie_hash {
   struct subgoal_trie_hash *next;
 } *sg_hash_ptr;
 
+/* ----------------------------- */
+
+/* ----------------------- **
+** generator indexes       **
+** ----------------------- */
+
+typedef struct gen_index_node *gen_index_ptr;
+struct gen_index_node {
+  gen_index_ptr prev;
+  gen_index_ptr next;
+  unsigned num_generators;
+  subg_node_ptr node;
+};
+
+#define GNIN_node(X)        ((X)->node)
+#define GNIN_num_gen(X)     ((X)->num_generators)
+#define GNIN_prev(X)        ((X)->prev)
+#define GNIN_next(X)        ((X)->next)
+
+typedef struct sub_subgoal_trie_hash {
+  struct subgoal_trie_hash base;
+  gen_index_ptr index_head;
+} *subg_hash_ptr;
+
+#define Hash_index_head(X)    ((X)->index_head)
+
+/* ---------------------------------- */
+
 typedef struct answer_trie_hash {
   /* the first field is used for compatibility **
   ** with the answer_trie_node data structure  */
@@ -281,17 +336,17 @@ typedef struct answer_trie_hash {
 **      Struct answer_list        **
 ** ------------------------------ */
 
-typedef struct answer_list {
-  struct answer_trie_node *answer;
-  struct answer_list *next;
-} *ans_list_ptr;
+typedef struct node_list {
+  struct answer_trie_node *node;
+  struct node_list *next;
+} *node_list_ptr;
 
-#define AnsList_answer(X)       ((X)->answer)
-#define AnsList_next(X)         ((X)->next)
+#define NodeList_node(X)       ((X)->node)
+#define NodeList_next(X)       ((X)->next)
 
 #ifdef TABLING_ANSWER_LIST
 
-typedef ans_list_ptr continuation_ptr;
+typedef node_list_ptr continuation_ptr;
 
 #elif defined(TABLING_ANSWER_CHILD)
 

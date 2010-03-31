@@ -3793,6 +3793,8 @@ p_set_yap_flags(void)
 	      /* subsumptive / variant */
 	      if (IsDefaultMode_Subsumptive(TabEnt_mode(tab_ent)))
           TabEnt_set_subsumptive(tab_ent)
+        else if(IsDefaultMode_Grounded(TabEnt_mode(tab_ent)))
+          TabEnt_set_grounded(tab_ent)
         else
           TabEnt_set_variant(tab_ent)
 #endif /* TABLING_CALL_SUBSUMPTION */
@@ -3847,6 +3849,14 @@ p_set_yap_flags(void)
         tab_ent = TabEnt_next(tab_ent);
       }
       SetMode_Subsumptive(yap_flags[TABLING_MODE_FLAG]);
+      SetMode_ChecksOn(yap_flags[TABLING_MODE_FLAG]);
+    } else if(value == 7) { /* grounded */
+      tab_ent_ptr tab_ent = GLOBAL_root_tab_ent;
+      while(tab_ent) {
+        TabEnt_set_grounded(tab_ent);
+        tab_ent = TabEnt_next(tab_ent);
+      }
+      SetMode_Grounded(yap_flags[TABLING_MODE_FLAG]);
       SetMode_ChecksOn(yap_flags[TABLING_MODE_FLAG]);
 #endif /* TABLING_CALL_SUBSUMPTION */
     }

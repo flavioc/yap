@@ -88,7 +88,7 @@ void show_global_trie(void);
 ** --------------- */
 
 #ifdef TABLING
-sg_node_ptr variant_call_cont_insert(tab_ent_ptr tab_ent, sg_node_ptr current_node, int count_vars);
+sg_node_ptr variant_call_cont_insert(tab_ent_ptr tab_ent, sg_node_ptr current_node, int count_vars, int flags);
 sg_fr_ptr variant_call_search(yamop *code, CELL *local_stack, CELL **new_local_stack);
 ans_node_ptr variant_answer_search(sg_fr_ptr sg_fr, CELL *subs_ptr);
 void consume_variant_answer(ans_node_ptr ans_node, int size, CELL *answer_template);
@@ -100,6 +100,7 @@ void consume_variant_answer(ans_node_ptr ans_node, int size, CELL *answer_templa
 
 #ifdef TABLING
 #ifdef TABLING_CALL_SUBSUMPTION
+void decrement_generator_path(sg_node_ptr start);
 void* stl_restore_variant_cont(CTXTdecl);
 void *iter_sub_trie_lookup(CTXTdeclc void *trieNode, TriePathType *pathType);
 void initSubsumptiveLookup(CTXTdecl);

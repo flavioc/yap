@@ -65,55 +65,15 @@ get_subgoal_frame_from_node(sg_node_ptr leaf_node, tab_ent_ptr tab_ent, yamop *c
 
 /* trail stack must be unwind later!! */
 sg_node_ptr
-variant_call_cont_insert(tab_ent_ptr tab_ent, sg_node_ptr current_node, int count_vars) {
-  Term t;
-  int j;
+variant_call_cont_insert(tab_ent_ptr tab_ent, sg_node_ptr current_node, int count_vars, int flags) {
+  int node_type;
+  Term symbol;
+  Int li;
+  Float flt;
   
   while(!TermStack_IsEmpty) {
-    TermStack_Pop(t);
-    t = Deref(t);
-
-    if (IsVarTerm(t)) {
-      if (IsTableVarTerm(t)) {
-        t = MakeTableVarTerm(VarIndexOfTerm(t));
-        SUBGOAL_TOKEN_CHECK_INSERT(tab_ent, current_node, t, INTERIOR_NT);
-      } else {
-        if (count_vars == MAX_TABLE_VARS)
-          Yap_Error(INTERNAL_ERROR, TermNil, "MAX_TABLE_VARS exceeded (subgoal_search)");
-        Trail_Push(t);
-        *((CELL *)t) = GLOBAL_table_var_enumerator(count_vars);
-        t = MakeNewTableVarTerm(count_vars); /* new variable */
-        count_vars++;
-        SUBGOAL_TOKEN_CHECK_INSERT(tab_ent, current_node, t, INTERIOR_NT);
-      }
-    } else if (IsAtomOrIntTerm(t)) {
-      SUBGOAL_TOKEN_CHECK_INSERT(tab_ent, current_node, t, INTERIOR_NT);
-    } else if (IsPairTerm(t)) {
-      SUBGOAL_TOKEN_CHECK_INSERT(tab_ent, current_node, AbsPair(NULL), INTERIOR_NT);
-
-      TermStack_Push(*(RepPair(t) + 1));
-      TermStack_Push(*(RepPair(t)));
-    } else if (IsApplTerm(t)) {
-      Functor f = FunctorOfTerm(t);
-      
-      if (f == FunctorDouble) {
-        Float dbl = FloatOfTerm(t);
-        SUBGOAL_TOKEN_CHECK_INSERT(tab_ent, current_node, &dbl, INTERIOR_NT | FLOAT_NT);
-      } else if (f == FunctorLongInt) {
-        Int li = LongIntOfTerm(t);
-        SUBGOAL_TOKEN_CHECK_INSERT(tab_ent, current_node, &li, INTERIOR_NT | LONG_INT_NT);
-      } else if (f == FunctorDBRef) {
-        Yap_Error(INTERNAL_ERROR, TermNil, "unsupported type tag (FunctorDBRef in subgoal_search)");
-      } else if (f == FunctorBigInt) {
-        Yap_Error(INTERNAL_ERROR, TermNil, "unsupported type tag (FunctorBigInt in subgoal_search)");	  
-      } else {
-        SUBGOAL_TOKEN_CHECK_INSERT(tab_ent, current_node, AbsAppl((Term *)f), INTERIOR_NT);
-        for (j = ArityOfFunctor(f); j >= 1; j--)
-          TermStack_Push(*(RepAppl(t) + j));
-      }
-    } else {
-      Yap_Error(INTERNAL_ERROR, TermNil, "unknown type tag (subgoal_search)");
-    }
+    ProcessNextSubtermFromTrieStacks(symbol,node_type,count_vars)
+    SUBGOAL_TOKEN_CHECK_INSERT(tab_ent, current_node, symbol, node_type | flags);
   }
   
   return current_node;
@@ -132,7 +92,7 @@ variant_call_search(yamop *code, CELL *local_stack, CELL **new_local_stack) {
   TermStack_PushLowToHighVector(XREGS + 1, arity); /* push goal arguments */
   
   /* insert / check variant path */
-  leaf = variant_call_cont_insert(tab_ent, top_node, 0);
+  leaf = variant_call_cont_insert(tab_ent, top_node, 0, CALL_TRIE_NT);
   
   /* build substitution factor */
   *new_local_stack = extract_template_from_insertion(local_stack);

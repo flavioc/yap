@@ -74,6 +74,7 @@ static Int p_table(void);
 #ifdef TABLING_CALL_SUBSUMPTION
 static Int p_use_variant_tabling(void);
 static Int p_use_subsumptive_tabling(void);
+static Int p_use_grounded_tabling(void);
 #endif /* TABLING_CALL_SUBSUMPTION */
 
 static Int p_tabling_mode(void);
@@ -160,6 +161,7 @@ void Yap_init_optyap_preds(void) {
 #ifdef TABLING_CALL_SUBSUMPTION
   Yap_InitCPred("$c_use_variant_tabling", 2, p_use_variant_tabling, SafePredFlag|SyncPredFlag|HiddenPredFlag);
   Yap_InitCPred("$c_use_subsumptive_tabling", 2, p_use_subsumptive_tabling, SafePredFlag|SyncPredFlag|HiddenPredFlag);
+  Yap_InitCPred("$c_use_grounded_tabling", 2, p_use_grounded_tabling, SafePredFlag|SyncPredFlag|HiddenPredFlag);
 #endif /* TABLING_CALL_SUBSUMPTION */
   Yap_InitCPred("$c_abolish_table", 2, p_abolish_table, SafePredFlag|SyncPredFlag|HiddenPredFlag);
   Yap_InitCPred("abolish_all_tables", 0, p_abolish_all_tables, SafePredFlag|SyncPredFlag);
@@ -668,6 +670,13 @@ void tab_entry_set_subsumptive_mode(tab_ent_ptr tab_ent) {
     TabEnt_set_subsumptive(tab_ent)
 }
 
+static inline
+void tab_entry_set_grounded_mode(tab_ent_ptr tab_ent) {
+  SetDefaultMode_Grounded(TabEnt_mode(tab_ent));
+  if (IsMode_ChecksOff(yap_flags[TABLING_MODE_FLAG]))
+    TabEnt_set_grounded(tab_ent)
+}
+
 static
 Int p_use_variant_tabling(void) {
   tab_ent_ptr tab_ent = get_pred_table_entry(Deref(ARG1), Deref(ARG2));
@@ -694,6 +703,20 @@ Int p_use_subsumptive_tabling(void) {
     return TRUE;
   } else
     return TabEnt_is_subsumptive(tab_ent);
+}
+
+static
+Int p_use_grounded_tabling(void) {
+  tab_ent_ptr tab_ent = get_pred_table_entry(Deref(ARG1), Deref(ARG2));
+  
+  if(!tab_ent)
+    return FALSE;
+  
+  if(TabEnt_is_empty(tab_ent)) {
+    tab_entry_set_grounded_mode(tab_ent);
+    return TRUE;
+  } else
+    return TabEnt_is_grounded(tab_ent);
 }
 #endif /* TABLING_CALL_SUBSUMPTION */
 
@@ -732,6 +755,8 @@ Int p_tabling_mode(void) {
     /* subsumptive / variant */
     if (IsDefaultMode_Subsumptive(TabEnt_mode(tab_ent)))
       mode = MkAtomTerm(Yap_LookupAtom("subsumptive"));
+    else if(IsDefaultMode_Grounded(TabEnt_mode(tab_ent)))
+      mode = MkAtomTerm(Yap_LookupAtom("grounded"));
     else
       mode = MkAtomTerm(Yap_LookupAtom("variant"));
     t = MkPairTerm(mode, t);
@@ -759,6 +784,8 @@ Int p_tabling_mode(void) {
     /* subsumptive / variant */
     if(IsMode_Subsumptive(TabEnt_mode(tab_ent)))
       mode = MkAtomTerm(Yap_LookupAtom("subsumptive"));
+    else if(IsMode_Grounded(TabEnt_mode(tab_ent)))
+      mode = MkAtomTerm(Yap_LookupAtom("grounded"));
     else
       mode = MkAtomTerm(Yap_LookupAtom("variant"));
     t = MkPairTerm(mode, t);
@@ -810,34 +837,49 @@ Int p_tabling_mode(void) {
       tab_entry_set_subsumptive_mode(tab_ent);
       return(TRUE);
     }
+    
+    if(strcmp(str_val, "grounded") == 0) {
+      tab_entry_set_grounded_mode(tab_ent);
+      return TRUE;
+    }
 #endif /* TABLING_CALL_SUBSUMPTION */
   }
   return (FALSE);
 }
 
+static inline void
+abolish_table(tab_ent_ptr tab_ent) {
+  sg_hash_ptr hash;
+  sg_node_ptr sg_node;
+
+  hash = TabEnt_hash_chain(tab_ent);
+  TabEnt_hash_chain(tab_ent) = NULL;
+  free_subgoal_trie_hash_chain(hash);
+  if(TabEnt_subgoal_trie(tab_ent)) {
+    sg_node = TrNode_child(TabEnt_subgoal_trie(tab_ent));
+    
+    free_subgoal_trie_node(TabEnt_subgoal_trie(tab_ent));
+    TabEnt_subgoal_trie(tab_ent) = NULL;
+    
+    if (sg_node) {
+#ifdef GLOBAL_TRIE
+      free_subgoal_trie_branch(sg_node, TabEnt_arity(tab_ent), TRAVERSE_POSITION_FIRST);
+#else
+      free_subgoal_trie_branch(sg_node, TabEnt_arity(tab_ent), 0, TRAVERSE_POSITION_FIRST);
+#endif /* GLOBAL_TRIE */
+    }
+  }
+}
 
 static
 Int p_abolish_table(void) {
   tab_ent_ptr tab_ent;
-  sg_hash_ptr hash;
-  sg_node_ptr sg_node;
 
   tab_ent = get_pred_table_entry(Deref(ARG1), Deref(ARG2));
   if(!tab_ent)
     return (FALSE);
-  
-  hash = TabEnt_hash_chain(tab_ent);
-  TabEnt_hash_chain(tab_ent) = NULL;
-  free_subgoal_trie_hash_chain(hash);
-  sg_node = TrNode_child(TabEnt_subgoal_trie(tab_ent));
-  if (sg_node) {
-    TrNode_child(TabEnt_subgoal_trie(tab_ent)) = NULL;
-#ifdef GLOBAL_TRIE
-    free_subgoal_trie_branch(sg_node, TabEnt_arity(tab_ent), TRAVERSE_POSITION_FIRST);
-#else
-    free_subgoal_trie_branch(sg_node, TabEnt_arity(tab_ent), 0, TRAVERSE_POSITION_FIRST);
-#endif /* GLOBAL_TRIE */
-  }
+
+  abolish_table(tab_ent);
   return (TRUE);
 }
 
@@ -845,23 +887,10 @@ Int p_abolish_table(void) {
 static
 Int p_abolish_all_tables(void) {
   tab_ent_ptr tab_ent;
-  sg_hash_ptr hash;
-  sg_node_ptr sg_node;
 
   tab_ent = GLOBAL_root_tab_ent;
   while(tab_ent) {
-    hash = TabEnt_hash_chain(tab_ent);
-    TabEnt_hash_chain(tab_ent) = NULL;
-    free_subgoal_trie_hash_chain(hash);
-    sg_node = TrNode_child(TabEnt_subgoal_trie(tab_ent));
-    if (sg_node) {
-      TrNode_child(TabEnt_subgoal_trie(tab_ent)) = NULL;
-#ifdef GLOBAL_TRIE
-      free_subgoal_trie_branch(sg_node, TabEnt_arity(tab_ent), TRAVERSE_POSITION_FIRST);
-#else
-      free_subgoal_trie_branch(sg_node, TabEnt_arity(tab_ent), 0, TRAVERSE_POSITION_FIRST);
-#endif /* GLOBAL_TRIE */
-    }
+    abolish_table(tab_ent);
     tab_ent = TabEnt_next(tab_ent);
   }
   return (TRUE);

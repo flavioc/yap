@@ -863,7 +863,8 @@ void *iter_sub_trie_lookup(CTXTdeclc void *trieNode, TriePathType *pathType) {
             {
               int go = FALSE;
               
-              if(TrNode_is_call(pCurrentBTN))
+              /* XXX */
+              if(TrNode_is_var_call(pCurrentBTN))
                 go = (flt == TrNode_float((float_sg_node_ptr)pCurrentBTN));
               else
                 go = (flt == TSTN_float((float_tst_node_ptr)pCurrentBTN));
@@ -893,7 +894,8 @@ void *iter_sub_trie_lookup(CTXTdeclc void *trieNode, TriePathType *pathType) {
             {
               int go = FALSE;
               
-              if(TrNode_is_call(pCurrentBTN))
+              /* XXX */
+              if(TrNode_is_var_call(pCurrentBTN))
                 go = (li == TrNode_long_int((long_sg_node_ptr)pCurrentBTN));
               else
                 go = (li == TSTN_long_int((long_tst_node_ptr)pCurrentBTN));

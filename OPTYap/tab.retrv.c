@@ -28,6 +28,8 @@
 #include "tab.retrv.h"
 #include "tab.utils.h"
 #include "tab.xsb_common.h"
+#include "tab.collect.h"
+#include "xsb.collect_utils.h"
 
 #include "xsb.retrv.c"
 

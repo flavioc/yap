@@ -488,6 +488,8 @@ extern int AnsVarCtr;
  switch(cell_tag(subterm)) { \
    case XSB_REF: \
      if(!IsStandardizedVariable(subterm)) {  \
+       if (StdVarNum == MAX_TABLE_VARS)                \
+         Yap_Error(INTERNAL_ERROR, TermNil, "MAX_TABLE_VARS exceeded");  \
        StandardizeVariable(subterm, StdVarNum);  \
        Trail_Push(subterm);  \
        Symbol = EncodeNewTrieVar(StdVarNum); \
@@ -509,7 +511,6 @@ extern int AnsVarCtr;
      TermStack_PushListArgs(subterm);  \
      break;  \
    case TAG_LONG_INT:                  \
-     dprintf("Long int ...\n");         \
      li = LongIntOfTerm(subterm);      \
      Symbol = (Cell)&li;               \
      NodeType |= LONG_INT_NT;          \

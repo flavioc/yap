@@ -62,7 +62,8 @@ void symstkPrintNextTrieTerm(CTXTdeclc FILE *fp, xsbBool list_recursion)
       
       SymbolStack_PopOther(node, BTNptr);
       
-      if(TrNode_is_call(node))
+      /* XXX */
+      if(TrNode_is_var_call(node))
         flt = TrNode_float((float_sg_node_ptr)node);
 #ifdef TABLING_CALL_SUBSUMPTION
       else
@@ -80,7 +81,8 @@ void symstkPrintNextTrieTerm(CTXTdeclc FILE *fp, xsbBool list_recursion)
       
       SymbolStack_PopOther(node, BTNptr);
       
-      if(TrNode_is_call(node))
+      /* XXX */
+      if(TrNode_is_var_call(node))
         li = TrNode_long_int((long_sg_node_ptr)node);
 #ifdef TABLING_CALL_SUBSUMPTION
       else

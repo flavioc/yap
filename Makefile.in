@@ -280,6 +280,7 @@ OR_OBJECTS = \
 	or.engine.o or.cowengine.o or.sbaengine.o \
 	or.threadengine.o or.scheduler.o or.cut.o      \
 	tab.tries.o tab.stack.o tab.tst.o	\
+	tab.collect.o tab.specific.o \
 	tab.retrv.o tab.unify.o \
 	tab.utils.o tab.suspend.o tab.var.o \
 	tab.subsumption.o
@@ -481,8 +482,30 @@ tab.unify.o: $(srcdir)/OPTYap/tab.unify.c \
 	$(srcdir)/OPTYap/tab.xsb_common.h
 	$(CC) -c $(CFLAGS) $(srcdir)/OPTYap/tab.unify.c -o $@
 
+tab.collect.o: $(srcdir)/OPTYap/tab.collect.c \
+	$(srcdir)/OPTYap/xsb.collect.c \
+	$(srcdir)/OPTYap/xsb.collect.h \
+	$(srcdir)/OPTYap/tab.collect.h \
+	$(srcdir)/OPTYap/tab.utils.h \
+	$(srcdir)/OPTYap/tab.structs.h \
+	$(srcdir)/OPTYap/tab.xsb.h \
+	$(srcdir)/OPTYap/tab.xsb_common.h
+	$(CC) -c $(CFLAGS) $(srcdir)/OPTYap/tab.collect.c -o $@
+
+tab.specific.o: $(srcdir)/OPTYap/tab.specific.c \
+	$(srcdir)/OPTYap/tab.specific.h \
+	$(srcdir)/OPTYap/xsb.collect.h \
+	$(srcdir)/OPTYap/xsb.collect_utils.h \
+	$(srcdir)/OPTYap/tab.utils.h \
+	$(srcdir)/OPTYap/tab.structs.h \
+	$(srcdir)/OPTYap/tab.xsb.h \
+	$(srcdir)/OPTYap/tab.xsb_common.h
+	$(CC) -c $(CFLAGS) $(srcdir)/OPTYap/tab.specific.c -o $@
+
 tab.retrv.o: $(srcdir)/OPTYap/tab.retrv.c \
 	$(srcdir)/OPTYap/xsb.retrv.c \
+	$(srcdir)/OPTYap/xsb.collect.h \
+	$(srcdir)/OPTYap/xsb.collect_utils.h \
 	$(srcdir)/OPTYap/tab.retrv.h \
 	$(srcdir)/OPTYap/tab.utils.h \
 	$(srcdir)/OPTYap/tab.structs.h \
