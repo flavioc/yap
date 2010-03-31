@@ -121,9 +121,11 @@ void Yap_init_global(int max_table_size, int n_workers, int sch_loop, int delay_
   INIT_PAGES(GLOBAL_PAGES_sg_hash, struct subgoal_trie_hash);
   INIT_PAGES(GLOBAL_PAGES_subg_hash, struct sub_subgoal_trie_hash);
   INIT_PAGES(GLOBAL_PAGES_ans_hash, struct answer_trie_hash);
-  
+
 #ifdef TABLING_CALL_SUBSUMPTION
   INIT_PAGES(GLOBAL_PAGES_subg_node, struct sub_subgoal_trie_node);
+  INIT_PAGES(GLOBAL_PAGES_long_subg_node, struct long_sub_subgoal_trie_node);
+  INIT_PAGES(GLOBAL_PAGES_float_subg_node, struct float_sub_subgoal_trie_node);
   INIT_PAGES(GLOBAL_PAGES_tst_ans_node, struct time_stamped_trie_node);
   INIT_PAGES(GLOBAL_PAGES_long_tst_node, struct long_tst_node);
   INIT_PAGES(GLOBAL_PAGES_float_tst_node, struct float_tst_node);
@@ -131,7 +133,7 @@ void Yap_init_global(int max_table_size, int n_workers, int sch_loop, int delay_
   INIT_PAGES(GLOBAL_PAGES_tst_answer_trie_hash, struct tst_answer_trie_hash);
   INIT_PAGES(GLOBAL_PAGES_gen_index_node, struct gen_index_node);
 #endif
-  
+
   INIT_PAGES(GLOBAL_PAGES_dep_fr, struct dependency_frame);
 #endif /* TABLING */
 #if defined(YAPOR) && defined(TABLING)

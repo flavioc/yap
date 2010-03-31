@@ -1054,15 +1054,9 @@ void traverse_trie_node(void* node, char *str, int *str_index_ptr, int *arity, i
     mode = TRAVERSE_MODE_FLOAT2;
   } else if (mode == TRAVERSE_MODE_FLOAT2 || IS_FLOAT_FLAG(flags)) {
     volatile Float dbl;
-    if(IS_FLOAT_FLAG(flags)) {
-      /* XXX */
-      if(TrNode_is_var_call((sg_node_ptr)node))
-        dbl = TrNode_float((float_sg_node_ptr)node);
-#ifdef TABLING_CALL_SUBSUMPTION
-      else
-        dbl = TSTN_float((float_tst_node_ptr)node);
-#endif /* TABLING_CALL_SUBSUMPTION */
-    } else {
+    if(IS_FLOAT_FLAG(flags))
+      dbl = node_get_float((sg_node_ptr)node);
+    else {
       volatile Term *t_dbl = (Term *)((void *) &dbl);
       *t_dbl = t;
       *(t_dbl + 1) = (Term) arity[arity[0]];
@@ -1072,13 +1066,9 @@ void traverse_trie_node(void* node, char *str, int *str_index_ptr, int *arity, i
 #else /* SIZEOF_DOUBLE == SIZEOF_INT_P */
   if (mode == TRAVERSE_MODE_FLOAT || IS_FLOAT_FLAG(flags)) {
     volatile Float dbl;
-    if(IS_FLOAT_FLAG(flags)) {
-      /* XXX */
-      if(TrNode_is_var_call((sg_node_ptr)node))
-        flt = TrNode_float((float_sg_node_ptr)node);
-      else
-        flt = TSTN_float((float_tst_node_ptr)node);
-    } else {
+    if(IS_FLOAT_FLAG(flags))
+      flt = node_get_float((sg_node_ptr)node);
+    else {
       volatile Term *t_dbl = (Term *)((void *) &dbl);
       *t_dbl = t;
     }
@@ -1120,15 +1110,9 @@ void traverse_trie_node(void* node, char *str, int *str_index_ptr, int *arity, i
   } else if (IS_LONG_INT_FLAG(flags) || mode == TRAVERSE_MODE_LONG) {
     Int li = 0;
     
-    if(IS_LONG_INT_FLAG(flags)) {
-      /* XXX */
-      if(TrNode_is_var_call((sg_node_ptr)node))
-        li = TrNode_long_int((long_sg_node_ptr)node);
-#ifdef TABLING_CALL_SUBSUMPTION
-      else
-        li = TSTN_long_int((long_tst_node_ptr)node);
-#endif /* TABLING_CALL_SUBSUMPTION */
-    } else
+    if(IS_LONG_INT_FLAG(flags))
+      li = node_get_long_int((sg_node_ptr)node);
+    else
       li = (Int) t;
       
     str_index += sprintf(& str[str_index], LongIntFormatString, li);

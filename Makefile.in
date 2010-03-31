@@ -420,6 +420,7 @@ or.scheduler.o: $(srcdir)/OPTYap/or.scheduler.c $(srcdir)/OPTYap/opt.config.h
 
 tab.tries.o: $(srcdir)/OPTYap/tab.tries.c \
 	$(srcdir)/OPTYap/tab.macros.h \
+	$(srcdir)/OPTYap/tab.types.h \
 	$(srcdir)/OPTYap/tab.structs.h \
 	$(srcdir)/OPTYap/tab.tries.h \
 	$(srcdir)/OPTYap/tab.tst.h \
@@ -436,6 +437,7 @@ tab.subsumption.o: $(srcdir)/OPTYap/tab.subsumption.c \
 	$(srcdir)/OPTYap/tab.utils.h \
 	$(srcdir)/OPTYap/tab.utils.o \
 	$(srcdir)/OPTYap/tab.macros.h \
+	$(srcdir)/OPTYap/tab.types.h \
 	$(srcdir)/OPTYap/tab.xsb.h \
 	$(srcdir)/OPTYap/tab.tst.h \
 	$(srcdir)/OPTYap/tab.structs.h \
@@ -449,6 +451,7 @@ tab.var.o: $(srcdir)/OPTYap/tab.var.c \
 	$(srcdir)/OPTYap/tab.utils.h \
 	$(srcdir)/OPTYap/tab.utils.o \
 	$(srcdir)/OPTYap/tab.macros.h \
+	$(srcdir)/OPTYap/tab.types.h \
 	$(srcdir)/OPTYap/tab.xsb.h \
 	$(srcdir)/OPTYap/tab.structs.h \
 	$(srcdir)/OPTYap/tab.tries.h \
@@ -470,6 +473,7 @@ tab.tst.o: $(srcdir)/OPTYap/tab.tst.c \
 	$(srcdir)/OPTYap/tab.utils.h \
 	$(srcdir)/OPTYap/tab.structs.h \
 	$(srcdir)/OPTYap/tab.macros.h \
+	$(srcdir)/OPTYap/tab.types.h \
 	$(srcdir)/OPTYap/tab.xsb.h
 	$(CC) -c $(CFLAGS) $(srcdir)/OPTYap/tab.tst.c -o $@
 
@@ -522,6 +526,7 @@ tab.utils.o: $(srcdir)/OPTYap/tab.stack.o \
 
 tab.suspend.o: $(srcdir)/OPTYap/tab.suspend.c \
 	$(srcdir)/OPTYap/tab.macros.h \
+	$(srcdir)/OPTYap/tab.types.h \
 	$(srcdir)/OPTYap/or.macros.h \
 	$(srcdir)/H/YapHeap.h \
 	$(srcdir)/H/Yatom.h \
@@ -571,6 +576,7 @@ absmi.o: $(srcdir)/C/absmi.c \
 	$(srcdir)/OPTYap/or.macros.h \
 	$(srcdir)/OPTYap/tab.blocks.h \
 	$(srcdir)/OPTYap/tab.macros.h \
+	$(srcdir)/OPTYap/tab.types.h \
 	$(srcdir)/OPTYap/opt.macros.h \
 	$(srcdir)/OPTYap/tab.structs.h \
 	$(srcdir)/OPTYap/opt.config.h \
@@ -580,11 +586,6 @@ absmi.o: $(srcdir)/C/absmi.c \
 # default rule
 %.o : $(srcdir)/C/%.c config.h
 	$(CC) -c $(CFLAGS) $< -o $@
-
-# dependencies for header files
-$(srcdir)/OPTYap/tab.macros.h: $(srcdir)/OPTYap/opt.mavar.h
-$(srcdir)/OPTYap/opt.structs.h: $(srcdir)/OPTYap/or.structs.h \
-	$(srcdir)/OPTYap/tab.structs.h
 
 ## CPP'ed files (for macro debugging)
 

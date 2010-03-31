@@ -62,13 +62,7 @@ void symstkPrintNextTrieTerm(CTXTdeclc FILE *fp, xsbBool list_recursion)
       
       SymbolStack_PopOther(node, BTNptr);
       
-      /* XXX */
-      if(TrNode_is_var_call(node))
-        flt = TrNode_float((float_sg_node_ptr)node);
-#ifdef TABLING_CALL_SUBSUMPTION
-      else
-        flt = TSTN_float((float_tst_node_ptr)node);
-#endif /* TABLING_CALL_SUBSUMPTION */
+      flt = node_get_float(node);
 
       if(list_recursion)
         fprintf(fp, "|" FloatFormatString "]", flt);
@@ -81,13 +75,7 @@ void symstkPrintNextTrieTerm(CTXTdeclc FILE *fp, xsbBool list_recursion)
       
       SymbolStack_PopOther(node, BTNptr);
       
-      /* XXX */
-      if(TrNode_is_var_call(node))
-        li = TrNode_long_int((long_sg_node_ptr)node);
-#ifdef TABLING_CALL_SUBSUMPTION
-      else
-        li = TSTN_long_int((long_tst_node_ptr)node);
-#endif /* TABLING_CALL_SUBSUMPTION */
+      li = node_get_long_int(node);
 
       if(list_recursion)
         fprintf(fp, "|" LongIntFormatString "]", li);
@@ -483,17 +471,17 @@ recursive_construct_subgoal(CELL* trie_vars, CELL* placeholder)
     Functor f = DecodeTrieFunctor(symbol);
 
     if(f == FunctorDouble) {
-      float_sg_node_ptr node;
+      sg_node_ptr node;
       
-      SymbolStack_PopOther(node, float_sg_node_ptr);
+      SymbolStack_PopOther(node, sg_node_ptr);
       
-      *placeholder = MkFloatTerm(TrNode_float(node));
+      *placeholder = MkFloatTerm(node_get_float(node));
     } else if(f == FunctorLongInt) {
-      long_sg_node_ptr node;
+      sg_node_ptr node;
       
-      SymbolStack_PopOther(node, long_sg_node_ptr);
+      SymbolStack_PopOther(node, sg_node_ptr);
       
-      *placeholder = MkLongIntTerm(TrNode_long_int(node));
+      *placeholder = MkLongIntTerm(node_get_long_int(node));
     } else {
       int i, arity = ArityOfFunctor(f);
       CELL *arguments;

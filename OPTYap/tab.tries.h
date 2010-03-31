@@ -550,15 +550,11 @@ static inline Term
 HASH_SUBGOAL_NODE(sg_node_ptr node) {
   int flags = TrNode_node_type(node);
   
-  if(IS_LONG_INT_FLAG(flags)) {
-    Int li = TrNode_long_int((long_sg_node_ptr)node);
-    
-    return (Term)li;
-  } else if(IS_FLOAT_FLAG(flags)) {
-    Float flt = TrNode_float((float_sg_node_ptr)node);
-    
-    return (Term)flt;
-  } else
+  if(IS_LONG_INT_FLAG(flags))
+    return (Term) node_get_long_int(node);
+  else if(IS_FLOAT_FLAG(flags))
+    return (Term) node_get_float(node);
+  else
     return TrNode_entry(node);
 }
 
@@ -575,13 +571,13 @@ HASH_SUBGOAL_NODE(sg_node_ptr node) {
 #define FIND_FLOAT_NODE(NODE, PARENT, DATA, COUNT)  { \
   Float flt = *(Float *)(DATA); \
   FIND_NODE_LOOP(NODE, PARENT, COUNT, \
-    TrNode_is_float(NODE) && TrNode_float((float_sg_node_ptr)(NODE)) == flt)  \
+    TrNode_is_float(NODE) && node_get_float(NODE) == flt)  \
 }
 
 #define FIND_LONG_INT_NODE(NODE, PARENT, DATA, COUNT) { \
   Int li = *(Int *)(DATA);                \
   FIND_NODE_LOOP(NODE, PARENT, COUNT, \
-    TrNode_is_long(NODE) && TrNode_long_int((long_sg_node_ptr)(NODE)) == li)  \
+    TrNode_is_long(NODE) && node_get_long_int(NODE) == li)  \
 }
 
 #define FIND_STANDARD_NODE(NODE, PARENT, DATA, COUNT) { \

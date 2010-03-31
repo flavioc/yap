@@ -859,20 +859,9 @@ void *iter_sub_trie_lookup(CTXTdeclc void *trieNode, TriePathType *pathType) {
           Set_Matching_and_TrieVar_Chains((Term)flt, pCurrentBTN, variableChain);
           
           while(IsNonNULL(pCurrentBTN)) {
-            if(TrNode_is_float(pCurrentBTN))
-            {
-              int go = FALSE;
-              
-              /* XXX */
-              if(TrNode_is_var_call(pCurrentBTN))
-                go = (flt == TrNode_float((float_sg_node_ptr)pCurrentBTN));
-              else
-                go = (flt == TSTN_float((float_tst_node_ptr)pCurrentBTN));
-              
-              if(go) {
-                Conditionally_Create_ChoicePoint(variableChain)
-                Descend_In_Trie_and_Continue(pCurrentBTN);
-              }
+            if(TrNode_is_float(pCurrentBTN) && flt == node_get_float(pCurrentBTN)) {
+              Conditionally_Create_ChoicePoint(variableChain)
+              Descend_In_Trie_and_Continue(pCurrentBTN);
             }
             pCurrentBTN = BTN_Sibling(pCurrentBTN);
           }
@@ -890,20 +879,9 @@ void *iter_sub_trie_lookup(CTXTdeclc void *trieNode, TriePathType *pathType) {
           Set_Matching_and_TrieVar_Chains((Term)li, pCurrentBTN, variableChain);
           
           while(IsNonNULL(pCurrentBTN)) {
-            if(TrNode_is_long(pCurrentBTN))
-            {
-              int go = FALSE;
-              
-              /* XXX */
-              if(TrNode_is_var_call(pCurrentBTN))
-                go = (li == TrNode_long_int((long_sg_node_ptr)pCurrentBTN));
-              else
-                go = (li == TSTN_long_int((long_tst_node_ptr)pCurrentBTN));
-              
-              if(go) {
-                Conditionally_Create_ChoicePoint(variableChain)
-                Descend_In_Trie_and_Continue(pCurrentBTN);
-              }
+            if(TrNode_is_long(pCurrentBTN) && li == node_get_long_int(pCurrentBTN)) {
+              Conditionally_Create_ChoicePoint(variableChain)
+              Descend_In_Trie_and_Continue(pCurrentBTN);
             }
             pCurrentBTN = BTN_Sibling(pCurrentBTN);
           }

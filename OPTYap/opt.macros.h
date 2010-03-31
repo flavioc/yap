@@ -436,6 +436,12 @@ extern int Yap_page_size;
 #define ALLOC_FLOAT_SUBGOAL_TRIE_NODE(STR)  ALLOC_STRUCT(STR, GLOBAL_PAGES_float_sg_node, struct float_subgoal_trie_node)
 #define FREE_FLOAT_SUBGOAL_TRIE_NODE(STR)   FREE_STRUCT(STR, GLOBAL_PAGES_float_sg_node, struct float_subgoal_trie_node)
 
+#define ALLOC_FLOAT_SUB_SUBGOAL_TRIE_NODE(STR) ALLOC_STRUCT(STR, GLOBAL_PAGES_float_subg_node, struct float_sub_subgoal_trie_node)
+#define FREE_FLOAT_SUB_SUBGOAL_TRIE_NODE(STR) FREE_STRUCT(STR, GLOBAL_PAGES_float_subg_node, struct float_sub_subgoal_trie_node)
+
+#define ALLOC_LONG_SUB_SUBGOAL_TRIE_NODE(STR) ALLOC_STRUCT(STR, GLOBAL_PAGES_long_subg_node, struct long_sub_subgoal_trie_node)
+#define FREE_LONG_SUB_SUBGOAL_TRIE_NODE(STR) FREE_STRUCT(STR, GLOBAL_PAGES_long_subg_node, struct long_sub_subgoal_trie_node)
+
 
 /* --------------------- **
 ** Subgoal frame pages   **
@@ -449,7 +455,6 @@ extern int Yap_page_size;
 
 #define ALLOC_SUBCONS_SUBGOAL_FRAME(STR)  ALLOC_STRUCT(STR, GLOBAL_PAGES_subcons_sg_fr, struct subsumed_consumer_subgoal_frame)
 #define FREE_SUBCONS_SUBGOAL_FRAME(STR)   FREE_STRUCT(STR, GLOBAL_PAGES_subcons_sg_fr, struct subsumed_consumer_subgoal_frame)
-
 
 #ifdef YAPOR
 

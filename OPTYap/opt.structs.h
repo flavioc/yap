@@ -126,6 +126,8 @@ struct global_pages {
   struct pages subgoal_trie_node_pages;
   struct pages long_subgoal_trie_node_pages;
   struct pages float_subgoal_trie_node_pages;
+  struct pages long_sub_subgoal_trie_node_pages;
+  struct pages float_sub_subgoal_trie_node_pages;
   struct pages answer_trie_node_pages;
   struct pages subgoal_trie_hash_pages;
   struct pages answer_trie_hash_pages;
@@ -267,6 +269,8 @@ struct global_data{
 #define GLOBAL_PAGES_ans_hash                   (GLOBAL.pages.answer_trie_hash_pages)
 #ifdef TABLING_CALL_SUBSUMPTION
 #define GLOBAL_PAGES_subg_node                  (GLOBAL.pages.sub_subgoal_trie_node_pages)
+#define GLOBAL_PAGES_long_subg_node             (GLOBAL.pages.long_sub_subgoal_trie_node_pages)
+#define GLOBAL_PAGES_float_subg_node            (GLOBAL.pages.float_sub_subgoal_trie_node_pages)
 #define GLOBAL_PAGES_subg_hash                  (GLOBAL.pages.sub_subgoal_trie_hash_pages)
 #define GLOBAL_PAGES_tst_ans_node               (GLOBAL.pages.time_stamp_trie_node_pages)
 #define GLOBAL_PAGES_long_tst_node              (GLOBAL.pages.long_tst_node_pages)
