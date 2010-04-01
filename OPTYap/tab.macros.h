@@ -1020,16 +1020,6 @@ abolish_incomplete_consumer_subgoal(subcons_fr_ptr sg_fr) {
 
 static void
 abolish_incomplete_sub_producer_subgoal(sg_fr_ptr sg_fr) {
-  dprintf("Freeing producer subgoal\n");
-  subprod_fr_ptr prod_sg = (subprod_fr_ptr)sg_fr;
-  subcons_fr_ptr cons_sg = SgFr_prod_consumers(prod_sg);
-  
-  while(cons_sg) {
-    dprintf("Deleting one consumer\n");
-    abolish_incomplete_consumer_subgoal(cons_sg);
-    cons_sg = SgFr_consumers(cons_sg);
-  }
-  
   free_producer_subgoal_data(sg_fr, TRUE);
   delete_subgoal_path(sg_fr);
   FREE_SUBPROD_SUBGOAL_FRAME(sg_fr);
@@ -1123,6 +1113,22 @@ void abolish_incomplete_subgoals(choiceptr prune_cp) {
     insert_into_global_sg_fr_list(sg_fr);
 #endif /* LIMIT_TABLING */
   }
+
+#ifdef TABLING_CALL_SUBSUMPTION
+  while (LOCAL_top_cons_sg_fr && EQUAL_OR_YOUNGER_CP(SgFr_cons_cp(LOCAL_top_cons_sg_fr), prune_cp)) {
+    subcons_fr_ptr sg_fr;
+    
+    sg_fr = LOCAL_top_cons_sg_fr;
+    
+    LOCAL_top_cons_sg_fr = SgFr_next(sg_fr);
+    
+    LOCK(SgFr_lock(sg_fr));
+    
+    abolish_incomplete_consumer_subgoal(sg_fr);
+    
+    UNLOCK(SgFr_lock(sg_fr));
+  }
+#endif /* TABLING_CALL_SUBSUMPTION */
 
   return;
 }
