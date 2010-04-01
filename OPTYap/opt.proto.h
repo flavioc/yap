@@ -100,6 +100,7 @@ void consume_variant_answer(ans_node_ptr ans_node, int size, CELL *answer_templa
 
 #ifdef TABLING
 #ifdef TABLING_CALL_SUBSUMPTION
+void update_generator_path(sg_node_ptr node);
 void decrement_generator_path(sg_node_ptr start);
 void* stl_restore_variant_cont(CTXTdecl);
 void *iter_sub_trie_lookup(CTXTdeclc void *trieNode, TriePathType *pathType);

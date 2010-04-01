@@ -87,7 +87,7 @@ create_new_producer_subgoal(sg_node_ptr leaf_node, tab_ent_ptr tab_ent, yamop *c
 void
 decrement_generator_path(sg_node_ptr node) {
   dprintf("decrement_generator_path\n");
-  
+
   while(!TrNode_is_root(node)) {
     if(IsHashedNode(node)) {
       gen_index_ptr gen_index = TrNode_index_node((subg_node_ptr)node);
@@ -105,23 +105,23 @@ decrement_generator_path(sg_node_ptr node) {
   TrNode_num_gen((subg_node_ptr)node)--;
 }
 
-static inline void
-update_generator_path(sg_node_ptr leaf, sg_node_ptr root) {
-  dprintf("update_generator_path %x\n", root);
-  
-  while(leaf != root) {
-    if(IsHashedNode(leaf)) {
-      if(TrNode_num_gen((subg_node_ptr)leaf) == 0)
-        gen_index_add((subg_node_ptr)leaf, (subg_hash_ptr)TrNode_child(TrNode_parent(leaf)), 1);
+void
+update_generator_path(sg_node_ptr node) {
+  dprintf("update_generator_path %x\n", node);
+
+  while(!TrNode_is_root(node)) {
+    if(IsHashedNode(node)) {
+      if(TrNode_num_gen((subg_node_ptr)node) == 0)
+        gen_index_add((subg_node_ptr)node, (subg_hash_ptr)TrNode_child(TrNode_parent(node)), 1);
       else
-        GNIN_num_gen((gen_index_ptr)TrNode_num_gen((subg_node_ptr)leaf))++;
+        GNIN_num_gen((gen_index_ptr)TrNode_num_gen((subg_node_ptr)node))++;
     } else
-      TrNode_num_gen((subg_node_ptr)leaf)++;
+      TrNode_num_gen((subg_node_ptr)node)++;
     
-    leaf = TrNode_parent(leaf);
+    node = TrNode_parent(node);
   }
   
-  TrNode_num_gen((subg_node_ptr)root)++;
+  TrNode_num_gen((subg_node_ptr)node)++;
 }
 
 sg_fr_ptr subsumptive_call_search(yamop *code, CELL *answer_template, CELL **new_local_stack)
@@ -151,15 +151,13 @@ sg_fr_ptr subsumptive_call_search(yamop *code, CELL *answer_template, CELL **new
   if(path_type == NO_PATH) { /* new producer */
     Trail_Unwind_All;
     
-    collect_specific_generator_goals(code);
+    //collect_specific_generator_goals(code);
     
     sg_node_ptr leaf = variant_call_cont_insert(tab_ent, (sg_node_ptr)stl_restore_variant_cont(),
       variant_cont.bindings.num, CALL_SUB_TRIE_NT);
     
     *new_local_stack = extract_template_from_insertion(answer_template);
     sg_fr = create_new_producer_subgoal(leaf, tab_ent, code);
-    
-    update_generator_path(leaf, btRoot);
     
     Trail_Unwind_All;
   } else { /* new consumer */

@@ -82,6 +82,12 @@
           YAPOR_SET_LOAD(B);                                          \
           SET_BB(B);                                                  \
           TABLING_ERRORS_check_stack;                                 \
+          if(SgFr_is_sub_producer(SG_FR)) {                           \
+            node_list_ptr list;                                       \
+            list = collect_specific_generator_goals(tab_ent);         \
+            free_node_list(list);                                     \
+            update_generator_path(SgFr_leaf(SG_FR));                  \
+          }                                                           \
         }
 
 

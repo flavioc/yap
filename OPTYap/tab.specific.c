@@ -122,6 +122,38 @@
     Chain = alt_chain;  \
   } \
 }
+
+#define SearchChain_UnifyWithList(Chain,Subterm) {  \
+  Cell sym_tag; \
+  Chain_NextValidGenerator(Chain);  \
+  while(IsNonNULL(Chain)) {         \
+    alt_chain = BTN_Sibling(Chain); \
+    Chain_NextValidGenerator(alt_chain);  \
+    symbol = BTN_Symbol(Chain);           \
+    sym_tag = TrieSymbolType(symbol);     \
+    TrieSymbol_Deref(symbol);             \
+    if(isref(symbol)) {                   \
+      CPStack_PushFrame(alt_chain);       \
+      Bind_and_Conditionally_Trail((CPtr)symbol,Subterm); \
+      TermStackLog_PushFrame;       \
+      Descend_Into_Node_and_Continue_Search;  \
+    } else if(IsTrieList(symbol)) {           \
+      if(sym_tag == XSB_LIST) {               \
+        CPStack_PushFrame(alt_chain);         \
+        TermStackLog_PushFrame;               \
+        TermStack_PushListArgs(Subterm);      \
+        Descend_Into_Node_and_Continue_Search;  \
+      } else {                                  \
+        if(unify(Subterm, symbol)) {            \
+          CPStack_PushFrame(alt_chain);         \
+          TermStackLog_PushFrame;               \
+          Descend_Into_Node_and_Continue_Search;  \
+        } \
+      } \
+    } \
+    Chain = alt_chain;  \
+  } \
+}
  
 static inline
 xsbBool
@@ -169,31 +201,16 @@ Unify_with_Variable(Cell symbol, Cell subterm, BTNptr node) {
   /* XXX float double */
 }
 
-/* a bit hackish for my tastes ... */
-static inline CELL*
-determine_heap_top(int arity) {
-  int i;
-  CELL *heap_top = hreg;
-
-  for(i = arity; i > 0; --i) {
-    if(XREGS[i] > heap_top)
-      heap_top = Deref(XREGS[i]);
-  }
-
-  return heap_top + 1;
-}
-
-ALNptr collect_specific_generator_goals(yamop *code)
+ALNptr collect_specific_generator_goals(tab_ent_ptr tab_ent)
 {
-  ALNptr returnList = NULL;
+  ALNptr returnList;
   Cell subterm;
-  Cell symbol = 0;
+  Cell symbol;
   BTNptr alt_chain;
-  SearchMode mode = DESCEND_MODE;
-  tab_ent_ptr tab_ent = CODE_TABLE_ENTRY(code);
+  SearchMode mode;
   BTNptr parent_node = TabEnt_subgoal_trie(tab_ent);
   BTNptr cur_chain = BTN_Child(parent_node);
-  int arity = CODE_ARITY(code);
+  int arity = TabEnt_arity(tab_ent);
   
   if(arity < 1)
     return NULL;
@@ -208,8 +225,10 @@ ALNptr collect_specific_generator_goals(yamop *code)
   
   collectTop = collectBase;
   trail_base = top_of_trail;
+  returnList = NULL;
+  symbol = 0;
+  mode = DESCEND_MODE;
   Save_and_Set_WAM_Registers;
-  hreg = hbreg = determine_heap_top(arity);
   
 While_TSnotEmpty:
   while (!TermStack_IsEmpty) {
@@ -235,7 +254,6 @@ While_TSnotEmpty:
 	      SearchChain_UnifyWithConstant(cur_chain,subterm)
         break;
       case XSB_STRUCT:
-      break;
         if(IsHashHeader(cur_chain)) {
           symbol = EncodeTrieFunctor(subterm);
           SetMatchAndUnifyChains(symbol,cur_chain,alt_chain);
@@ -250,7 +268,19 @@ While_TSnotEmpty:
         SearchChain_UnifyWithFunctor(cur_chain,subterm);
         break;
       case XSB_LIST:
-        break;
+      /*
+        if(IsHashHeader(cur_chain)) {
+          symbol = EncodeTrieList(subterm);
+          SetMatchAndUnifyChains(symbol,cur_chain,alt_chain);
+          if(cur_chain != alt_chain) {
+            SearchChain_ExactMatch(cur_chain,symbol,alt_chain,TermStack_PushListArgs(subterm));
+            cur_chain = alt_chain;
+          }
+          if(IsNULL(cur_chain))
+            backtrack;
+        }
+        SearchChain_UnifyWithList(cur_chain,subterm);
+        */break;
       case XSB_REF:
 #ifdef SUBSUMPTION_XSB
       case XSB_REF1:
@@ -299,10 +329,16 @@ While_TSnotEmpty:
   }
   
   /* new subgoal */
-  /*sg_fr_ptr sg_fr = (sg_fr_ptr)TrNode_sg_fr(parent_node);
-  printf("Found subgoal ");
-  printSubgoalTriePath(stdout, parent_node, tab_ent);
-  */
+  
+  sg_fr_ptr sg_fr = (sg_fr_ptr)TrNode_sg_fr(parent_node);
+  if(SgFr_state(sg_fr) != evaluating) {
+    Collection_Error("Subgoal frame found but it is not evaluating!", RequiresCleanup);
+  } else {
+    ALN_InsertAnswer(returnList, parent_node);
+    /*printf("Found subgoal ");
+    printSubgoalTriePath(stdout, parent_node, tab_ent);*/
+  }
+  
   if ( CPStack_IsEmpty ) {
     goto end_collect;
   }

@@ -23,7 +23,7 @@
 #include "tab.utils.h"
 #include "tab.structs.h"
 
-ALNptr collect_specific_generator_goals(yamop *code);
+ALNptr collect_specific_generator_goals(tab_ent_ptr tab_ent);
 
 #endif /* TABLING_CALL_SUBSUMPTION */
 #endif
