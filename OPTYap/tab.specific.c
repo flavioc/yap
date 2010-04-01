@@ -154,6 +154,70 @@
     Chain = alt_chain;  \
   } \
 }
+
+#define SearchChain_UnifyWithLong(Chain,Subterm) {  \
+  Int li = LongIntOfTerm(Subterm);                  \
+  Chain_NextValidGenerator(Chain);                  \
+  while(IsNonNULL(Chain)) {                         \
+    alt_chain = BTN_Sibling(Chain);                 \
+    Chain_NextValidGenerator(alt_chain);            \
+    symbol = BTN_Symbol(Chain);                     \
+    TrieSymbol_Deref(symbol);                       \
+    if(isref(symbol)) {                             \
+      CPStack_PushFrame(alt_chain);                 \
+      Bind_and_Conditionally_Trail((CPtr)symbol, Subterm);  \
+      TermStackLog_PushFrame;                       \
+      Descend_Into_Node_and_Continue_Search;        \
+    }                                               \
+    else {                                          \
+      int go = FALSE;                               \
+      if(TrNode_is_long(Chain))                     \
+        go = TrNode_long_int((long_subg_node_ptr)Chain) == li;  \
+      else {                                        \
+        if(TrieSymbolType(symbol) == TAG_LONG_INT)  \
+          go = LongIntOfTerm(symbol) == li;         \
+      }                                             \
+      if(go) {                                      \
+        CPStack_PushFrame(alt_chain);               \
+        TermStackLog_PushFrame;                     \
+        Descend_Into_Node_and_Continue_Search;      \
+      }                                             \
+    }                                               \
+    Chain = alt_chain;                              \
+  }                                                 \
+}
+
+#define SearchChain_UnifyWithFloat(Chain,Subterm) { \
+  Float flt = FloatOfTerm(Subterm);                 \
+  Chain_NextValidGenerator(Chain);                  \
+  while(IsNonNULL(Chain)) {                         \
+    alt_chain = BTN_Sibling(Chain);                 \
+    Chain_NextValidGenerator(alt_chain);            \
+    symbol = BTN_Symbol(Chain);                     \
+    TrieSymbol_Deref(symbol);                       \
+    if(isref(symbol)) {                             \
+      CPStack_PushFrame(alt_chain);                 \
+      Bind_and_Conditionally_Trail((CPtr)symbol, Subterm);  \
+      TermStackLog_PushFrame;                       \
+      Descend_Into_Node_and_Continue_Search;        \
+    }                                               \
+    else {                                          \
+      int go = FALSE;                               \
+      if(TrNode_is_float(Chain))                    \
+        go = TrNode_float((float_subg_node_ptr)Chain) == flt; \
+      else {                                        \
+        if(TrieSymbolType(symbol) == TAG_FLOAT)     \
+          go = FloatOfTerm(symbol) == flt;          \
+      }                                             \
+      if(go) {                                      \
+        CPStack_PushFrame(alt_chain);               \
+        TermStackLog_PushFrame;                     \
+        Descend_Into_Node_and_Continue_Search;      \
+      }                                             \
+    }                                               \
+    Chain = alt_chain;                              \
+  }                                                 \
+}
  
 static inline
 xsbBool
@@ -189,16 +253,31 @@ Unify_with_Variable(Cell symbol, Cell subterm, BTNptr node) {
 #endif
       if(IsUnboundTrieVar(symbol)) {
         Bind_and_Trail((CPtr)symbol,subterm);
-      } else {
+      } else
         unify(subterm, symbol);
-        //Bind_and_Trail((CPtr)subterm, symbol); /* XXX */
+      break;
+#ifdef SUBSUMPTION_YAP
+    case TAG_LONG_INT:
+      if(TrNode_is_long(node)) {
+        Trie_bind_copy((CPtr)subterm, (Cell)hreg);
+        CreateHeapLongInt(TrNode_long_int((long_subg_node_ptr)node));
+      } else {
+        Trie_bind_copy((CPtr)subterm, symbol);
       }
       break;
+    case TAG_FLOAT:
+      if(TrNode_is_float(node)) {
+        Trie_bind_copy((CPtr)subterm, (Cell)hreg);
+        CreateHeapFloat(TrNode_float((float_subg_node_ptr)node));
+      } else {
+        Trie_bind_copy((CPtr)subterm, symbol);
+      }
+      break;
+#endif /* SUBSUMPTION_YAP */
     default:
       return FALSE;
   } /* END switch(symbol_tag) */
   return TRUE;
-  /* XXX float double */
 }
 
 ALNptr collect_specific_generator_goals(tab_ent_ptr tab_ent)
@@ -232,7 +311,6 @@ ALNptr collect_specific_generator_goals(tab_ent_ptr tab_ent)
   
 While_TSnotEmpty:
   while (!TermStack_IsEmpty) {
-    
     TermStack_Pop(subterm);
     XSB_Deref(subterm);
     switch(cell_tag(subterm)) {
@@ -268,7 +346,6 @@ While_TSnotEmpty:
         SearchChain_UnifyWithFunctor(cur_chain,subterm);
         break;
       case XSB_LIST:
-      /*
         if(IsHashHeader(cur_chain)) {
           symbol = EncodeTrieList(subterm);
           SetMatchAndUnifyChains(symbol,cur_chain,alt_chain);
@@ -280,7 +357,7 @@ While_TSnotEmpty:
             backtrack;
         }
         SearchChain_UnifyWithList(cur_chain,subterm);
-        */break;
+        break;
       case XSB_REF:
 #ifdef SUBSUMPTION_XSB
       case XSB_REF1:
@@ -315,6 +392,61 @@ While_TSnotEmpty:
         }
         Descend_Into_Node_and_Continue_Search;
         break;
+#ifdef SUBSUMPTION_YAP
+      case TAG_LONG_INT:
+        if(IsHashHeader(cur_chain)) {
+          Int li = LongIntOfTerm(subterm);
+          
+          SetMatchAndUnifyChains((Term)li,cur_chain,alt_chain);
+          
+          if(cur_chain != alt_chain) {
+            while(IsNonNULL(cur_chain)) {
+              if(TrNode_is_long(cur_chain) && TrNode_long_int((long_subg_node_ptr)cur_chain) == li) {
+                if(ValidGenerator(GetGeneratorNode(cur_chain))) {
+                  Chain_NextValidGenerator(alt_chain);
+                  CPStack_PushFrame(alt_chain);
+                  TermStackLog_PushFrame;
+                  Descend_Into_Node_and_Continue_Search;
+                } else
+                  break; /* no generators */
+              }
+              cur_chain = BTN_Sibling(cur_chain);
+            }
+            cur_chain = alt_chain;
+          }
+          
+          if(IsNULL(cur_chain))
+            backtrack;
+        }
+        SearchChain_UnifyWithLong(cur_chain,subterm);
+        break;
+      case TAG_FLOAT:
+        if(IsHashHeader(cur_chain)) {
+          Float flt = FloatOfTerm(subterm);
+          
+          SetMatchAndUnifyChains((Term)flt, cur_chain, alt_chain);
+          
+          if(cur_chain != alt_chain) {
+            while(IsNonNULL(cur_chain)) {
+              if(TrNode_is_float(cur_chain) && TrNode_float((float_subg_node_ptr)cur_chain) == flt) {
+                if(ValidGenerator(GetGeneratorNode(cur_chain))) {
+                  Chain_NextValidGenerator(alt_chain);
+                  CPStack_PushFrame(alt_chain);
+                  TermStackLog_PushFrame;
+                  Descend_Into_Node_and_Continue_Search;
+                } else
+                  break; /* no generators */
+              }
+              cur_chain = BTN_Sibling(cur_chain);
+            }
+            cur_chain = alt_chain;
+          }
+          if(IsNULL(cur_chain))
+            backtrack;
+        }
+        SearchChain_UnifyWithFloat(cur_chain,subterm);
+        break;
+#endif /* SUBSUMPTION_YAP */
       default:
         fprintf(stderr, "subterm: unknown (%ld),  symbol: ? (%ld)\n",
   	      (long int)cell_tag(subterm), (long int)TrieSymbolType(symbol));
@@ -335,8 +467,8 @@ While_TSnotEmpty:
     Collection_Error("Subgoal frame found but it is not evaluating!", RequiresCleanup);
   } else {
     ALN_InsertAnswer(returnList, parent_node);
-    /*printf("Found subgoal ");
-    printSubgoalTriePath(stdout, parent_node, tab_ent);*/
+    printf("Found subgoal ");
+    printSubgoalTriePath(stdout, parent_node, tab_ent);
   }
   
   if ( CPStack_IsEmpty ) {

@@ -168,8 +168,6 @@ process_next:
     hash = NULL;
   }
   
-  printf("Delete_path %d\n", update_generators);
-
   if(update_generators)
     decrement_generator_path(node);
 }
