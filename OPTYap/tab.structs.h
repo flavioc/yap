@@ -114,6 +114,7 @@ typedef struct table_entry {
 
 #define TabEnt_is_load(X)         (IsMode_LoadAnswers(TabEnt_mode(X)))
 #define TabEnt_is_exec(X)         (IsMode_ExecAnswers(TabEnt_mode(X)))
+#define TabEnt_is_local(X)        (IsMode_Local(TabEnt_mode(X)))
 #define TabEnt_is_empty(X)        (TabEnt_subgoal_trie(X) == NULL)
 #ifdef TABLING_CALL_SUBSUMPTION
 #define TabEnt_is_variant(X)      (IsMode_Variant(TabEnt_mode(X)))

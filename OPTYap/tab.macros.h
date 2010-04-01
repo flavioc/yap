@@ -628,7 +628,6 @@ join_answers_subgoal_frame(sg_fr_ptr sg_fr, continuation_ptr first, continuation
 
 #define new_subgoal_trie_hash(HASH, NUM_NODES, TAB_ENT)             \
         ALLOC_SUBGOAL_TRIE_HASH(HASH);                              \
-        printf("NORMAL HASH TABLE :D :D\n");                        \
         init_subgoal_trie_hash(HASH, NUM_NODES, TAB_ENT, CALL_TRIE_NT)
         
 #define init_subgoal_trie_hash(HASH, NUM_NODES, TAB_ENT, TYPE)      \
@@ -1306,11 +1305,10 @@ build_next_subsumptive_consumer_return_list(subcons_fr_ptr consumer_sg) {
     return FALSE; /* no answers were inserted */
     
   //dprintf("Producer ts %d consumer ts %d\n", producer_ts, consumer_ts);
-  dprintf("build_next\n");
   CELL *answer_template = SgFr_answer_template(consumer_sg);
   int size = SgFr_at_size(consumer_sg);
 
-#ifdef FDEBUG
+#if 0
   if(!SgFr_leaf(consumer_sg))
     printf("LEAF CANNOT BE NULL\n");
   
@@ -1330,14 +1328,14 @@ build_next_subsumptive_consumer_return_list(subcons_fr_ptr consumer_sg) {
   
   if(!tst_collect_relevant_answers((tst_node_ptr)SgFr_answer_trie(producer_sg),
         consumer_ts, size, answer_template + size - 1, consumer_sg)) {
-#ifdef FDEBUG
+#if 0
   dprintf("failed to collect, Answer template after collect: ");
   printAnswerTemplate(stdout, answer_template, size);
 #endif
     return FALSE;
   }
     
-#ifdef FDEBUG
+#if 0
   dprintf("Answer template after collect: ");
   printAnswerTemplate(stdout, answer_template, size);
 #endif

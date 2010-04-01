@@ -28,6 +28,7 @@
 #include "tab.xsb.h"
 #include "tab.utils.h"
 #include "tab.tries.h"
+#include "tab.specific.h"
 
 #include "xsb.lookup.c"
 
@@ -110,14 +111,12 @@ update_generator_path(sg_node_ptr leaf, sg_node_ptr root) {
   
   while(leaf != root) {
     if(IsHashedNode(leaf)) {
-      if(TrNode_num_gen((subg_node_ptr)leaf) == 0) {
+      if(TrNode_num_gen((subg_node_ptr)leaf) == 0)
         gen_index_add((subg_node_ptr)leaf, (subg_hash_ptr)TrNode_child(TrNode_parent(leaf)), 1);
-      } else {
+      else
         GNIN_num_gen((gen_index_ptr)TrNode_num_gen((subg_node_ptr)leaf))++;
-      }
-    } else {
+    } else
       TrNode_num_gen((subg_node_ptr)leaf)++;
-    }
     
     leaf = TrNode_parent(leaf);
   }
@@ -152,6 +151,8 @@ sg_fr_ptr subsumptive_call_search(yamop *code, CELL *answer_template, CELL **new
   if(path_type == NO_PATH) { /* new producer */
     Trail_Unwind_All;
     
+    collect_specific_generator_goals(code);
+    
     sg_node_ptr leaf = variant_call_cont_insert(tab_ent, (sg_node_ptr)stl_restore_variant_cont(),
       variant_cont.bindings.num, CALL_SUB_TRIE_NT);
     
@@ -161,8 +162,6 @@ sg_fr_ptr subsumptive_call_search(yamop *code, CELL *answer_template, CELL **new
     update_generator_path(leaf, btRoot);
     
     Trail_Unwind_All;
-    
-    //printSubstitutionFactor(stdout, CallResults_var_vector(results));
   } else { /* new consumer */
     subprod_fr_ptr subsumer;
     sg_fr_ptr found = (sg_fr_ptr)TrNode_sg_fr(btn);

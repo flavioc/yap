@@ -10,15 +10,9 @@
  *  the WAM.
  */
 
-#define Trie_bind_copy(Addr,Val)		\
-  Trie_Conditionally_Trail(Addr,Val);		\
-  *(Addr) = Val
-
 #define Trie_Conditionally_Trail(Addr, Val)		\
    if ( IsAnswerTemplateVar(Addr) || IsUnboundTrieVar(Addr) || conditional(Addr) )	\
      { pushtrail0(Addr, Val) }
-
-#define Bind_and_Conditionally_Trail(Addr, Val)	Trie_bind_copy(Addr,Val) \
 
 /*******************************************
 OLD VERSIONS

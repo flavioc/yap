@@ -174,3 +174,8 @@ static CPtr orig_hbreg;
     pAnsListHead = newAnsListNode;					\
   }
   
+#define Trie_bind_copy(Addr,Val)		\
+  Trie_Conditionally_Trail(Addr,Val);		\
+  *(Addr) = Val
+  
+#define Bind_and_Conditionally_Trail(Addr, Val)	Trie_bind_copy(Addr,Val)
