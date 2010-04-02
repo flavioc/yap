@@ -344,8 +344,8 @@
           CELL aux_sub, aux_var, *vars_ptr;				                                          \
           YENV = ++aux_stack_ptr;                                                           \
           vars_ptr = aux_stack_ptr + heap_arity + 1 + subs_arity + vars_arity - var_index;  \
-          aux_sub = Deref(*aux_stack_ptr); /* substitution var */                                  \
-          aux_var = Deref(*vars_ptr);                                                              \
+          aux_sub = Deref(*aux_stack_ptr); /* substitution var */                           \
+          aux_var = Deref(*vars_ptr);                                                       \
           UNIFY_VAR();                                                                      \
           INC_HEAP_ARITY(-1);                                                               \
           next_instruction(heap_arity - 1 || subs_arity, node);                             \
@@ -355,7 +355,7 @@
           *aux_stack_ptr = subs_arity - 1;                                                  \
           aux_stack_ptr += subs_arity;                                                      \
           vars_ptr = aux_stack_ptr + vars_arity - var_index; /* pointer to trie var */      \
-          aux_sub = Deref(*aux_stack_ptr);  /* substitution var */                                 \
+          aux_sub = Deref(*aux_stack_ptr);  /* substitution var */                          \
           aux_var = Deref(*vars_ptr);  /* trie var */                                       \
           UNIFY_VAR();                                                                      \
           ALIGN_STACK_LEFT();                                                               \
@@ -414,62 +414,62 @@
 **      trie_atom      **
 ** ------------------- */
 
-#define UNIFY_LONG_INT(BIND_FUN)  \
-  CELL term = Deref(*aux_stack_ptr);    \
-  switch(cell_tag(term)) {  \
-    case TAG_REF:                           \
-      BIND_FUN((CELL *)term, MkLongIntTerm(TSTN_long_int((long_tst_node_ptr)node))); \
-      break;              \
-    case TAG_LONG_INT:          \
-      if(LongIntOfTerm(term) != TSTN_long_int((long_tst_node_ptr)node))  \
-        goto fail;    \
-      break;    \
-    default:        \
-      goto fail;        \
+#define UNIFY_LONG_INT(BIND_FUN)                                                      \
+  CELL term = Deref(*aux_stack_ptr);                                                  \
+  switch(cell_tag(term)) {                                                            \
+    case TAG_REF:                                                                     \
+      BIND_FUN((CELL *)term, MkLongIntTerm(TSTN_long_int((long_tst_node_ptr)node)));  \
+      break;                                                                          \
+    case TAG_LONG_INT:                                                                \
+      if(LongIntOfTerm(term) != TSTN_long_int((long_tst_node_ptr)node))               \
+        goto fail;                                                                    \
+      break;                                                                          \
+    default:                                                                          \
+      goto fail;                                                                      \
   }
 
-#define stack_trie_long_instr()                                     \
-  if(heap_arity) {  \
-    YENV = ++aux_stack_ptr;             \
-    UNIFY_LONG_INT(Bind_Global);         \
-    INC_HEAP_ARITY(-1);       \
-    next_instruction(heap_arity - 1 || subs_arity, node);         \
-  } else {  \
-    aux_stack_ptr += 2; \
-    *aux_stack_ptr = subs_arity - 1;  \
-    aux_stack_ptr += subs_arity;  \
-    UNIFY_LONG_INT(Bind); \
-    ALIGN_STACK_LEFT();     \
-    next_instruction(subs_arity - 1, node); \
+#define stack_trie_long_instr()                                                       \
+  if(heap_arity) {                                                                    \
+    YENV = ++aux_stack_ptr;                                                           \
+    UNIFY_LONG_INT(Bind_Global);                                                      \
+    INC_HEAP_ARITY(-1);                                                               \
+    next_instruction(heap_arity - 1 || subs_arity, node);                             \
+  } else {                                                                            \
+    aux_stack_ptr += 2;                                                               \
+    *aux_stack_ptr = subs_arity - 1;                                                  \
+    aux_stack_ptr += subs_arity;                                                      \
+    UNIFY_LONG_INT(Bind);                                                             \
+    ALIGN_STACK_LEFT();                                                               \
+    next_instruction(subs_arity - 1, node);                                           \
   }
   
-#define UNIFY_FLOAT(BIND_FUN) \
-  CELL term = Deref(*aux_stack_ptr);  \
-  switch(cell_tag(term)) {  \
-    case TAG_REF: \
-      BIND_FUN((CELL *)term, MkFloatTerm(TSTN_float((float_tst_node_ptr)node)));  \
-      break;  \
-    case TAG_FLOAT: \
-      if(FloatOfTerm(term) != TSTN_float((float_tst_node_ptr)node)) \
-        goto fail;  \
-      break;  \
-    default:  \
-      goto fail;  \
+#define UNIFY_FLOAT(BIND_FUN)                                                         \
+  CELL term = Deref(*aux_stack_ptr);                                                  \
+  switch(cell_tag(term)) {                                                            \
+    case TAG_REF:                                                                     \
+      BIND_FUN((CELL *)term, MkFloatTerm(TSTN_float((float_tst_node_ptr)node)));      \
+      break;                                                                          \
+    case TAG_FLOAT:                                                                   \
+      if(FloatOfTerm(term) != TSTN_float((float_tst_node_ptr)node))                   \
+        goto fail;                                                                    \
+      break;                                                                          \
+    default:                                                                          \
+      goto fail;                                                                      \
   }
   
-#define stack_trie_float_instr()  \
-  if(heap_arity) {  \
-    YENV = ++aux_stack_ptr; \
-    UNIFY_FLOAT(Bind_Global); \
-    INC_HEAP_ARITY(-1); \
-    next_instruction(heap_arity - 1 || subs_arity, node); \
-  } else {  \
-    aux_stack_ptr += 2; \
-    *aux_stack_ptr = subs_arity - 1;  \
-    aux_stack_ptr += subs_arity;  \
-    UNIFY_FLOAT(Bind);  \
-    ALIGN_STACK_LEFT(); \
-    next_instruction(subs_arity - 1, node); \
+#define stack_trie_float_instr()                                                      \
+  if(heap_arity) {                                                                    \
+    YENV = ++aux_stack_ptr;                                                           \
+    UNIFY_FLOAT(Bind_Global);                                                         \
+    INC_HEAP_ARITY(-1);                                                               \
+    next_instruction(heap_arity - 1 || subs_arity, node);                             \
+  } else {                                                                            \
+    aux_stack_ptr += 2;                                                               \
+    *aux_stack_ptr = subs_arity - 1;                                                  \
+    aux_stack_ptr += subs_arity;                                                      \
+    UNIFY_FLOAT(Bind);                                                                \
+    ALIGN_STACK_LEFT();                                                               \
+    next_instruction(subs_arity - 1, node);                                           \
   }
   
 #define UNIFY_ATOM(BIND_FUN)  \
