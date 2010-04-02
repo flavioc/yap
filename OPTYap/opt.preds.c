@@ -978,8 +978,8 @@ tst_node_structs_size(void) {
   long total = 0;
   
   total += Pg_str_in_use(GLOBAL_PAGES_tst_ans_node) * sizeof(struct time_stamped_trie_node);
-  total += Pg_str_in_use(GLOBAL_PAGES_float_tst_node) * sizeof(struct float_tst_node);
-  total += Pg_str_in_use(GLOBAL_PAGES_long_tst_node) * sizeof(struct long_tst_node);
+  total += Pg_str_in_use(GLOBAL_PAGES_float_tst_node) * sizeof(struct float_time_stamped_trie_node);
+  total += Pg_str_in_use(GLOBAL_PAGES_long_tst_node) * sizeof(struct long_time_stamped_trie_node);
   
   return total;
 }

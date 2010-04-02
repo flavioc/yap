@@ -51,27 +51,18 @@ struct time_stamped_trie_node {
 ** special nodes (long + float) **
 ** ---------------------------- */
 
-struct long_tst_node {
-  struct time_stamped_trie_node base_tst;
-  Int long_int;
-};
-typedef struct long_tst_node *long_tst_node_ptr;
+EXTEND_STRUCT(time_stamped_trie_node, tst_node_ptr, long, Int long_int);
+EXTEND_STRUCT(time_stamped_trie_node, tst_node_ptr, float, Float float_val);
 
-#define TSTN_long_int(X)  ((X)->long_int)
-
-struct float_tst_node {
-  struct time_stamped_trie_node base_tst;
-  Float float_val;
-};
-typedef struct float_tst_node *float_tst_node_ptr;
-
-#define TSTN_float(X) ((X)->float_val)
+#define TSTN_long_int(X)  TrNode_long_int(X)
+#define TSTN_float(X)     TrNode_float(X)
 
 /* ----------------------- **
 ** Time stamped indexes    **
 ** ----------------------- */
 
 typedef struct tst_index_node *tst_index_ptr;
+
 struct tst_index_node {
   tst_index_ptr prev;
   tst_index_ptr next;
@@ -101,8 +92,6 @@ struct tst_answer_trie_hash {
   tst_index_ptr index_head;
   tst_index_ptr index_tail;
 };
-
-#define CAST_AH(X)        ((ans_hash_ptr)X)
 
 #define TSTHT_num_buckets(X)    (Hash_num_buckets(X))
 #define TSTHT_seed(X)           (Hash_seed(X))
@@ -136,6 +125,7 @@ struct hash_choicept {
    tst_node_ptr *last_bucket;
    tst_node_ptr *final_bucket;
 };
+
 typedef struct hash_choicept *hash_cp_ptr;
 
 #endif /* TABLING_CALL_SUBSUMPTION */
