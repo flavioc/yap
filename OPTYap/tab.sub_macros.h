@@ -68,7 +68,6 @@ STD_PROTO(static inline int build_next_subsumptive_consumer_return_list, (subcon
         if (!SgFr_prod_consumers(PRODUCER))                                 \
           tstCreateTSIs((tst_node_ptr)SgFr_answer_trie(PRODUCER));          \
         SgFr_prod_consumers(PRODUCER) = (subcons_fr_ptr)(SG_FR);            \
-        SgFr_next(SG_FR) = NULL; /* XXX */                                        \
     }
     
 #define init_sub_consumer_subgoal_frame(SG_FR)                     \
