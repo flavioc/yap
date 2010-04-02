@@ -98,14 +98,13 @@ STD_PROTO(static inline Term hash_time_stamped_node, (tst_node_ptr));
   void **pBucket;                                                         \
   pBucket = (void**)(pBucketArray +                                       \
           TrieHash(hash_time_stamped_node((tst_node_ptr)pTN),HashSeed));  \
-  BTNptr bucket = (BTNptr)*pBucket;                                     \
-  if ( IsNonNULL(bucket) ) {						                                \
+  if ( IsNonNULL(*pBucket) ) {						                                \
     TN_ForceInstrCPtoTRY(pTN);						                                \
-    TN_RotateInstrCPtoRETRYorTRUST(bucket);			                          \
+    TN_RotateInstrCPtoRETRYorTRUST((BTNptr)*pBucket);			                \
   }									                                                      \
   else									                                                  \
     TN_ForceInstrCPtoNOCP(pTN);					                                  \
-  TN_Sibling(pTN) = bucket;                                                \
+  TN_Sibling(pTN) = *pBucket;                                             \
   *pBucket = pTN;                                                         \
 }
 
