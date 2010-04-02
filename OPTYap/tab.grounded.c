@@ -123,8 +123,8 @@ sg_fr_ptr grounded_call_search(yamop *code, CELL *answer_template, CELL **new_lo
     sg_fr = create_new_ground_producer_subgoal(leaf, tab_ent, code);
     
     /* create answer template on AT, because we can become consumers instead */
-    SgFr_answer_template(sg_fr) = AT;
-    SgFr_at_size(sg_fr) = fix_answer_template(*new_local_stack);
+    /* SgFr_answer_template(sg_fr) = AT;
+    SgFr_at_size(sg_fr) = fix_answer_template(*new_local_stack);*/
     
   } else { /* new consumer */
     
