@@ -10,6 +10,12 @@
 
 #ifdef TABLING_CALL_SUBSUMPTION
 
+/* instruction macros */
+#define TN_ForceInstrCPtoTRY(NODE)
+#define TN_RotateInstrCPtoRETRYorTRUST(NODE)
+#define TN_ForceInstrCPtoNOCP(NODE)
+#define TN_ResetInstrCPs(NODE,SIBLING)
+
 /* prototypes */
 STD_PROTO(static inline void expand_trie_ht, (CTXTdeclc BTHTptr));
 STD_PROTO(static inline TSTHTptr New_BTHT, (int));
@@ -30,12 +36,18 @@ STD_PROTO(static inline Term hash_time_stamped_node, (tst_node_ptr));
       expand_trie_ht(CTXTc (BTHTptr)pHT);                 \
 }
 
-#define TrieHT_InsertNode(pBucketArray,HashSeed,pTN) {                      \
-  void **pBucket;                                                           \
-  pBucket = (void**)(pBucketArray +                                         \
-          TrieHash(hash_time_stamped_node((tst_node_ptr)pTN),HashSeed));    \
-  TN_Sibling(pTN) = *pBucket;                                               \
-  *pBucket = pTN;                                                           \
+#define TrieHT_InsertNode(pBucketArray,HashSeed,pTN) {                    \
+  void **pBucket;                                                         \
+  pBucket = (void**)(pBucketArray +                                       \
+          TrieHash(hash_time_stamped_node((tst_node_ptr)pTN),HashSeed));  \
+  if ( IsNonNULL(*pBucket) ) {						                                \
+    TN_ForceInstrCPtoTRY(pTN);						                                \
+    TN_RotateInstrCPtoRETRYorTRUST((BTNptr)*pBucket);			                \
+  }									                                                      \
+  else									                                                  \
+    TN_ForceInstrCPtoNOCP(pTN);					                                  \
+  TN_Sibling(pTN) = *pBucket;                                             \
+  *pBucket = pTN;                                                         \
 }
 
 #define New_TSTHT(TSTHT,TrieType,TST) {                   \
@@ -100,9 +112,12 @@ hash_time_stamped_node(tst_node_ptr node) {
 
 #define TN_Init(TN,TrieType,NodeType,Symbol,Parent,Sibling) \
 {                                                           \
-  if(NodeType != TRIE_ROOT_NT)  {                           \
-    TN_SetInstr(TN,Symbol);                                 \
-  }                                                         \
+  if ( NodeType != TRIE_ROOT_NT ) {				                  \
+     TN_SetInstr(TN,Symbol);					                      \
+     TN_ResetInstrCPs(TN,Sibling);				                  \
+   }								                                        \
+   else								                                      \
+     TN_Instr(TN) = trie_root;					                    \
   TN_NodeType(TN) = NodeType | TrieType;                    \
   TN_Symbol(TN) = Symbol;                                   \
   TN_Parent(TN) = Parent;                                   \
