@@ -420,6 +420,7 @@ or.scheduler.o: $(srcdir)/OPTYap/or.scheduler.c $(srcdir)/OPTYap/opt.config.h
 
 tab.tries.o: $(srcdir)/OPTYap/tab.tries.c \
 	$(srcdir)/OPTYap/tab.macros.h \
+	$(srcdir)/OPTYap/tab.sub_macros.h \
 	$(srcdir)/OPTYap/tab.types.h \
 	$(srcdir)/OPTYap/tab.structs.h \
 	$(srcdir)/OPTYap/tab.sub_structs.h \
@@ -438,6 +439,7 @@ tab.subsumption.o: $(srcdir)/OPTYap/tab.subsumption.c \
 	$(srcdir)/OPTYap/tab.utils.h \
 	$(srcdir)/OPTYap/tab.utils.o \
 	$(srcdir)/OPTYap/tab.macros.h \
+	$(srcdir)/OPTYap/tab.sub_macros.h \
 	$(srcdir)/OPTYap/tab.types.h \
 	$(srcdir)/OPTYap/tab.xsb.h \
 	$(srcdir)/OPTYap/tab.tst.h \
@@ -453,6 +455,7 @@ tab.var.o: $(srcdir)/OPTYap/tab.var.c \
 	$(srcdir)/OPTYap/tab.utils.h \
 	$(srcdir)/OPTYap/tab.utils.o \
 	$(srcdir)/OPTYap/tab.macros.h \
+	$(srcdir)/OPTYap/tab.sub_macros.h \
 	$(srcdir)/OPTYap/tab.types.h \
 	$(srcdir)/OPTYap/tab.xsb.h \
 	$(srcdir)/OPTYap/tab.structs.h \
@@ -477,6 +480,7 @@ tab.tst.o: $(srcdir)/OPTYap/tab.tst.c \
 	$(srcdir)/OPTYap/tab.structs.h \
 	$(srcdir)/OPTYap/tab.sub_structs.h \
 	$(srcdir)/OPTYap/tab.macros.h \
+	$(srcdir)/OPTYap/tab.sub_macros.h \
 	$(srcdir)/OPTYap/tab.types.h \
 	$(srcdir)/OPTYap/tab.xsb.h
 	$(CC) -c $(CFLAGS) $(srcdir)/OPTYap/tab.tst.c -o $@
@@ -534,6 +538,7 @@ tab.utils.o: $(srcdir)/OPTYap/tab.stack.o \
 
 tab.suspend.o: $(srcdir)/OPTYap/tab.suspend.c \
 	$(srcdir)/OPTYap/tab.macros.h \
+	$(srcdir)/OPTYap/tab.sub_macros.h \
 	$(srcdir)/OPTYap/tab.types.h \
 	$(srcdir)/OPTYap/or.macros.h \
 	$(srcdir)/H/YapHeap.h \
@@ -584,6 +589,7 @@ absmi.o: $(srcdir)/C/absmi.c \
 	$(srcdir)/OPTYap/or.macros.h \
 	$(srcdir)/OPTYap/tab.blocks.h \
 	$(srcdir)/OPTYap/tab.macros.h \
+	$(srcdir)/OPTYap/tab.sub_macros.h \
 	$(srcdir)/OPTYap/tab.types.h \
 	$(srcdir)/OPTYap/opt.macros.h \
 	$(srcdir)/OPTYap/tab.structs.h \

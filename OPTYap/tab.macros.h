@@ -29,43 +29,22 @@
 
 STD_PROTO(static inline void adjust_freeze_registers, (void));
 STD_PROTO(static inline void mark_as_completed, (sg_fr_ptr));
-#ifdef TABLING_CALL_SUBSUMPTION
-STD_PROTO(static inline void mark_consumer_as_completed, (subcons_fr_ptr sg_fr));
-#endif /* TABLING_CALL_SUBSUMPTION */
 STD_PROTO(static inline void unbind_variables, (tr_fr_ptr, tr_fr_ptr));
 STD_PROTO(static inline void rebind_variables, (tr_fr_ptr, tr_fr_ptr));
 STD_PROTO(static inline void restore_bindings, (tr_fr_ptr, tr_fr_ptr));
 
 STD_PROTO(static inline void free_subgoal_trie_hash_chain, (sg_hash_ptr));
 STD_PROTO(static inline void free_answer_trie_hash_chain, (ans_hash_ptr));
-#ifdef TABLING_CALL_SUBSUMPTION
-STD_PROTO(static inline void gen_index_remove, (subg_node_ptr, subg_hash_ptr));
-STD_PROTO(static inline void gen_index_add, (subg_node_ptr, subg_hash_ptr, int));
-STD_PROTO(static inline void free_tst_hash_chain, (tst_ans_hash_ptr));
-STD_PROTO(static inline void free_tst_hash_index, (tst_ans_hash_ptr hash));
-#endif /* TABLING_CALL_SUBSUMPTION */
 
 STD_PROTO(static inline void free_answer_trie_node, (ans_node_ptr));
 STD_PROTO(static inline void free_subgoal_trie_node, (sg_node_ptr));
 
-#ifdef TABLING_CALL_SUBSUMPTION
-STD_PROTO(static inline void free_producer_subgoal_data, (sg_fr_ptr, int));
-STD_PROTO(static inline void free_consumer_subgoal_data, (subcons_fr_ptr));
-#endif /* TABLING_CALL_SUBSUMPTION */
 STD_PROTO(static inline void free_variant_subgoal_data, (sg_fr_ptr, int));
 
-#ifdef TABLING_CALL_SUBSUMPTION
-STD_PROTO(static void abolish_incomplete_consumer_subgoal, (subcons_fr_ptr sg_fr));
-STD_PROTO(static inline void abolish_incomplete_producer_subgoal, (sg_fr_ptr sg_fr));
-#endif /* TABLING_CALL_SUBSUMPTION */
 STD_PROTO(static void abolish_incomplete_variant_subgoal, (sg_fr_ptr sg_fr));
 STD_PROTO(static inline void abolish_incomplete_producer_subgoal, (sg_fr_ptr sg_fr));
-
 STD_PROTO(static inline void abolish_incomplete_subgoals, (choiceptr));
 
-#ifdef TABLING_CALL_SUBSUMPTION
-STD_PROTO(static inline int build_next_subsumptive_consumer_return_list, (subcons_fr_ptr));
-#endif /* TABLING_CALL_SUBSUMPTION */
 STD_PROTO(static inline continuation_ptr get_next_answer_continuation, (dep_fr_ptr dep_fr));
 STD_PROTO(static inline int is_new_generator_call, (sg_fr_ptr));
 STD_PROTO(static inline int is_new_consumer_call, (sg_fr_ptr));
@@ -383,43 +362,12 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
         add_answer_trie_subgoal_frame(SG_FR);                     \
     }
 
-#ifdef TABLING_CALL_SUBSUMPTION
-#define new_subsumptive_producer_subgoal_frame(SG_FR, CODE, LEAF) { \
-        new_basic_subgoal_frame(SG_FR, CODE, LEAF,                  \
-          SUBSUMPTIVE_PRODUCER_SFT, ALLOC_SUBPROD_SUBGOAL_FRAME);   \
-        SgFr_prod_consumers(SG_FR) = NULL;                          \
-        SgFr_answer_trie(SG_FR) = newTSTAnswerSet();                \
-    }
-    
-#define new_subsumed_consumer_subgoal_frame(SG_FR, CODE, LEAF, PRODUCER) {  \
-        new_basic_subgoal_frame(SG_FR, CODE, LEAF,                          \
-            SUBSUMED_CONSUMER_SFT, ALLOC_SUBCONS_SUBGOAL_FRAME);            \
-        add_answer_trie_subgoal_frame(SG_FR);                               \
-        SgFr_timestamp(SG_FR) = 0;                                          \
-        SgFr_cons_cp(SG_FR) = NULL;                                         \
-        SgFr_answer_template(SG_FR) = NULL;                                 \
-        SgFr_producer(SG_FR) = PRODUCER;                                    \
-        SgFr_consumers(SG_FR) = SgFr_prod_consumers(PRODUCER);              \
-        if (!SgFr_prod_consumers(PRODUCER))                                 \
-          tstCreateTSIs((tst_node_ptr)SgFr_answer_trie(PRODUCER));          \
-        SgFr_prod_consumers(PRODUCER) = (subcons_fr_ptr)(SG_FR);            \
-        SgFr_next(SG_FR) = NULL;                                            \
-    }
-#endif /* TABLING_CALL_SUBSUMPTION */
-
 #define init_subgoal_frame(SG_FR)                                  \
         { SgFr_init_yapor_fields(SG_FR);                           \
           SgFr_state(SG_FR) = evaluating;                          \
           SgFr_next(SG_FR) = LOCAL_top_sg_fr;                      \
           LOCAL_top_sg_fr = SG_FR;                                 \
 	      }
-
-#define init_sub_consumer_subgoal_frame(SG_FR)                     \
-        { SgFr_state(SG_FR) = evaluating;                          \
-          SgFr_cons_cp(SG_FR) = B;                                 \
-          SgFr_next(SG_FR) = LOCAL_top_cons_sg_fr;                 \
-          LOCAL_top_cons_sg_fr = SG_FR;                            \
-        }
 
 #define SgFr_has_real_answers(SG_FR)                                      \
   (SgFr_first_answer(SG_FR) &&                                            \
@@ -549,8 +497,12 @@ join_answers_subgoal_frame(sg_fr_ptr sg_fr, continuation_ptr first, continuation
                  
 #endif /* TABLING_ANSWER_LIST */
 
-/* complete --> compiled : complete_in_use --> compiled_in_use */
-#define SgFr_mark_compiled(SG_FR) SgFr_state(SG_FR) += 2
+/* --------------------------- **
+**   Subsumption macros        **
+** --------------------------- */
+
+#include "tab.sub_macros.h"
+
 
 #define new_dependency_frame(DEP_FR, DEP_ON_STACK, TOP_OR_FR, LEADER_CP, CONS_CP, SG_FR, NEXT)         \
         ALLOC_DEPENDENCY_FRAME(DEP_FR);                                                                \
@@ -763,17 +715,6 @@ void mark_as_completed(sg_fr_ptr sg_fr) {
   return;
 }
 
-#ifdef TABLING_CALL_SUBSUMPTION
-static inline
-void mark_consumer_as_completed(subcons_fr_ptr sg_fr) {
-  LOCK(SgFr_lock(sg_fr));
-  
-  SgFr_state(sg_fr) = complete;
-  
-  UNLOCK(SgFr_lock(sg_fr));
-}
-#endif /* TABLING_CALL_SUBSUMPTION */
-
 static inline
 void unbind_variables(tr_fr_ptr unbind_tr, tr_fr_ptr end_tr) {
 #ifdef TABLING_ERRORS
@@ -940,49 +881,6 @@ TABLING_ERROR_MESSAGE("rebind_tr < end_tr (function restore_bindings)");
   return;
 }
 
-#ifdef TABLING_CALL_SUBSUMPTION
-static inline void
-gen_index_remove(subg_node_ptr sub_node, subg_hash_ptr hash) {
-  gen_index_ptr gen_index = TrNode_index_node(sub_node);
-  gen_index_ptr previous = GNIN_prev(gen_index);
-  gen_index_ptr next = GNIN_next(gen_index);
-  
-  if(previous)
-    GNIN_next(previous) = next;
-  else {
-    if(Hash_index_head(hash) == gen_index)
-      Hash_index_head(hash) = next;
-  }
-  
-  FREE_GEN_INDEX_NODE(gen_index);
-  
-  if(next)
-    GNIN_prev(next) = previous;
-    
-  TrNode_num_gen(sub_node) = 0;
-}
-
-static inline void
-gen_index_add(subg_node_ptr sub_node, subg_hash_ptr hash, int num_gen) {
-  gen_index_ptr index_node;
-  
-  ALLOC_GEN_INDEX_NODE(index_node);
-  
-  GNIN_prev(index_node) = NULL;
-  GNIN_node(index_node) = sub_node;
-  GNIN_num_gen(index_node) = num_gen;
-  
-  gen_index_ptr head = Hash_index_head(hash);
-  
-  GNIN_next(index_node) = head;
-  Hash_index_head(hash) = index_node;
-  if(head)
-    GNIN_prev(head) = index_node;
-    
-  TrNode_num_gen(sub_node) = (unsigned int)index_node;
-}
-#endif /* TABLING_CALL_SUBSUMPTION */
-
 static inline void
 free_answer_trie_node(ans_node_ptr node) {
   if(TrNode_is_answer(node)) {
@@ -1055,43 +953,6 @@ void free_node_list(node_list_ptr list) {
        new_subgoal_trie_node(NODE, t, CHILD, PARENT, NEXT, FLAGS);            \
      }                                                                        \
   }
-
-#ifdef TABLING_CALL_SUBSUMPTION
-static inline
-void free_producer_subgoal_data(sg_fr_ptr sg_fr, int delete_all) {
-  dprintf("Freeing producer data\n");
-  free_tst_hash_chain((tst_ans_hash_ptr)SgFr_hash_chain(sg_fr));
-  tst_node_ptr answer_trie = (tst_node_ptr)SgFr_answer_trie(sg_fr);
-  if(TrNode_child(answer_trie))
-    free_answer_trie_branch((ans_node_ptr)TrNode_child(answer_trie), TRAVERSE_POSITION_FIRST);
-  if(delete_all)
-    FREE_TST_ANSWER_TRIE_NODE(answer_trie);
-  free_answer_continuation(SgFr_first_answer(sg_fr));
-}
-
-static inline
-void free_consumer_subgoal_data(subcons_fr_ptr sg_fr) {
-  dprintf("Freeing consumer data\n");
-  free_answer_continuation(SgFr_first_answer(sg_fr));
-}
-
-static void
-abolish_incomplete_consumer_subgoal(subcons_fr_ptr sg_fr) {
-  dprintf("Freeing consumer subgoal\n");
-  free_consumer_subgoal_data(sg_fr);
-  dprintf("Freeing consumer subgoal path\n");
-  delete_subgoal_path((sg_fr_ptr)sg_fr);
-  dprintf("Freeing subgoal frame\n");
-  FREE_SUBCONS_SUBGOAL_FRAME(sg_fr);
-}
-
-static void
-abolish_incomplete_sub_producer_subgoal(sg_fr_ptr sg_fr) {
-  free_producer_subgoal_data(sg_fr, TRUE);
-  delete_subgoal_path(sg_fr);
-  FREE_SUBPROD_SUBGOAL_FRAME(sg_fr);
-}
-#endif /* TABLING_CALL_SUBSUMPTION */
 
 static inline
 void free_variant_subgoal_data(sg_fr_ptr sg_fr, int delete_all) {
@@ -1263,62 +1124,6 @@ void free_answer_trie_hash_chain(ans_hash_ptr hash) {
   }
   return;
 }
-
-#ifdef TABLING_CALL_SUBSUMPTION
-static inline
-void free_tst_hash_chain(tst_ans_hash_ptr hash) {
-  while(hash) {
-    tst_node_ptr chain_node, *bucket, *last_bucket;
-    tst_ans_hash_ptr next_hash;
-    
-    bucket = TSTHT_buckets(hash);
-    last_bucket = bucket + TSTHT_num_buckets(hash);
-    while(!*bucket)
-      bucket++;
-    chain_node = *bucket;
-    TSTN_child(TSTN_parent(chain_node)) = chain_node;
-    while(++bucket != last_bucket) {
-      if(*bucket) {
-        while(TrNode_next(chain_node))
-          chain_node = TSTN_next(chain_node);
-        TSTN_next(chain_node) = *bucket;
-        chain_node = *bucket;
-      }
-    }
-    next_hash = TSTHT_next(hash);
-    tstht_remove_index(hash);
-    FREE_TST_ANSWER_TRIE_HASH(hash);
-    hash = next_hash;
-  }
-}
-
-static inline
-void free_tst_hash_index(tst_ans_hash_ptr hash) {
-  while(hash) {
-    tstht_remove_index(hash);
-    hash = TSTHT_next(hash);
-  }
-}
-
-static inline int
-build_next_subsumptive_consumer_return_list(subcons_fr_ptr consumer_sg) {
-  subprod_fr_ptr producer_sg = SgFr_producer(consumer_sg);
-  const int producer_ts = SgFr_prod_timestamp(producer_sg);
-  const int consumer_ts = SgFr_timestamp(consumer_sg);
-  
-  if(producer_ts == consumer_ts)
-    return FALSE; /* no answers were inserted */
-    
-  CELL *answer_template = SgFr_answer_template(consumer_sg);
-  int size = SgFr_at_size(consumer_sg);
-
-  SgFr_timestamp(consumer_sg) = producer_ts;
-  
-  return tst_collect_relevant_answers((tst_node_ptr)SgFr_answer_trie(producer_sg),
-    consumer_ts, size, answer_template + size - 1, consumer_sg);
-}
-
-#endif /* TABLING_CALL_SUBSUMPTION */
 
 /* from a dependency frame "dep_fr" compute if
  * new answers are available to consume

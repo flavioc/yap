@@ -499,7 +499,8 @@ void free_answer_trie_branch(ans_node_ptr current_node, int position) {
 
 
 void update_answer_trie(sg_fr_ptr sg_fr) {
-  SgFr_mark_compiled(sg_fr);
+  /* complete --> compiled : complete_in_use --> compiled_in_use */
+  SgFr_state(sg_fr) += 2;
   
   /* compile only with variants */
   if(SgFr_is_variant(sg_fr)) {
