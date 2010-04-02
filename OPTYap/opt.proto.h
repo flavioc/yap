@@ -98,7 +98,6 @@ void consume_variant_answer(ans_node_ptr ans_node, int size, CELL *answer_templa
 ** tab.subsumption.c **
 ** ----------------- */
 
-#ifdef TABLING
 #ifdef TABLING_CALL_SUBSUMPTION
 void update_generator_path(sg_node_ptr node);
 void decrement_generator_path(sg_node_ptr start);
@@ -110,7 +109,14 @@ TSTNptr subsumptive_tst_search(CTXTdeclc TSTNptr tstRoot, int nTerms, CPtr termV
 inline TSTNptr subsumptive_answer_search(CTXTdeclc SubProdSF sf, int nTerms, CPtr answerVector, xsbBool *isNew);
 void *newTSTAnswerSet(void);
 #endif /* TABLING_CALL_SUBSUMPTION */
-#endif /* TABLING */
+
+/* ------------------ **
+**   tab.grounded.c   **
+** ------------------ */
+
+#ifdef TABLING_CALL_SUBSUMPTION
+sg_fr_ptr grounded_call_search(yamop *code, CELL *answer_template, CELL **new_local_stack);
+#endif /* TABLING_CALL_SUBSUMPTION */
 
 /* --------------- **
 **   tab.unify.c   **

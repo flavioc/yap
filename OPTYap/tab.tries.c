@@ -57,7 +57,7 @@ sg_fr_ptr subgoal_search(yamop *preg, CELL **local_stack_ptr)
 {
   tab_ent_ptr tab_ent = CODE_TABLE_ENTRY(preg);
   CELL *local_stack = *local_stack_ptr - 1;
-  sg_fr_ptr sg_fr;
+  sg_fr_ptr sg_fr = NULL;
   
 #ifdef TABLE_LOCK_AT_ENTRY_LEVEL
   LOCK(TabEnt_lock(tab_ent));
@@ -79,10 +79,14 @@ sg_fr_ptr subgoal_search(yamop *preg, CELL **local_stack_ptr)
   dprintf("\n");
 #endif
   
-#ifdef TABLING_CALL_SUBSUMPTION  
-  sg_fr = TabEnt_is_variant(tab_ent) ?
-    variant_call_search(preg, local_stack, local_stack_ptr) :
-    subsumptive_call_search(preg, local_stack, local_stack_ptr);
+#ifdef TABLING_CALL_SUBSUMPTION
+  if(TabEnt_is_variant(tab_ent)) {
+    sg_fr = variant_call_search(preg, local_stack, local_stack_ptr);
+  } else if(TabEnt_is_subsumptive(tab_ent)) {
+    sg_fr = subsumptive_call_search(preg, local_stack, local_stack_ptr);
+  } else if(TabEnt_is_grounded(tab_ent)) {
+    sg_fr = grounded_call_search(preg, local_stack, local_stack_ptr);
+  }
 #else
   sg_fr = variant_call_search(preg, local_stack, local_stack_ptr);
 #endif /* TABLING_CALL_SUBSUMPTION */
@@ -437,6 +441,14 @@ void free_subgoal_trie_branch(sg_node_ptr current_node, int nodes_left, int node
       case SUBSUMED_CONSUMER_SFT:
         free_consumer_subgoal_data((subcons_fr_ptr)sg_fr);
         FREE_SUBCONS_SUBGOAL_FRAME(sg_fr);
+        break;
+      case GROUND_PRODUCER_SFT:
+        /* XXX */
+        FREE_GROUNDED_SUBGOAL_FRAME(sg_fr);
+        break;
+      case GROUND_CONSUMER_SFT:
+        /* XXX */
+        FREE_GROUNDED_SUBGOAL_FRAME(sg_fr);
         break;
 #endif /* TABLING_CALL_SUBSUMPTION */
       default:

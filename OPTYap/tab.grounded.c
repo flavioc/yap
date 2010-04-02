@@ -29,4 +29,9 @@
 #include "tab.utils.h"
 #include "tab.tries.h"
 
+sg_fr_ptr grounded_call_search(yamop *code, CELL *answer_template, CELL **new_local_stack)
+{
+  return NULL;
+}
+
 #endif /* TABLING_CALL_SUBSUMPTION */
