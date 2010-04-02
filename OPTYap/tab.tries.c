@@ -345,7 +345,7 @@ void private_completion(sg_fr_ptr sg_fr) {
 
 #ifdef TABLING_CALL_SUBSUMPTION
   /* complete consumer subgoals */
-  while(LOCAL_top_cons_sg_fr && YOUNGER_CP(SgFr_cons_cp(LOCAL_top_cons_sg_fr), B)) {
+  while(LOCAL_top_cons_sg_fr && YOUNGER_CP(SgFr_choice_point(LOCAL_top_cons_sg_fr), B)) {
     mark_consumer_as_completed(LOCAL_top_cons_sg_fr);
     AT = SgFr_answer_template(LOCAL_top_cons_sg_fr);
     LOCAL_top_cons_sg_fr = SgFr_next(LOCAL_top_cons_sg_fr);

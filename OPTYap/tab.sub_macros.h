@@ -61,7 +61,7 @@ STD_PROTO(static inline int build_next_subsumptive_consumer_return_list, (subcon
             SUBSUMED_CONSUMER_SFT, ALLOC_SUBCONS_SUBGOAL_FRAME);            \
         add_answer_trie_subgoal_frame(SG_FR);                               \
         SgFr_timestamp(SG_FR) = 0;                                          \
-        SgFr_cons_cp(SG_FR) = NULL;                                         \
+        SgFr_choice_point(SG_FR) = NULL;                                         \
         SgFr_answer_template(SG_FR) = NULL;                                 \
         SgFr_producer(SG_FR) = PRODUCER;                                    \
         SgFr_consumers(SG_FR) = SgFr_prod_consumers(PRODUCER);              \
@@ -72,7 +72,7 @@ STD_PROTO(static inline int build_next_subsumptive_consumer_return_list, (subcon
     
 #define init_sub_consumer_subgoal_frame(SG_FR)                     \
         { SgFr_state(SG_FR) = evaluating;                          \
-          SgFr_cons_cp(SG_FR) = B;                                 \
+          SgFr_choice_point(SG_FR) = B;                                 \
           SgFr_next(SG_FR) = LOCAL_top_cons_sg_fr;                 \
           LOCAL_top_cons_sg_fr = SG_FR;                            \
         }

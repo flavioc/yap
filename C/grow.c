@@ -1235,14 +1235,14 @@ fix_tabling_info(void)
   }
   sg = LOCAL_top_sg_fr;
   while (sg) {
-    SgFr_gen_cp(sg) = GeneratorChoicePtrAdjust(SgFr_gen_cp(sg));
+    SgFr_choice_point(sg) = GeneratorChoicePtrAdjust(SgFr_choice_point(sg));
     sg = SgFr_next(sg);
   }
   
 #ifdef TABLING_CALL_SUBSUMPTION
   cons = LOCAL_top_cons_sg_fr;
   while (cons) {
-    SgFr_cons_cp(cons) = ConsumerChoicePtrAdjust(SgFr_cons_cp(cons));
+    SgFr_choice_point(cons) = ConsumerChoicePtrAdjust(SgFr_choice_point(cons));
     cons = SgFr_next(cons);
   }
 #endif /* TABLING_CALL_SUBSUMPTION */

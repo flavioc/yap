@@ -80,7 +80,8 @@ struct subsumed_consumer_subgoal_frame {
   
   sg_node_ptr leaf_ptr;
   
-  choiceptr cons_cp;
+  /* first consumer choice point */
+  choiceptr choice_point;
 
   continuation_ptr first_answer;
   continuation_ptr last_answer;
@@ -101,7 +102,6 @@ typedef subsumptive_consumer_sf *subcons_fr_ptr;
 #define SgFr_timestamp(X)       ((X)->ts)
 #define SgFr_producer(X)        ((X)->producer)
 #define SgFr_consumers(X)       ((X)->consumers)
-#define SgFr_cons_cp(X)         ((X)->cons_cp)
 #define SgFr_answer_template(X) ((X)->answer_template)
 #define SgFr_at_size(X)         ((X)->at_size)
 
@@ -134,7 +134,6 @@ struct grounded_subgoal_frame {
   grounded_sf_ptr consumer;
 };
 
-#define SgFr_choice_point(X)    ((X)->choice_point)
 #define SgFr_ground_consumer(X) ((X)->consumer)
 
 #define TabEnt_ground_trie(X) (TrNode_sibling(TabEnt_subgoal_trie(X)))

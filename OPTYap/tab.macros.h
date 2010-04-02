@@ -216,14 +216,14 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
 #ifdef YAPOR
 #define find_dependency_node(SG_FR, LEADER_CP, DEP_ON_STACK)                      \
         if (SgFr_gen_worker(SG_FR) == worker_id) {                                \
-          LEADER_CP = SgFr_gen_cp(SG_FR);                                         \
+          LEADER_CP = SgFr_choice_point(SG_FR);                                         \
           DEP_ON_STACK = TRUE;                                                    \
         } else {                                                                  \
           or_fr_ptr aux_or_fr = SgFr_gen_top_or_fr(SG_FR);                        \
           while (! BITMAP_member(OrFr_members(aux_or_fr), worker_id))             \
             aux_or_fr = OrFr_next(aux_or_fr);                                     \
           LEADER_CP = GetOrFr_node(aux_or_fr);                                    \
-          DEP_ON_STACK = (LEADER_CP == SgFr_gen_cp(SG_FR));                       \
+          DEP_ON_STACK = (LEADER_CP == SgFr_choice_point(SG_FR));                       \
         }
 #define find_leader_node(LEADER_CP, DEP_ON_STACK)                                 \
         { dep_fr_ptr chain_dep_fr = LOCAL_top_dep_fr;                             \
@@ -244,16 +244,16 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
 #ifdef TABLING_CALL_SUBSUMPTION
 #define find_dependency_node(SG_FR, LEADER_CP, DEP_ON_STACK)                      \
         if(SgFr_is_variant(SG_FR) || SgFr_is_sub_producer(SG_FR))                 \
-          LEADER_CP = SgFr_gen_cp(SG_FR);                                         \
+          LEADER_CP = SgFr_choice_point(SG_FR);                                         \
         else {                                                                    \
           subcons_fr_ptr cons = (subcons_fr_ptr)(SG_FR);                          \
           subprod_fr_ptr prod = SgFr_producer(cons);                              \
-          LEADER_CP = SgFr_gen_cp(prod);                                          \
+          LEADER_CP = SgFr_choice_point(prod);                                          \
         }                                                                         \
         DEP_ON_STACK = TRUE
 #else
 #define find_dependency_node(SG_FR, LEADER_CP, DEP_ON_STACK)                      \
-        LEADER_CP = SgFr_gen_cp(SG_FR);                                           \
+        LEADER_CP = SgFr_choice_point(SG_FR);                                           \
         DEP_ON_STACK = TRUE                                                       
 #endif /* TABLING_CALL_SUBSUMPTION */
 
@@ -1024,7 +1024,7 @@ void abolish_incomplete_subgoals(choiceptr prune_cp) {
     adjust_freeze_registers();
   }
 
-  while (LOCAL_top_sg_fr && EQUAL_OR_YOUNGER_CP(SgFr_gen_cp(LOCAL_top_sg_fr), prune_cp)) {
+  while (LOCAL_top_sg_fr && EQUAL_OR_YOUNGER_CP(SgFr_choice_point(LOCAL_top_sg_fr), prune_cp)) {
     sg_fr_ptr sg_fr;
 #ifdef YAPOR
     if (PARALLEL_EXECUTION_MODE)
@@ -1043,7 +1043,7 @@ void abolish_incomplete_subgoals(choiceptr prune_cp) {
   }
 
 #ifdef TABLING_CALL_SUBSUMPTION
-  while (LOCAL_top_cons_sg_fr && EQUAL_OR_YOUNGER_CP(SgFr_cons_cp(LOCAL_top_cons_sg_fr), prune_cp)) {
+  while (LOCAL_top_cons_sg_fr && EQUAL_OR_YOUNGER_CP(SgFr_choice_point(LOCAL_top_cons_sg_fr), prune_cp)) {
     subcons_fr_ptr sg_fr;
     
     sg_fr = LOCAL_top_cons_sg_fr;

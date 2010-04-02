@@ -445,7 +445,7 @@ int move_up_one_node(or_fr_ptr nearest_livenode) {
     if (OrFr_suspensions(LOCAL_top_or_fr)) {
       complete_suspension_frames(LOCAL_top_or_fr);
     }
-    if (LOCAL_top_sg_fr && Get_LOCAL_top_cp() == SgFr_gen_cp(LOCAL_top_sg_fr)) {
+    if (LOCAL_top_sg_fr && Get_LOCAL_top_cp() == SgFr_choice_point(LOCAL_top_sg_fr)) {
       mark_as_completed(LOCAL_top_sg_fr);
       LOCAL_top_sg_fr = SgFr_next(LOCAL_top_sg_fr);
     }
@@ -535,7 +535,7 @@ int move_up_one_node(or_fr_ptr nearest_livenode) {
 #ifdef TABLING_INNER_CUTS
   update_local_tops3:
 #endif /* TABLING_INNER_CUTS */
-  if (LOCAL_top_sg_fr && Get_LOCAL_top_cp() == SgFr_gen_cp(LOCAL_top_sg_fr)) {
+  if (LOCAL_top_sg_fr && Get_LOCAL_top_cp() == SgFr_choice_point(LOCAL_top_sg_fr)) {
     LOCAL_top_sg_fr = SgFr_next(LOCAL_top_sg_fr);
   }
 #endif /* TABLING */

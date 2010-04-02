@@ -362,7 +362,7 @@ typedef struct subgoal_frame {
   
   sg_node_ptr leaf_ptr;
   
-  choiceptr generator_choice_point;
+  choiceptr choice_point; /* generator choice point */
   
   continuation_ptr first_answer;
   continuation_ptr last_answer;
@@ -398,7 +398,7 @@ typedef sg_fr_ptr variant_sf_ptr;
 #define SgFr_tab_ent(X)        ((CAST_SF(X)->code_of_subgoal)->u.Otapl.te)
 #define SgFr_arity(X)          ((CAST_SF(X)->code_of_subgoal)->u.Otapl.s)
 #define SgFr_state(X)          (CAST_SF(X)->state_flag)
-#define SgFr_gen_cp(X)         (CAST_SF(X)->generator_choice_point)
+#define SgFr_choice_point(X)   (CAST_SF(X)->choice_point)
 #define SgFr_leaf(X)           (CAST_SF(X)->leaf_ptr)
 #define SgFr_hash_chain(X)     (TrNode_next(CAST_SF(X)->answer_trie)) /* sibling of root answer trie node */
 #define SgFr_answer_trie(X)    (CAST_SF(X)->answer_trie)
@@ -419,7 +419,7 @@ typedef sg_fr_ptr variant_sf_ptr;
    SgFr_tab_ent        a pointer to the correspondent table entry.
    SgFr_arity          the arity of the subgoal.
    SgFr_state:         a flag that indicates the subgoal state.
-   SgFr_gen_cp:        a pointer to the correspondent generator choice point.
+   SgFr_choice_point:  a pointer to the correspondent generator or first consumer choice point.
    SgFr_hash_chain:    a pointer to the first answer_trie_hash struct for the subgoal in hand.
    SgFr_leaf:          a pointer to the leaf in the call trie.
    SgFr_answer_trie:   a pointer to the top answer trie node.

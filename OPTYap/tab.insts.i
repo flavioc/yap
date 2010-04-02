@@ -49,7 +49,7 @@
           /* initialize gcp and adjust subgoal frame field */         \
           YENV = (CELL *) (GEN_CP(YENV) - 1);                         \
           gcp = NORM_CP(YENV);                                        \
-          SgFr_gen_cp(SG_FR) = gcp;                                   \
+          SgFr_choice_point(SG_FR) = gcp;                                   \
           /* store generator choice point */                          \
           HBREG = H;                                                  \
           store_yaam_reg_cpdepth(gcp);                                \
@@ -97,7 +97,7 @@
           /* initialize gcp and adjust subgoal frame field */         \
           YENV = (CELL *) (DET_GEN_CP(YENV) - 1);                     \
 	        gcp = NORM_CP(YENV);                                        \
-          SgFr_gen_cp(SG_FR) = gcp;                                   \
+          SgFr_choice_point(SG_FR) = gcp;                                   \
           /* store deterministic generator choice point */            \
           HBREG = H;                                                  \
           store_yaam_reg_cpdepth(gcp);                                \
@@ -1067,7 +1067,7 @@
       gcp->cp_tr    = B->cp_tr;
       gcp->cp_b     = B->cp_b;
       gcp->cp_ap    = B->cp_ap;
-      SgFr_gen_cp(sg_fr) = B = gcp;       
+      SgFr_choice_point(sg_fr) = B = gcp;       
     }
 #endif /* DETERMINISTIC_TABLING */
     YENV = (CELL *) PROTECT_FROZEN_B(B);
@@ -1103,7 +1103,7 @@
       gcp->cp_tr    = B->cp_tr;
       gcp->cp_b     = B->cp_b;
       gcp->cp_ap    = B->cp_ap;
-      SgFr_gen_cp(sg_fr) = B = gcp;
+      SgFr_choice_point(sg_fr) = B = gcp;
     }
 #endif /* DETERMINISTIC_TABLING */
     YENV = (CELL *) PROTECT_FROZEN_B(B);
@@ -1967,7 +1967,7 @@
           OrFr_owners(LOCAL_top_or_fr)--;
           LOCAL_top_dep_fr = DepFr_next(LOCAL_top_dep_fr);
           UNLOCK_OR_FRAME(LOCAL_top_or_fr);
-          if (LOCAL_top_sg_fr && Get_LOCAL_top_cp() == SgFr_gen_cp(LOCAL_top_sg_fr)) {
+          if (LOCAL_top_sg_fr && Get_LOCAL_top_cp() == SgFr_choice_point(LOCAL_top_sg_fr)) {
             LOCAL_top_sg_fr = SgFr_next(LOCAL_top_sg_fr);
           }
           SCH_update_local_or_tops();

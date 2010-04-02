@@ -439,7 +439,7 @@ void share_private_nodes(int worker_q) {
 
     /* update worker Q top subgoal frame */
     sg_frame = LOCAL_top_sg_fr;
-    while (sg_frame && YOUNGER_CP(SgFr_gen_cp(sg_frame), sharing_node)) {
+    while (sg_frame && YOUNGER_CP(SgFr_choice_point(sg_frame), sharing_node)) {
       sg_frame = SgFr_next(sg_frame);
     }
     REMOTE_top_sg_fr(worker_q) = sg_frame;
@@ -671,9 +671,9 @@ void share_private_nodes(int worker_q) {
 #ifdef TABLING
     /* update subgoal frames in the maintained private branches */
     sg_frame = LOCAL_top_sg_fr;
-    while (sg_frame && YOUNGER_CP(SgFr_gen_cp(sg_frame), B)) {
+    while (sg_frame && YOUNGER_CP(SgFr_choice_point(sg_frame), B)) {
       choiceptr top_cp_on_branch;
-      top_cp_on_branch = SgFr_gen_cp(sg_frame);
+      top_cp_on_branch = SgFr_choice_point(sg_frame);
       while (YOUNGER_CP(top_cp_on_branch, B)) {
         top_cp_on_branch = top_cp_on_branch->cp_b;
       }
@@ -683,9 +683,9 @@ void share_private_nodes(int worker_q) {
     /* update worker Q top subgoal frame */
     REMOTE_top_sg_fr(worker_q) = sg_frame;
     /* update subgoal frames in the recently shared branches */
-    while (sg_frame && YOUNGER_CP(SgFr_gen_cp(sg_frame), LOCAL_top_cp_on_stack)) {
+    while (sg_frame && YOUNGER_CP(SgFr_choice_point(sg_frame), LOCAL_top_cp_on_stack)) {
       SgFr_gen_worker(sg_frame) = MAX_WORKERS;
-      SgFr_gen_top_or_fr(sg_frame) = SgFr_gen_cp(sg_frame)->cp_or_fr;
+      SgFr_gen_top_or_fr(sg_frame) = SgFr_choice_point(sg_frame)->cp_or_fr;
       sg_frame = SgFr_next(sg_frame);
     }
 

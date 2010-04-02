@@ -1918,7 +1918,7 @@ mark_choicepoints(register choiceptr gc_B, tr_fr_ptr saved_TR, int very_verbose)
 #endif
 #ifdef TABLING
     if (rtp == NULL) {
-      if (aux_sg_fr && gc_B == SgFr_gen_cp(aux_sg_fr)) {
+      if (aux_sg_fr && gc_B == SgFr_choice_point(aux_sg_fr)) {
 	/* found generator */
 	opnum = _table_completion;
       } else {
@@ -1931,7 +1931,7 @@ mark_choicepoints(register choiceptr gc_B, tr_fr_ptr saved_TR, int very_verbose)
       opnum = Yap_op_from_opcode(op);
 #ifdef TABLING
     }
-    if (aux_sg_fr && gc_B == SgFr_gen_cp(aux_sg_fr)) {
+    if (aux_sg_fr && gc_B == SgFr_choice_point(aux_sg_fr)) {
       aux_sg_fr = SgFr_next(aux_sg_fr);
     }
 #endif /* TABLING */
@@ -2850,7 +2850,7 @@ sweep_choicepoints(choiceptr gc_B)
 
 #ifdef TABLING
     if (rtp == NULL) {
-      if (aux_sg_fr && gc_B == SgFr_gen_cp(aux_sg_fr)) {
+      if (aux_sg_fr && gc_B == SgFr_choice_point(aux_sg_fr)) {
 	/* found generator */
 	opnum = _table_completion;
       } else {
@@ -2863,7 +2863,7 @@ sweep_choicepoints(choiceptr gc_B)
       opnum = Yap_op_from_opcode(op);
 #ifdef TABLING
     }
-    if (aux_sg_fr && gc_B == SgFr_gen_cp(aux_sg_fr)) {
+    if (aux_sg_fr && gc_B == SgFr_choice_point(aux_sg_fr)) {
       aux_sg_fr = SgFr_next(aux_sg_fr);
     }
 #endif /* TABLING */

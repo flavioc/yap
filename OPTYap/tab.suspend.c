@@ -68,13 +68,13 @@ void public_completion(void) {
     /* complete subgoals */
     if (DepFr_leader_dep_is_on_stack(LOCAL_top_dep_fr)) {
       while (LOCAL_top_sg_fr && 
-             EQUAL_OR_YOUNGER_CP(SgFr_gen_cp(LOCAL_top_sg_fr), Get_LOCAL_top_cp())) {
+             EQUAL_OR_YOUNGER_CP(SgFr_choice_point(LOCAL_top_sg_fr), Get_LOCAL_top_cp())) {
         mark_as_completed(LOCAL_top_sg_fr);
         LOCAL_top_sg_fr = SgFr_next(LOCAL_top_sg_fr);
       }
     } else {
       while (LOCAL_top_sg_fr && 
-             YOUNGER_CP(SgFr_gen_cp(LOCAL_top_sg_fr), Get_LOCAL_top_cp())) {
+             YOUNGER_CP(SgFr_choice_point(LOCAL_top_sg_fr), Get_LOCAL_top_cp())) {
         mark_as_completed(LOCAL_top_sg_fr);
         LOCAL_top_sg_fr = SgFr_next(LOCAL_top_sg_fr);
       }
@@ -274,11 +274,11 @@ void suspend_branch(void) {
   }
 
   /* adjust top pointers */
-  while (LOCAL_top_sg_fr && YOUNGER_CP(SgFr_gen_cp(LOCAL_top_sg_fr), Get_LOCAL_top_cp_on_stack())) {
+  while (LOCAL_top_sg_fr && YOUNGER_CP(SgFr_choice_point(LOCAL_top_sg_fr), Get_LOCAL_top_cp_on_stack())) {
     SgFr_gen_worker(LOCAL_top_sg_fr) = MAX_WORKERS;
     LOCAL_top_sg_fr = SgFr_next(LOCAL_top_sg_fr);
   }
-  while (LOCAL_top_sg_fr && YOUNGER_CP(SgFr_gen_cp(LOCAL_top_sg_fr), Get_LOCAL_top_cp())) {
+  while (LOCAL_top_sg_fr && YOUNGER_CP(SgFr_choice_point(LOCAL_top_sg_fr), Get_LOCAL_top_cp())) {
     LOCAL_top_sg_fr = SgFr_next(LOCAL_top_sg_fr);
   }
   while (YOUNGER_CP(DepFr_cons_cp(LOCAL_top_dep_fr), Get_LOCAL_top_cp())) {
@@ -343,7 +343,7 @@ void resume_suspension_frame(susp_fr_ptr resume_fr, or_fr_ptr top_or_fr) {
   LOCAL_top_dep_fr = SuspFr_top_dep_fr(resume_fr);
   Set_LOCAL_top_cp_on_stack( GetOrFr_node(SuspFr_top_or_fr_on_stack(resume_fr)) );
   sg_frame = LOCAL_top_sg_fr;
-  while (sg_frame && YOUNGER_CP(SgFr_gen_cp(sg_frame), Get_LOCAL_top_cp_on_stack())) {
+  while (sg_frame && YOUNGER_CP(SgFr_choice_point(sg_frame), Get_LOCAL_top_cp_on_stack())) {
     SgFr_gen_worker(sg_frame) = worker_id;
     sg_frame = SgFr_next(sg_frame);
   }
@@ -377,7 +377,7 @@ void complete_suspension_branch(susp_fr_ptr susp_fr, choiceptr top_cp, or_fr_ptr
 	   /* continue if the subgoal was early completed */ 
            /* SgFr_state(aux_sg_fr) == evaluating && */
           (SgFr_state(aux_sg_fr) == evaluating || SgFr_has_yes_answer(aux_sg_fr)) &&
-           EQUAL_OR_YOUNGER_CP(SgFr_gen_cp(aux_sg_fr), top_cp)) {
+           EQUAL_OR_YOUNGER_CP(SgFr_choice_point(aux_sg_fr), top_cp)) {
       mark_as_completed(aux_sg_fr);
       aux_sg_fr = SgFr_next(aux_sg_fr);
     }
@@ -386,7 +386,7 @@ void complete_suspension_branch(susp_fr_ptr susp_fr, choiceptr top_cp, or_fr_ptr
 	   /* continue if the subgoal was early completed */ 
            /* SgFr_state(aux_sg_fr) == evaluating && */
            (SgFr_state(aux_sg_fr) == evaluating || SgFr_has_yes_answer(aux_sg_fr)) &&
-           YOUNGER_CP(SgFr_gen_cp(aux_sg_fr), top_cp)) {
+           YOUNGER_CP(SgFr_choice_point(aux_sg_fr), top_cp)) {
       mark_as_completed(aux_sg_fr);
       aux_sg_fr = SgFr_next(aux_sg_fr);
     }
