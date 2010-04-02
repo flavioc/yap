@@ -466,9 +466,9 @@ While_TSnotEmpty:
   if(SgFr_state(sg_fr) != evaluating) {
     Collection_Error("Subgoal frame found but it is not evaluating!", RequiresCleanup);
   } else {
-    ALN_InsertAnswer(returnList, parent_node);
+    ALN_InsertAnswer(returnList, parent_node);/*
     printf("Found subgoal ");
-    printSubgoalTriePath(stdout, parent_node, tab_ent);
+    printSubgoalTriePath(stdout, parent_node, tab_ent);*/
   }
   
   if ( CPStack_IsEmpty ) {

@@ -961,6 +961,90 @@ Int p_table_statistics(void) {
   return (TRUE);
 }
 
+#ifdef TABLING_CALL_SUBSUMPTION
+static inline long
+tst_node_structs_in_use(void) {
+  long total = 0;
+  
+  total += Pg_str_in_use(GLOBAL_PAGES_tst_ans_node);
+  total += Pg_str_in_use(GLOBAL_PAGES_long_tst_node);
+  total += Pg_str_in_use(GLOBAL_PAGES_float_tst_node);
+  
+  return total;
+}
+
+static inline long
+tst_node_structs_size(void) {
+  long total = 0;
+  
+  total += Pg_str_in_use(GLOBAL_PAGES_tst_ans_node) * sizeof(struct time_stamped_trie_node);
+  total += Pg_str_in_use(GLOBAL_PAGES_float_tst_node) * sizeof(struct float_tst_node);
+  total += Pg_str_in_use(GLOBAL_PAGES_long_tst_node) * sizeof(struct long_tst_node);
+  
+  return total;
+}
+
+#endif /* TABLING_CALL_SUBSUMPTION */
+
+static inline long
+subgoal_node_structs_in_use(void) {
+  long total = 0;
+  
+  total += Pg_str_in_use(GLOBAL_PAGES_sg_node);
+  total += Pg_str_in_use(GLOBAL_PAGES_float_sg_node);
+  total += Pg_str_in_use(GLOBAL_PAGES_long_sg_node);
+  
+#ifdef TABLING_CALL_SUBSUMPTION
+  total += Pg_str_in_use(GLOBAL_PAGES_subg_node);
+  total += Pg_str_in_use(GLOBAL_PAGES_float_subg_node);
+  total += Pg_str_in_use(GLOBAL_PAGES_long_subg_node);
+#endif
+
+  return total;
+}
+
+static inline long
+subgoal_node_structs_size(void) {
+  long total = 0;
+  
+  total += Pg_str_in_use(GLOBAL_PAGES_sg_node) * sizeof(struct subgoal_trie_node);
+  total += Pg_str_in_use(GLOBAL_PAGES_float_sg_node) * sizeof(struct float_subgoal_trie_node);
+  total += Pg_str_in_use(GLOBAL_PAGES_long_sg_node) * sizeof(struct long_subgoal_trie_node);
+  
+#ifdef TABLING_CALL_SUBSUMPTION
+  total += Pg_str_in_use(GLOBAL_PAGES_subg_node) * sizeof(struct sub_subgoal_trie_node);
+  total += Pg_str_in_use(GLOBAL_PAGES_float_subg_node) * sizeof(struct float_sub_subgoal_trie_node);
+  total += Pg_str_in_use(GLOBAL_PAGES_long_subg_node) * sizeof(struct long_sub_subgoal_trie_node);
+#endif
+
+  return total;
+}
+
+static inline long
+subgoal_hash_structs_in_use(void) {
+  long total = 0;
+  
+  total += Pg_str_in_use(GLOBAL_PAGES_sg_hash);
+  
+#ifdef TABLING_CALL_SUBSUMPTION
+  total += Pg_str_in_use(GLOBAL_PAGES_subg_hash);
+#endif
+  
+  return total;
+}
+
+static inline long
+subgoal_hash_structs_size(void) {
+  long total = 0;
+  
+  total += Pg_str_in_use(GLOBAL_PAGES_sg_hash) * sizeof(struct subgoal_trie_hash);
+  
+#ifdef TABLING_CALL_SUBSUMPTION
+  total += Pg_str_in_use(GLOBAL_PAGES_subg_hash) * sizeof(struct sub_subgoal_trie_hash);
+#endif
+  
+  return total;
+}
 
 static
 Int p_tabling_statistics(void) {
@@ -1001,22 +1085,40 @@ Int p_tabling_statistics(void) {
   bytes_in_use += Pg_str_in_use(GLOBAL_PAGES_subcons_sg_fr) * sizeof(struct subsumed_consumer_subgoal_frame);
 #endif /* TABLING_CALL_SUBSUMPTION */
   
-  fprintf(Yap_stdout, "  Subgoal trie nodes:                    %10ld structs in use\n", Pg_str_in_use(GLOBAL_PAGES_sg_node));
-  bytes_in_use += Pg_str_in_use(GLOBAL_PAGES_sg_node) * sizeof(struct subgoal_trie_node);
+  fprintf(Yap_stdout, "  Subgoal trie nodes:                    %10ld structs in use\n", subgoal_node_structs_in_use());
+  bytes_in_use += subgoal_node_structs_size();
+
+#ifdef TABLING_CALL_SUBSUMPTION
+  fprintf(Yap_stdout, "  Subgoal generator index nodes:         %10ld structs in use\n", Pg_str_in_use(GLOBAL_PAGES_gen_index_node));
+  bytes_in_use += Pg_str_in_use(GLOBAL_PAGES_gen_index_node) * sizeof(struct gen_index_node);
+#endif
   
   fprintf(Yap_stdout, "  Answer trie nodes:                     %10ld structs in use\n", Pg_str_in_use(GLOBAL_PAGES_ans_node));
   bytes_in_use += Pg_str_in_use(GLOBAL_PAGES_ans_node) * sizeof(struct answer_trie_node);
+  
+#ifdef TABLING_CALL_SUBSUMPTION
+  fprintf(Yap_stdout, "  Time stamped trie nodes:               %10ld structs in use\n", tst_node_structs_in_use());
+  bytes_in_use += tst_node_structs_size();
+  
+  fprintf(Yap_stdout, "  Time stamped index nodes:              %10ld structs in use\n", Pg_str_in_use(GLOBAL_PAGES_tst_index_node));
+  bytes_in_use += Pg_str_in_use(GLOBAL_PAGES_tst_index_node) * sizeof(struct tst_index_node);
+#endif /* TABLING_CALL_SUBSUMPTION */
 
 #ifdef GLOBAL_TRIE
   fprintf(Yap_stderr, "  Global trie nodes:                     %10ld structs in use\n", Pg_str_in_use(GLOBAL_PAGES_gt_node));
   bytes_in_use += Pg_str_in_use(GLOBAL_PAGES_gt_node) * sizeof(struct global_trie_node);
 #endif /* GLOBAL_TRIE */
 
-  fprintf(Yap_stdout, "  Subgoal trie hashes:                   %10ld structs in use\n", Pg_str_in_use(GLOBAL_PAGES_sg_hash));
-  bytes_in_use += Pg_str_in_use(GLOBAL_PAGES_sg_hash) * sizeof(struct subgoal_trie_hash);
+  fprintf(Yap_stdout, "  Subgoal trie hashes:                   %10ld structs in use\n", subgoal_hash_structs_in_use());
+  bytes_in_use += subgoal_hash_structs_size();
 
   fprintf(Yap_stdout, "  Answer trie hashes:                    %10ld structs in use\n", Pg_str_in_use(GLOBAL_PAGES_ans_hash));
   bytes_in_use += Pg_str_in_use(GLOBAL_PAGES_ans_hash) * sizeof(struct answer_trie_hash);
+  
+#ifdef TABLING_CALL_SUBSUMPTION
+  fprintf(Yap_stdout, "  Time stamped trie hashes:              %10ld structs in use\n", Pg_str_in_use(GLOBAL_PAGES_tst_answer_trie_hash));
+  bytes_in_use += Pg_str_in_use(GLOBAL_PAGES_tst_answer_trie_hash) * sizeof(struct tst_answer_trie_hash);
+#endif
 
 #ifdef GLOBAL_TRIE
   fprintf(Yap_stderr, "  Global trie hashes:                    %10ld structs in use\n", Pg_str_in_use(GLOBAL_PAGES_gt_hash));
@@ -1102,22 +1204,40 @@ Int p_opt_statistics(void) {
   fprintf(Yap_stdout, "  Subsumed consumer subgoal frames:      %10ld structs in use\n", Pg_str_in_use(GLOBAL_PAGES_subsumed_consumer_sg_fr));
   bytes_in_use += Pg_str_in_use(GLOBAL_PAGES_subsumed_consumer_sg_fr) * sizeof(struct subsumed_consumer_subgoal_frame);
   
-  fprintf(Yap_stdout, "  Subgoal trie nodes:                    %10ld structs in use\n", Pg_str_in_use(GLOBAL_PAGES_sg_node));
-  bytes_in_use += Pg_str_in_use(GLOBAL_PAGES_sg_node) * sizeof(struct subgoal_trie_node);
+  fprintf(Yap_stdout, "  Subgoal trie nodes:                    %10ld structs in use\n", subgoal_node_structs_in_use());
+  bytes_in_use += subgoal_node_structs_size();
+  
+#ifdef TABLING_CALL_SUBSUMPTION
+  fprintf(Yap_stdout, "  Subgoal generator index nodes:         %10ld structs in use\n", Pg_str_in_use(GLOBAL_PAGES_gen_index_node));
+  bytes_in_use += Pg_str_in_use(GLOBAL_PAGES_gen_index_node) * sizeof(struct gen_index_node);
+#endif
   
   fprintf(Yap_stdout, "  Answer trie nodes:                     %10ld structs in use\n", Pg_str_in_use(GLOBAL_PAGES_ans_node));
   bytes_in_use += Pg_str_in_use(GLOBAL_PAGES_ans_node) * sizeof(struct answer_trie_node);
+  
+#ifdef TABLING_CALL_SUBSUMPTION
+  fprintf(Yap_stdout, "  Time stamped trie nodes:               %10ld structs in use\n", tst_node_structs_in_use());
+  bytes_in_use += tst_node_structs_size();
+  
+  fprintf(Yap_stdout, "  Time stamped index nodes:              %10ld structs in use\n", Pg_str_in_use(GLOBAL_PAGES_tst_index_node));
+  bytes_in_use += Pg_str_in_use(GLOBAL_PAGES_tst_index_node) * sizeof(struct tst_index_node);
+#endif /* TABLING_CALL_SUBSUMPTION */
   
 #ifdef GLOBAL_TRIE
   fprintf(Yap_stderr, "  Global trie nodes:                     %10ld structs in use\n", Pg_str_in_use(GLOBAL_PAGES_gt_node));
   bytes_in_use += Pg_str_in_use(GLOBAL_PAGES_gt_node) * sizeof(struct global_trie_node);
 #endif /* GLOBAL_TRIE */
 
-  fprintf(Yap_stdout, "  Subgoal trie hashes:                   %10ld structs in use\n", Pg_str_in_use(GLOBAL_PAGES_sg_hash));
-  bytes_in_use += Pg_str_in_use(GLOBAL_PAGES_sg_hash) * sizeof(struct subgoal_trie_hash);
+  fprintf(Yap_stdout, "  Subgoal trie hashes:                   %10ld structs in use\n", subgoal_hash_structs_in_use());
+  bytes_in_use += subgoal_hash_structs_size();
   
   fprintf(Yap_stdout, "  Answer trie hashes:                    %10ld structs in use\n", Pg_str_in_use(GLOBAL_PAGES_ans_hash));
   bytes_in_use += Pg_str_in_use(GLOBAL_PAGES_ans_hash) * sizeof(struct answer_trie_hash);
+  
+#ifdef TABLING_CALL_SUBSUMPTION
+  fprintf(Yap_stdout, "  Time stamped trie hashes:              %10ld structs in use\n", Pg_str_in_use(GLOBAL_PAGES_tst_answer_trie_hash));
+  bytes_in_use += Pg_str_in_use(GLOBAL_PAGES_tst_answer_trie_hash) * sizeof(struct tst_answer_trie_hash);
+#endif
   
 #ifdef GLOBAL_TRIE
   fprintf(Yap_stderr, "  Global trie hashes:                    %10ld structs in use\n", Pg_str_in_use(GLOBAL_PAGES_gt_hash));
@@ -1389,7 +1509,7 @@ void shm_subprod_subgoal_frames(long *pages_in_use, long *bytes_in_use) {
     aux_ptr = PgHd_free_str(pg_hd);
     while (aux_ptr) {
       cont++;
-      aux_ptr = (subprod_fr_ptr)SgFr_next(aux_ptr);
+      aux_ptr = (subprod_fr_ptr)SgFr_next((sg_fr_ptr)aux_ptr);
     }
     pg_hd = PgHd_next(pg_hd);
   }
@@ -1427,6 +1547,22 @@ void shm_subcons_subgoal_frames(long *pages_in_use, long *bytes_in_use) {
   return; 
 }
 
+#define SHOW_SUBGOAL_TRIE_NODE(PAGES, STRING, STRUCT) \
+  pg_hd = Pg_free_pg(PAGES);                  \
+  cont = 0;                                   \
+  while (pg_hd) {                             \
+    aux_ptr = PgHd_free_str(pg_hd);           \
+    while(aux_ptr) {                          \
+      cont++;                                 \
+      aux_ptr = TrNode_next(aux_ptr);         \
+    }                                         \
+    pg_hd = PgHd_next(pg_hd);                 \
+  }                                           \
+  fprintf(Yap_stdout, "%s %s:                       %8ld pages %10ld structs in use\n", \
+        Pg_str_free(PAGES) == cont ? " " : "*", STRING,                                 \
+        Pg_pg_alloc(PAGES), Pg_str_in_use(PAGES));                                      \
+  *pages_in_use += Pg_pg_alloc(PAGES);                                                  \
+  *bytes_in_use += Pg_str_in_use(PAGES) * sizeof(struct STRUCT)
 
 static
 void shm_subgoal_trie_nodes(long *pages_in_use, long *bytes_in_use) {
