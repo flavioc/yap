@@ -326,9 +326,11 @@ typedef ans_node_ptr* continuation_ptr;
 ** ------------------------------- */
 
 enum SubgoalFrameType {
-  VARIANT_PRODUCER_SFT        = 0x01,
-  SUBSUMPTIVE_PRODUCER_SFT    = 0x02,
-  SUBSUMED_CONSUMER_SFT       = 0x03
+  VARIANT_PRODUCER_SFT        = 0x01, /* 0001 */
+  SUBSUMPTIVE_PRODUCER_SFT    = 0x03, /* 0011 */
+  SUBSUMED_CONSUMER_SFT       = 0x02, /* 0010 */
+  GROUND_PRODUCER_SFT         = 0x05, /* 0101 */
+  GROUND_CONSUMER_SFT         = 0x08  /* 1000 */
 };
 typedef unsigned char subgoal_frame_type;
 
@@ -360,6 +362,8 @@ typedef struct subgoal_frame {
   
   sg_node_ptr leaf_ptr;
   
+  choiceptr generator_choice_point;
+  
   continuation_ptr first_answer;
   continuation_ptr last_answer;
     
@@ -373,8 +377,6 @@ typedef struct subgoal_frame {
 #endif /* INCOMPLETE_TABLING */
   
   struct answer_trie_node *answer_trie;
-  
-  choiceptr generator_choice_point;
   
 #ifdef YAPOR
   int generator_worker;

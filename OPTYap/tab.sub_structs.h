@@ -79,6 +79,8 @@ struct subsumed_consumer_subgoal_frame {
 #endif
   
   sg_node_ptr leaf_ptr;
+  
+  choiceptr cons_cp;
 
   continuation_ptr first_answer;
   continuation_ptr last_answer;
@@ -87,10 +89,11 @@ struct subsumed_consumer_subgoal_frame {
   
   time_stamp ts;
   subprod_fr_ptr producer;
-  choiceptr cons_cp;
   CELL* answer_template;
   int at_size;
-  subsumptive_consumer_sf *consumers; /* Chain link for properly subsumed subgoals */
+  
+  /* Chain link for properly subsumed subgoals */
+  subsumptive_consumer_sf *consumers;
 };
 
 typedef subsumptive_consumer_sf *subcons_fr_ptr;
@@ -101,5 +104,42 @@ typedef subsumptive_consumer_sf *subcons_fr_ptr;
 #define SgFr_cons_cp(X)         ((X)->cons_cp)
 #define SgFr_answer_template(X) ((X)->answer_template)
 #define SgFr_at_size(X)         ((X)->at_size)
+
+typedef struct grounded_subgoal_frame *grounded_sf_ptr;
+
+struct grounded_subgoal_frame {
+  subgoal_frame_type type;
+  subgoal_state state_flag;
+  
+  yamop *code_of_subgoal;
+  
+#if defined(YAPOR) || defined(THREADS)
+  lockvar lock;
+#endif
+
+  sg_node_ptr leaf_ptr;
+  
+  continuation_ptr first_answer;
+  continuation_ptr last_answer;
+  
+  struct grounded_subgoal_frame *next;
+  
+  time_stamp ts;
+  grounded_sf_ptr *producer;
+  CELL* answer_template;
+  int at_size;
+  
+  grounded_sf_ptr *consumer;
+};
+
+#define SgFr_ground_consumer(X) ((X)->consumer)
+
+#define TabEnt_ground_trie(X) (TrNode_sibling(TabEnt_subgoal_trie(X)))
+
+#define GROUND_SUBGOAL_FRAME_MASK 0xC0
+
+#define SgFr_is_ground(X)          (SgFr_type(X) & GROUND_SUBGOAL_FRAME_MASK)
+#define SgFr_is_ground_producer(X) (SgFr_type(X) == GROUND_PRODUCER_SFT)
+#define SgFr_is_ground_consumer(X) (SgFr_type(X) == GROUND_CONSUMER_SFT)
 
 #endif /* TABLING_CALL_SUBSUMPTION */
