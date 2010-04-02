@@ -283,7 +283,7 @@ OR_OBJECTS = \
 	tab.collect.o tab.specific.o \
 	tab.retrv.o tab.unify.o \
 	tab.utils.o tab.suspend.o tab.var.o \
-	tab.subsumption.o
+	tab.subsumption.o tab.grounded.o
 
 BEAM_OBJECTS = \
 	eamamasm.o eam_showcode.o eamindex.o eam_am.o
@@ -450,6 +450,23 @@ tab.subsumption.o: $(srcdir)/OPTYap/tab.subsumption.c \
 	$(srcdir)/H/yapio.h \
 	$(srcdir)/OPTYap/opt.config.h
 	$(CC) -c $(CFLAGS) $(srcdir)/OPTYap/tab.subsumption.c -o $@
+
+tab.grounded.o: $(srcdir)/OPTYap/tab.grounded.c \
+	$(srcdir)/OPTYap/tab.subsumption.c \
+	$(srcdir)/OPTYap/tab.utils.h \
+	$(srcdir)/OPTYap/tab.utils.o \
+	$(srcdir)/OPTYap/tab.macros.h \
+	$(srcdir)/OPTYap/tab.sub_macros.h \
+	$(srcdir)/OPTYap/tab.types.h \
+	$(srcdir)/OPTYap/tab.xsb.h \
+	$(srcdir)/OPTYap/tab.tst.h \
+	$(srcdir)/OPTYap/tab.structs.h \
+	$(srcdir)/OPTYap/tab.sub_structs.h \
+	$(srcdir)/H/Yatom.h \
+	$(srcdir)/H/YapHeap.h \
+	$(srcdir)/H/yapio.h \
+	$(srcdir)/OPTYap/opt.config.h
+	$(CC) -c $(CFLAGS) $(srcdir)/OPTYap/tab.grounded.c -o $@
 
 tab.var.o: $(srcdir)/OPTYap/tab.var.c \
 	$(srcdir)/OPTYap/tab.utils.h \
