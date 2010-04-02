@@ -533,6 +533,8 @@ typedef enum Trie_Path_Type {
  NO_PATH, VARIANT_PATH, SUBSUMPTIVE_PATH
 } TriePathType;
 
+extern struct VariantContinuation variant_cont;
+
 #define ANSWER_TEMPLATE_STACK_SIZE (4 * 1000000)
 extern CELL at_stack[ANSWER_TEMPLATE_STACK_SIZE];
 extern CELL* AT;

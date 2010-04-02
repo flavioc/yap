@@ -35,6 +35,27 @@ STD_PROTO(static inline int build_next_subsumptive_consumer_return_list, (subcon
         SgFr_answer_trie(SG_FR) = newTSTAnswerSet();                \
     }
     
+#define new_grounded_producer_subgoal_frame(SG_FR, CODE, LEAF) {  \
+        new_basic_subgoal_frame(SG_FR, CODE, LEAF,                \
+          GROUND_PRODUCER_SFT, ALLOC_GROUNDED_SUBGOAL_FRAME);     \
+        init_ground_subgoal_frame(SG_FR);                         \
+        SgFr_producer(SG_FR) = 0;                                 \
+        SgFr_ground_consumer(SG_FR) = NULL;                       \
+  }
+  
+#define init_ground_subgoal_frame(SG_FR)  \
+        SgFr_choice_point(SG_FR) = NULL;  \
+        SgFr_timestamp(SG_FR) = 0
+  
+#define new_grounded_consumer_subgoal_frame(SG_FR, CODE, LEAF, PRODUCER) {  \
+        new_basic_subgoal_frame(SG_FR, CODE, LEAF,                          \
+          GROUND_CONSUMER_SFT, ALLOC_GROUNDED_SUBGOAL_FRAME);             \
+        init_ground_subgoal_frame(SG_FR);                                   \
+        SgFr_producer(SG_FR) = PRODUCER;                                    \
+        SgFr_ground_consumer(SG_FR) = SgFr_ground_consumer(PRODUCER);       \
+        SgFr_ground_consumer(PRODUCER) = SG_FR;                             \
+  }
+    
 #define new_subsumed_consumer_subgoal_frame(SG_FR, CODE, LEAF, PRODUCER) {  \
         new_basic_subgoal_frame(SG_FR, CODE, LEAF,                          \
             SUBSUMED_CONSUMER_SFT, ALLOC_SUBCONS_SUBGOAL_FRAME);            \
@@ -47,7 +68,7 @@ STD_PROTO(static inline int build_next_subsumptive_consumer_return_list, (subcon
         if (!SgFr_prod_consumers(PRODUCER))                                 \
           tstCreateTSIs((tst_node_ptr)SgFr_answer_trie(PRODUCER));          \
         SgFr_prod_consumers(PRODUCER) = (subcons_fr_ptr)(SG_FR);            \
-        SgFr_next(SG_FR) = NULL;                                            \
+        SgFr_next(SG_FR) = NULL; /* XXX */                                        \
     }
     
 #define init_sub_consumer_subgoal_frame(SG_FR)                     \

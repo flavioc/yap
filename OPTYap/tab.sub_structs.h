@@ -119,19 +119,22 @@ struct grounded_subgoal_frame {
 
   sg_node_ptr leaf_ptr;
   
+  choiceptr choice_point;
+  
   continuation_ptr first_answer;
   continuation_ptr last_answer;
   
   struct grounded_subgoal_frame *next;
   
   time_stamp ts;
-  grounded_sf_ptr *producer;
+  grounded_sf_ptr producer;
   CELL* answer_template;
   int at_size;
   
-  grounded_sf_ptr *consumer;
+  grounded_sf_ptr consumer;
 };
 
+#define SgFr_choice_point(X)    ((X)->choice_point)
 #define SgFr_ground_consumer(X) ((X)->consumer)
 
 #define TabEnt_ground_trie(X) (TrNode_sibling(TabEnt_subgoal_trie(X)))

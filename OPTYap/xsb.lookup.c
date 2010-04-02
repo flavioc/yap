@@ -25,7 +25,12 @@
  */
 
 #ifndef MULTI_THREAD
+#ifdef SUBSUMPTION_XSB
 static struct VariantContinuation variant_cont;
+#else
+/* used in various places in Yap */
+struct VariantContinuation variant_cont;
+#endif
 #endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
