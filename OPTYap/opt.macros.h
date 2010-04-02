@@ -456,6 +456,9 @@ extern int Yap_page_size;
 #define ALLOC_SUBCONS_SUBGOAL_FRAME(STR)  ALLOC_STRUCT(STR, GLOBAL_PAGES_subcons_sg_fr, struct subsumed_consumer_subgoal_frame)
 #define FREE_SUBCONS_SUBGOAL_FRAME(STR)   FREE_STRUCT(STR, GLOBAL_PAGES_subcons_sg_fr, struct subsumed_consumer_subgoal_frame)
 
+#define ALLOC_GROUNDED_SUBGOAL_FRAME(STR) ALLOC_STRUCT(STR, GLOBAL_PAGES_grounded_sg_fr, struct grounded_subgoal_frame)
+#define FREE_GROUNDED_SUBGOAL_FRAME(STR) FREE_STRUCT(STR, GLOBAL_PAGES_grounded_sg_fr, struct grounded_subgoal_frame)
+
 #ifdef YAPOR
 
 #define ALLOC_ANSWER_TRIE_NODE(STR)     ALLOC_NEXT_FREE_STRUCT(STR, GLOBAL_PAGES_ans_node, struct answer_trie_node)
