@@ -294,6 +294,10 @@
         ENV = YENV
 #endif /* DEPTH_LIMIT */
 
+#define ensure_subgoal_is_compiled(SG_FR) \
+        if (SgFr_state(SG_FR) < compiled) \
+  	      update_answer_trie(SG_FR)
+
 #ifdef TABLING_CALL_SUBSUMPTION
 
 /* Consume subsuming answer ANS_NODE using ANS_TMPLT
@@ -648,8 +652,7 @@
 
 	    /* execute compiled code from the trie */
 
-	    if (SgFr_state(sg_fr) < compiled)
-	      update_answer_trie(sg_fr);
+      ensure_subgoal_is_compiled(sg_fr);
 
 	    UNLOCK(SgFr_lock(sg_fr));
 
@@ -827,8 +830,7 @@
 
 	    /* execute compiled code from the trie */
 
-	    if (SgFr_state(sg_fr) < compiled)
-	      update_answer_trie(sg_fr);
+      ensure_subgoal_is_compiled(sg_fr);
 
 	    UNLOCK(SgFr_lock(sg_fr));
 
@@ -1007,8 +1009,7 @@
 
 	    /* execute compiled code from the trie */
 
-	    if (SgFr_state(sg_fr) < compiled)
-	      update_answer_trie(sg_fr);
+      ensure_subgoal_is_compiled(sg_fr);
 
 	    UNLOCK(SgFr_lock(sg_fr));
 
@@ -2064,8 +2065,7 @@
             dprintf("COMPILED CODE\n");
             /* execute compiled code from the trie */
             LOCK(SgFr_lock(sg_fr));
-            if (SgFr_state(sg_fr) < compiled)
-              update_answer_trie(sg_fr);
+            ensure_subgoal_is_compiled(sg_fr);
             UNLOCK(SgFr_lock(sg_fr));
             PREG = (yamop *) TrNode_child(SgFr_answer_trie(sg_fr));
             PREFETCH_OP(PREG);

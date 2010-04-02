@@ -160,8 +160,9 @@ typedef unsigned long time_stamp;
 
 struct basic_trie_info {
   OPCODE instr;
+  OPCODE compiled;
   unsigned char node_type;
-};
+} __attribute__((__packed__));;
 
 /* -------------------------------------------------------------------------- **
 **      Structs global_trie_node, subgoal_trie_node and answer_trie_node      **
@@ -241,6 +242,7 @@ typedef struct answer_trie_node {
 } *ans_node_ptr;
 
 #define TrNode_instr(X)        ((X)->basic_info.instr)
+#define TrNode_compiled(X)     ((X)->basic_info.compiled)
 #define TrNode_node_type(X)    ((X)->basic_info.node_type)
 #define TrNode_trie_type(X)    (TrNode_node_type(X) & TRIE_TYPE_MASK)
 #define TrNode_or_arg(X)       ((X)->or_arg)

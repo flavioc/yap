@@ -1285,7 +1285,6 @@ void free_tst_hash_chain(tst_ans_hash_ptr hash) {
         chain_node = *bucket;
       }
     }
-    dprintf("One tst hash deleted\n");
     next_hash = TSTHT_next(hash);
     tstht_remove_index(hash);
     FREE_TST_ANSWER_TRIE_HASH(hash);
@@ -1310,43 +1309,13 @@ build_next_subsumptive_consumer_return_list(subcons_fr_ptr consumer_sg) {
   if(producer_ts == consumer_ts)
     return FALSE; /* no answers were inserted */
     
-  //dprintf("Producer ts %d consumer ts %d\n", producer_ts, consumer_ts);
   CELL *answer_template = SgFr_answer_template(consumer_sg);
   int size = SgFr_at_size(consumer_sg);
 
-#if 0
-  if(!SgFr_leaf(consumer_sg))
-    printf("LEAF CANNOT BE NULL\n");
-  
-  dprintf("SUBGOAL: ");
-  printSubgoalTriePath(stdout, SgFr_leaf(consumer_sg), SgFr_tab_ent(consumer_sg));
-  dprintf("\n");
-  
-  dprintf("GENERAL SUBGOAL: ");
-  printSubgoalTriePath(stdout, SgFr_leaf(producer_sg), SgFr_tab_ent(consumer_sg));
-  dprintf("\n");
-
-  dprintf("Answer template before collect: ");
-  printAnswerTemplate(stdout, answer_template, size);
-#endif
-
   SgFr_timestamp(consumer_sg) = producer_ts;
   
-  if(!tst_collect_relevant_answers((tst_node_ptr)SgFr_answer_trie(producer_sg),
-        consumer_ts, size, answer_template + size - 1, consumer_sg)) {
-#if 0
-  dprintf("failed to collect, Answer template after collect: ");
-  printAnswerTemplate(stdout, answer_template, size);
-#endif
-    return FALSE;
-  }
-    
-#if 0
-  dprintf("Answer template after collect: ");
-  printAnswerTemplate(stdout, answer_template, size);
-#endif
-  
-  return TRUE;
+  return tst_collect_relevant_answers((tst_node_ptr)SgFr_answer_trie(producer_sg),
+    consumer_ts, size, answer_template + size - 1, consumer_sg));
 }
 
 #endif /* TABLING_CALL_SUBSUMPTION */

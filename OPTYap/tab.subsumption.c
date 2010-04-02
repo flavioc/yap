@@ -151,8 +151,6 @@ sg_fr_ptr subsumptive_call_search(yamop *code, CELL *answer_template, CELL **new
   if(path_type == NO_PATH) { /* new producer */
     Trail_Unwind_All;
     
-    //collect_specific_generator_goals(code);
-    
     sg_node_ptr leaf = variant_call_cont_insert(tab_ent, (sg_node_ptr)stl_restore_variant_cont(),
       variant_cont.bindings.num, CALL_SUB_TRIE_NT);
     

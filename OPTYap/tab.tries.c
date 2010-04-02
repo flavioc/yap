@@ -499,21 +499,25 @@ void free_answer_trie_branch(ans_node_ptr current_node, int position) {
 
 
 void update_answer_trie(sg_fr_ptr sg_fr) {
-  ans_node_ptr current_node;
   SgFr_mark_compiled(sg_fr);
-  current_node = TrNode_child(SgFr_answer_trie(sg_fr));
-  if (current_node) {
+  
+  /* compile only with variants */
+  if(SgFr_is_variant(sg_fr)) {
+    ans_node_ptr current_node = TrNode_child(SgFr_answer_trie(sg_fr));
+    if (current_node) {
 #ifdef YAPOR
-    TrNode_instr(current_node) -= 1;
+      TrNode_instr(current_node) -= 1;
 #ifdef TABLING_INNER_CUTS
-    update_answer_trie_branch(NULL, current_node);
+      update_answer_trie_branch(NULL, current_node);
 #else
-    update_answer_trie_branch(current_node);
+      update_answer_trie_branch(current_node);
 #endif /* TABLING_INNER_CUTS */
 #else /* TABLING */
-    update_answer_trie_branch(current_node, TRAVERSE_POSITION_FIRST);
+      update_answer_trie_branch(current_node, TRAVERSE_POSITION_FIRST);
 #endif /* YAPOR */
+    }
   }
+  
   return;
 }
 
@@ -730,27 +734,6 @@ int update_answer_trie_branch(ans_node_ptr current_node) {
 #else /* TABLING */
 static
 void update_answer_trie_branch(ans_node_ptr current_node, int position) {
-#ifdef TABLING_CALL_SUBSUMPTION
-  if(IS_ANSWER_TRIE_HASH(current_node)) {
-    /* we can only be here if the answer trie is a time stamped trie! */
-    tst_node_ptr chain_node, *bucket, *last_bucket;
-    tst_ans_hash_ptr hash = (tst_ans_hash_ptr)current_node;
-    
-    bucket = TSTHT_buckets(hash);
-    last_bucket = bucket + TSTHT_num_buckets(hash);
-    
-    while(bucket != last_bucket) {
-      if(*bucket) {
-        chain_node = *bucket;
-        update_answer_trie_branch((ans_node_ptr)chain_node, TRAVERSE_POSITION_FIRST); /* retry --> try */
-      }
-      bucket++;
-    }
-    TrNode_instr(current_node) = Yap_opcode(TrNode_instr(current_node));
-    return;
-  }
-#endif /* TABLING_CALL_SUBSUMPTION */
-  
   if (! IS_ANSWER_LEAF_NODE(current_node))
     update_answer_trie_branch(TrNode_child(current_node), TRAVERSE_POSITION_FIRST);  /* retry --> try */
   if (position == TRAVERSE_POSITION_FIRST) {
