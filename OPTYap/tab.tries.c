@@ -747,7 +747,6 @@ void update_answer_trie_branch(ans_node_ptr current_node, int position) {
       bucket++;
     }
     TrNode_instr(current_node) = Yap_opcode(TrNode_instr(current_node));
-    tstht_remove_index(hash);
     return;
   }
 #endif /* TABLING_CALL_SUBSUMPTION */
