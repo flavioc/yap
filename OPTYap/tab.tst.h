@@ -127,6 +127,10 @@ void tstCreateTSIs(CTXTdeclc TSTNptr pTST);
 void tstht_remove_index(TSTHTptr ht);
 void print_hash_table(TSTHTptr ht);
 
+/* --------------------- **
+**   Choice points       **
+** --------------------- */
+
 struct hash_choicept {
    struct choicept cp;
    tst_node_ptr *last_bucket;

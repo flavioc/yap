@@ -422,6 +422,7 @@ tab.tries.o: $(srcdir)/OPTYap/tab.tries.c \
 	$(srcdir)/OPTYap/tab.macros.h \
 	$(srcdir)/OPTYap/tab.types.h \
 	$(srcdir)/OPTYap/tab.structs.h \
+	$(srcdir)/OPTYap/tab.sub_structs.h \
 	$(srcdir)/OPTYap/tab.tries.h \
 	$(srcdir)/OPTYap/tab.tst.h \
 	$(srcdir)/H/Yatom.h \
@@ -441,6 +442,7 @@ tab.subsumption.o: $(srcdir)/OPTYap/tab.subsumption.c \
 	$(srcdir)/OPTYap/tab.xsb.h \
 	$(srcdir)/OPTYap/tab.tst.h \
 	$(srcdir)/OPTYap/tab.structs.h \
+	$(srcdir)/OPTYap/tab.sub_structs.h \
 	$(srcdir)/H/Yatom.h \
 	$(srcdir)/H/YapHeap.h \
 	$(srcdir)/H/yapio.h \
@@ -454,6 +456,7 @@ tab.var.o: $(srcdir)/OPTYap/tab.var.c \
 	$(srcdir)/OPTYap/tab.types.h \
 	$(srcdir)/OPTYap/tab.xsb.h \
 	$(srcdir)/OPTYap/tab.structs.h \
+	$(srcdir)/OPTYap/tab.sub_structs.h \
 	$(srcdir)/OPTYap/tab.tries.h \
 	$(srcdir)/H/Yatom.h \
 	$(srcdir)/H/YapHeap.h \
@@ -472,6 +475,7 @@ tab.tst.o: $(srcdir)/OPTYap/tab.tst.c \
 	$(srcdir)/OPTYap/tab.tst.h \
 	$(srcdir)/OPTYap/tab.utils.h \
 	$(srcdir)/OPTYap/tab.structs.h \
+	$(srcdir)/OPTYap/tab.sub_structs.h \
 	$(srcdir)/OPTYap/tab.macros.h \
 	$(srcdir)/OPTYap/tab.types.h \
 	$(srcdir)/OPTYap/tab.xsb.h
@@ -481,6 +485,7 @@ tab.unify.o: $(srcdir)/OPTYap/tab.unify.c \
 	$(srcdir)/OPTYap/xsb.unify.c \
 	$(srcdir)/OPTYap/tab.utils.h \
 	$(srcdir)/OPTYap/tab.structs.h \
+	$(srcdir)/OPTYap/tab.sub_structs.h \
 	$(srcdir)/OPTYap/tab.tst.h \
 	$(srcdir)/OPTYap/tab.xsb.h \
 	$(srcdir)/OPTYap/tab.xsb_common.h
@@ -492,6 +497,7 @@ tab.collect.o: $(srcdir)/OPTYap/tab.collect.c \
 	$(srcdir)/OPTYap/tab.collect.h \
 	$(srcdir)/OPTYap/tab.utils.h \
 	$(srcdir)/OPTYap/tab.structs.h \
+	$(srcdir)/OPTYap/tab.sub_structs.h \
 	$(srcdir)/OPTYap/tab.xsb.h \
 	$(srcdir)/OPTYap/tab.xsb_common.h
 	$(CC) -c $(CFLAGS) $(srcdir)/OPTYap/tab.collect.c -o $@
@@ -502,6 +508,7 @@ tab.specific.o: $(srcdir)/OPTYap/tab.specific.c \
 	$(srcdir)/OPTYap/xsb.collect_utils.h \
 	$(srcdir)/OPTYap/tab.utils.h \
 	$(srcdir)/OPTYap/tab.structs.h \
+	$(srcdir)/OPTYap/tab.sub_structs.h \
 	$(srcdir)/OPTYap/tab.xsb.h \
 	$(srcdir)/OPTYap/tab.xsb_common.h
 	$(CC) -c $(CFLAGS) $(srcdir)/OPTYap/tab.specific.c -o $@
@@ -513,6 +520,7 @@ tab.retrv.o: $(srcdir)/OPTYap/tab.retrv.c \
 	$(srcdir)/OPTYap/tab.retrv.h \
 	$(srcdir)/OPTYap/tab.utils.h \
 	$(srcdir)/OPTYap/tab.structs.h \
+	$(srcdir)/OPTYap/tab.sub_structs.h \
 	$(srcdir)/OPTYap/tab.tst.h \
 	$(srcdir)/OPTYap/tab.xsb.h \
 	$(srcdir)/OPTYap/tab.xsb_common.h
@@ -579,6 +587,7 @@ absmi.o: $(srcdir)/C/absmi.c \
 	$(srcdir)/OPTYap/tab.types.h \
 	$(srcdir)/OPTYap/opt.macros.h \
 	$(srcdir)/OPTYap/tab.structs.h \
+	$(srcdir)/OPTYap/tab.sub_structs.h \
 	$(srcdir)/OPTYap/opt.config.h \
 	$(srcdir)/OPTYap/or.insts.i
 	$(CC) -c $(CFLAGS) $< -o $@
