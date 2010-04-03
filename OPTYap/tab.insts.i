@@ -339,6 +339,34 @@
 #define limit_tabling_remove_sf(SG_FR) /* nothing */
 #endif /* LIMIT_TABLING */
 
+#define load_continuation_and_answer(SG_FR) \
+        continuation_ptr cont = SgFr_first_answer(SG_FR); \
+        ans_node_ptr ans_node = continuation_answer(cont)
+        
+#define load_run_answers(TAB_ENT, LOAD_INSTR, CONSUME_FN, ANSWER_TEMPLATE) \
+        if(continuation_has_next(cont)) \
+          store_loader_node(TAB_ENT, cont, LOAD_INSTR); \
+        PREG = (yamop *)CPREG;                        \
+        PREFETCH_OP(PREG);                            \
+        CONSUME_FN(ans_node, ANSWER_TEMPLATE);        \
+        YENV = ENV;                                   \
+        GONext()
+
+#define load_answers_from_sf(SG_FR, TAB_ENT, CONSUME_FN, LOAD_INSTR, ANSWER_TEMPLATE)  \
+        load_continuation_and_answer(SG_FR);                          \
+	      UNLOCK(SgFr_lock(SG_FR));                                     \
+	      load_run_answers(TAB_ENT, LOAD_INSTR, CONSUME_FN, ANSWER_TEMPLATE)
+        
+#define load_answers_from_sf_no_unlock(SG_FR, TAB_ENT, CONSUME_FN, LOAD_INSTR, ANSWER_TEMPLATE) \
+        load_continuation_and_answer(SG_FR);              \
+        load_run_answers(TAB_ENT, LOAD_INSTR, CONSUME_FN, ANSWER_TEMPLATE)
+        
+#define load_variant_answers_from_sf(SG_FR, TAB_ENT, ANSWER_TEMPLATE)                  \
+        load_answers_from_sf(SG_FR, TAB_ENT, CONSUME_VARIANT_ANSWER, LOAD_ANSWER, ANSWER_TEMPLATE)
+
+#define load_subsumptive_answers_from_sf(SG_FR, TAB_ENT, ANSWER_TEMPLATE)              \
+        load_answers_from_sf(SG_FR, TAB_ENT, CONSUME_SUBSUMPTIVE_ANSWER, LOAD_CONS_ANSWER, ANSWER_TEMPLATE)
+
 #ifdef TABLING_CALL_SUBSUMPTION
 
 /* Consume subsuming answer ANS_NODE using ANS_TMPLT
@@ -616,21 +644,7 @@
         limit_tabling_remove_sf(sg_fr);
                 
         if (TabEnt_is_load(tab_ent)) {
-          /* load answers from the trie */
-          
-          continuation_ptr cont = SgFr_first_answer(sg_fr);
-          ans_node_ptr ans_node = continuation_answer(cont);
-
-  	      UNLOCK(SgFr_lock(sg_fr));
-
-  	      if(continuation_has_next(cont))
-            store_loader_node(tab_ent, cont, LOAD_ANSWER);
-
-          PREG = (yamop *) CPREG;
-          PREFETCH_OP(PREG);
-          CONSUME_VARIANT_ANSWER(ans_node, answer_template);
-  	      YENV = ENV;
-          GONext();
+          load_variant_answers_from_sf(sg_fr, tab_ent, YENV);
   	    }
 #ifdef TABLING_CALL_SUBSUMPTION
       } else {
@@ -643,20 +657,7 @@
   	      
           check_no_answers(sg_fr);
     	    
-    	    /* load first answer */
-    	    continuation_ptr cont = SgFr_first_answer(sg_fr);
-          ans_node_ptr ans_node = continuation_answer(cont);
-
-  	      UNLOCK(SgFr_lock(sg_fr));
-
-  	      if(continuation_has_next(cont))
-            store_loader_node(tab_ent, cont, LOAD_CONS_ANSWER);
-
-          PREG = (yamop *) CPREG;
-          PREFETCH_OP(PREG);
-          CONSUME_SUBSUMPTIVE_ANSWER(ans_node, answer_template);
-  	      YENV = ENV;
-          GONext();
+          load_subsumptive_answers_from_sf(sg_fr, tab_ent, YENV);
   	    } else {
   	      if(SgFr_state(sg_fr) < compiled)
   	        SgFr_state(sg_fr) = compiled;
@@ -772,19 +773,7 @@
         if (TabEnt_is_load(tab_ent)) {
           /* load answers from the trie */
 
-          continuation_ptr cont = SgFr_first_answer(sg_fr);
-          ans_node_ptr ans_node = continuation_answer(cont);
-
-  	      UNLOCK(SgFr_lock(sg_fr));
-
-  	      if(continuation_has_next(cont))
-            store_loader_node(tab_ent, cont, LOAD_ANSWER);
-
-          PREG = (yamop *) CPREG;
-          PREFETCH_OP(PREG);
-          CONSUME_VARIANT_ANSWER(ans_node, answer_template);
-  	      YENV = ENV;
-          GONext();
+          load_variant_answers_from_sf(sg_fr, tab_ent, YENV);
   	    }
 #ifdef TABLING_CALL_SUBSUMPTION
       } else {
@@ -796,21 +785,7 @@
   	      }
 
           check_no_answers(sg_fr);
-
-    	    /* load first answer */
-    	    continuation_ptr cont = SgFr_first_answer(sg_fr);
-          ans_node_ptr ans_node = continuation_answer(cont);
-
-  	      UNLOCK(SgFr_lock(sg_fr));
-
-  	      if(continuation_has_next(cont))
-            store_loader_node(tab_ent, cont, LOAD_CONS_ANSWER);
-
-          PREG = (yamop *) CPREG;
-          PREFETCH_OP(PREG);
-          CONSUME_SUBSUMPTIVE_ANSWER(ans_node, answer_template);
-  	      YENV = ENV;
-          GONext();
+          load_subsumptive_answers_from_sf(sg_fr, tab_ent, YENV);
   	    } else {
   	      if(SgFr_state(sg_fr) < compiled)
   	        SgFr_state(sg_fr) = compiled;
@@ -926,21 +901,7 @@
         limit_tabling_remove_sf(sg_fr);
 
         if (TabEnt_is_load(tab_ent)) {
-          /* load answers from the trie */
-        
-          continuation_ptr cont = SgFr_first_answer(sg_fr);
-          ans_node_ptr ans_node = continuation_answer(cont);
-
-  	      UNLOCK(SgFr_lock(sg_fr));
-
-  	      if(continuation_has_next(cont))
-            store_loader_node(tab_ent, cont, LOAD_ANSWER);
-
-          PREG = (yamop *) CPREG;
-          PREFETCH_OP(PREG);
-          CONSUME_VARIANT_ANSWER(ans_node, answer_template);
-  	      YENV = ENV;
-          GONext();
+          load_variant_answers_from_sf(sg_fr, tab_ent, YENV);
   	    }
 #ifdef TABLING_CALL_SUBSUMPTION
       } else {
@@ -952,21 +913,7 @@
   	      }
 
           check_no_answers(sg_fr);
-
-    	    /* load first answer */
-    	    continuation_ptr cont = SgFr_first_answer(sg_fr);
-          ans_node_ptr ans_node = continuation_answer(cont);
-
-  	      UNLOCK(SgFr_lock(sg_fr));
-
-  	      if(continuation_has_next(cont))
-            store_loader_node(tab_ent, cont, LOAD_CONS_ANSWER);
-
-          PREG = (yamop *) CPREG;
-          PREFETCH_OP(PREG);
-          CONSUME_SUBSUMPTIVE_ANSWER(ans_node, answer_template);
-  	      YENV = ENV;
-          GONext();
+          load_subsumptive_answers_from_sf(sg_fr, tab_ent, YENV);
   	    } else {
   	      if(SgFr_state(sg_fr) < compiled)
   	        SgFr_state(sg_fr) = compiled;
@@ -2012,20 +1959,7 @@
         limit_tabling_do_remove_sf(sg_fr);
 
         if (TabEnt_is_load(tab_ent)) {
-          /* load answers from the trie */
-          continuation_ptr cont = SgFr_first_answer(sg_fr);
-          continuation_ptr next = continuation_next(cont);
-            
-          ans_node = continuation_answer(cont);
-            
-          if(next)
-            store_loader_node(tab_ent, cont, LOAD_ANSWER);
-            
-          PREG = (yamop *) CPREG;
-          PREFETCH_OP(PREG);
-          CONSUME_VARIANT_ANSWER(ans_node, YENV);
-          YENV = ENV;
-          GONext();
+          load_answers_from_sf_no_unlock(sg_fr, tab_ent, CONSUME_VARIANT_ANSWER, LOAD_ANSWER, YENV);
         } else {
           dprintf("COMPILED CODE\n");
           /* execute compiled code from the trie */
