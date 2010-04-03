@@ -1902,30 +1902,30 @@ dprintf("stack_trie_atom_instr\n");                                    \
     ENV = B->cp_env;                                      \
     YENV = (CELL *)PROTECT_FROZEN_B(B);                   \
     SET_BB(NORM_CP(YENV));                                \
-                                                          \
     register CELL *aux_stack_ptr = (CELL *)(hash_cp + 1); \
     int heap_arity = *aux_stack_ptr;                      \
     int vars_arity = *(aux_stack_ptr + heap_arity + 1);   \
     int subs_arity = *(aux_stack_ptr + heap_arity + 2);   \
     copy_arity_stack()
     
-#define pop_hash_node()                                          \
-    YENV = (CELL *) PROTECT_FROZEN_B((choiceptr)(hash_cp+1));    \
-    H = PROTECT_FROZEN_H(B);                              \
-    pop_yaam_reg_cpdepth(B);                              \
-    CPREG = B->cp_cp;                                     \
-    TABLING_close_alt(B);                                 \
-    ENV = B->cp_env;                                      \
-    B = B->cp_b;                                          \
-    HBREG = PROTECT_FROZEN_H(B);                          \
-    SET_BB(PROTECT_FROZEN_B(B));                          \
-    if ((choiceptr) YENV == B_FZ) {                       \
-      register CELL *aux_stack_ptr = YENV;                \
-      int heap_arity = *aux_stack_ptr;                    \
-      int vars_arity = *(aux_stack_ptr + heap_arity + 1); \
-      int subs_arity = *(aux_stack_ptr + heap_arity + 2); \
-      copy_arity_stack();                                 \
-    }
+#define pop_hash_node()  {                                      \
+    YENV = (CELL *) PROTECT_FROZEN_B((choiceptr)(hash_cp + 1)); \
+    H = PROTECT_FROZEN_H(B);                                    \
+    pop_yaam_reg_cpdepth(B);                                    \
+    CPREG = B->cp_cp;                                           \
+    TABLING_close_alt(B);                                       \
+    ENV = B->cp_env;                                            \
+    B = B->cp_b;                                                \
+    HBREG = PROTECT_FROZEN_H(B);                                \
+    SET_BB(PROTECT_FROZEN_B(B));                                \
+    if ((choiceptr) YENV == B_FZ) {                             \
+      register CELL *aux_stack_ptr = (CELL *) (hash_cp + 1);    \
+      int heap_arity = *aux_stack_ptr;                          \
+      int vars_arity = *(aux_stack_ptr + heap_arity + 1);       \
+      int subs_arity = *(aux_stack_ptr + heap_arity + 2);       \
+      copy_arity_stack();                                       \
+    }                                                           \
+  }
   
   BOp(trie_do_hash, e)
 #ifdef TABLING_CALL_SUBSUMPTION
