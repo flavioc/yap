@@ -297,6 +297,32 @@
 #define ensure_subgoal_is_compiled(SG_FR) \
         if (SgFr_state(SG_FR) < compiled) \
   	      update_answer_trie(SG_FR)
+  	      
+#define check_no_answers(SG_FR) \
+        if (SgFr_has_no_answers(SG_FR)) { \
+    	      /* no answers --> fail */ \
+    	      UNLOCK(SgFr_lock(SG_FR)); \
+    	      goto fail;  \
+    	    }
+    	    
+#define check_yes_answer_no_unlock(SG_FR)   \
+        if (SgFr_has_yes_answer(SG_FR)) {   \
+          /* yes answer --> procceed */     \
+          PREG = (yamop *) CPREG;           \
+          PREFETCH_OP(PREG);                \
+          YENV = ENV;                       \
+          GONext();                         \
+        }
+    	    
+#define check_yes_answer(SG_FR)             \
+        if (SgFr_has_yes_answer(SG_FR)) {   \
+    	    /* yes answer --> procceed */     \
+    	    UNLOCK(SgFr_lock(SG_FR));         \
+    	    PREG = (yamop *) CPREG;           \
+    	    PREFETCH_OP(PREG);                \
+    	    YENV = ENV;                       \
+    	    GONext();                         \
+        }
 
 #ifdef TABLING_CALL_SUBSUMPTION
 
@@ -569,19 +595,8 @@
       CELL* answer_template = YENV;
 
       if(SgFr_is_variant(sg_fr) || SgFr_is_sub_producer(sg_fr)) {
-        if (SgFr_has_no_answers(sg_fr)) {
-  	      /* no answers --> fail */
-  	      UNLOCK(SgFr_lock(sg_fr));
-  	      goto fail;
-  	    }
-        if (SgFr_has_yes_answer(sg_fr)) {
-  	      /* yes answer --> procceed */
-  	      UNLOCK(SgFr_lock(sg_fr));
-  	      PREG = (yamop *) CPREG;
-  	      PREFETCH_OP(PREG);
-  	      YENV = ENV;
-  	      GONext();
-        }
+        check_no_answers(sg_fr);
+        check_yes_answer(sg_fr);
                 
         if (TabEnt_is_load(tab_ent)) {
           /* load answers from the trie */
@@ -615,11 +630,7 @@
             SgFr_state(sg_fr) = complete;
   	      }
   	      
-  	      if (SgFr_has_no_answers(sg_fr)) {
-    	      /* no answers --> fail */
-    	      UNLOCK(SgFr_lock(sg_fr));
-    	      goto fail;
-    	    }
+          check_no_answers(sg_fr);
     	    
     	    /* load first answer */
     	    continuation_ptr cont = SgFr_first_answer(sg_fr);
@@ -641,11 +652,7 @@
           UNLOCK(SgFr_lock(sg_fr));
   	      sg_fr = (sg_fr_ptr)SgFr_producer((subcons_fr_ptr)sg_fr);
   	      LOCK(SgFr_lock(sg_fr));
-  	      if(SgFr_has_no_answers(sg_fr)) {
-  	        /* no answers --> fail */
-  	        UNLOCK(SgFr_lock(sg_fr));
-    	      goto fail;
-  	      }
+          check_no_answers(sg_fr);
   	    }
 #endif /* TABLING_CALL_SUBSUMPTION */
       }
@@ -746,19 +753,8 @@
       CELL* answer_template = YENV;
 
       if(SgFr_is_variant(sg_fr) || SgFr_is_sub_producer(sg_fr)) {
-        if (SgFr_has_no_answers(sg_fr)) {
-  	      /* no answers --> fail */
-  	      UNLOCK(SgFr_lock(sg_fr));
-  	      goto fail;
-  	    }
-        if (SgFr_has_yes_answer(sg_fr)) {
-  	      /* yes answer --> procceed */
-  	      UNLOCK(SgFr_lock(sg_fr));
-  	      PREG = (yamop *) CPREG;
-  	      PREFETCH_OP(PREG);
-  	      YENV = ENV;
-  	      GONext();
-        }
+        check_no_answers(sg_fr);
+        check_yes_answer(sg_fr);
 
         if (TabEnt_is_load(tab_ent)) {
           /* load answers from the trie */
@@ -793,11 +789,7 @@
             SgFr_state(sg_fr) = complete;
   	      }
 
-  	      if (SgFr_has_no_answers(sg_fr)) {
-    	      /* no answers --> fail */
-    	      UNLOCK(SgFr_lock(sg_fr));
-    	      goto fail;
-    	    }
+          check_no_answers(sg_fr);
 
     	    /* load first answer */
     	    continuation_ptr cont = SgFr_first_answer(sg_fr);
@@ -819,11 +811,8 @@
           UNLOCK(SgFr_lock(sg_fr));
   	      sg_fr = (sg_fr_ptr)SgFr_producer((subcons_fr_ptr)sg_fr);
   	      LOCK(SgFr_lock(sg_fr));
-  	      if(SgFr_has_no_answers(sg_fr)) {
-  	        /* no answers --> fail */
-  	        UNLOCK(SgFr_lock(sg_fr));
-    	      goto fail;
-  	      }
+  	      
+          check_no_answers(sg_fr);
   	    }
 #endif /* TABLING_CALL_SUBSUMPTION */
       }
@@ -925,19 +914,8 @@
       CELL* answer_template = YENV;
       
       if(SgFr_is_variant(sg_fr) || SgFr_is_sub_producer(sg_fr)) {
-        if (SgFr_has_no_answers(sg_fr)) {
-  	      /* no answers --> fail */
-  	      UNLOCK(SgFr_lock(sg_fr));
-  	      goto fail;
-  	    }
-        if (SgFr_has_yes_answer(sg_fr)) {
-  	      /* yes answer --> procceed */
-  	      UNLOCK(SgFr_lock(sg_fr));
-  	      PREG = (yamop *) CPREG;
-  	      PREFETCH_OP(PREG);
-  	      YENV = ENV;
-  	      GONext();
-        }
+        check_no_answers(sg_fr);
+        check_yes_answer(sg_fr);
 
         if (TabEnt_is_load(tab_ent)) {
           /* load answers from the trie */
@@ -972,11 +950,7 @@
             SgFr_state(sg_fr) = complete;
   	      }
 
-  	      if (SgFr_has_no_answers(sg_fr)) {
-    	      /* no answers --> fail */
-    	      UNLOCK(SgFr_lock(sg_fr));
-    	      goto fail;
-    	    }
+          check_no_answers(sg_fr);
 
     	    /* load first answer */
     	    continuation_ptr cont = SgFr_first_answer(sg_fr);
@@ -998,11 +972,7 @@
           UNLOCK(SgFr_lock(sg_fr));
   	      sg_fr = (sg_fr_ptr)SgFr_producer((subcons_fr_ptr)sg_fr);
   	      LOCK(SgFr_lock(sg_fr));
-  	      if(SgFr_has_no_answers(sg_fr)) {
-  	        /* no answers --> fail */
-  	        UNLOCK(SgFr_lock(sg_fr));
-    	      goto fail;
-  	      }
+          check_no_answers(sg_fr);
   	    }
 #endif /* TABLING_CALL_SUBSUMPTION */
       }
@@ -2032,49 +2002,44 @@
         }
 #endif /* TABLING_ERRORS */
         pop_generator_node(SgFr_arity(sg_fr));
-        if (SgFr_has_yes_answer(sg_fr)) {
-          /* yes answer --> procceed */
+        
+        check_yes_answer_no_unlock(sg_fr);
+
+        /* answers -> get first answer */
+	      tab_ent_ptr tab_ent = SgFr_tab_ent(sg_fr);
+#ifdef LIMIT_TABLING
+	      SgFr_state(sg_fr)++;  /* complete --> complete_in_use */
+	      remove_from_global_sg_fr_list(sg_fr);
+	      TRAIL_FRAME(sg_fr);
+#endif /* LIMIT_TABLING */
+        if (TabEnt_is_load(tab_ent)) {
+          /* load answers from the trie */
+          continuation_ptr cont = SgFr_first_answer(sg_fr);
+          continuation_ptr next = continuation_next(cont);
+            
+          ans_node = continuation_answer(cont);
+            
+          if(next)
+            store_loader_node(tab_ent, cont, LOAD_ANSWER);
+            
           PREG = (yamop *) CPREG;
           PREFETCH_OP(PREG);
+          CONSUME_VARIANT_ANSWER(ans_node, YENV);
           YENV = ENV;
           GONext();
-        } else  {
-          /* answers -> get first answer */
-	        tab_ent_ptr tab_ent = SgFr_tab_ent(sg_fr);
-#ifdef LIMIT_TABLING
-	        SgFr_state(sg_fr)++;  /* complete --> complete_in_use */
-	        remove_from_global_sg_fr_list(sg_fr);
-	        TRAIL_FRAME(sg_fr);
-#endif /* LIMIT_TABLING */
-          if (TabEnt_is_load(tab_ent)) {
-            /* load answers from the trie */
-            continuation_ptr cont = SgFr_first_answer(sg_fr);
-            continuation_ptr next = continuation_next(cont);
-            
-            ans_node = continuation_answer(cont);
-            
-            if(next)
-              store_loader_node(tab_ent, cont, LOAD_ANSWER);
-            
-            PREG = (yamop *) CPREG;
-            PREFETCH_OP(PREG);
-            CONSUME_VARIANT_ANSWER(ans_node, YENV);
-            YENV = ENV;
-            GONext();
-          } else {
-            dprintf("COMPILED CODE\n");
-            /* execute compiled code from the trie */
-            LOCK(SgFr_lock(sg_fr));
-            ensure_subgoal_is_compiled(sg_fr);
-            UNLOCK(SgFr_lock(sg_fr));
-            PREG = (yamop *) TrNode_child(SgFr_answer_trie(sg_fr));
-            PREFETCH_OP(PREG);
-            *--YENV = 0;  /* vars_arity */
+        } else {
+          dprintf("COMPILED CODE\n");
+          /* execute compiled code from the trie */
+          LOCK(SgFr_lock(sg_fr));
+          ensure_subgoal_is_compiled(sg_fr);
+          UNLOCK(SgFr_lock(sg_fr));
+          PREG = (yamop *) TrNode_child(SgFr_answer_trie(sg_fr));
+          PREFETCH_OP(PREG);
+          *--YENV = 0;  /* vars_arity */
 #ifndef GLOBAL_TRIE
-            *--YENV = 0;  /* heap_arity */
+          *--YENV = 0;  /* heap_arity */
 #endif /* GLOBAL_TRIE */
-            GONext();
-	        }
+          GONext();
 	      }
       }
     }
