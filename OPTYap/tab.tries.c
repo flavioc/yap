@@ -109,6 +109,10 @@ ans_node_ptr answer_search(sg_fr_ptr sg_fr, CELL *subs_ptr) {
     CELL* answerVector = subs_ptr + nTerms;
     int new;
     return (ans_node_ptr)subsumptive_answer_search((subprod_fr_ptr)sg_fr, nTerms, answerVector, &new);
+  } else if(SgFr_is_ground_producer(sg_fr)) {
+    int nTerms = *subs_ptr;
+    CELL* answerVector = subs_ptr + nTerms;
+    return (ans_node_ptr)grounded_answer_search((grounded_sf_ptr)sg_fr, answerVector);
   }
 #endif /* TABLING_CALL_SUBSUMPTION */
   return NULL;

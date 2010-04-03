@@ -116,6 +116,7 @@ void *newTSTAnswerSet(void);
 
 #ifdef TABLING_CALL_SUBSUMPTION
 sg_fr_ptr grounded_call_search(yamop *code, CELL *answer_template, CELL **new_local_stack);
+inline TSTNptr grounded_answer_search(grounded_sf_ptr sf, CPtr answerVector);
 #endif /* TABLING_CALL_SUBSUMPTION */
 
 /* --------------- **

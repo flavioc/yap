@@ -81,6 +81,7 @@ static inline CELL*
 copy_arguments_as_the_answer_template(CELL *answer_template, int arity)
 {
   int i;
+  printf("Creating the answer template on the local stack\n");
   
   for(i = 1; i <= arity; ++i) {
     *answer_template-- = (CELL)Deref(XREGS[i]);
@@ -117,6 +118,7 @@ sg_fr_ptr grounded_call_search(yamop *code, CELL *answer_template, CELL **new_lo
   }
   
   if(path_type == NO_PATH) { /* new producer */
+    printf("New ground producer\n");
     sg_node_ptr leaf = variant_call_cont_insert(tab_ent, (sg_node_ptr)stl_restore_variant_cont(),
       variant_cont.bindings.num, CALL_SUB_TRIE_NT);
       
@@ -139,7 +141,7 @@ sg_fr_ptr grounded_call_search(yamop *code, CELL *answer_template, CELL **new_lo
     
     switch(path_type) {
       case VARIANT_PATH:
-        sg_fr = (sg_fr_ptr)found;
+        sg_fr = found;
         break;
       case SUBSUMPTIVE_PATH:
         if(SgFr_state(subsumer) < complete || TabEnt_is_load(tab_ent)) {
@@ -159,6 +161,32 @@ sg_fr_ptr grounded_call_search(yamop *code, CELL *answer_template, CELL **new_lo
   }
   
   return (sg_fr_ptr)sg_fr;
+}
+
+inline
+TSTNptr grounded_answer_search(grounded_sf_ptr sf, CPtr answerVector) {
+
+  TSTNptr root, tstn;
+  tab_ent_ptr tab_ent = SgFr_tab_ent(sf);
+  int arity = TabEnt_arity(tab_ent);
+  
+  printf("grounded_answer_search\n");
+
+  AnsVarCtr = 0;
+  root = (TSTNptr)TabEnt_ground_trie(tab_ent);
+  
+  if ( IsNULL(root) ) {
+    printf("Created ground trie\n");
+    TabEnt_ground_trie(tab_ent) = (sg_node_ptr)newTSTAnswerSet();
+    root = (TSTNptr)TabEnt_ground_trie(tab_ent);
+  }
+
+  int isNew;
+  tstn = subsumptive_tst_search(root, arity, answerVector, TRUE, &isNew );
+       
+  Trail_Unwind_All;
+  printf("Inserted answer\n");
+  return tstn;
 }
 
 #endif /* TABLING_CALL_SUBSUMPTION */
