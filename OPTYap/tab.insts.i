@@ -323,6 +323,21 @@
     	    YENV = ENV;                       \
     	    GONext();                         \
         }
+        
+#ifdef LIMIT_TABLING
+#define limit_tabling_do_remove_sf(SG_FR)   \
+        SgFr_state(SG_FR)++;  /* complete --> complete_in_use : compiled --> compiled_in_use */ \
+	      remove_from_global_sg_fr_list(SG_FR); \
+	      TRAIL_FRAME(SG_FR)
+	      
+#define limit_tabling_remove_sf(SG_FR)      \
+        if (SgFr_state(SG_FR) == complete || SgFr_state(SG_FR) == compiled) { \
+          limit_tabling_do_remove_sf(SG_FR);                                  \
+        }
+#else
+#define limit_tabling_do_remove_sf(SG_FR) /* nothing */
+#define limit_tabling_remove_sf(SG_FR) /* nothing */
+#endif /* LIMIT_TABLING */
 
 #ifdef TABLING_CALL_SUBSUMPTION
 
@@ -597,16 +612,12 @@
       if(SgFr_is_variant(sg_fr) || SgFr_is_sub_producer(sg_fr)) {
         check_no_answers(sg_fr);
         check_yes_answer(sg_fr);
+        
+        limit_tabling_remove_sf(sg_fr);
                 
         if (TabEnt_is_load(tab_ent)) {
           /* load answers from the trie */
-#ifdef LIMIT_TABLING
-          if (SgFr_state(sg_fr) == complete || SgFr_state(sg_fr) == compiled) {
-                SgFr_state(sg_fr)++;  /* complete --> complete_in_use : compiled --> compiled_in_use */
-            remove_from_global_sg_fr_list(sg_fr);
-            TRAIL_FRAME(sg_fr);
-          }
-#endif /* LIMIT_TABLING */
+          
           continuation_ptr cont = SgFr_first_answer(sg_fr);
           ans_node_ptr ans_node = continuation_answer(cont);
 
@@ -755,16 +766,11 @@
       if(SgFr_is_variant(sg_fr) || SgFr_is_sub_producer(sg_fr)) {
         check_no_answers(sg_fr);
         check_yes_answer(sg_fr);
+        
+        limit_tabling_remove_sf(sg_fr);
 
         if (TabEnt_is_load(tab_ent)) {
           /* load answers from the trie */
-#ifdef LIMIT_TABLING
-          if (SgFr_state(sg_fr) == complete || SgFr_state(sg_fr) == compiled) {
-                SgFr_state(sg_fr)++;  /* complete --> complete_in_use : compiled --> compiled_in_use */
-            remove_from_global_sg_fr_list(sg_fr);
-            TRAIL_FRAME(sg_fr);
-          }
-#endif /* LIMIT_TABLING */
 
           continuation_ptr cont = SgFr_first_answer(sg_fr);
           ans_node_ptr ans_node = continuation_answer(cont);
@@ -916,17 +922,12 @@
       if(SgFr_is_variant(sg_fr) || SgFr_is_sub_producer(sg_fr)) {
         check_no_answers(sg_fr);
         check_yes_answer(sg_fr);
+        
+        limit_tabling_remove_sf(sg_fr);
 
         if (TabEnt_is_load(tab_ent)) {
           /* load answers from the trie */
-#ifdef LIMIT_TABLING
-          if (SgFr_state(sg_fr) == complete || SgFr_state(sg_fr) == compiled) {
-                SgFr_state(sg_fr)++;  /* complete --> complete_in_use : compiled --> compiled_in_use */
-            remove_from_global_sg_fr_list(sg_fr);
-            TRAIL_FRAME(sg_fr);
-          }
-#endif /* LIMIT_TABLING */
-
+        
           continuation_ptr cont = SgFr_first_answer(sg_fr);
           ans_node_ptr ans_node = continuation_answer(cont);
 
@@ -2007,11 +2008,9 @@
 
         /* answers -> get first answer */
 	      tab_ent_ptr tab_ent = SgFr_tab_ent(sg_fr);
-#ifdef LIMIT_TABLING
-	      SgFr_state(sg_fr)++;  /* complete --> complete_in_use */
-	      remove_from_global_sg_fr_list(sg_fr);
-	      TRAIL_FRAME(sg_fr);
-#endif /* LIMIT_TABLING */
+	      
+        limit_tabling_do_remove_sf(sg_fr);
+
         if (TabEnt_is_load(tab_ent)) {
           /* load answers from the trie */
           continuation_ptr cont = SgFr_first_answer(sg_fr);
