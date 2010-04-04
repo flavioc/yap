@@ -1997,21 +1997,40 @@
         }
 #endif /* TABLING_ERRORS */
         pop_generator_node(SgFr_arity(sg_fr));
-        
-        check_yes_answer_no_unlock(sg_fr);
 
-        /* answers -> get first answer */
-	      tab_ent_ptr tab_ent = SgFr_tab_ent(sg_fr);
-	      
-        limit_tabling_do_remove_sf(sg_fr);
-
-        if (TabEnt_is_load(tab_ent)) {
-          load_answers_from_sf_no_unlock(sg_fr, tab_ent, CONSUME_VARIANT_ANSWER, LOAD_ANSWER, YENV);
-        } else {
-          /* execute compiled code from the trie */
-          LOCK(SgFr_lock(sg_fr));
-          ensure_subgoal_is_compiled(sg_fr);
-          exec_subgoal_compiled_trie(sg_fr);
+        switch(SgFr_type(sg_fr)) {
+          case VARIANT_PRODUCER_SFT:
+          case SUBSUMPTIVE_PRODUCER_SFT:
+            {
+              check_yes_answer_no_unlock(sg_fr);
+                
+              limit_tabling_do_remove_sf(sg_fr);
+                
+              tab_ent_ptr tab_ent = SgFr_tab_ent(sg_fr);
+                
+              if(TabEnt_is_load(tab_ent)) {
+                load_answers_from_sf_no_unlock(sg_fr, tab_ent, CONSUME_VARIANT_ANSWER, LOAD_ANSWER, YENV);
+              } else {
+                LOCK(SgFr_lock(sg_fr));
+                ensure_subgoal_is_compiled(sg_fr);
+                exec_subgoal_compiled_trie(sg_fr);
+              }
+            }
+            break;
+          case GROUND_PRODUCER_SFT:
+            {
+              check_yes_answer_no_unlock(sg_fr);
+              
+              tab_ent_ptr tab_ent = SgFr_tab_ent(sg_fr);
+              
+              if(TabEnt_is_load(tab_ent)) {
+                load_answers_from_sf_no_unlock(sg_fr, tab_ent, CONSUME_SUBSUMPTIVE_ANSWER, LOAD_CONS_ANSWER, YENV);
+              } else {
+                exec_ground_trie(tab_ent);
+              }
+            }
+            break;
+          default: break;
 	      }
       }
     }
