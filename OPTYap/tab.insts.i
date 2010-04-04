@@ -343,14 +343,17 @@
         continuation_ptr cont = SgFr_first_answer(SG_FR); \
         ans_node_ptr ans_node = continuation_answer(cont)
         
+#define consume_answer_leaf(ANSWER_NODE, ANSWER_TEMPLATE, CONSUME_FN)   \
+        PREG = (yamop *) CPREG;                                         \
+        PREFETCH_OP(PREG);                                              \
+        CONSUME_FN(ANSWER_NODE, ANSWER_TEMPLATE);                       \
+        YENV = ENV;                                                     \
+        GONext()
+        
 #define load_run_answers(TAB_ENT, LOAD_INSTR, CONSUME_FN, ANSWER_TEMPLATE) \
         if(continuation_has_next(cont)) \
           store_loader_node(TAB_ENT, cont, LOAD_INSTR); \
-        PREG = (yamop *)CPREG;                        \
-        PREFETCH_OP(PREG);                            \
-        CONSUME_FN(ans_node, ANSWER_TEMPLATE);        \
-        YENV = ENV;                                   \
-        GONext()
+        consume_answer_leaf(ans_node, ANSWER_TEMPLATE, CONSUME_FN)
 
 #define load_answers_from_sf(SG_FR, TAB_ENT, CONSUME_FN, LOAD_INSTR, ANSWER_TEMPLATE)  \
         load_continuation_and_answer(SG_FR);                          \
@@ -366,6 +369,26 @@
 
 #define load_subsumptive_answers_from_sf(SG_FR, TAB_ENT, ANSWER_TEMPLATE)              \
         load_answers_from_sf(SG_FR, TAB_ENT, CONSUME_SUBSUMPTIVE_ANSWER, LOAD_CONS_ANSWER, ANSWER_TEMPLATE)
+        
+#ifdef GLOBAL_TRIE
+#define exec_compiled_trie(TRIE)  \
+        PREG = (yamop *)TrNode_child(TRIE); \
+        PREFETCH_OP(PREG);    \
+        *--YENV = 0;          \
+        GONext()
+#else
+#define exec_compiled_trie(TRIE)  \
+        PREG = (yamop *) TrNode_child(TRIE);  \
+  	    PREFETCH_OP(PREG);  \
+  	    /* vars_arity */    \
+  	    *--YENV = 0; \
+  	    /* heap_arity */ \
+        *--YENV = 0;    \
+        GONext()
+#endif /* GLOBAL_TRIE */
+
+#define exec_subgoal_compiled_trie(SG_FR) \
+        exec_compiled_trie(SgFr_answer_trie(SG_FR))
 
 #ifdef TABLING_CALL_SUBSUMPTION
 
@@ -433,12 +456,7 @@
       pop_loader_node();
     }
     
-    PREG = (yamop *) CPREG;
-    PREFETCH_OP(PREG);
-    CONSUME_SUBSUMPTIVE_ANSWER(ans_node, ans_tmplt);
-    
-    YENV = ENV;
-    GONext();
+    consume_answer_leaf(ans_node, ans_tmplt, CONSUME_SUBSUMPTIVE_ANSWER);
 #else
     Yap_Error(INTERNAL_ERROR, TermNil, "invalid instruction (table_load_cons_answer)");
 #endif
@@ -475,13 +493,7 @@
       pop_loader_node();
     }
     
-    PREG = (yamop *) CPREG;
-    PREFETCH_OP(PREG);
-    
-    CONSUME_VARIANT_ANSWER(ans_node, ans_tmplt);
-    
-    YENV = ENV;
-    GONext();
+    consume_answer_leaf(ans_node, ans_tmplt, CONSUME_VARIANT_ANSWER);
   ENDPBOp();
 
 
@@ -674,14 +686,8 @@
       ensure_subgoal_is_compiled(sg_fr);
 
 	    UNLOCK(SgFr_lock(sg_fr));
-
-	    PREG = (yamop *) TrNode_child(SgFr_answer_trie(sg_fr));
-	    PREFETCH_OP(PREG);
-
-	    *--YENV = 0;  /* vars_arity */
-	    *--YENV = 0;  /* heap_arity */
-
-	    GONext();
+	    
+      exec_subgoal_compiled_trie(sg_fr);
     }
     ENDPBOp();
 
@@ -771,8 +777,6 @@
         limit_tabling_remove_sf(sg_fr);
 
         if (TabEnt_is_load(tab_ent)) {
-          /* load answers from the trie */
-
           load_variant_answers_from_sf(sg_fr, tab_ent, YENV);
   	    }
 #ifdef TABLING_CALL_SUBSUMPTION
@@ -797,20 +801,12 @@
   	    }
 #endif /* TABLING_CALL_SUBSUMPTION */
       }
-
-	    /* execute compiled code from the trie */
-
+      
       ensure_subgoal_is_compiled(sg_fr);
 
 	    UNLOCK(SgFr_lock(sg_fr));
-
-	    PREG = (yamop *) TrNode_child(SgFr_answer_trie(sg_fr));
-	    PREFETCH_OP(PREG);
-
-	    *--YENV = 0;  /* vars_arity */
-	    *--YENV = 0;  /* heap_arity */
-
-	    GONext();
+	    
+      exec_subgoal_compiled_trie(sg_fr);
     }
   ENDPBOp();
 
@@ -931,13 +927,7 @@
 
 	    UNLOCK(SgFr_lock(sg_fr));
 
-	    PREG = (yamop *) TrNode_child(SgFr_answer_trie(sg_fr));
-	    PREFETCH_OP(PREG);
-
-	    *--YENV = 0;  /* vars_arity */
-	    *--YENV = 0;  /* heap_arity */
-
-	    GONext();
+      exec_subgoal_compiled_trie(sg_fr);
     }
   ENDPBOp();
 
@@ -1966,13 +1956,8 @@
           LOCK(SgFr_lock(sg_fr));
           ensure_subgoal_is_compiled(sg_fr);
           UNLOCK(SgFr_lock(sg_fr));
-          PREG = (yamop *) TrNode_child(SgFr_answer_trie(sg_fr));
-          PREFETCH_OP(PREG);
-          *--YENV = 0;  /* vars_arity */
-#ifndef GLOBAL_TRIE
-          *--YENV = 0;  /* heap_arity */
-#endif /* GLOBAL_TRIE */
-          GONext();
+          
+          exec_subgoal_compiled_trie(sg_fr);
 	      }
       }
     }
