@@ -185,6 +185,8 @@ TSTNptr grounded_answer_search(grounded_sf_ptr sf, CPtr answerVector) {
   tstn = subsumptive_tst_search(root, arity, answerVector, TRUE, &isNew );
   
   // actualizar time stamp
+  SgFr_timestamp(sf) = TabEnt_ground_time_stamp(tab_ent);
+  printf("New time stamp: %ld\n", SgFr_timestamp(sf));
        
   Trail_Unwind_All;
   printf("Inserted answer\n");
