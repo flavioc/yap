@@ -357,7 +357,7 @@ void private_completion(sg_fr_ptr sg_fr) {
   /* complete ground consumer subgoals */
   while(LOCAL_top_groundcons_sg_fr && YOUNGER_CP(SgFr_choice_point(LOCAL_top_groundcons_sg_fr), B)) {
     mark_ground_consumer_as_completed(LOCAL_top_groundcons_sg_fr);
-    printf("One ground consumer completed\n");
+    dprintf("One ground consumer completed\n");
     LOCAL_top_groundcons_sg_fr = SgFr_next(LOCAL_top_groundcons_sg_fr);
   }
 #endif /* TABLING_CALL_SUBSUMPTION */
@@ -831,95 +831,59 @@ void traverse_subgoal_trie(sg_node_ptr current_node, char *str, int str_index, i
     
     TrStat_subgoals++;
     str[str_index] = 0;
-    if(SgFr_is_variant(sg_fr) || SgFr_is_sub_producer(sg_fr)) {
-      TrStat_ans_nodes++;
+    
+    switch(SgFr_type(sg_fr)) {
+      case VARIANT_PRODUCER_SFT:
+      case SUBSUMPTIVE_PRODUCER_SFT:
+        TrStat_ans_nodes++;
       
-      SHOW_TABLE_STRUCTURE("%s.\n", str);
+        SHOW_TABLE_STRUCTURE("%s.\n", str);
       
-      if (SgFr_has_no_answers(sg_fr)) {
-        if (SgFr_state(sg_fr) < complete) {
-	        TrStat_sg_incomplete++;
-	        SHOW_TABLE_STRUCTURE("    ---> INCOMPLETE\n");
-        } else {
-	        TrStat_answers_no++;
-	        SHOW_TABLE_STRUCTURE("    NO\n");
-        }
-      } else if (SgFr_has_yes_answer(sg_fr)) {
-        TrStat_answers_true++;
-        SHOW_TABLE_STRUCTURE("    TRUE\n");
-      } else {
-        arity[0] = 0;
-        traverse_answer_trie(TrNode_child(SgFr_answer_trie(sg_fr)), &str[str_index], 0, arity, 0, TRAVERSE_MODE_NORMAL, TRAVERSE_POSITION_FIRST);
-      
-        if (SgFr_state(sg_fr) < complete) {
-	        TrStat_sg_incomplete++;
-	        SHOW_TABLE_STRUCTURE("    ---> INCOMPLETE\n");
-        }
-      }
-#ifdef TABLING_CALL_SUBSUMPTION
-    } else {
-      subcons_fr_ptr cons_sg = (subcons_fr_ptr)sg_fr;
-      subprod_fr_ptr prod_sg = SgFr_producer(cons_sg);
-      
-      SHOW_TABLE_STRUCTURE("%s.\n", str);
-      
-      if(SgFr_has_no_answers(sg_fr)) {
-        if(SgFr_state(sg_fr) < complete) {
-          TrStat_sg_incomplete++;
-          SHOW_TABLE_STRUCTURE("    ---> INCOMPLETE\n");
-        } else {
-          TrStat_answers_no++;
-          SHOW_TABLE_STRUCTURE("    NO\n");
-        }
-      } else { // has answers
-        continuation_ptr cont = SgFr_first_answer(sg_fr);
-        CELL* vars = (CELL * )HeapTop - 1;
-        CELL* saved_H = construct_subgoal_heap(SgFr_leaf(sg_fr), &vars, SgFr_arity(sg_fr));
-        
-        if((int)*vars == 0) {
+        if (SgFr_has_no_answers(sg_fr)) {
+          if (SgFr_state(sg_fr) < complete) {
+	          TrStat_sg_incomplete++;
+	          SHOW_TABLE_STRUCTURE("    ---> INCOMPLETE\n");
+          } else {
+	          TrStat_answers_no++;
+	          SHOW_TABLE_STRUCTURE("    NO\n");
+          }
+        } else if (SgFr_has_yes_answer(sg_fr)) {
           TrStat_answers_true++;
-          TrStat_sub_answers++;
           SHOW_TABLE_STRUCTURE("    TRUE\n");
         } else {
-          CELL* ans_tmplt = reconstruct_template_for_producer_no_args(prod_sg, vars - 1);
-          tr_fr_ptr saved_TR = TR;
-          CELL*     saved_HB = HB;
-          int ans_size = (int)*ans_tmplt;
-          ans_tmplt += ans_size;
-          
-          HB = H;
-          
-          while(cont) {
-            tst_node_ptr ans = (tst_node_ptr)continuation_answer(cont);
-          
-            TrStat_sub_answers++;
-            TrStat_answers++;
-            
-            if (TrStat_show == SHOW_MODE_STRUCTURE) {
-              consume_subsumptive_answer((BTNptr)ans, ans_size, ans_tmplt);
-              
-              printSubsumptiveAnswer(Yap_stdout, vars);
-              
-              trail_unwind(saved_TR);
-            }
-          
-            cont = continuation_next(cont);
+          arity[0] = 0;
+          traverse_answer_trie(TrNode_child(SgFr_answer_trie(sg_fr)), &str[str_index],
+                  0, arity, 0, TRAVERSE_MODE_NORMAL, TRAVERSE_POSITION_FIRST);
+      
+          if (SgFr_state(sg_fr) < complete) {
+	          TrStat_sg_incomplete++;
+	          SHOW_TABLE_STRUCTURE("    ---> INCOMPLETE\n");
           }
-          
-          /* restore TR and HB */
-          TR = saved_TR;
-          HB = saved_HB;
         }
-        
-        /* restore H register */
-        H = saved_H;
-        
-        if (SgFr_state(sg_fr) < complete) {
-	        TrStat_sg_incomplete++;
-	        SHOW_TABLE_STRUCTURE("    ---> INCOMPLETE\n");
+        break;
+#ifdef TABLING_CALL_SUBSUMPTION
+      case SUBSUMED_CONSUMER_SFT:
+        {
+          subcons_fr_ptr cons_sg = (subcons_fr_ptr)sg_fr;
+          subprod_fr_ptr prod_sg = SgFr_producer(cons_sg);
+      
+          SHOW_TABLE_STRUCTURE("%s.\n", str);
+      
+          if(SgFr_has_no_answers(sg_fr)) {
+            if(SgFr_state(sg_fr) < complete) {
+              TrStat_sg_incomplete++;
+              SHOW_TABLE_STRUCTURE("    ---> INCOMPLETE\n");
+            } else {
+              TrStat_answers_no++;
+              SHOW_TABLE_STRUCTURE("    NO\n");
+            }
+          } else { // has answers
+            show_consumer_subsumptive_with_answers(cons_sg, prod_sg);
+          }
         }
-      }
+        break;
 #endif /* TABLING_CALL_SUBSUMPTION */
+      default: break;
     }
   }
 

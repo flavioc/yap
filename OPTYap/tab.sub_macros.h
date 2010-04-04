@@ -85,6 +85,66 @@ STD_PROTO(static inline int build_next_ground_consumer_return_list, (grounded_sf
           LOCAL_top_groundcons_sg_fr = SG_FR;                       \
         }
         
+#define show_consumer_subsumptive_answers(CONS_SG, PROD_SG, HEAP_SG) \
+      {                                                     \
+        continuation_ptr cont = SgFr_first_answer(CONS_SG); \
+        CELL* ans_tmplt =                                   \
+          reconstruct_template_for_producer_no_args(PROD_SG, (HEAP_SG) - 1);  \
+        tr_fr_ptr saved_TR = TR;  \
+        CELL*     saved_HB = HB;  \
+        const int ans_size = (int)*ans_tmplt; \
+        ans_tmplt += ans_size;  \
+        HB = H; \
+        while(cont) { \
+          tst_node_ptr ans = (tst_node_ptr)continuation_answer(cont); \
+          consume_subsumptive_answer((BTNptr)ans, ans_size, ans_tmplt); \
+          printSubsumptiveAnswer(Yap_stdout, HEAP_SG); \
+          trail_unwind(saved_TR); \
+          cont = continuation_next(cont); \
+        } \
+        /* restore TR and HB */ \
+        TR = saved_TR;  \
+        HB = saved_HB;  \
+      }
+
+#define count_subsumptive_answers(CONS_SG)                  \
+      {                                                     \
+        continuation_ptr cont = SgFr_first_answer(CONS_SG); \
+        while(cont) {                                       \
+          TrStat_sub_answers++;                             \
+          TrStat_answers++;                                 \
+          cont = continuation_next(cont);                   \
+        }                                                   \
+      }
+      
+#define show_consumer_subsumptive_with_answers(CONS_SG, PROD_SG)    \
+      {                                                             \
+        CELL* vars = (CELL * )HeapTop - 1;                          \
+        CELL* saved_H = construct_subgoal_heap(SgFr_leaf(CONS_SG),  \
+              &vars, SgFr_arity(CONS_SG));                          \
+                                                                    \
+        if((int)*vars == 0) {                                       \
+          TrStat_answers_true++;                                    \
+          TrStat_sub_answers++;                                     \
+          SHOW_TABLE_STRUCTURE("    TRUE\n");                       \
+        } else {                                                    \
+          if(TrStat_show == SHOW_MODE_STRUCTURE) {                  \
+            show_consumer_subsumptive_answers(CONS_SG, PROD_SG,     \
+                vars);                                              \
+          } else {                                                  \
+            count_subsumptive_answers(CONS_SG);                     \
+          }                                                         \
+        }                                                           \
+                                                                    \
+        /* restore H register */                                    \
+        H = saved_H;                                                \
+                                                                    \
+        if (SgFr_state(CONS_SG) < complete) {                       \
+          TrStat_sg_incomplete++;                                   \
+          SHOW_TABLE_STRUCTURE("    ---> INCOMPLETE\n");            \
+        }                                                           \
+      }
+        
 static inline
 void mark_subsumptive_consumer_as_completed(subcons_fr_ptr sg_fr) {
   LOCK(SgFr_lock(sg_fr));
@@ -183,7 +243,7 @@ abolish_incomplete_subsumptive_producer_subgoal(sg_fr_ptr sg_fr) {
 static inline void
 abolish_incomplete_ground_producer_subgoal(sg_fr_ptr sg_fr) {
   SgFr_state(sg_fr) = ready;
-  printf("Abolish incomplete\n");
+  dprintf("Abolish incomplete\n");
 }
 
 static inline
