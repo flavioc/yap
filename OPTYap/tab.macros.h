@@ -996,12 +996,20 @@ abolish_incomplete_variant_subgoal(sg_fr_ptr sg_fr) {
 
 static inline void
 abolish_incomplete_producer_subgoal(sg_fr_ptr sg_fr) {
-  if(SgFr_is_variant(sg_fr))
-    abolish_incomplete_variant_subgoal(sg_fr);
+  switch(SgFr_type(sg_fr)) {
+    case VARIANT_PRODUCER_SFT:
+      abolish_incomplete_variant_subgoal(sg_fr);
+      break;
 #ifdef TABLING_CALL_SUBSUMPTION
-  else if(SgFr_is_sub_producer(sg_fr))
-    abolish_incomplete_sub_producer_subgoal(sg_fr);
+    case SUBSUMPTIVE_PRODUCER_SFT:
+      abolish_incomplete_sub_producer_subgoal(sg_fr);
+      break;
+    case GROUND_PRODUCER_SFT:
+      abolish_incomplete_ground_producer_subgoal(sg_fr);
+      break;
 #endif /* TABLING_CALL_SUBSUMPTION */
+    default: break;
+  }
 }
 
 static inline

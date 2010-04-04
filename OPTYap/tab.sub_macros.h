@@ -23,8 +23,9 @@ STD_PROTO(static inline void free_tst_hash_index, (tst_ans_hash_ptr hash));
 STD_PROTO(static inline void free_producer_subgoal_data, (sg_fr_ptr, int));
 STD_PROTO(static inline void free_consumer_subgoal_data, (subcons_fr_ptr));
 
-STD_PROTO(static void abolish_incomplete_consumer_subgoal, (subcons_fr_ptr sg_fr));
-STD_PROTO(static inline void abolish_incomplete_producer_subgoal, (sg_fr_ptr sg_fr));
+STD_PROTO(static inline void abolish_incomplete_sub_producer_subgoal, (sg_fr_ptr));
+STD_PROTO(static inline void abolish_incomplete_consumer_subgoal, (subcons_fr_ptr));
+STD_PROTO(static inline void abolish_incomplete_ground_producer_subgoal, (sg_fr_ptr));
 
 STD_PROTO(static inline int build_next_subsumptive_consumer_return_list, (subcons_fr_ptr));
 
@@ -138,23 +139,29 @@ void free_producer_subgoal_data(sg_fr_ptr sg_fr, int delete_all) {
   free_answer_continuation(SgFr_first_answer(sg_fr));
 }
 
-static inline
-void free_consumer_subgoal_data(subcons_fr_ptr sg_fr) {
+static inline void
+free_consumer_subgoal_data(subcons_fr_ptr sg_fr) {
   free_answer_continuation(SgFr_first_answer(sg_fr));
 }
 
-static void
+static inline void
 abolish_incomplete_consumer_subgoal(subcons_fr_ptr sg_fr) {
   free_consumer_subgoal_data(sg_fr);
   delete_subgoal_path((sg_fr_ptr)sg_fr);
   FREE_SUBCONS_SUBGOAL_FRAME(sg_fr);
 }
 
-static void
+static inline void
 abolish_incomplete_sub_producer_subgoal(sg_fr_ptr sg_fr) {
   free_producer_subgoal_data(sg_fr, TRUE);
   delete_subgoal_path(sg_fr);
   FREE_SUBPROD_SUBGOAL_FRAME(sg_fr);
+}
+
+static inline void
+abolish_incomplete_ground_producer_subgoal(sg_fr_ptr sg_fr) {
+  SgFr_state(sg_fr) = ready;
+  printf("Abolish incomplete\n");
 }
 
 static inline
