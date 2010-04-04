@@ -12,14 +12,6 @@
 #ifndef TAB_STRUCTS_H
 #define TAB_STRUCTS_H
 
-/* ---------------------------- **
-**      Tabling mode flags      **
-**  C/stdpreds.c                **
-** pl/directives.yap            **
-** pl/tabling.yap               **
-** OPTYap/opt.preds.c           **
-** ---------------------------- */
-
 #define Mode_SchedulingOn       0x00000001L  /* yap_flags[TABLING_MODE_FLAG] */
 #define Mode_CompletedOn        0x00000002L  /* yap_flags[TABLING_MODE_FLAG] */
 #define Mode_ChecksOn           0x00000004L  /* yap_flags[TABLING_MODE_FLAG] */

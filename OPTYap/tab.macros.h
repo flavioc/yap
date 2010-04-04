@@ -243,14 +243,20 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
 
 #ifdef TABLING_CALL_SUBSUMPTION
 #define find_dependency_node(SG_FR, LEADER_CP, DEP_ON_STACK)                      \
-        if(SgFr_is_variant(SG_FR) || SgFr_is_sub_producer(SG_FR))                 \
-          LEADER_CP = SgFr_choice_point(SG_FR);                                         \
-        else {                                                                    \
-          subcons_fr_ptr cons = (subcons_fr_ptr)(SG_FR);                          \
-          subprod_fr_ptr prod = SgFr_producer(cons);                              \
-          LEADER_CP = SgFr_choice_point(prod);                                          \
-        }                                                                         \
-        DEP_ON_STACK = TRUE
+        DEP_ON_STACK = TRUE;                                                      \
+        switch(SgFr_type(SG_FR)) {                                                \
+          case VARIANT_PRODUCER_SFT:                                              \
+          case SUBSUMPTIVE_PRODUCER_SFT:                                          \
+          case GROUND_PRODUCER_SFT:                                               \
+            LEADER_CP = SgFr_choice_point(SG_FR);                                 \
+            break;                                                                \
+          case SUBSUMED_CONSUMER_SFT:                                             \
+            LEADER_CP = SgFr_choice_point(SgFr_producer((subcons_fr_ptr)(SG_FR)));  \
+            break;                                                                  \
+          case GROUND_CONSUMER_SFT:                                               \
+            LEADER_CP = SgFr_choice_point(SgFr_producer((grounded_sf_ptr)(SG_FR))); \
+            break;                                                                  \
+        }
 #else
 #define find_dependency_node(SG_FR, LEADER_CP, DEP_ON_STACK)                      \
         LEADER_CP = SgFr_choice_point(SG_FR);                                           \
@@ -690,29 +696,36 @@ void adjust_freeze_registers(void) {
 static inline
 void mark_as_completed(sg_fr_ptr sg_fr) {
   LOCK(SgFr_lock(sg_fr));
-  if(SgFr_state(sg_fr) != complete) {
+
 #ifdef FDEBUG
-    printf("COMPLETED SUBGOAL: ");
-    printSubgoalTriePath(stdout, SgFr_leaf(sg_fr), SgFr_tab_ent(sg_fr));
-    dprintf("\n");
+  printf("COMPLETED SUBGOAL: ");
+  printSubgoalTriePath(stdout, SgFr_leaf(sg_fr), SgFr_tab_ent(sg_fr));
+  dprintf("\n");
 #endif
-    SgFr_state(sg_fr) = complete;
-#ifdef TABLING_CALL_SUBSUMPTION
-    if(SgFr_is_sub_producer(sg_fr)) {
-      if(TabEnt_is_exec(SgFr_tab_ent(sg_fr))) {
-        free_tst_hash_index((tst_ans_hash_ptr)SgFr_hash_chain(sg_fr));
-      }
-      decrement_generator_path(SgFr_leaf(sg_fr));
-    }
-    else
-#endif /* TABLING_CALL_SUBSUMPTION */
-    if(SgFr_is_variant(sg_fr)) {
+  
+  SgFr_state(sg_fr) = complete;
+  
+  switch(SgFr_type(sg_fr)) {
+    case VARIANT_PRODUCER_SFT:
       free_answer_trie_hash_chain((ans_hash_ptr)SgFr_hash_chain(sg_fr));
       SgFr_hash_chain(sg_fr) = NULL;
-    }
+      break;
+#ifdef TABLING_CALL_SUBSUMPTION
+    case SUBSUMPTIVE_PRODUCER_SFT:
+      if(TabEnt_is_exec(SgFr_tab_ent(sg_fr))) {
+        free_tst_hash_index((tst_ans_hash_ptr)SgFr_hash_chain(sg_fr));
+        /* answer list or blocks are not removed because of show_table */
+      }
+      /* decrement_generator_path(SgFr_leaf(sg_fr)); */
+      break;
+    case GROUND_PRODUCER_SFT:
+      printf("One ground producer completed\n");
+      decrement_generator_path(SgFr_leaf(sg_fr));
+      break;
+#endif /* TABLING_CALL_SUBSUMPTION */
+    default: break;
   }
   UNLOCK(SgFr_lock(sg_fr));
-  return;
 }
 
 static inline
@@ -1002,7 +1015,7 @@ abolish_incomplete_producer_subgoal(sg_fr_ptr sg_fr) {
       break;
 #ifdef TABLING_CALL_SUBSUMPTION
     case SUBSUMPTIVE_PRODUCER_SFT:
-      abolish_incomplete_sub_producer_subgoal(sg_fr);
+      abolish_incomplete_subsumptive_producer_subgoal(sg_fr);
       break;
     case GROUND_PRODUCER_SFT:
       abolish_incomplete_ground_producer_subgoal(sg_fr);
@@ -1051,17 +1064,26 @@ void abolish_incomplete_subgoals(choiceptr prune_cp) {
   }
 
 #ifdef TABLING_CALL_SUBSUMPTION
-  while (LOCAL_top_cons_sg_fr && EQUAL_OR_YOUNGER_CP(SgFr_choice_point(LOCAL_top_cons_sg_fr), prune_cp)) {
+  while (LOCAL_top_subcons_sg_fr && EQUAL_OR_YOUNGER_CP(SgFr_choice_point(LOCAL_top_subcons_sg_fr), prune_cp)) {
     subcons_fr_ptr sg_fr;
     
-    sg_fr = LOCAL_top_cons_sg_fr;
-    
-    LOCAL_top_cons_sg_fr = SgFr_next(sg_fr);
+    sg_fr = LOCAL_top_subcons_sg_fr;
+    LOCAL_top_subcons_sg_fr = SgFr_next(sg_fr);
     
     LOCK(SgFr_lock(sg_fr));
+    abolish_incomplete_subsumptive_consumer_subgoal(sg_fr);
+    UNLOCK(SgFr_lock(sg_fr));
+  }
+  
+  while(LOCAL_top_groundcons_sg_fr && EQUAL_OR_YOUNGER_CP(SgFr_choice_point(LOCAL_top_groundcons_sg_fr), prune_cp)) {
+    grounded_sf_ptr sg_fr;
     
-    abolish_incomplete_consumer_subgoal(sg_fr);
+    sg_fr = LOCAL_top_groundcons_sg_fr;
+    LOCAL_top_groundcons_sg_fr = SgFr_next(sg_fr);
     
+    LOCK(SgFr_lock(sg_fr));
+    abolish_incomplete_ground_consumer_subgoal(sg_fr);
+    printf("one incomplete grounded consumer\n");
     UNLOCK(SgFr_lock(sg_fr));
   }
 #endif /* TABLING_CALL_SUBSUMPTION */
@@ -1144,6 +1166,7 @@ get_next_answer_continuation(dep_fr_ptr dep_fr) {
   switch(SgFr_type(sg_fr)) {
     case VARIANT_PRODUCER_SFT:
     case SUBSUMPTIVE_PRODUCER_SFT:
+    case GROUND_PRODUCER_SFT:
       return continuation_next(DepFr_last_answer(dep_fr));
     case SUBSUMED_CONSUMER_SFT:
       {
@@ -1170,6 +1193,22 @@ get_next_answer_continuation(dep_fr_ptr dep_fr) {
           else
             return NULL;
         }
+      }
+      break;
+    case GROUND_CONSUMER_SFT:
+      {
+        continuation_ptr last_cont = DepFr_last_answer(dep_fr);
+        continuation_ptr next = continuation_next(last_cont);
+        
+        if(next)
+          return next;
+        
+        grounded_sf_ptr consumer_sg = (grounded_sf_ptr)sg_fr;
+        
+        if(build_next_ground_consumer_return_list(consumer_sg))
+          return continuation_next(last_cont);
+        else
+          return NULL;
       }
       break;
     default:
@@ -1209,10 +1248,13 @@ is_new_consumer_call(sg_fr_ptr sg_fr) {
   switch(SgFr_type(sg_fr)) {
     case VARIANT_PRODUCER_SFT:
     case SUBSUMPTIVE_PRODUCER_SFT:
+    case GROUND_PRODUCER_SFT:
       return SgFr_state(sg_fr) == evaluating;
 #ifdef TABLING_CALL_SUBSUMPTION
     case SUBSUMED_CONSUMER_SFT:
       return SgFr_state(SgFr_producer((subcons_fr_ptr)sg_fr)) == evaluating;
+    case GROUND_CONSUMER_SFT:
+      return SgFr_state(SgFr_producer((grounded_sf_ptr)sg_fr)) == evaluating;
 #endif /* TABLING_CALL_SUBSUMPTION */
     default:
       /* NOT REACHABLE */

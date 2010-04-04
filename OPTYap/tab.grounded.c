@@ -127,6 +127,7 @@ sg_fr_ptr grounded_call_search(yamop *code, CELL *answer_template, CELL **new_lo
     /* create answer template on AT, because we can become consumers instead */
     /* SgFr_answer_template(sg_fr) = AT;
     SgFr_at_size(sg_fr) = fix_answer_template(*new_local_stack);*/
+    Trail_Unwind_All;
     
   } else { /* new consumer */
     
@@ -142,11 +143,13 @@ sg_fr_ptr grounded_call_search(yamop *code, CELL *answer_template, CELL **new_lo
     switch(path_type) {
       case VARIANT_PATH:
         sg_fr = found;
+        printf("Variant path found!\n");
         break;
       case SUBSUMPTIVE_PATH:
         if(SgFr_state(subsumer) < complete || TabEnt_is_load(tab_ent)) {
             btn = variant_call_cont_insert(tab_ent, (sg_node_ptr)stl_restore_variant_cont(), variant_cont.bindings.num, CALL_SUB_TRIE_NT);
             Trail_Unwind_All;
+            printf("New ground consumer\n");
             sg_fr = create_new_ground_consumer_subgoal(btn, tab_ent, code, subsumer);
             /* create answer template on AT */
             SgFr_answer_template(sg_fr) = AT;
@@ -157,6 +160,14 @@ sg_fr_ptr grounded_call_search(yamop *code, CELL *answer_template, CELL **new_lo
       default:
         /* NOT REACHED */
         break;
+    }
+    
+    if(SgFr_is_ground_consumer(sg_fr)) {
+      if(SgFr_state(SgFr_producer(sg_fr)) < evaluating) {
+        /* turn into producer */
+        SgFr_type(sg_fr) = GROUND_PRODUCER_SFT; 
+        SgFr_producer(sg_fr) = NULL;
+      }
     }
   }
   

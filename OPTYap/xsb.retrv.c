@@ -656,7 +656,7 @@ ALNptr tst_collect_relevant_answers(CTXTdeclc TSTNptr tstRoot, TimeStamp ts,
 				    int numTerms, CPtr termsRev)
 #else
 xsbBool tst_collect_relevant_answers(CTXTdeclc TSTNptr tstRoot, TimeStamp ts,
-            int numTerms, CPtr termsRev, subcons_fr_ptr sg_fr)
+            int numTerms, CPtr termsRev, sg_fr_ptr sg_fr)
 #endif /* SUBSUMPTION_XSB */
 {
 

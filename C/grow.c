@@ -1223,6 +1223,7 @@ fix_tabling_info(void)
   sg_fr_ptr sg;
 #ifdef TABLING_CALL_SUBSUMPTION
   subcons_fr_ptr cons;
+  grounded_sf_ptr ground;
 #endif /* TABLING_CALL_SUBSUMPTION */
 
   df = LOCAL_top_dep_fr;
@@ -1240,10 +1241,16 @@ fix_tabling_info(void)
   }
   
 #ifdef TABLING_CALL_SUBSUMPTION
-  cons = LOCAL_top_cons_sg_fr;
+  cons = LOCAL_top_subcons_sg_fr;
   while (cons) {
     SgFr_choice_point(cons) = ConsumerChoicePtrAdjust(SgFr_choice_point(cons));
     cons = SgFr_next(cons);
+  }
+  
+  ground = LOCAL_top_groundcons_sg_fr;
+  while(ground) {
+    SgFr_choice_point(ground) = ConsumerChoicePtrAdjust(SgFr_choice_point(ground));
+    ground = SgFr_next(ground);
   }
 #endif /* TABLING_CALL_SUBSUMPTION */
 }

@@ -130,13 +130,10 @@ struct grounded_subgoal_frame {
   grounded_sf_ptr producer;
   CELL* answer_template;
   int at_size;
-  
-  grounded_sf_ptr consumer;
 };
 
-#define SgFr_ground_consumer(X) ((X)->consumer)
-
-#define TabEnt_ground_trie(X) (TrNode_next(TabEnt_subgoal_trie(X)))
+#define TabEnt_ground_trie(X)       (TrNode_next(TabEnt_subgoal_trie(X)))
+#define TabEnt_has_ground_trie(X)   (TabEnt_ground_trie(X) != NULL)
 #define TabEnt_ground_time_stamp(X) (TSTN_time_stamp((tst_node_ptr)TabEnt_ground_trie(X)))
 
 #define GROUND_SUBGOAL_FRAME_MASK 0xC0

@@ -191,11 +191,6 @@ sg_fr_ptr subsumptive_call_search(yamop *code, CELL *answer_template, CELL **new
         /* NOT REACHED */
         break;
     }
-    /*
-    dprintf("TEMPLATE: ");
-    int tmplt_size = (int)*answer_template;
-    printAnswerTemplate(stdout, answer_template+tmplt_size, tmplt_size);
-    */
   }
   
   return sg_fr;

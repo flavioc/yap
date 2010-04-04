@@ -539,12 +539,13 @@ extern struct VariantContinuation variant_cont;
 extern CELL at_stack[ANSWER_TEMPLATE_STACK_SIZE];
 extern CELL* AT;
 
+#define set_min_at(VALUE) if ((VALUE) < AT) AT = (VALUE)
 #define IsAnswerTemplateVar(VAR) ((CPtr)(VAR) >= at_stack && ((CPtr)(VAR) <= (at_stack + ANSWER_TEMPLATE_STACK_SIZE)))
 
 #endif /* TABLING_CALL_SUBSUMPTION */
 
 // deactivate to test
-//#define FDEBUG
+// #define FDEBUG
 #ifdef FDEBUG
 #define dprintf(MESG, ARGS...) printf(MESG, ##ARGS)
 #else

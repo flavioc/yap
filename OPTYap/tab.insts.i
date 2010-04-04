@@ -82,7 +82,7 @@
           YAPOR_SET_LOAD(B);                                          \
           SET_BB(B);                                                  \
           TABLING_ERRORS_check_stack;                                 \
-          if(SgFr_is_sub_producer(SG_FR)) {                           \
+          if(SgFr_is_ground_producer(SG_FR)) {                           \
             node_list_ptr list;                                       \
             list = collect_specific_generator_goals(tab_ent);         \
             free_node_list(list);                                     \
@@ -293,6 +293,22 @@
         YENV[E_B] = (CELL) B;         \
         ENV = YENV
 #endif /* DEPTH_LIMIT */
+
+#ifdef TABLING_CALL_SUBSUMPTION
+#define init_consumer_subgoal_frame(SG_FR)  \
+        if(SgFr_state(sg_fr) < evaluating) {  \
+          switch(SgFr_type(sg_fr)) {  \
+            case SUBSUMED_CONSUMER_SFT: \
+              init_sub_consumer_subgoal_frame((subcons_fr_ptr)sg_fr); \
+              break;  \
+            case GROUND_CONSUMER_SFT: \
+              init_ground_consumer_subgoal_frame((grounded_sf_ptr)sg_fr); \
+              break;  \
+          } \
+        }
+#else
+#define init_consumer_subgoal_frame(SG_FR) /* do nothing */
+#endif /* TABLING_CALL_SUBSUMPTION */
 
 #define ensure_subgoal_is_compiled(SG_FR) \
         if (SgFr_state(SG_FR) < compiled) \
@@ -640,10 +656,7 @@
       find_leader_node(leader_cp, leader_dep_on_stack);
       store_consumer_node(tab_ent, sg_fr, leader_cp, leader_dep_on_stack);
       
-#ifdef TABLING_CALL_SUBSUMPTION
-      if(SgFr_is_sub_consumer(sg_fr) && SgFr_state(sg_fr) < evaluating) 
-        init_sub_consumer_subgoal_frame((subcons_fr_ptr)sg_fr);
-#endif /* TABLING_CALL_SUBSUMPTION */
+      init_consumer_subgoal_frame(sg_fr);
 
 #ifdef OPTYAP_ERRORS
       if (PARALLEL_EXECUTION_MODE) {
@@ -760,10 +773,7 @@
       find_leader_node(leader_cp, leader_dep_on_stack);
       store_consumer_node(tab_ent, sg_fr, leader_cp, leader_dep_on_stack);
 
-#ifdef TABLING_CALL_SUBSUMPTION
-      if(SgFr_is_sub_consumer(sg_fr) && SgFr_state(sg_fr) < evaluating) 
-        init_sub_consumer_subgoal_frame((subcons_fr_ptr)sg_fr);
-#endif /* TABLING_CALL_SUBSUMPTION */
+      init_consumer_subgoal_frame(sg_fr);
         
 #ifdef OPTYAP_ERRORS
       if (PARALLEL_EXECUTION_MODE) {
@@ -881,10 +891,7 @@
       find_leader_node(leader_cp, leader_dep_on_stack);
       store_consumer_node(tab_ent, sg_fr, leader_cp, leader_dep_on_stack);
       
-#ifdef TABLING_CALL_SUBSUMPTION
-      if(SgFr_is_sub_consumer(sg_fr) && SgFr_state(sg_fr) < evaluating) 
-        init_sub_consumer_subgoal_frame((subcons_fr_ptr)sg_fr);
-#endif /* TABLING_CALL_SUBSUMPTION */  
+      init_consumer_subgoal_frame(sg_fr);
       
 #ifdef OPTYAP_ERRORS
       if (PARALLEL_EXECUTION_MODE) {
