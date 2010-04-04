@@ -208,7 +208,7 @@
 
 #define consume_answer_and_procceed(DEP_FR, ANSWER)       \
         { CELL *subs_ptr;                                 \
-          dprintf("Consume_answer_and_proceed\n");         \
+          dprintf("Consume_answer_and_proceed\n");        \
           /* restore consumer choice point */             \
           H = HBREG = PROTECT_FROZEN_H(B);                \
           restore_yaam_reg_cpdepth(B);                    \
@@ -409,10 +409,16 @@
 
 #ifdef TABLING_CALL_SUBSUMPTION
 
-#define compute_consumer_answer_list(SG_FR) \
+#define compute_subsumptive_consumer_answer_list(SG_FR) \
       if(SgFr_state(SG_FR) < complete) {      \
         build_next_subsumptive_consumer_return_list((subcons_fr_ptr)(SG_FR)); \
         SgFr_state(SG_FR) = complete; \
+      }
+      
+#define compute_ground_consumer_answer_list(SG_FR)                        \
+      if(SgFr_state(SG_FR) < complete) {                                  \
+        build_next_ground_consumer_return_list((grounded_sf_ptr)(SG_FR)); \
+        SgFr_state(SG_FR) = complete;                                     \
       }
       
 #define set_subsumptive_producer(SG_FR)                           \
@@ -696,7 +702,7 @@
 #ifdef TABLING_CALL_SUBSUMPTION
         case SUBSUMED_CONSUMER_SFT:
           if(TabEnt_is_load(tab_ent)) {
-            compute_consumer_answer_list(sg_fr);
+            compute_subsumptive_consumer_answer_list(sg_fr);
             check_no_answers(sg_fr);
             load_subsumptive_answers_from_sf(sg_fr, tab_ent, YENV);
     	    } else {
@@ -708,6 +714,15 @@
           break;
         case GROUND_PRODUCER_SFT:
           if(TabEnt_is_load(tab_ent)) {
+            check_no_answers(sg_fr);
+            load_subsumptive_answers_from_sf(sg_fr, tab_ent, YENV);
+          } else {
+            exec_ground_trie(tab_ent);
+          }
+          break;
+        case GROUND_CONSUMER_SFT:
+          if(TabEnt_is_load(tab_ent)) {
+            compute_ground_consumer_answer_list(sg_fr);
             check_no_answers(sg_fr);
             load_subsumptive_answers_from_sf(sg_fr, tab_ent, YENV);
           } else {
@@ -813,7 +828,7 @@
 #ifdef TABLING_CALL_SUBSUMPTION
         case SUBSUMED_CONSUMER_SFT:
           if(TabEnt_is_load(tab_ent)) {
-            compute_consumer_answer_list(sg_fr);
+            compute_subsumptive_consumer_answer_list(sg_fr);
             check_no_answers(sg_fr);
             load_subsumptive_answers_from_sf(sg_fr, tab_ent, YENV);
     	    } else {
@@ -825,6 +840,15 @@
           break;
         case GROUND_PRODUCER_SFT:
           if(TabEnt_is_load(tab_ent)) {
+            check_no_answers(sg_fr);
+            load_subsumptive_answers_from_sf(sg_fr, tab_ent, YENV);
+          } else {
+            exec_ground_trie(tab_ent);
+          }
+          break;
+        case GROUND_CONSUMER_SFT:
+          if(TabEnt_is_load(tab_ent)) {
+            compute_ground_consumer_answer_list(sg_fr);
             check_no_answers(sg_fr);
             load_subsumptive_answers_from_sf(sg_fr, tab_ent, YENV);
           } else {
@@ -931,7 +955,7 @@
 #ifdef TABLING_CALL_SUBSUMPTION
         case SUBSUMED_CONSUMER_SFT:
           if(TabEnt_is_load(tab_ent)) {
-            compute_consumer_answer_list(sg_fr);
+            compute_subsumptive_consumer_answer_list(sg_fr);
             check_no_answers(sg_fr);
             load_subsumptive_answers_from_sf(sg_fr, tab_ent, YENV);
     	    } else {
@@ -943,6 +967,15 @@
           break;
         case GROUND_PRODUCER_SFT:
           if(TabEnt_is_load(tab_ent)) {
+            check_no_answers(sg_fr);
+            load_subsumptive_answers_from_sf(sg_fr, tab_ent, YENV);
+          } else {
+            exec_ground_trie(tab_ent);
+          }
+          break;
+        case GROUND_CONSUMER_SFT:
+          if(TabEnt_is_load(tab_ent)) {
+            compute_ground_consumer_answer_list(sg_fr);
             check_no_answers(sg_fr);
             load_subsumptive_answers_from_sf(sg_fr, tab_ent, YENV);
           } else {
