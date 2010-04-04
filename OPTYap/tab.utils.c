@@ -619,6 +619,8 @@ void printSubsumptiveAnswer(FILE *fp, CELL* vars)
   Trail_Unwind_All;
 }
 
+CELL *AT = NULL;
+
 #ifdef SIZEOF_DOUBLE == 2*SIZEOF_INT_P
 static inline Term
 MakeFloatTerm(Float dbl)
@@ -719,8 +721,10 @@ fix_rec(CELL val, CELL* placeholder)
 }
 
 int
-fix_answer_template(CELL *ans_tmplt)
+copy_answer_template(CELL *ans_tmplt, CELL *dest)
 {
+  AT = dest;
+  
   int size = (int)*ans_tmplt++;
   int i;
   CELL *arguments = AT;

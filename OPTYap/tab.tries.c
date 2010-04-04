@@ -351,7 +351,6 @@ void private_completion(sg_fr_ptr sg_fr) {
   /* complete subsumptive consumer subgoals */
   while(LOCAL_top_subcons_sg_fr && YOUNGER_CP(SgFr_choice_point(LOCAL_top_subcons_sg_fr), B)) {
     mark_subsumptive_consumer_as_completed(LOCAL_top_subcons_sg_fr);
-    set_min_at(SgFr_answer_template(LOCAL_top_subcons_sg_fr));
     LOCAL_top_subcons_sg_fr = SgFr_next(LOCAL_top_subcons_sg_fr);
   }
   
@@ -359,7 +358,6 @@ void private_completion(sg_fr_ptr sg_fr) {
   while(LOCAL_top_groundcons_sg_fr && YOUNGER_CP(SgFr_choice_point(LOCAL_top_groundcons_sg_fr), B)) {
     mark_ground_consumer_as_completed(LOCAL_top_groundcons_sg_fr);
     printf("One ground consumer completed\n");
-    set_min_at(SgFr_answer_template(LOCAL_top_groundcons_sg_fr));
     LOCAL_top_groundcons_sg_fr = SgFr_next(LOCAL_top_groundcons_sg_fr);
   }
 #endif /* TABLING_CALL_SUBSUMPTION */

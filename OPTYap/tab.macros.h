@@ -272,7 +272,7 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
             }                                                                     \
             chain_dep_fr = DepFr_next(chain_dep_fr);                              \
           }                                                                       \
-	}
+	      }
 #endif /* YAPOR */
 
 

@@ -152,8 +152,8 @@ sg_fr_ptr grounded_call_search(yamop *code, CELL *answer_template, CELL **new_lo
             printf("New ground consumer\n");
             sg_fr = create_new_ground_consumer_subgoal(btn, tab_ent, code, subsumer);
             /* create answer template on AT */
-            SgFr_answer_template(sg_fr) = AT;
-            SgFr_at_size(sg_fr) = fix_answer_template(*new_local_stack);
+            SgFr_answer_template(sg_fr) = SgFr_at_block(sg_fr);
+            SgFr_at_size(sg_fr) = copy_answer_template(*new_local_stack, SgFr_at_block(sg_fr));
         } else
           sg_fr = subsumer;
         break;

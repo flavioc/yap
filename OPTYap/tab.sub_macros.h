@@ -238,6 +238,8 @@ build_next_subsumptive_consumer_return_list(subcons_fr_ptr consumer_sg) {
 
   SgFr_timestamp(consumer_sg) = producer_ts;
   
+  AT = SgFr_at_block(consumer_sg);
+  
   return tst_collect_relevant_answers(trie, consumer_ts, size,
           STANDARDIZE_AT_PTR(answer_template, size), (sg_fr_ptr)consumer_sg);
 }
@@ -257,6 +259,8 @@ build_next_ground_consumer_return_list(grounded_sf_ptr consumer_sg) {
   tst_node_ptr trie = (tst_node_ptr)TabEnt_ground_trie(tab_ent);
   
   SgFr_timestamp(consumer_sg) = producer_ts;
+  
+  AT = SgFr_at_block(consumer_sg);
   
   return tst_collect_relevant_answers(trie, consumer_ts, size,
     STANDARDIZE_AT_PTR(answer_template, size), (sg_fr_ptr)consumer_sg);

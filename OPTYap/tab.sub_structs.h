@@ -13,6 +13,8 @@
 
 #ifdef TABLING_CALL_SUBSUMPTION
 
+#define AT_BLOCK_SIZE 8
+
 typedef struct sub_subgoal_trie_node {
   struct subgoal_trie_node base;
   unsigned num_generators;
@@ -92,6 +94,7 @@ struct subsumed_consumer_subgoal_frame {
   subprod_fr_ptr producer;
   CELL* answer_template;
   int at_size;
+  CELL at_block[AT_BLOCK_SIZE];
   
   /* Chain link for properly subsumed subgoals */
   subsumptive_consumer_sf *consumers;
@@ -104,6 +107,7 @@ typedef subsumptive_consumer_sf *subcons_fr_ptr;
 #define SgFr_consumers(X)       ((X)->consumers)
 #define SgFr_answer_template(X) ((X)->answer_template)
 #define SgFr_at_size(X)         ((X)->at_size)
+#define SgFr_at_block(X)        ((X)->at_block)
 
 typedef struct grounded_subgoal_frame *grounded_sf_ptr;
 
@@ -130,6 +134,7 @@ struct grounded_subgoal_frame {
   grounded_sf_ptr producer;
   CELL* answer_template;
   int at_size;
+  CELL at_block[AT_BLOCK_SIZE];
 };
 
 #define TabEnt_ground_trie(X)       (TrNode_next(TabEnt_subgoal_trie(X)))

@@ -37,8 +37,6 @@ DynamicStack tstSymbolStack; /* symbol stack for subsumption */
 Cell TrieVarBindings[MAX_TABLE_VARS];
 struct collectCPStack_t collectCPStack;
 int AnsVarCtr;
-CELL at_stack[ANSWER_TEMPLATE_STACK_SIZE];
-CELL* AT = at_stack;
 #endif
 #endif /* TABLING */
 #if defined(TABLING) || !defined(ACOW)
