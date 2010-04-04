@@ -662,32 +662,36 @@
       /* subgoal completed */
       dprintf("TABLE_TRY_SINGLE COMPLETE SUBGOAL\n");
 
-      if(SgFr_is_variant(sg_fr) || SgFr_is_sub_producer(sg_fr)) {
-        check_no_answers(sg_fr);
-        check_yes_answer(sg_fr);
-        
-        limit_tabling_remove_sf(sg_fr);
-                
-        if (TabEnt_is_load(tab_ent)) {
-          load_variant_answers_from_sf(sg_fr, tab_ent, YENV);
-  	    } else {
-          ensure_subgoal_is_compiled(sg_fr);
-          exec_subgoal_compiled_trie(sg_fr);
-  	    }
+      switch(SgFr_type(sg_fr)) {
+        case VARIANT_PRODUCER_SFT:
+        case SUBSUMPTIVE_PRODUCER_SFT:
+          check_no_answers(sg_fr);
+          check_yes_answer(sg_fr);
+
+          limit_tabling_remove_sf(sg_fr);
+
+          if (TabEnt_is_load(tab_ent)) {
+            load_variant_answers_from_sf(sg_fr, tab_ent, YENV);
+    	    } else {
+            ensure_subgoal_is_compiled(sg_fr);
+            exec_subgoal_compiled_trie(sg_fr);
+    	    }
+          break;
 #ifdef TABLING_CALL_SUBSUMPTION
-      } else {
-  	    /* consumer */
-  	    if(TabEnt_is_load(tab_ent)) {
-          compute_consumer_answer_list(sg_fr);
-          check_no_answers(sg_fr);
-          load_subsumptive_answers_from_sf(sg_fr, tab_ent, YENV);
-  	    } else {
-          set_subsumptive_producer(sg_fr);
-          check_no_answers(sg_fr);
-          ensure_subgoal_is_compiled(sg_fr);
-          exec_subgoal_compiled_trie(sg_fr);
-  	    }
+        case SUBSUMED_CONSUMER_SFT:
+          if(TabEnt_is_load(tab_ent)) {
+            compute_consumer_answer_list(sg_fr);
+            check_no_answers(sg_fr);
+            load_subsumptive_answers_from_sf(sg_fr, tab_ent, YENV);
+    	    } else {
+            set_subsumptive_producer(sg_fr);
+            check_no_answers(sg_fr);
+            ensure_subgoal_is_compiled(sg_fr);
+            exec_subgoal_compiled_trie(sg_fr);
+    	    }
+          break;
 #endif /* TABLING_CALL_SUBSUMPTION */
+          default: break;
       }
     }
     ENDPBOp();
@@ -770,32 +774,36 @@
       /* subgoal completed */
       dprintf("TABLE_TRY_ME COMPLETE SUBGOAL\n");
 
-      if(SgFr_is_variant(sg_fr) || SgFr_is_sub_producer(sg_fr)) {
-        check_no_answers(sg_fr);
-        check_yes_answer(sg_fr);
-        
-        limit_tabling_remove_sf(sg_fr);
-                
-        if (TabEnt_is_load(tab_ent)) {
-          load_variant_answers_from_sf(sg_fr, tab_ent, YENV);
-  	    } else {
-          ensure_subgoal_is_compiled(sg_fr);
-          exec_subgoal_compiled_trie(sg_fr);
-  	    }
+      switch(SgFr_type(sg_fr)) {
+        case VARIANT_PRODUCER_SFT:
+        case SUBSUMPTIVE_PRODUCER_SFT:
+          check_no_answers(sg_fr);
+          check_yes_answer(sg_fr);
+
+          limit_tabling_remove_sf(sg_fr);
+
+          if (TabEnt_is_load(tab_ent)) {
+            load_variant_answers_from_sf(sg_fr, tab_ent, YENV);
+    	    } else {
+            ensure_subgoal_is_compiled(sg_fr);
+            exec_subgoal_compiled_trie(sg_fr);
+    	    }
+          break;
 #ifdef TABLING_CALL_SUBSUMPTION
-      } else {
-  	    /* consumer */
-  	    if(TabEnt_is_load(tab_ent)) {
-          compute_consumer_answer_list(sg_fr);
-          check_no_answers(sg_fr);
-          load_subsumptive_answers_from_sf(sg_fr, tab_ent, YENV);
-  	    } else {
-  	      set_subsumptive_producer(sg_fr);
-          check_no_answers(sg_fr);
-          ensure_subgoal_is_compiled(sg_fr);
-          exec_subgoal_compiled_trie(sg_fr);
-        }
+        case SUBSUMED_CONSUMER_SFT:
+          if(TabEnt_is_load(tab_ent)) {
+            compute_consumer_answer_list(sg_fr);
+            check_no_answers(sg_fr);
+            load_subsumptive_answers_from_sf(sg_fr, tab_ent, YENV);
+    	    } else {
+            set_subsumptive_producer(sg_fr);
+            check_no_answers(sg_fr);
+            ensure_subgoal_is_compiled(sg_fr);
+            exec_subgoal_compiled_trie(sg_fr);
+    	    }
+          break;
 #endif /* TABLING_CALL_SUBSUMPTION */
+          default: break;
       }
     }
   ENDPBOp();
@@ -879,32 +887,36 @@
       /* subgoal completed */
       dprintf("TABLE_TRY COMPLETE SUBGOAL\n");
       
-      if(SgFr_is_variant(sg_fr) || SgFr_is_sub_producer(sg_fr)) {
-        check_no_answers(sg_fr);
-        check_yes_answer(sg_fr);
-        
-        limit_tabling_remove_sf(sg_fr);
-                
-        if (TabEnt_is_load(tab_ent)) {
-          load_variant_answers_from_sf(sg_fr, tab_ent, YENV);
-  	    } else {
-          ensure_subgoal_is_compiled(sg_fr);
-          exec_subgoal_compiled_trie(sg_fr);
-  	    }
+      switch(SgFr_type(sg_fr)) {
+        case VARIANT_PRODUCER_SFT:
+        case SUBSUMPTIVE_PRODUCER_SFT:
+          check_no_answers(sg_fr);
+          check_yes_answer(sg_fr);
+
+          limit_tabling_remove_sf(sg_fr);
+
+          if (TabEnt_is_load(tab_ent)) {
+            load_variant_answers_from_sf(sg_fr, tab_ent, YENV);
+    	    } else {
+            ensure_subgoal_is_compiled(sg_fr);
+            exec_subgoal_compiled_trie(sg_fr);
+    	    }
+          break;
 #ifdef TABLING_CALL_SUBSUMPTION
-      } else {
-  	    /* consumer */
-  	    if(TabEnt_is_load(tab_ent)) {
-          compute_consumer_answer_list(sg_fr);
-          check_no_answers(sg_fr);
-          load_subsumptive_answers_from_sf(sg_fr, tab_ent, YENV);
-  	    } else {
-          set_subsumptive_producer(sg_fr);
-          check_no_answers(sg_fr);
-          ensure_subgoal_is_compiled(sg_fr);
-          exec_subgoal_compiled_trie(sg_fr);
-  	    }
+        case SUBSUMED_CONSUMER_SFT:
+          if(TabEnt_is_load(tab_ent)) {
+            compute_consumer_answer_list(sg_fr);
+            check_no_answers(sg_fr);
+            load_subsumptive_answers_from_sf(sg_fr, tab_ent, YENV);
+    	    } else {
+            set_subsumptive_producer(sg_fr);
+            check_no_answers(sg_fr);
+            ensure_subgoal_is_compiled(sg_fr);
+            exec_subgoal_compiled_trie(sg_fr);
+    	    }
+          break;
 #endif /* TABLING_CALL_SUBSUMPTION */
+          default: break;
       }
     }
   ENDPBOp();
