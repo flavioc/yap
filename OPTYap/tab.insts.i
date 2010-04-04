@@ -405,6 +405,9 @@
       UNLOCK(SgFr_lock(SG_FR));                                   \
       SG_FR = (sg_fr_ptr)SgFr_producer((subcons_fr_ptr)(SG_FR));  \
       LOCK(SgFr_lock(SG_FR))
+      
+#define exec_ground_trie(TAB_ENT) \
+      exec_compiled_trie((ans_node_ptr)TabEnt_ground_trie(TAB_ENT))
 
 /* Consume subsuming answer ANS_NODE using ANS_TMPLT
  * as the pointer to the answer template.
@@ -690,6 +693,14 @@
             exec_subgoal_compiled_trie(sg_fr);
     	    }
           break;
+        case GROUND_PRODUCER_SFT:
+          if(TabEnt_is_load(tab_ent)) {
+            check_no_answers(sg_fr);
+            load_subsumptive_answers_from_sf(sg_fr, tab_ent, YENV);
+          } else {
+            exec_ground_trie(tab_ent);
+          }
+          break;
 #endif /* TABLING_CALL_SUBSUMPTION */
           default: break;
       }
@@ -801,6 +812,14 @@
             ensure_subgoal_is_compiled(sg_fr);
             exec_subgoal_compiled_trie(sg_fr);
     	    }
+          break;
+        case GROUND_PRODUCER_SFT:
+          if(TabEnt_is_load(tab_ent)) {
+            check_no_answers(sg_fr);
+            load_subsumptive_answers_from_sf(sg_fr, tab_ent, YENV);
+          } else {
+            exec_ground_trie(tab_ent);
+          }
           break;
 #endif /* TABLING_CALL_SUBSUMPTION */
           default: break;
@@ -914,6 +933,14 @@
             ensure_subgoal_is_compiled(sg_fr);
             exec_subgoal_compiled_trie(sg_fr);
     	    }
+          break;
+        case GROUND_PRODUCER_SFT:
+          if(TabEnt_is_load(tab_ent)) {
+            check_no_answers(sg_fr);
+            load_subsumptive_answers_from_sf(sg_fr, tab_ent, YENV);
+          } else {
+            exec_ground_trie(tab_ent);
+          }
           break;
 #endif /* TABLING_CALL_SUBSUMPTION */
           default: break;

@@ -1181,9 +1181,12 @@ is_new_generator_call(sg_fr_ptr sg_fr) {
   switch(SgFr_type(sg_fr)) {
     case VARIANT_PRODUCER_SFT:
     case SUBSUMPTIVE_PRODUCER_SFT:
+    case GROUND_PRODUCER_SFT:
       return SgFr_state(sg_fr) == ready;
+#ifdef TABLING_CALL_SUBSUMPTION
     case SUBSUMED_CONSUMER_SFT:
       return FALSE;
+#endif /* TABLING_CALL_SUBSUMPTION */
     default:
       /* NOT REACHABLE */
       return FALSE;

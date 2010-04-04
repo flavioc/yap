@@ -183,6 +183,8 @@ TSTNptr grounded_answer_search(grounded_sf_ptr sf, CPtr answerVector) {
 
   int isNew;
   tstn = subsumptive_tst_search(root, arity, answerVector, TRUE, &isNew );
+  
+  // actualizar time stamp
        
   Trail_Unwind_All;
   printf("Inserted answer\n");
