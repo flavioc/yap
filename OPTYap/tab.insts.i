@@ -387,10 +387,24 @@
         GONext()
 #endif /* GLOBAL_TRIE */
 
-#define exec_subgoal_compiled_trie(SG_FR) \
+#define exec_subgoal_compiled_trie(SG_FR)           \
+        UNLOCK(SgFr_lock(SG_FR));                   \
         exec_compiled_trie(SgFr_answer_trie(SG_FR))
 
 #ifdef TABLING_CALL_SUBSUMPTION
+
+#define compute_consumer_answer_list(SG_FR) \
+      if(SgFr_state(SG_FR) < complete) {      \
+        build_next_subsumptive_consumer_return_list((subcons_fr_ptr)(SG_FR)); \
+        SgFr_state(SG_FR) = complete; \
+      }
+      
+#define set_subsumptive_producer(SG_FR)                           \
+      if(SgFr_state(SG_FR) < compiled)                            \
+        SgFr_state(SG_FR) = compiled;                             \
+      UNLOCK(SgFr_lock(SG_FR));                                   \
+      SG_FR = (sg_fr_ptr)SgFr_producer((subcons_fr_ptr)(SG_FR));  \
+      LOCK(SgFr_lock(SG_FR))
 
 /* Consume subsuming answer ANS_NODE using ANS_TMPLT
  * as the pointer to the answer template.
@@ -647,7 +661,6 @@
     } else {
       /* subgoal completed */
       dprintf("TABLE_TRY_SINGLE COMPLETE SUBGOAL\n");
-      CELL* answer_template = YENV;
 
       if(SgFr_is_variant(sg_fr) || SgFr_is_sub_producer(sg_fr)) {
         check_no_answers(sg_fr);
@@ -657,37 +670,25 @@
                 
         if (TabEnt_is_load(tab_ent)) {
           load_variant_answers_from_sf(sg_fr, tab_ent, YENV);
+  	    } else {
+          ensure_subgoal_is_compiled(sg_fr);
+          exec_subgoal_compiled_trie(sg_fr);
   	    }
 #ifdef TABLING_CALL_SUBSUMPTION
       } else {
   	    /* consumer */
   	    if(TabEnt_is_load(tab_ent)) {
-  	      if(SgFr_state(sg_fr) < complete) {
-  	        build_next_subsumptive_consumer_return_list((subcons_fr_ptr)sg_fr);
-            SgFr_state(sg_fr) = complete;
-  	      }
-  	      
+          compute_consumer_answer_list(sg_fr);
           check_no_answers(sg_fr);
-    	    
           load_subsumptive_answers_from_sf(sg_fr, tab_ent, YENV);
   	    } else {
-  	      if(SgFr_state(sg_fr) < compiled)
-  	        SgFr_state(sg_fr) = compiled;
-          UNLOCK(SgFr_lock(sg_fr));
-  	      sg_fr = (sg_fr_ptr)SgFr_producer((subcons_fr_ptr)sg_fr);
-  	      LOCK(SgFr_lock(sg_fr));
+          set_subsumptive_producer(sg_fr);
           check_no_answers(sg_fr);
+          ensure_subgoal_is_compiled(sg_fr);
+          exec_subgoal_compiled_trie(sg_fr);
   	    }
 #endif /* TABLING_CALL_SUBSUMPTION */
       }
-
-	    /* execute compiled code from the trie */
-
-      ensure_subgoal_is_compiled(sg_fr);
-
-	    UNLOCK(SgFr_lock(sg_fr));
-	    
-      exec_subgoal_compiled_trie(sg_fr);
     }
     ENDPBOp();
 
@@ -768,45 +769,34 @@
     } else {
       /* subgoal completed */
       dprintf("TABLE_TRY_ME COMPLETE SUBGOAL\n");
-      CELL* answer_template = YENV;
 
       if(SgFr_is_variant(sg_fr) || SgFr_is_sub_producer(sg_fr)) {
         check_no_answers(sg_fr);
         check_yes_answer(sg_fr);
         
         limit_tabling_remove_sf(sg_fr);
-
+                
         if (TabEnt_is_load(tab_ent)) {
           load_variant_answers_from_sf(sg_fr, tab_ent, YENV);
+  	    } else {
+          ensure_subgoal_is_compiled(sg_fr);
+          exec_subgoal_compiled_trie(sg_fr);
   	    }
 #ifdef TABLING_CALL_SUBSUMPTION
       } else {
   	    /* consumer */
   	    if(TabEnt_is_load(tab_ent)) {
-  	      if(SgFr_state(sg_fr) < complete) {
-  	        build_next_subsumptive_consumer_return_list((subcons_fr_ptr)sg_fr);
-            SgFr_state(sg_fr) = complete;
-  	      }
-
+          compute_consumer_answer_list(sg_fr);
           check_no_answers(sg_fr);
           load_subsumptive_answers_from_sf(sg_fr, tab_ent, YENV);
   	    } else {
-  	      if(SgFr_state(sg_fr) < compiled)
-  	        SgFr_state(sg_fr) = compiled;
-          UNLOCK(SgFr_lock(sg_fr));
-  	      sg_fr = (sg_fr_ptr)SgFr_producer((subcons_fr_ptr)sg_fr);
-  	      LOCK(SgFr_lock(sg_fr));
-  	      
+  	      set_subsumptive_producer(sg_fr);
           check_no_answers(sg_fr);
-  	    }
+          ensure_subgoal_is_compiled(sg_fr);
+          exec_subgoal_compiled_trie(sg_fr);
+        }
 #endif /* TABLING_CALL_SUBSUMPTION */
       }
-      
-      ensure_subgoal_is_compiled(sg_fr);
-
-	    UNLOCK(SgFr_lock(sg_fr));
-	    
-      exec_subgoal_compiled_trie(sg_fr);
     }
   ENDPBOp();
 
@@ -888,46 +878,34 @@
     } else {
       /* subgoal completed */
       dprintf("TABLE_TRY COMPLETE SUBGOAL\n");
-      CELL* answer_template = YENV;
       
       if(SgFr_is_variant(sg_fr) || SgFr_is_sub_producer(sg_fr)) {
         check_no_answers(sg_fr);
         check_yes_answer(sg_fr);
         
         limit_tabling_remove_sf(sg_fr);
-
+                
         if (TabEnt_is_load(tab_ent)) {
           load_variant_answers_from_sf(sg_fr, tab_ent, YENV);
+  	    } else {
+          ensure_subgoal_is_compiled(sg_fr);
+          exec_subgoal_compiled_trie(sg_fr);
   	    }
 #ifdef TABLING_CALL_SUBSUMPTION
       } else {
   	    /* consumer */
   	    if(TabEnt_is_load(tab_ent)) {
-  	      if(SgFr_state(sg_fr) < complete) {
-  	        build_next_subsumptive_consumer_return_list((subcons_fr_ptr)sg_fr);
-            SgFr_state(sg_fr) = complete;
-  	      }
-
+          compute_consumer_answer_list(sg_fr);
           check_no_answers(sg_fr);
           load_subsumptive_answers_from_sf(sg_fr, tab_ent, YENV);
   	    } else {
-  	      if(SgFr_state(sg_fr) < compiled)
-  	        SgFr_state(sg_fr) = compiled;
-          UNLOCK(SgFr_lock(sg_fr));
-  	      sg_fr = (sg_fr_ptr)SgFr_producer((subcons_fr_ptr)sg_fr);
-  	      LOCK(SgFr_lock(sg_fr));
+          set_subsumptive_producer(sg_fr);
           check_no_answers(sg_fr);
+          ensure_subgoal_is_compiled(sg_fr);
+          exec_subgoal_compiled_trie(sg_fr);
   	    }
 #endif /* TABLING_CALL_SUBSUMPTION */
       }
-
-	    /* execute compiled code from the trie */
-
-      ensure_subgoal_is_compiled(sg_fr);
-
-	    UNLOCK(SgFr_lock(sg_fr));
-
-      exec_subgoal_compiled_trie(sg_fr);
     }
   ENDPBOp();
 
@@ -1951,12 +1929,9 @@
         if (TabEnt_is_load(tab_ent)) {
           load_answers_from_sf_no_unlock(sg_fr, tab_ent, CONSUME_VARIANT_ANSWER, LOAD_ANSWER, YENV);
         } else {
-          dprintf("COMPILED CODE\n");
           /* execute compiled code from the trie */
           LOCK(SgFr_lock(sg_fr));
           ensure_subgoal_is_compiled(sg_fr);
-          UNLOCK(SgFr_lock(sg_fr));
-          
           exec_subgoal_compiled_trie(sg_fr);
 	      }
       }
