@@ -93,7 +93,6 @@ STD_PROTO(static inline int build_next_ground_producer_return_list, (grounded_sf
         }
         
 #define create_ground_answer_template(SG_FR, FROM)      \
-        printf("Creating ground answer template\n");    \
         SgFr_answer_template(SG_FR) = SgFr_at_block(SG_FR); \
         SgFr_at_size(SG_FR) = copy_answer_template(FROM, SgFr_at_block(SG_FR))
         
