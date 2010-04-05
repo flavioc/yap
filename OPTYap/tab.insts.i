@@ -195,13 +195,13 @@
           TABLING_ERRORS_check_stack;                                      \
         }
         
-        
 #define CONSUME_ANSWER(ANS_NODE, ANSWER_TMPLT, SG_FR)                       \
         switch(SgFr_type(SG_FR)) {                                          \
           case VARIANT_PRODUCER_SFT:                                        \
           case SUBSUMPTIVE_PRODUCER_SFT:                                    \
             CONSUME_VARIANT_ANSWER(ANS_NODE, ANSWER_TMPLT);                 \
             break;                                                          \
+          case SUBSUMED_CONSUMER_SFT:                                       \
           case GROUND_CONSUMER_SFT:                                         \
             CONSUME_SUBSUMPTIVE_ANSWER(ANS_NODE, ANSWER_TMPLT);             \
             break;                                                          \
