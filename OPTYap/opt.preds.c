@@ -637,8 +637,12 @@ Int p_table(void) {
   if (IsMode_LoadAnswers(yap_flags[TABLING_MODE_FLAG]))
     SetMode_LoadAnswers(TabEnt_mode(tab_ent));
 #ifdef TABLING_CALL_SUBSUMPTION
-  if (IsMode_Subsumptive(yap_flags[TABLING_MODE_FLAG]))
+  if(IsMode_Variant(yap_flags[TABLING_MODE_FLAG]))
+    SetMode_Variant(TabEnt_mode(tab_ent));
+  else if (IsMode_Subsumptive(yap_flags[TABLING_MODE_FLAG]))
     SetMode_Subsumptive(TabEnt_mode(tab_ent));
+  else if (IsMode_Grounded(yap_flags[TABLING_MODE_FLAG]))
+    SetMode_Grounded(TabEnt_mode(tab_ent));
 #endif
   pe->TableOfPred = tab_ent;
   return (TRUE);
