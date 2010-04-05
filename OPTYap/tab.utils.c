@@ -515,7 +515,8 @@ recursive_construct_subgoal(CELL* trie_vars, CELL* placeholder)
   }
 }
 
-CELL* construct_subgoal_heap(BTNptr pLeaf, CPtr* var_pointer, int arity)
+CELL* construct_subgoal_heap(BTNptr pLeaf, CPtr* var_pointer, int arity,
+  int pushArguments, int invertHeap)
 {
   CELL* orig_hreg = H;
   CELL* trie_vars = *var_pointer;
@@ -523,17 +524,36 @@ CELL* construct_subgoal_heap(BTNptr pLeaf, CPtr* var_pointer, int arity)
   
   variable_counter = 0;
   
-  TermStack_ResetTOS;
   SymbolStack_ResetTOS;
   SymbolStack_PushPathNodes(pLeaf);
   
   CELL *arguments = H;
   H += arity;
   
-  for(i = 0; i < arity; ++i)
-    recursive_construct_subgoal(trie_vars, arguments + i);
-  for(i = arity - 1; i >= 0; --i)
-    TermStack_Push(*(arguments + i))
+  if(invertHeap) {
+    CELL* new_arguments = H;
+    
+    H += arity;
+    
+    for(i = 0; i < arity; ++i)
+      recursive_construct_subgoal(trie_vars, new_arguments + i);
+    
+    /* invert arguments */
+    for(i = 0; i < arity; ++i) {
+      CELL value = *(new_arguments + (arity-1) - i);
+      *(arguments + i) = value;
+    }
+    
+  } else {
+    for(i = 0; i < arity; ++i)
+      recursive_construct_subgoal(trie_vars, arguments + i);
+  }
+    
+  if(pushArguments) {
+    TermStack_ResetTOS;
+    for(i = arity - 1; i >= 0; --i)
+      TermStack_Push(*(arguments + i))
+  }
   
   *var_pointer = trie_vars - variable_counter;
   **var_pointer = variable_counter;

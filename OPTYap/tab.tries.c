@@ -551,7 +551,10 @@ static struct trie_statistics{
   long subgoals_incomplete;
   long subgoal_trie_nodes;
   long answers;
+#ifdef TABLING_CALL_SUBSUMPTION
   long subsumptive_answers;
+  long ground_answers;
+#endif /* TABLING_CALL_SUBSUMPTION */
 #ifdef TABLING_INNER_CUTS
   long answers_pruned;
 #endif /* TABLING_INNER_CUTS */
@@ -570,6 +573,7 @@ static struct trie_statistics{
 #define TrStat_sg_nodes          trie_stats.subgoal_trie_nodes
 #define TrStat_answers           trie_stats.answers
 #define TrStat_sub_answers       trie_stats.subsumptive_answers
+#define TrStat_ground_answers    trie_stats.ground_answers
 #define TrStat_answers_true      trie_stats.answers_true
 #define TrStat_answers_no        trie_stats.answers_no
 #define TrStat_answers_pruned    trie_stats.answers_pruned
@@ -648,10 +652,14 @@ void show_table(tab_ent_ptr tab_ent, int show_mode) {
 #else
     fprintf(Yap_stdout, "    Answers: %ld\n", TrStat_answers);
 #endif /* TABLING_INNER_CUTS */
+#ifdef TABLING_CALL_SUBSUMPTION
     fprintf(Yap_stdout, "    Subsumptive answers: %ld\n", TrStat_sub_answers);
+    fprintf(Yap_stdout, "    Ground answers: %ld\n", TrStat_ground_answers);
+#endif /* TABLING_CALL_SUBSUMPTION */
     fprintf(Yap_stdout, "    Answers 'TRUE': %ld\n", TrStat_answers_true);
     fprintf(Yap_stdout, "    Answers 'NO': %ld\n", TrStat_answers_no);
     fprintf(Yap_stdout, "    Answer trie nodes: %ld\n", TrStat_ans_nodes);
+    /* XXX */
     fprintf(Yap_stdout, "  Total memory in use: %ld bytes\n",
 	    sizeof(struct table_entry) + TrStat_sg_nodes * sizeof(struct subgoal_trie_node) +
 	    TrStat_ans_nodes * sizeof(struct answer_trie_node) + TrStat_subgoals * sizeof(struct subgoal_frame)); 
@@ -832,12 +840,12 @@ void traverse_subgoal_trie(sg_node_ptr current_node, char *str, int str_index, i
     TrStat_subgoals++;
     str[str_index] = 0;
     
+    SHOW_TABLE_STRUCTURE("%s.\n", str);
+    
     switch(SgFr_type(sg_fr)) {
       case VARIANT_PRODUCER_SFT:
       case SUBSUMPTIVE_PRODUCER_SFT:
         TrStat_ans_nodes++;
-      
-        SHOW_TABLE_STRUCTURE("%s.\n", str);
       
         if (SgFr_has_no_answers(sg_fr)) {
           if (SgFr_state(sg_fr) < complete) {
@@ -867,8 +875,6 @@ void traverse_subgoal_trie(sg_node_ptr current_node, char *str, int str_index, i
           subcons_fr_ptr cons_sg = (subcons_fr_ptr)sg_fr;
           subprod_fr_ptr prod_sg = SgFr_producer(cons_sg);
       
-          SHOW_TABLE_STRUCTURE("%s.\n", str);
-      
           if(SgFr_has_no_answers(sg_fr)) {
             if(SgFr_state(sg_fr) < complete) {
               TrStat_sg_incomplete++;
@@ -879,6 +885,22 @@ void traverse_subgoal_trie(sg_node_ptr current_node, char *str, int str_index, i
             }
           } else { // has answers
             show_consumer_subsumptive_with_answers(cons_sg, prod_sg);
+          }
+        }
+        break;
+      case GROUND_PRODUCER_SFT:
+      case GROUND_CONSUMER_SFT:
+        {
+          if(SgFr_has_no_answers(sg_fr)) {
+            if(SgFr_state(sg_fr) < complete) {
+              TrStat_sg_incomplete++;
+              SHOW_TABLE_STRUCTURE("    ---> INCOMPLETE\n");
+            } else {
+              TrStat_answers_no++;
+              SHOW_TABLE_STRUCTURE("    NO\n");
+            }
+          } else {
+            show_ground_with_answers(sg_fr);
           }
         }
         break;

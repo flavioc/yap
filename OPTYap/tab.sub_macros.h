@@ -52,7 +52,7 @@ STD_PROTO(static inline int build_next_ground_consumer_return_list, (grounded_sf
   
 #define new_grounded_consumer_subgoal_frame(SG_FR, CODE, LEAF, PRODUCER) {  \
         new_basic_subgoal_frame(SG_FR, CODE, LEAF,                          \
-          GROUND_CONSUMER_SFT, ALLOC_GROUNDED_SUBGOAL_FRAME);             \
+          GROUND_CONSUMER_SFT, ALLOC_GROUNDED_SUBGOAL_FRAME);               \
         init_ground_subgoal_frame(SG_FR);                                   \
         SgFr_producer(SG_FR) = PRODUCER;                                    \
       }
@@ -89,7 +89,8 @@ STD_PROTO(static inline int build_next_ground_consumer_return_list, (grounded_sf
       {                                                     \
         continuation_ptr cont = SgFr_first_answer(CONS_SG); \
         CELL* ans_tmplt =                                   \
-          reconstruct_template_for_producer_no_args(PROD_SG, (HEAP_SG) - 1);  \
+          reconstruct_template_for_producer_no_args(PROD_SG, \
+                (HEAP_SG) - 1);  \
         tr_fr_ptr saved_TR = TR;  \
         CELL*     saved_HB = HB;  \
         const int ans_size = (int)*ans_tmplt; \
@@ -106,6 +107,26 @@ STD_PROTO(static inline int build_next_ground_consumer_return_list, (grounded_sf
         TR = saved_TR;  \
         HB = saved_HB;  \
       }
+      
+#define show_ground_answers(SG_FR, ANS_TMPLT, VARS)         \
+      {                                                     \
+        continuation_ptr cont = SgFr_first_answer(SG_FR);   \
+        tr_fr_ptr saved_TR = TR;                            \
+        CELL *    saved_HB = HB;                            \
+        int ans_size = SgFr_arity(SG_FR);                   \
+                                                            \
+        HB = H;                                             \
+        while(cont) {                                       \
+          tst_node_ptr ans = (tst_node_ptr) continuation_answer(cont);  \
+          consume_subsumptive_answer((BTNptr)ans, ans_size, ANS_TMPLT); \
+          printSubsumptiveAnswer(Yap_stdout, VARS);         \
+          trail_unwind(saved_TR);                           \
+          cont = continuation_next(cont);                   \
+        }                                                   \
+        /* restore TR and HB */                             \
+        TR = saved_TR;                                      \
+        HB = saved_HB;                                      \
+      }
 
 #define count_subsumptive_answers(CONS_SG)                  \
       {                                                     \
@@ -116,22 +137,30 @@ STD_PROTO(static inline int build_next_ground_consumer_return_list, (grounded_sf
           cont = continuation_next(cont);                   \
         }                                                   \
       }
+
+#define count_ground_answers(SG_FR)                         \
+      {                                                     \
+          continuation_ptr cont = SgFr_first_answer(SG_FR); \
+          while(cont) {                                     \
+            TrStat_ground_answers++;                        \
+            TrStat_answers++;                               \
+          }                                                 \
+      }
       
 #define show_consumer_subsumptive_with_answers(CONS_SG, PROD_SG)    \
       {                                                             \
         CELL* vars = (CELL * )HeapTop - 1;                          \
         CELL* saved_H = construct_subgoal_heap(SgFr_leaf(CONS_SG),  \
-              &vars, SgFr_arity(CONS_SG));                          \
+              &vars, SgFr_arity(CONS_SG), TRUE, FALSE);             \
                                                                     \
         if((int)*vars == 0) {                                       \
           TrStat_answers_true++;                                    \
           TrStat_sub_answers++;                                     \
           SHOW_TABLE_STRUCTURE("    TRUE\n");                       \
         } else {                                                    \
-          if(TrStat_show == SHOW_MODE_STRUCTURE) {                  \
-            show_consumer_subsumptive_answers(CONS_SG, PROD_SG,     \
-                vars);                                              \
-          } else {                                                  \
+          if(TrStat_show == SHOW_MODE_STRUCTURE) {                        \
+            show_consumer_subsumptive_answers(CONS_SG, PROD_SG,vars);     \
+          } else {                                                        \
             count_subsumptive_answers(CONS_SG);                     \
           }                                                         \
         }                                                           \
@@ -140,6 +169,31 @@ STD_PROTO(static inline int build_next_ground_consumer_return_list, (grounded_sf
         H = saved_H;                                                \
                                                                     \
         if (SgFr_state(CONS_SG) < complete) {                       \
+          TrStat_sg_incomplete++;                                   \
+          SHOW_TABLE_STRUCTURE("    ---> INCOMPLETE\n");            \
+        }                                                           \
+      }
+
+#define show_ground_with_answers(SG_FR)                    \
+      {                                                             \
+        CELL* vars = (CELL *)HeapTop - 1;                           \
+        CELL *saved_H = construct_subgoal_heap(SgFr_leaf(SG_FR),    \
+          &vars, SgFr_arity(SG_FR), FALSE, TRUE);                   \
+                                                                    \
+        if((int)*vars == 0) {                                       \
+          TrStat_answers_true++;                                    \
+          TrStat_ground_answers++;                                  \
+          SHOW_TABLE_STRUCTURE("    TRUE\n");                       \
+        } else {                                                    \
+          if(TrStat_show == SHOW_MODE_STRUCTURE) {                  \
+            CELL *answer_template = saved_H + SgFr_arity(SG_FR) -1; \
+            show_ground_answers(SG_FR, answer_template, vars);      \
+          } else {                                                  \
+            count_ground_answers(SG_FR);                            \
+          }                                                         \
+        }                                                           \
+        H = saved_H;                                                \
+        if(SgFr_state(SG_FR) < complete) {                          \
           TrStat_sg_incomplete++;                                   \
           SHOW_TABLE_STRUCTURE("    ---> INCOMPLETE\n");            \
         }                                                           \

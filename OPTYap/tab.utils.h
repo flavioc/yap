@@ -410,7 +410,7 @@ static inline CellTag TrieSymbolType(Term t)
 xsbBool are_identical_terms(Cell term1, Cell term2);
 int copy_answer_template(CELL *ans_tmplt, CELL *dest);
 void printSubsumptiveAnswer(FILE *fp, CELL* vars);
-CELL* construct_subgoal_heap(BTNptr pLeaf, CPtr* var_pointer, int arity);
+CELL* construct_subgoal_heap(BTNptr pLeaf, CPtr* var_pointer, int arity, int pushArguments, int invertHeap);
 CPtr reconstruct_template_for_producer_no_args(SubProdSF subsumer, CELL* ans_tmplt);
 void printTrieNode(FILE *fp, BTNptr pTN);
 
