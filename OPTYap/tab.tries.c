@@ -453,11 +453,8 @@ void free_subgoal_trie_branch(sg_node_ptr current_node, int nodes_left, int node
         FREE_SUBCONS_SUBGOAL_FRAME(sg_fr);
         break;
       case GROUND_PRODUCER_SFT:
-        /* XXX */
-        FREE_GROUNDED_SUBGOAL_FRAME(sg_fr);
-        break;
       case GROUND_CONSUMER_SFT:
-        /* XXX */
+        free_ground_subgoal_data((grounded_sf_ptr)sg_fr);
         FREE_GROUNDED_SUBGOAL_FRAME(sg_fr);
         break;
 #endif /* TABLING_CALL_SUBSUMPTION */

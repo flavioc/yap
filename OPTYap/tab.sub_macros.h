@@ -23,6 +23,8 @@ STD_PROTO(static inline void free_tst_hash_index, (tst_ans_hash_ptr hash));
 
 STD_PROTO(static inline void free_producer_subgoal_data, (sg_fr_ptr, int));
 STD_PROTO(static inline void free_consumer_subgoal_data, (subcons_fr_ptr));
+STD_PROTO(static inline void free_ground_subgoal_data, (grounded_sf_ptr));
+STD_PROTO(static inline void free_ground_trie, (tab_ent_ptr));
 
 STD_PROTO(static inline void abolish_incomplete_subsumptive_producer_subgoal, (sg_fr_ptr));
 STD_PROTO(static inline void abolish_incomplete_subsumptive_consumer_subgoal, (subcons_fr_ptr));
@@ -205,19 +207,14 @@ STD_PROTO(static inline int build_next_ground_consumer_return_list, (grounded_sf
 static inline
 void mark_subsumptive_consumer_as_completed(subcons_fr_ptr sg_fr) {
   LOCK(SgFr_lock(sg_fr));
-
   SgFr_state(sg_fr) = complete;
-
   UNLOCK(SgFr_lock(sg_fr));
 }
 
 static inline
 void mark_ground_consumer_as_completed(grounded_sf_ptr sg_fr) {
   LOCK(SgFr_lock(sg_fr));
-  
   SgFr_state(sg_fr) = complete;
-  
-  
   UNLOCK(SgFr_lock(sg_fr));
 }
 
@@ -276,6 +273,21 @@ void free_producer_subgoal_data(sg_fr_ptr sg_fr, int delete_all) {
 static inline void
 free_consumer_subgoal_data(subcons_fr_ptr sg_fr) {
   free_answer_continuation(SgFr_first_answer(sg_fr));
+}
+
+static inline void
+free_ground_subgoal_data(grounded_sf_ptr sg_fr) {
+  free_answer_continuation(SgFr_first_answer(sg_fr));
+}
+
+static inline void
+free_ground_trie(tab_ent_ptr tab_ent) {
+  ans_node_ptr answer_trie = (ans_node_ptr)TabEnt_ground_trie(tab_ent);
+  if(answer_trie) {
+    if(TrNode_child(answer_trie))
+      free_answer_trie_branch(TrNode_child(answer_trie), TRAVERSE_POSITION_FIRST);
+    FREE_TST_ANSWER_TRIE_NODE(answer_trie);
+  }
 }
 
 static inline void
