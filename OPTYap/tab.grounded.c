@@ -162,7 +162,7 @@ sg_fr_ptr grounded_call_search(yamop *code, CELL *answer_template, CELL **new_lo
             
             if(!TabEnt_proper_consumers(tab_ent)) {
               TabEnt_proper_consumers(tab_ent) = TRUE;
-              tstCreateTSIs((tst_node_ptr)TabEnt_ground_trie(tab_ent));
+              ground_trie_create_tsi(tab_ent);
             }
         } else
           sg_fr = subsumer;

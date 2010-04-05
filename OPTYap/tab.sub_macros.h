@@ -32,6 +32,8 @@ STD_PROTO(static inline void abolish_incomplete_ground_consumer_subgoal, (ground
 STD_PROTO(static inline int build_next_subsumptive_consumer_return_list, (subcons_fr_ptr));
 STD_PROTO(static inline int build_next_ground_consumer_return_list, (grounded_sf_ptr));
 
+#define ground_trie_create_tsi(TAB_ENT) tstCreateTSIs((tst_node_ptr)TabEnt_ground_trie(TAB_ENT))
+
 #define new_subsumptive_producer_subgoal_frame(SG_FR, CODE, LEAF) { \
         new_basic_subgoal_frame(SG_FR, CODE, LEAF,                  \
           SUBSUMPTIVE_PRODUCER_SFT, ALLOC_SUBPROD_SUBGOAL_FRAME);   \
