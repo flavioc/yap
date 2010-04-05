@@ -11,6 +11,8 @@
 
 #ifdef TABLING_CALL_SUBSUMPTION
 
+int auto_update_instructions = FALSE;
+
 /* instruction macros */
 
 /* try, retry, trust -> try */
@@ -98,12 +100,14 @@ STD_PROTO(static inline Term hash_time_stamped_node, (tst_node_ptr));
   void **pBucket;                                                         \
   pBucket = (void**)(pBucketArray +                                       \
           TrieHash(hash_time_stamped_node((tst_node_ptr)pTN),HashSeed));  \
-  if ( IsNonNULL(*pBucket) ) {						                                \
-    TN_ForceInstrCPtoTRY(pTN);						                                \
-    TN_RotateInstrCPtoRETRYorTRUST((BTNptr)*pBucket);			                \
-  }									                                                      \
-  else									                                                  \
-    TN_ForceInstrCPtoNOCP(pTN);					                                  \
+  if(auto_update_instructions) {                                          \
+    if ( IsNonNULL(*pBucket) ) {						                              \
+      TN_ForceInstrCPtoTRY(pTN);						                              \
+      TN_RotateInstrCPtoRETRYorTRUST((BTNptr)*pBucket);			              \
+    }									                                                    \
+    else									                                                \
+      TN_ForceInstrCPtoNOCP(pTN);					                                \
+  }                                                                       \
   TN_Sibling(pTN) = *pBucket;                                             \
   *pBucket = pTN;                                                         \
 }
@@ -162,6 +166,30 @@ hash_time_stamped_node(tst_node_ptr node) {
       xsb_abort("Trie Node creation: Bad tag in symbol %lx",  \
                   Symbol);                                    \
   }
+  
+#define TN_SetInstr_Retry(pTN,Symbol)                               \
+  switch(TrieSymbolType(Symbol))  {                           \
+    case XSB_STRUCT:                                          \
+      TrNode_instr(pTN) = _trie_retry_struct; break;         \
+    case XSB_INT:                                             \
+    case XSB_STRING:                                          \
+      TrNode_instr(pTN) = _trie_retry_atom; break;           \
+    case XSB_TrieVar:                                         \
+      if(IsNewTrieVar(Symbol))                                \
+        TrNode_instr(pTN) = _trie_retry_var;                 \
+      else                                                    \
+        TrNode_instr(pTN) = _trie_retry_val;                 \
+      break;                                                  \
+    case XSB_LIST:                                            \
+      TrNode_instr(pTN) = _trie_retry_pair; break;           \
+    case TAG_LONG_INT:                                        \
+      TrNode_instr(pTN) = _trie_retry_long_int; break;       \
+    case TAG_FLOAT:                                           \
+      TrNode_instr(pTN) = _trie_retry_float_val; break;      \
+    default:                                                  \
+      xsb_abort("Trie Node creation: Bad tag in symbol %lx",  \
+                  Symbol);                                    \
+  }
 
 #if 0
 #define TN_SetInstr(pTN,Symbol)                               \
@@ -191,12 +219,16 @@ hash_time_stamped_node(tst_node_ptr node) {
 
 #define TN_Init(TN,TrieType,NodeType,Symbol,Parent,Sibling) \
 {                                                           \
-  if ( NodeType != TRIE_ROOT_NT ) {				                  \
-     TN_SetInstr(TN,Symbol);					                      \
-     TN_ResetInstrCPs(TN,Sibling);				                  \
-   }								                                        \
-   else								                                      \
-     TN_Instr(TN) = trie_root;					                    \
+  if(auto_update_instructions) {                            \
+    if ( NodeType != TRIE_ROOT_NT ) {				                \
+      TN_SetInstr(TN,Symbol);					                      \
+      TN_ResetInstrCPs(TN,Sibling);				                  \
+    }								                                        \
+    else								                                    \
+      TN_Instr(TN) = trie_root;					                    \
+  } else {                                                  \
+    TN_SetInstr_Retry(TN,Symbol);                           \
+  }                                                         \
   TN_NodeType(TN) = NodeType | TrieType;                    \
   TN_Symbol(TN) = Symbol;                                   \
   TN_Parent(TN) = Parent;                                   \

@@ -108,6 +108,8 @@ struct tst_answer_trie_hash {
 
 #include "xsb.tst.h"
 
+extern int auto_update_instructions;
+
 TSTNptr tst_insert(CTXTdeclc TSTNptr tstRoot, TSTNptr lastMatch, Cell firstSymbol,
   xsbBool maintainTSI);
 TSTNptr new_tstn(CTXTdeclc int trie_t, int node_t, Cell symbol, TSTNptr parent,

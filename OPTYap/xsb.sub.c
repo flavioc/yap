@@ -63,6 +63,10 @@ TSTNptr subsumptive_answer_search(CTXTdeclc SubProdSF sf, int nTerms,
 #endif
 #endif /* SUBSUMPTION_XSB */
 
+#ifdef SUBSUMPTION_YAP
+  auto_update_instructions = FALSE;
+#endif /* SUBSUMPTION_YAP */
+
   AnsVarCtr = 0;
 #ifdef SUBSUMPTION_XSB
   if ( IsNULL(subg_ans_root_ptr(sf)) )
