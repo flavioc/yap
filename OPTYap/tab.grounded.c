@@ -113,7 +113,7 @@ sg_fr_ptr grounded_call_search(yamop *code, CELL *answer_template, CELL **new_lo
   
   dprintf("ground_call_search\n");
   
-#if FDEBUG
+#ifdef FDEBUG
   if(btn) {
     printf("Subsumption call found: ");
     printSubgoalTriePath(stdout, btn, tab_ent);
@@ -156,9 +156,8 @@ sg_fr_ptr grounded_call_search(yamop *code, CELL *answer_template, CELL **new_lo
             Trail_Unwind_All;
             dprintf("New ground consumer\n");
             sg_fr = create_new_ground_consumer_subgoal(btn, tab_ent, code, subsumer);
-            /* create answer template on AT */
-            SgFr_answer_template(sg_fr) = SgFr_at_block(sg_fr);
-            SgFr_at_size(sg_fr) = copy_answer_template(*new_local_stack, SgFr_at_block(sg_fr));
+            
+            create_ground_answer_template(sg_fr, *new_local_stack);
             
             if(!TabEnt_proper_consumers(tab_ent)) {
               TabEnt_proper_consumers(tab_ent) = TRUE;
@@ -206,7 +205,7 @@ TSTNptr grounded_answer_search(grounded_sf_ptr sf, CPtr answerVector) {
   tstn = subsumptive_tst_search(root, arity, answerVector, (int)TabEnt_proper_consumers(tab_ent), &isNew );
   
   /* update time stamp */
-  SgFr_timestamp(sf) = TabEnt_ground_time_stamp(tab_ent)
+  SgFr_timestamp(sf) = TabEnt_ground_time_stamp(tab_ent);
   dprintf("New time stamp: %ld\n", SgFr_timestamp(sf));
        
   Trail_Unwind_All;

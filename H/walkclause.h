@@ -598,6 +598,7 @@
     case _table_trust_me:
     case _table_try:
     case _table_try_answer:
+    case _table_try_ground_answer:
     case _table_try_me:
     case _table_try_single:
       clause_code = FALSE;

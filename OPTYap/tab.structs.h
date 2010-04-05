@@ -396,7 +396,7 @@ typedef sg_fr_ptr variant_sf_ptr;
 #define SgFr_answer_trie(X)    (CAST_SF(X)->answer_trie)
 #define SgFr_first_answer(X)   (CAST_SF(X)->first_answer)
 #define SgFr_last_answer(X)    (CAST_SF(X)->last_answer)
-#define SgFr_try_answer(X)     (CAST_SF(X)->try_answer)
+#define SgFr_try_answer(X)     ((X)->try_answer)
 #define SgFr_previous(X)       (CAST_SF(X)->previous)
 #define SgFr_next(X)           ((X)->next)
 

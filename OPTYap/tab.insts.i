@@ -206,11 +206,7 @@
             CONSUME_SUBSUMPTIVE_ANSWER(ANS_NODE, ANSWER_TMPLT);             \
             break;                                                          \
           case GROUND_PRODUCER_SFT:                                         \
-            if(SgFr_is_most_general((grounded_sf_ptr)SG_FR)) {              \
-              CONSUME_VARIANT_ANSWER(ANS_NODE, ANSWER_TMPLT);               \
-            } else {                                                        \
-              CONSUME_SUBSUMPTIVE_ANSWER(ANS_NODE, ANSWER_TMPLT);           \
-            }                                                               \
+            CONSUME_GROUND_ANSWER(ANS_NODE, ANSWER_TMPLT, SG_FR);           \
             break;                                                          \
           }
 
@@ -439,20 +435,53 @@
 #define exec_ground_trie(TAB_ENT) \
       exec_compiled_trie((ans_node_ptr)TabEnt_ground_trie(TAB_ENT))
 
+#define check_ground_generator(SG_FR, TAB_ENT)                      \
+    if(SgFr_is_ground_producer(SG_FR) &&                            \
+          TabEnt_ground_time_stamp(TAB_ENT) > 0)                    \
+    {                                                               \
+      grounded_sf_ptr ground_sg = (grounded_sf_ptr)(SG_FR);         \
+      CELL *answer_template = YENV;                                 \
+                                                                    \
+      /* retrieve more answers */                                   \
+      ensure_ground_answer_template(ground_sg, answer_template);    \
+      build_next_ground_producer_return_list(ground_sg);            \
+                                                                    \
+      continuation_ptr cont = SgFr_first_answer(ground_sg);         \
+                                                                    \
+      if(cont) {                                                    \
+        ans_node_ptr ans_node = continuation_answer(cont);          \
+                                                                    \
+        UNLOCK(SgFr_lock(sg_fr));                                   \
+                                                                    \
+        SgFr_try_answer(ground_sg) = cont;                          \
+                                                                    \
+        store_generator_node(TAB_ENT, sg_fr, PREG->u.Otapl.s,       \
+                                      TRY_GROUND_ANSWER);           \
+        PREG = (yamop *)CPREG;                                      \
+        PREFETCH_OP(PREG);                                          \
+        CONSUME_GROUND_ANSWER(ans_node, answer_template, ground_sg);\
+        YENV = ENV;                                                 \
+        GONext();                                                   \
+      }                                                             \
+    }
+
 /* Consume subsuming answer ANS_NODE using ANS_TMPLT
  * as the pointer to the answer template.
  * the size of the answer template is calculated and
  * consume_subsumptive_answer is called to do the real work
  */
-#define CONSUME_SUBSUMPTIVE_ANSWER(ANS_NODE, ANS_TMPLT) {       \
-  int arity = (int)*(ANS_TMPLT);                           \
-  CELL *sub_answer_template = (ANS_TMPLT) + arity;              \
-  /*dprintf("Subsumptive answer template before: %d\n", arity);*/ \
-  /*printAnswerTemplate(stdout, sub_answer_template - arity + 1, arity); */ \
+#define CONSUME_SUBSUMPTIVE_ANSWER(ANS_NODE, ANS_TMPLT) {                     \
+  int arity = (int)*(ANS_TMPLT);                                              \
+  CELL *sub_answer_template = (ANS_TMPLT) + arity;                            \
   consume_subsumptive_answer((BTNptr)(ANS_NODE), arity, sub_answer_template); \
-  /*dprintf("Subsumptive variables now:\n");*/ \
-  /*printAnswerTemplate(stdout, sub_answer_template - arity + 1, arity); */  \
 }
+
+#define CONSUME_GROUND_ANSWER(ANS_NODE, ANS_TMPLT, SG_FR) \
+  if(SgFr_is_most_general((grounded_sf_ptr)(SG_FR))) {    \
+    CONSUME_VARIANT_ANSWER(ANS_NODE, ANS_TMPLT);          \
+  } else {                                                \
+    CONSUME_SUBSUMPTIVE_ANSWER(ANS_NODE, ANS_TMPLT);      \
+  }
 
 #else
 
@@ -543,8 +572,60 @@
     consume_answer_leaf(ans_node, ans_tmplt, CONSUME_VARIANT_ANSWER);
   ENDPBOp();
 
-
-
+#ifdef TABLING_CALL_SUBSUMPTION
+  PBOp(table_try_ground_answer, Otapl)
+    printf("===> TABLE_TRY_GROUND_ANSWER\n");
+    grounded_sf_ptr sg_fr;
+    ans_node_ptr ans_node = NULL;
+    continuation_ptr next_cont;
+    
+    sg_fr = (grounded_sf_ptr)GEN_CP(B)->cp_sg_fr;
+    next_cont = continuation_next(SgFr_try_answer(sg_fr));
+    
+    if(next_cont) {
+      CELL *answer_template = (CELL *)(GEN_CP(B) + 1) + SgFr_arity(sg_fr);
+      
+      ans_node = continuation_answer(next_cont);
+      H = HBREG = PROTECT_FROZEN_H(B);
+      restore_yaam_reg_cpdepth(B);
+      CPREG = B->cp_cp;
+      ENV = B->cp_env;
+      SgFr_try_answer(sg_fr) = next_cont;
+      
+      PREG = (yamop *) CPREG;
+      PREFETCH_OP(PREG);
+      CONSUME_GROUND_ANSWER(ans_node, answer_template, sg_fr);
+      YENV = ENV;
+      GONext();
+    } else {
+      yamop *code_ap;
+      PREG = SgFr_code(sg_fr);
+      if (PREG->opc == Yap_opcode(_table_try)) {
+	      /* table_try */
+	      code_ap = NEXTOP(PREG,Otapl);
+	      PREG = PREG->u.Otapl.d;
+      } else if (PREG->opc == Yap_opcode(_table_try_single)) {
+	      /* table_try_single */
+	      code_ap = COMPLETION;
+	      PREG = PREG->u.Otapl.d;
+      } else {
+	      /* table_try_me */
+	      code_ap = PREG->u.Otapl.d;
+	      PREG = NEXTOP(PREG,Otapl);
+      }
+      PREFETCH_OP(PREG);
+      restore_generator_node(SgFr_arity(sg_fr), code_ap);
+      YENV = (CELL *) PROTECT_FROZEN_B(B);
+      set_cut(YENV, B->cp_b);
+      SET_BB(NORM_CP(YENV));
+      allocate_environment();
+      GONext();
+    }
+    printf("ooops\n");
+    exit(1);
+  ENDPBOp();
+#endif /* TABLING_CALL_SUBSUMPTION */
+  
   PBOp(table_try_answer, Otapl)
     dprintf("===> TABLE_TRY_ANSWER\n");
 #ifdef INCOMPLETE_TABLING
@@ -626,6 +707,10 @@
     if (is_new_generator_call(sg_fr)) {
       /* subgoal new */
       init_subgoal_frame(sg_fr);
+#ifdef TABLING_CALL_SUBSUMPTION
+      check_ground_generator(sg_fr, tab_ent);
+#endif
+      
       UNLOCK(SgFr_lock(sg_fr));
 #ifdef DETERMINISTIC_TABLING
       if (IsMode_Batched(TabEnt_mode(tab_ent))) {
@@ -760,6 +845,11 @@
     if (is_new_generator_call(sg_fr)) {
       /* subgoal new */
       init_subgoal_frame(sg_fr);
+
+#ifdef TABLING_CALL_SUBSUMPTION
+      check_ground_generator(sg_fr, tab_ent);
+#endif
+
       UNLOCK(SgFr_lock(sg_fr));
       store_generator_node(tab_ent, sg_fr, PREG->u.Otapl.s, PREG->u.Otapl.d);
       PREG = NEXTOP(PREG, Otapl);
@@ -888,6 +978,9 @@
     if (is_new_generator_call(sg_fr)) {
       /* subgoal new */
       init_subgoal_frame(sg_fr);
+#ifdef TABLING_CALL_SUBSUMPTION
+      check_ground_generator(sg_fr, tab_ent);
+#endif
       UNLOCK(SgFr_lock(sg_fr));
       store_generator_node(tab_ent, sg_fr, PREG->u.Otapl.s, NEXTOP(PREG,Otapl));
       PREG = PREG->u.Otapl.d;

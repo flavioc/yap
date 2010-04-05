@@ -1880,6 +1880,7 @@ Yap_absmi(int inp)
 		low_level_trace(retry_table_loader, LOAD_CP(B)->cp_pred_entry, NULL);
 		break;
 	      case _table_try_answer:
+	      case _table_try_ground_answer:
 	      case _table_retry_me:
 	      case _table_trust_me:
 	      case _table_retry:

@@ -193,6 +193,7 @@
 #define LOAD_ANSWER Yap_heap_regs->table_load_answer_code
 #define LOAD_CONS_ANSWER Yap_heap_regs->table_load_cons_answer_code
 #define TRY_ANSWER Yap_heap_regs->table_try_answer_code
+#define TRY_GROUND_ANSWER Yap_heap_regs->table_try_ground_answer_code
 #define ANSWER_RESOLUTION Yap_heap_regs->table_answer_resolution_code
 #define COMPLETION Yap_heap_regs->table_completion_code
 #define TRIE_RETRY_HASH Yap_heap_regs->table_trie_retry_hash_code

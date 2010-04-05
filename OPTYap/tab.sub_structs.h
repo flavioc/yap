@@ -136,6 +136,8 @@ struct grounded_subgoal_frame {
   int at_size;
   CELL at_block[AT_BLOCK_SIZE];
   
+  continuation_ptr try_answer;
+  
   int is_most_general;
 };
 
@@ -143,7 +145,9 @@ struct grounded_subgoal_frame {
 
 #define TabEnt_ground_trie(X)       (TrNode_next(TabEnt_subgoal_trie(X)))
 #define TabEnt_has_ground_trie(X)   (TabEnt_ground_trie(X) != NULL)
-#define TabEnt_ground_time_stamp(X) (TSTN_time_stamp((tst_node_ptr)TabEnt_ground_trie(X)))
+#define TabEnt_ground_time_stamp(X) (TabEnt_ground_trie(X) ? \
+                                      TSTN_time_stamp((tst_node_ptr)TabEnt_ground_trie(X))  \
+                                      : 0)
 #define TabEnt_proper_consumers(X)  (TrNode_parent(TabEnt_subgoal_trie(X)))
 
 #define GROUND_SUBGOAL_FRAME_MASK 0xC0

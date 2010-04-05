@@ -718,11 +718,9 @@ fix_rec(CELL val, CELL* placeholder)
     *placeholder = val;
   } else if(IsVarTerm(val)) {
     if(IsStandardizedVariable(val)) {
-      dprintf("Old variable\n");
       val = TrieVarBindings[IndexOfStdVar(val)];
       *placeholder = val;
     } else {
-      dprintf("New variable\n");
       Trail_Push(val);
       StandardizeVariable(val, variable_counter);
       Trail_Push(&TrieVarBindings[variable_counter]);
