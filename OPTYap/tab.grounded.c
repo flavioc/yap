@@ -81,7 +81,7 @@ static inline CELL*
 copy_arguments_as_the_answer_template(CELL *answer_template, int arity)
 {
   int i;
-  printf("Creating the answer template on the local stack\n");
+  dprintf("Creating the answer template on the local stack\n");
   
   for(i = 1; i <= arity; ++i) {
     *answer_template-- = (CELL)Deref(XREGS[i]);
@@ -111,22 +111,28 @@ sg_fr_ptr grounded_call_search(yamop *code, CELL *answer_template, CELL **new_lo
   btn = iter_sub_trie_lookup(CTXTc btRoot, &path_type);
   Trail_Unwind_All;
   
+  dprintf("ground_call_search\n");
+  
+#if FDEBUG
   if(btn) {
     printf("Subsumption call found: ");
     printSubgoalTriePath(stdout, btn, tab_ent);
     printf("\n");
   }
+#endif
   
   if(path_type == NO_PATH) { /* new producer */
-    printf("New ground producer\n");
+    dprintf("New ground producer\n");
     sg_node_ptr leaf = variant_call_cont_insert(tab_ent, (sg_node_ptr)stl_restore_variant_cont(),
       variant_cont.bindings.num, CALL_SUB_TRIE_NT);
       
     sg_fr = create_new_ground_producer_subgoal(leaf, tab_ent, code);
     
-    /* create answer template on AT, because we can become consumers instead */
-    /* SgFr_answer_template(sg_fr) = AT;
-    SgFr_at_size(sg_fr) = fix_answer_template(*new_local_stack);*/
+    /* determine if is most general */
+    if(Trail_NumBindings == arity) {
+      SgFr_is_most_general(sg_fr) = TRUE;
+    }
+    
     Trail_Unwind_All;
     
   } else { /* new consumer */
@@ -143,17 +149,21 @@ sg_fr_ptr grounded_call_search(yamop *code, CELL *answer_template, CELL **new_lo
     switch(path_type) {
       case VARIANT_PATH:
         sg_fr = found;
-        printf("Variant path found!\n");
         break;
       case SUBSUMPTIVE_PATH:
         if(SgFr_state(subsumer) < complete || TabEnt_is_load(tab_ent)) {
             btn = variant_call_cont_insert(tab_ent, (sg_node_ptr)stl_restore_variant_cont(), variant_cont.bindings.num, CALL_SUB_TRIE_NT);
             Trail_Unwind_All;
-            printf("New ground consumer\n");
+            dprintf("New ground consumer\n");
             sg_fr = create_new_ground_consumer_subgoal(btn, tab_ent, code, subsumer);
             /* create answer template on AT */
             SgFr_answer_template(sg_fr) = SgFr_at_block(sg_fr);
             SgFr_at_size(sg_fr) = copy_answer_template(*new_local_stack, SgFr_at_block(sg_fr));
+            
+            if(!TabEnt_proper_consumers(tab_ent)) {
+              TabEnt_proper_consumers(tab_ent) = TRUE;
+              tstCreateTSIs((tst_node_ptr)TabEnt_ground_trie(tab_ent));
+            }
         } else
           sg_fr = subsumer;
         break;
@@ -180,27 +190,25 @@ TSTNptr grounded_answer_search(grounded_sf_ptr sf, CPtr answerVector) {
   TSTNptr root, tstn;
   tab_ent_ptr tab_ent = SgFr_tab_ent(sf);
   int arity = TabEnt_arity(tab_ent);
-  
-  printf("grounded_answer_search\n");
 
   AnsVarCtr = 0;
   root = (TSTNptr)TabEnt_ground_trie(tab_ent);
   
   if ( IsNULL(root) ) {
-    printf("Created ground trie\n");
+    dprintf("Created ground trie\n");
     TabEnt_ground_trie(tab_ent) = (sg_node_ptr)newTSTAnswerSet();
     root = (TSTNptr)TabEnt_ground_trie(tab_ent);
   }
-
-  int isNew;
-  tstn = subsumptive_tst_search(root, arity, answerVector, TRUE, &isNew );
   
-  // actualizar time stamp
-  SgFr_timestamp(sf) = TabEnt_ground_time_stamp(tab_ent);
-  printf("New time stamp: %ld\n", SgFr_timestamp(sf));
+  int isNew;
+  tstn = subsumptive_tst_search(root, arity, answerVector, TabEnt_proper_consumers(tab_ent), &isNew );
+  
+  /* update time stamp */
+  SgFr_timestamp(sf) = TabEnt_ground_time_stamp(tab_ent)
+  dprintf("New time stamp: %ld\n", SgFr_timestamp(sf));
        
   Trail_Unwind_All;
-  printf("Inserted answer\n");
+  dprintf("Inserted answer\n");
   return tstn;
 }
 

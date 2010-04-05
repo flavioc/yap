@@ -48,7 +48,8 @@ STD_PROTO(static inline int build_next_ground_consumer_return_list, (grounded_sf
   
 #define init_ground_subgoal_frame(SG_FR)  \
         SgFr_choice_point(SG_FR) = NULL;  \
-        SgFr_timestamp(SG_FR) = 0
+        SgFr_timestamp(SG_FR) = 0;      \
+        SgFr_is_most_general(SG_FR) = FALSE
   
 #define new_grounded_consumer_subgoal_frame(SG_FR, CODE, LEAF, PRODUCER) {  \
         new_basic_subgoal_frame(SG_FR, CODE, LEAF,                          \

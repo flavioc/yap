@@ -109,7 +109,7 @@ ans_node_ptr variant_answer_search(sg_fr_ptr sg_fr, CELL *subs_ptr) {
   int i, j, count_vars, subs_arity;
   CELL *stack_vars, *stack_terms_base, *stack_terms;
   ans_node_ptr current_node;
-
+  
   count_vars = 0;
   subs_arity = *subs_ptr;
   stack_vars = (CELL *)TR;

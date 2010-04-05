@@ -196,15 +196,23 @@
         }
         
         
-#define CONSUME_ANSWER(ANS_NODE, ANSWER_TMPLT, SG_FR)                      \
-        { if(SgFr_is_variant(SG_FR) || SgFr_is_sub_producer(SG_FR)) {      \
-            dprintf("Consume variant answer\n");                           \
-            CONSUME_VARIANT_ANSWER(ANS_NODE, ANSWER_TMPLT);                \
-          } else {                                                         \
-            CONSUME_SUBSUMPTIVE_ANSWER(ANS_NODE, ANSWER_TMPLT);            \
-          }                                                                \
-        }
-
+#define CONSUME_ANSWER(ANS_NODE, ANSWER_TMPLT, SG_FR)                       \
+        switch(SgFr_type(SG_FR)) {                                          \
+          case VARIANT_PRODUCER_SFT:                                        \
+          case SUBSUMPTIVE_PRODUCER_SFT:                                    \
+            CONSUME_VARIANT_ANSWER(ANS_NODE, ANSWER_TMPLT);                 \
+            break;                                                          \
+          case GROUND_CONSUMER_SFT:                                         \
+            CONSUME_SUBSUMPTIVE_ANSWER(ANS_NODE, ANSWER_TMPLT);             \
+            break;                                                          \
+          case GROUND_PRODUCER_SFT:                                         \
+            if(SgFr_is_most_general((grounded_sf_ptr)SG_FR)) {              \
+              CONSUME_VARIANT_ANSWER(ANS_NODE, ANSWER_TMPLT);               \
+            } else {                                                        \
+              CONSUME_SUBSUMPTIVE_ANSWER(ANS_NODE, ANSWER_TMPLT);           \
+            }                                                               \
+            break;                                                          \
+          }
 
 #define consume_answer_and_procceed(DEP_FR, ANSWER)       \
         { CELL *subs_ptr;                                 \

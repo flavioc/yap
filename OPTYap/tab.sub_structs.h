@@ -135,11 +135,16 @@ struct grounded_subgoal_frame {
   CELL* answer_template;
   int at_size;
   CELL at_block[AT_BLOCK_SIZE];
+  
+  int is_most_general;
 };
+
+#define SgFr_is_most_general(X)     ((X)->is_most_general)
 
 #define TabEnt_ground_trie(X)       (TrNode_next(TabEnt_subgoal_trie(X)))
 #define TabEnt_has_ground_trie(X)   (TabEnt_ground_trie(X) != NULL)
 #define TabEnt_ground_time_stamp(X) (TSTN_time_stamp((tst_node_ptr)TabEnt_ground_trie(X)))
+#define TabEnt_proper_consumers(X)  (TrNode_parent(TabEnt_subgoal_trie(X)))
 
 #define GROUND_SUBGOAL_FRAME_MASK 0xC0
 

@@ -256,6 +256,8 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
           case GROUND_CONSUMER_SFT:                                               \
             LEADER_CP = SgFr_choice_point(SgFr_producer((grounded_sf_ptr)(SG_FR))); \
             break;                                                                  \
+          default:                                                                \
+            LEADER_CP = NULL;                                                     \
         }
 #else
 #define find_dependency_node(SG_FR, LEADER_CP, DEP_ON_STACK)                      \
@@ -719,7 +721,7 @@ void mark_as_completed(sg_fr_ptr sg_fr) {
       /* decrement_generator_path(SgFr_leaf(sg_fr)); */
       break;
     case GROUND_PRODUCER_SFT:
-      printf("One ground producer completed\n");
+      dprintf("One ground producer completed\n");
       decrement_generator_path(SgFr_leaf(sg_fr));
       break;
 #endif /* TABLING_CALL_SUBSUMPTION */
@@ -1083,7 +1085,7 @@ void abolish_incomplete_subgoals(choiceptr prune_cp) {
     
     LOCK(SgFr_lock(sg_fr));
     abolish_incomplete_ground_consumer_subgoal(sg_fr);
-    printf("one incomplete grounded consumer\n");
+    dprintf("one incomplete grounded consumer\n");
     UNLOCK(SgFr_lock(sg_fr));
   }
 #endif /* TABLING_CALL_SUBSUMPTION */
