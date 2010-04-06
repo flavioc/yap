@@ -461,6 +461,20 @@ build_next_ground_producer_return_list(grounded_sf_ptr producer_sg) {
 #undef STANDARDIZE_AT_PTR
 
 static inline void
+traverse_choice_points(choiceptr target)
+{
+  choiceptr cp = B;
+  
+  while(cp && cp != target) {
+    printf("From %d to %d\n", cp, cp->cp_b);
+    
+    cp = cp->cp_b;
+  }
+  B = target;
+  printf("FOUND CHOICE POINT\n");
+}
+
+static inline void
 process_pending_subgoal_list(node_list_ptr list, grounded_sf_ptr sg_fr) {
   node_list_ptr orig = list;
   
@@ -479,6 +493,19 @@ process_pending_subgoal_list(node_list_ptr list, grounded_sf_ptr sg_fr) {
         SgFr_producer(pending) = sg_fr;
         SgFr_type(pending) = GROUND_CONSUMER_SFT;
         dprintf("MARKED AS CONSUMER\n");
+      } else if(SgFr_state(pending) == evaluating && SgFr_is_ground_producer(pending)) {
+        /*
+         * this is a consumer subgoal but is running
+         * as a generator node, we must
+         * change the WAM stacks and tabling data
+         * structures to change its status
+         */
+#ifdef FDEBUG
+        printf("Found a specific subgoal already running\n");
+        printSubgoalTriePath(stdout, SgFr_leaf(pending), SgFr_tab_ent(pending));
+        printf("\nChoice point %d\n", SgFr_choice_point(pending));
+        traverse_choice_points(SgFr_choice_point(pending));
+#endif
       }
     }
     

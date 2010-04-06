@@ -144,7 +144,7 @@ static CPtr orig_hbreg;
  * leaf is reached and we step (too far) down into the trie, but that's
  * when its value is set.
  */
-#define ResetParentAndCurrentNodes		\
+#define ResetParentAndCurrentNodes		      \
    cur_chain = collectCPF_AlternateNode;		\
    parent_node = BTN_Parent(cur_chain)
 
@@ -168,14 +168,37 @@ static CPtr orig_hbreg;
  *  and place it at the head of a chain of answer-list nodes.
  *  For MT engine: use only for private,subsumed tables.
  */
-#define ALN_InsertAnswer(pAnsListHead,pAnswerNode) {			\
-    ALNptr newAnsListNode;						\
+#define ALN_InsertAnswer(pAnsListHead,pAnswerNode) {			            \
+    ALNptr newAnsListNode;						                                \
     New_Private_ALN(newAnsListNode,(void *)pAnswerNode,pAnsListHead);	\
-    pAnsListHead = newAnsListNode;					\
+    pAnsListHead = newAnsListNode;					                          \
   }
   
-#define Trie_bind_copy(Addr,Val)		\
+#define Trie_bind_copy(Addr,Val)		    \
   Trie_Conditionally_Trail(Addr,Val);		\
   *(Addr) = Val
   
 #define Bind_and_Conditionally_Trail(Addr, Val)	Trie_bind_copy(Addr,Val)
+
+/*
+ *  Create a binding and conditionally trail it.  TrieVarBindings[] cells
+ *  are always trailed, while those in the WAM stacks are trailed based on
+ *  the traditional trailing test.  As we traverse the TST and lay choice
+ *  points, we update the hbreg as in the WAM since structures may be
+ *  built on the heap for binding.  Therefore, this condition serves as in
+ *  the WAM.
+ */
+
+#define Trie_Conditionally_Trail(Addr, Val)		\
+   if ( IsAnswerTemplateVar(Addr) || IsUnboundTrieVar(Addr) || conditional(Addr) )	\
+     { pushtrail0(Addr, Val) }
+
+/*******************************************
+OLD VERSIONS
+ * #define Bind_and_Trail(Addr, Val)	pushtrail0(Addr, Val)
+
+ * #define Bind_and_Conditionally_Trail(Addr, Val)	\
+ *  if ( IsUnboundTrieVar(Addr) || conditional(Addr) )	\
+ *    { pushtrail0(Addr, Val) }
+ *******************************************/
+ 

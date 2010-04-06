@@ -49,7 +49,8 @@
           /* initialize gcp and adjust subgoal frame field */         \
           YENV = (CELL *) (GEN_CP(YENV) - 1);                         \
           gcp = NORM_CP(YENV);                                        \
-          SgFr_choice_point(SG_FR) = gcp;                                   \
+          dprintf("New generator choice point: %d\n", gcp);           \
+          SgFr_choice_point(SG_FR) = gcp;                             \
           /* store generator choice point */                          \
           HBREG = H;                                                  \
           store_yaam_reg_cpdepth(gcp);                                \
@@ -583,6 +584,8 @@
     grounded_sf_ptr sg_fr;
     ans_node_ptr ans_node = NULL;
     continuation_ptr next_cont;
+    
+    dprintf("===> TABLE_TRY_GROUND_ANSWER\n");
     
     sg_fr = (grounded_sf_ptr)GEN_CP(B)->cp_sg_fr;
     next_cont = continuation_next(SgFr_try_answer(sg_fr));

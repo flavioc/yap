@@ -29,10 +29,6 @@
 #define NextValidIndexNode(Node) \
   (NextIndexNode(Node) ? (sg_node_ptr)GNIN_node(NextIndexNode(Node)) : NULL)
 
-#define Trie_Conditionally_Trail(Addr, Val)		\
-   if ( IsUnboundTrieVar(Addr) || conditional(Addr) || TRUE)	\
-     { pushtrail0(Addr, Val) }
-
 /* ------------------------------------------------------------------------- */
 
 #define Chain_NextValidGenerator(Chain)               \

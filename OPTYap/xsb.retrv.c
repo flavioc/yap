@@ -1,27 +1,5 @@
 /*  Data Structures and Related Macros
     ==================================  */
-    
-/*
- *  Create a binding and conditionally trail it.  TrieVarBindings[] cells
- *  are always trailed, while those in the WAM stacks are trailed based on
- *  the traditional trailing test.  As we traverse the TST and lay choice
- *  points, we update the hbreg as in the WAM since structures may be
- *  built on the heap for binding.  Therefore, this condition serves as in
- *  the WAM.
- */
-
-#define Trie_Conditionally_Trail(Addr, Val)		\
-   if ( IsAnswerTemplateVar(Addr) || IsUnboundTrieVar(Addr) || conditional(Addr) )	\
-     { pushtrail0(Addr, Val) }
-
-/*******************************************
-OLD VERSIONS
- * #define Bind_and_Trail(Addr, Val)	pushtrail0(Addr, Val)
-
- * #define Bind_and_Conditionally_Trail(Addr, Val)	\
- *  if ( IsUnboundTrieVar(Addr) || conditional(Addr) )	\
- *    { pushtrail0(Addr, Val) }
- *******************************************/
 
 /* ------------------------------------------------------------------------- */
 
