@@ -468,16 +468,18 @@ process_pending_subgoal_list(node_list_ptr list, grounded_sf_ptr sg_fr) {
     sg_node_ptr node = (sg_node_ptr)NodeList_node(list);
     grounded_sf_ptr pending = (grounded_sf_ptr)TrNode_sg_fr(node);
     
-    if(SgFr_state(pending) == ready) {
-      /*
-       * this subgoal is incomplete
-       * change the producer of the subgoal so
-       * that it can be seen as completed if
-       * it is called again in the future
-       */
-      SgFr_producer(pending) = sg_fr;
-      SgFr_type(pending) = GROUND_CONSUMER_SFT;
-      dprintf("MARKED AS CONSUMER\n");
+    if(pending != sg_fr) { /* ignore self! */
+      if(SgFr_state(pending) == ready) {
+        /*
+         * this subgoal is incomplete
+         * change the producer of the subgoal so
+         * that it can be seen as completed if
+         * it is called again in the future
+         */
+        SgFr_producer(pending) = sg_fr;
+        SgFr_type(pending) = GROUND_CONSUMER_SFT;
+        dprintf("MARKED AS CONSUMER\n");
+      }
     }
     
     list = NodeList_next(list);
