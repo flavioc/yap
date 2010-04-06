@@ -718,11 +718,10 @@ void mark_as_completed(sg_fr_ptr sg_fr) {
         free_tst_hash_index((tst_ans_hash_ptr)SgFr_hash_chain(sg_fr));
         /* answer list or blocks are not removed because of show_table */
       }
-      /* decrement_generator_path(SgFr_leaf(sg_fr)); */
       break;
     case GROUND_PRODUCER_SFT:
       dprintf("One ground producer completed\n");
-      decrement_generator_path(SgFr_leaf(sg_fr));
+      mark_ground_producer_as_completed((grounded_sf_ptr)sg_fr);
       break;
 #endif /* TABLING_CALL_SUBSUMPTION */
     default: break;

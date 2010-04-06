@@ -122,7 +122,6 @@ sg_fr_ptr grounded_call_search(yamop *code, CELL *answer_template, CELL **new_lo
 #endif
   
   if(path_type == NO_PATH) { /* new producer */
-    dprintf("New ground producer\n");
     sg_node_ptr leaf = variant_call_cont_insert(tab_ent, (sg_node_ptr)stl_restore_variant_cont(),
       variant_cont.bindings.num, CALL_SUB_TRIE_NT);
       
@@ -134,6 +133,8 @@ sg_fr_ptr grounded_call_search(yamop *code, CELL *answer_template, CELL **new_lo
     }
     
     Trail_Unwind_All;
+    
+    create_ground_answer_template(sg_fr, *new_local_stack);
     
   } else { /* new consumer */
     

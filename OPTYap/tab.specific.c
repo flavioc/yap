@@ -280,7 +280,7 @@ Unify_with_Variable(Cell symbol, Cell subterm, BTNptr node) {
   return TRUE;
 }
 
-ALNptr collect_specific_generator_goals(tab_ent_ptr tab_ent)
+ALNptr collect_specific_generator_goals(tab_ent_ptr tab_ent, int arity, CELL* template)
 {
   ALNptr returnList;
   Cell subterm;
@@ -289,7 +289,6 @@ ALNptr collect_specific_generator_goals(tab_ent_ptr tab_ent)
   SearchMode mode;
   BTNptr parent_node = TabEnt_subgoal_trie(tab_ent);
   BTNptr cur_chain = BTN_Child(parent_node);
-  int arity = TabEnt_arity(tab_ent);
   
   if(arity < 1)
     return NULL;
@@ -300,7 +299,7 @@ ALNptr collect_specific_generator_goals(tab_ent_ptr tab_ent)
   
   TermStackLog_ResetTOS;
   TermStack_ResetTOS;
-  TermStack_PushLowToHighVector(CALL_ARGUMENTS(), arity);
+  TermStack_PushHighToLowVector(template, arity);
   
   collectTop = collectBase;
   trail_base = top_of_trail;
@@ -462,14 +461,11 @@ While_TSnotEmpty:
   
   /* new subgoal */
   
-  sg_fr_ptr sg_fr = (sg_fr_ptr)TrNode_sg_fr(parent_node);
-  if(SgFr_state(sg_fr) != evaluating) {
-    Collection_Error("Subgoal frame found but it is not evaluating!", RequiresCleanup);
-  } else {
-    ALN_InsertAnswer(returnList, parent_node);/*
-    printf("Found subgoal ");
-    printSubgoalTriePath(stdout, parent_node, tab_ent);*/
-  }
+  //sg_fr_ptr sg_fr = (sg_fr_ptr)TrNode_sg_fr(parent_node);
+
+  ALN_InsertAnswer(returnList, parent_node);/*
+  printf("Found subgoal ");
+  printSubgoalTriePath(stdout, parent_node, tab_ent);*/
   
   if ( CPStack_IsEmpty ) {
     goto end_collect;

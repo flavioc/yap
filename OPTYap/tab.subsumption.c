@@ -86,13 +86,10 @@ create_new_producer_subgoal(sg_node_ptr leaf_node, tab_ent_ptr tab_ent, yamop *c
 
 void
 decrement_generator_path(sg_node_ptr node) {
-  dprintf("decrement_generator_path\n");
-
   while(!TrNode_is_root(node)) {
     if(IsHashedNode(node)) {
       gen_index_ptr gen_index = TrNode_index_node((subg_node_ptr)node);
       if(GNIN_num_gen(gen_index) == 1) {
-        /* remove index node */
         gen_index_remove((subg_node_ptr)node, (subg_hash_ptr)TrNode_child(TrNode_parent(node)));
       } else
         GNIN_num_gen(gen_index)--;
@@ -107,8 +104,6 @@ decrement_generator_path(sg_node_ptr node) {
 
 void
 update_generator_path(sg_node_ptr node) {
-  dprintf("update_generator_path %x\n", node);
-
   while(!TrNode_is_root(node)) {
     if(IsHashedNode(node)) {
       if(TrNode_num_gen((subg_node_ptr)node) == 0)

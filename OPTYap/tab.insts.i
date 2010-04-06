@@ -82,12 +82,6 @@
           YAPOR_SET_LOAD(B);                                          \
           SET_BB(B);                                                  \
           TABLING_ERRORS_check_stack;                                 \
-          if(SgFr_is_ground_producer(SG_FR)) {                           \
-            node_list_ptr list;                                       \
-            list = collect_specific_generator_goals(tab_ent);         \
-            free_node_list(list);                                     \
-            update_generator_path(SgFr_leaf(SG_FR));                  \
-          }                                                           \
         }
 
 
@@ -434,36 +428,48 @@
       
 #define exec_ground_trie(TAB_ENT) \
       exec_compiled_trie((ans_node_ptr)TabEnt_ground_trie(TAB_ENT))
-
-#define check_ground_generator(SG_FR, TAB_ENT)                      \
-    if(SgFr_is_ground_producer(SG_FR) &&                            \
-          TabEnt_ground_time_stamp(TAB_ENT) > 0)                    \
-    {                                                               \
+      
+#define check_ground_pre_stored_answers(SG_FR, TAB_ENT, GROUND_SG)  \
+    if(TabEnt_ground_time_stamp(TAB_ENT) > 0) {                     \
       grounded_sf_ptr ground_sg = (grounded_sf_ptr)(SG_FR);         \
       CELL *answer_template = YENV;                                 \
                                                                     \
       /* retrieve more answers */                                   \
-      ensure_ground_answer_template(ground_sg, answer_template);    \
-      build_next_ground_producer_return_list(ground_sg);            \
+      build_next_ground_producer_return_list(GROUND_SG);            \
                                                                     \
-      continuation_ptr cont = SgFr_first_answer(ground_sg);         \
+      continuation_ptr cont = SgFr_first_answer(GROUND_SG);         \
                                                                     \
       if(cont) {                                                    \
         ans_node_ptr ans_node = continuation_answer(cont);          \
                                                                     \
         UNLOCK(SgFr_lock(sg_fr));                                   \
                                                                     \
-        SgFr_try_answer(ground_sg) = cont;                          \
+        SgFr_try_answer(GROUND_SG) = cont;                          \
                                                                     \
-        store_generator_node(TAB_ENT, sg_fr, PREG->u.Otapl.s,       \
-                                      TRY_GROUND_ANSWER);           \
+        store_generator_node(TAB_ENT, SG_FR, PREG->u.Otapl.s,       \
+                                  TRY_GROUND_ANSWER);               \
         PREG = (yamop *)CPREG;                                      \
         PREFETCH_OP(PREG);                                          \
-        CONSUME_GROUND_ANSWER(ans_node, answer_template, ground_sg);\
+        CONSUME_GROUND_ANSWER(ans_node, answer_template, GROUND_SG);\
         YENV = ENV;                                                 \
         GONext();                                                   \
       }                                                             \
     }
+    
+#define check_ground_pending_subgoals(SG_FR, TAB_ENT, GROUND_SG)    \
+    { ALNptr list = collect_specific_generator_goals(TAB_ENT,       \
+      TabEnt_arity(TAB_ENT), SgFr_answer_template(GROUND_SG));      \
+      process_pending_subgoal_list(list, GROUND_SG);                \
+      increment_sugoal_path(SG_FR);                                 \
+    }
+
+#define check_ground_generator(SG_FR, TAB_ENT)                      \
+    if(SgFr_is_ground_producer(SG_FR)) {                            \
+      grounded_sf_ptr ground_sg = (grounded_sf_ptr)(SG_FR);         \
+      check_ground_pending_subgoals(SG_FR, TAB_ENT, ground_sg);     \
+      check_ground_pre_stored_answers(SG_FR, TAB_ENT, ground_sg);   \
+    }                                                               \
+          
 
 /* Consume subsuming answer ANS_NODE using ANS_TMPLT
  * as the pointer to the answer template.
@@ -574,7 +580,6 @@
 
 #ifdef TABLING_CALL_SUBSUMPTION
   PBOp(table_try_ground_answer, Otapl)
-    printf("===> TABLE_TRY_GROUND_ANSWER\n");
     grounded_sf_ptr sg_fr;
     ans_node_ptr ans_node = NULL;
     continuation_ptr next_cont;

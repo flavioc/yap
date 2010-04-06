@@ -15,6 +15,7 @@
 
 STD_PROTO(static inline void mark_subsumptive_consumer_as_completed, (subcons_fr_ptr sg_fr));
 STD_PROTO(static inline void mark_ground_consumer_as_completed, (grounded_sf_ptr));
+STD_PROTO(static inline void mark_ground_producer_as_completed, (grounded_sf_ptr));
 
 STD_PROTO(static inline void gen_index_remove, (subg_node_ptr, subg_hash_ptr));
 STD_PROTO(static inline void gen_index_add, (subg_node_ptr, subg_hash_ptr, int));
@@ -34,6 +35,8 @@ STD_PROTO(static inline void abolish_incomplete_ground_consumer_subgoal, (ground
 STD_PROTO(static inline int build_next_subsumptive_consumer_return_list, (subcons_fr_ptr));
 STD_PROTO(static inline int build_next_ground_consumer_return_list, (grounded_sf_ptr));
 STD_PROTO(static inline int build_next_ground_producer_return_list, (grounded_sf_ptr));
+
+STD_PROTO(static inline void process_pending_subgoal_list, (node_list_ptr, grounded_sf_ptr));
 
 #define ground_trie_create_tsi(TAB_ENT) tstCreateTSIs((tst_node_ptr)TabEnt_ground_trie(TAB_ENT))
 
@@ -90,6 +93,7 @@ STD_PROTO(static inline int build_next_ground_producer_return_list, (grounded_sf
           SgFr_choice_point(SG_FR) = B;                             \
           SgFr_next(SG_FR) = LOCAL_top_groundcons_sg_fr;            \
           LOCAL_top_groundcons_sg_fr = SG_FR;                       \
+          increment_sugoal_path(SG_FR);                             \
         }
         
 #define create_ground_answer_template(SG_FR, FROM)      \
@@ -214,6 +218,27 @@ STD_PROTO(static inline int build_next_ground_producer_return_list, (grounded_sf
           SHOW_TABLE_STRUCTURE("    ---> INCOMPLETE\n");            \
         }                                                           \
       }
+      
+#define increment_sugoal_path(SG_FR)                                \
+      { subg_node_ptr leaf = (subg_node_ptr)SgFr_leaf(SG_FR);       \
+        if(TrNode_num_gen(leaf) == 1) {                             \
+          dprintf("Already generator updated\n");                   \
+        } else {                                                    \
+          dprintf("Updating subgoal path\n");                       \
+          update_generator_path((sg_node_ptr)leaf);                 \
+        }                                                           \
+      }
+      
+#define decrement_subgoal_path(SG_FR)                               \
+      { subg_node_ptr leaf = (subg_node_ptr)SgFr_leaf(SG_FR);       \
+        if(TrNode_num_gen(leaf) != 1) {                             \
+          printf("a leaf node must be 1\n");                        \
+          exit(1);                                                  \
+        } else {                                                    \
+          dprintf("decrementing subgoal path\n");                   \
+          decrement_generator_path((sg_node_ptr)leaf);              \
+        }                                                           \
+      }
         
 static inline
 void mark_subsumptive_consumer_as_completed(subcons_fr_ptr sg_fr) {
@@ -226,7 +251,13 @@ static inline
 void mark_ground_consumer_as_completed(grounded_sf_ptr sg_fr) {
   LOCK(SgFr_lock(sg_fr));
   SgFr_state(sg_fr) = complete;
+  decrement_subgoal_path(sg_fr);
   UNLOCK(SgFr_lock(sg_fr));
+}
+
+static inline
+void mark_ground_producer_as_completed(grounded_sf_ptr sg_fr) {
+  decrement_subgoal_path(sg_fr);
 }
 
 static inline void
@@ -428,5 +459,30 @@ build_next_ground_producer_return_list(grounded_sf_ptr producer_sg) {
 }
 
 #undef STANDARDIZE_AT_PTR
+
+static inline void
+process_pending_subgoal_list(node_list_ptr list, grounded_sf_ptr sg_fr) {
+  node_list_ptr orig = list;
+  
+  while(list) {
+    sg_node_ptr node = (sg_node_ptr)NodeList_node(list);
+    grounded_sf_ptr pending = (grounded_sf_ptr)TrNode_sg_fr(node);
+    
+    if(SgFr_state(pending) == ready) {
+      /*
+       * this subgoal is incomplete
+       * change the producer of the subgoal so
+       * that it can be seen as completed if
+       * it is called again in the future
+       */
+      SgFr_producer(pending) = sg_fr;
+      SgFr_type(pending) = GROUND_CONSUMER_SFT;
+      dprintf("MARKED AS CONSUMER\n");
+    }
+    
+    list = NodeList_next(list);
+  }
+  free_node_list(orig);
+}
 
 #endif /* TABLING_CALL_SUBSUMPTION */
