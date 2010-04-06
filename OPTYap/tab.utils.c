@@ -230,6 +230,10 @@ recursivePrintSubterm(FILE *fp, Term symbol, xsbBool list_recursion, PrintVarTyp
         fprintf(fp, "|" LongIntFormatString "]", li);
       else
         fprintf(fp, LongIntFormatString, li);
+    } else if (f == FunctorDBRef) {
+      Yap_Error(INTERNAL_ERROR, TermNil, "unsupported type tag (FunctorDBRef in recursivePrintSubterm)");
+    } else if (f == FunctorBigInt) {
+      Yap_Error(INTERNAL_ERROR, TermNil, "unsupported type tag (FunctorBigInt in recursivePrintSubterm)");
     } else {
       int i;
       
@@ -257,6 +261,8 @@ recursivePrintSubterm(FILE *fp, Term symbol, xsbBool list_recursion, PrintVarTyp
     
     recursivePrintSubterm(fp, *(RepPair(symbol)), FALSE, var_type);
     recursivePrintSubterm(fp, *(RepPair(symbol) + 1), TRUE, var_type);
+  } else {
+    Yap_Error(INTERNAL_ERROR, TermNil, "unknown type tag (recursivePrintSubterm)");
   }
 }
 
@@ -281,9 +287,9 @@ void printCalledSubgoal(FILE *fp, yamop *preg)
 
 #ifdef TABLING_CALL_SUBSUMPTION
 
-static inline void fix_functor(Term t, CELL* placeholder);
-static inline void fix_list(Term t, CELL* placeholder);
-static inline void fix_rec(Term t, CELL* placeholder);
+static inline void copy_functor(Term t, CELL* placeholder);
+static inline void copy_list(Term t, CELL* placeholder);
+static inline void copy_subterm(Term t, CELL* placeholder);
 
 xsbBool are_identical_terms(Cell term1, Cell term2)
 {
@@ -479,6 +485,10 @@ recursive_construct_subgoal(CELL* trie_vars, CELL* placeholder)
       SymbolStack_PopOther(node, sg_node_ptr);
       
       *placeholder = MkLongIntTerm(node_get_long_int(node));
+    } else if (f == FunctorDBRef) {
+      Yap_Error(INTERNAL_ERROR, TermNil, "unsupported type tag (FunctorDBRef in construct_subgoal_heap)");
+    } else if (f == FunctorBigInt) {
+      Yap_Error(INTERNAL_ERROR, TermNil, "unsupported type tag (FunctorBigInt in construct_subgoal_heap)");
     } else {
       int i, arity = ArityOfFunctor(f);
       CELL *arguments;
@@ -504,8 +514,7 @@ recursive_construct_subgoal(CELL* trie_vars, CELL* placeholder)
     for(i = 0; i < 2; ++i)
       recursive_construct_subgoal(trie_vars, arguments + i);
   } else {
-    /* XXX */
-    dprintf("BIG ERROR!!!\n");
+    Yap_Error(INTERNAL_ERROR, TermNil, "unknown type tag (recursive_construct_subgoal)");
   }
 }
 
@@ -670,7 +679,7 @@ MakeLongIntTerm(Int i)
 }
 
 static inline void
-fix_functor(Term t, CELL* placeholder)
+copy_functor(Term t, CELL* placeholder)
 {
   Functor f = FunctorOfTerm(t);
   
@@ -678,6 +687,10 @@ fix_functor(Term t, CELL* placeholder)
     *placeholder = MakeFloatTerm(FloatOfTerm(t));
   } else if(f == FunctorLongInt) {
     *placeholder = MakeLongIntTerm(LongIntOfTerm(t));
+  } else if (f == FunctorDBRef) {
+    Yap_Error(INTERNAL_ERROR, TermNil, "unsupported type tag (FunctorDBRef in copy_functor)");
+  } else if (f == FunctorBigInt) {
+    Yap_Error(INTERNAL_ERROR, TermNil, "unsupported type tag (FunctorBigInt in copy_functor)");
   } else {
     *placeholder = AbsAppl(AT);
     *AT++ = (CELL)f;
@@ -688,12 +701,12 @@ fix_functor(Term t, CELL* placeholder)
     AT += arity;
 
     for(i = 1; i <= arity; ++i)
-      fix_rec(Deref(*(RepAppl(t) + i)), arguments + i - 1);
+      copy_subterm(Deref(*(RepAppl(t) + i)), arguments + i - 1);
   }
 }
 
 static inline void
-fix_list(Term t, CELL* placeholder)
+copy_list(Term t, CELL* placeholder)
 {
   *placeholder = AbsPair(AT);
   
@@ -701,12 +714,12 @@ fix_list(Term t, CELL* placeholder)
   
   AT += 2;
   
-  fix_rec(Deref(*(RepPair(t))), arguments);
-  fix_rec(Deref(*(RepPair(t) + 1)), arguments + 1);
+  copy_subterm(Deref(*(RepPair(t))), arguments);
+  copy_subterm(Deref(*(RepPair(t) + 1)), arguments + 1);
 }
 
 static inline void
-fix_rec(CELL val, CELL* placeholder)
+copy_subterm(CELL val, CELL* placeholder)
 {
   if(IsAtomOrIntTerm(val)) {
     *placeholder = val;
@@ -724,11 +737,11 @@ fix_rec(CELL val, CELL* placeholder)
     }
     
   } else if(IsApplTerm(val)) {
-    fix_functor(val, placeholder);
+    copy_functor(val, placeholder);
   } else if(IsPairTerm(val)) {
-    fix_list(val, placeholder);
+    copy_list(val, placeholder);
   } else {
-    printf("BAD TAG\n");
+    Yap_Error(INTERNAL_ERROR, TermNil, "unknown type tag (copy_subterm)");
   }
 }
 
@@ -746,7 +759,7 @@ copy_answer_template(CELL *ans_tmplt, CELL *dest)
   
   AT += size;
   for(i = 0; i < size; ++i)
-    fix_rec(Deref(*(ans_tmplt + i)), arguments + i);
+    copy_subterm(Deref(*(ans_tmplt + i)), arguments + i);
   
   Trail_Unwind_All;
 

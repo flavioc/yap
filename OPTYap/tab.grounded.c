@@ -81,7 +81,6 @@ static inline CELL*
 copy_arguments_as_the_answer_template(CELL *answer_template, int arity)
 {
   int i;
-  dprintf("Creating the answer template on the local stack\n");
   
   for(i = 1; i <= arity; ++i) {
     *answer_template-- = (CELL)Deref(XREGS[i]);
@@ -171,7 +170,7 @@ sg_fr_ptr grounded_call_search(yamop *code, CELL *answer_template, CELL **new_lo
             create_ground_answer_template(sg_fr, *new_local_stack);
             
             if(!TabEnt_proper_consumers(tab_ent)) {
-              TabEnt_proper_consumers(tab_ent) = TRUE;
+              TabEnt_proper_consumers(tab_ent) = (void *)TRUE;
               ground_trie_create_tsi(tab_ent);
             }
         } else
@@ -209,7 +208,6 @@ TSTNptr grounded_answer_search(grounded_sf_ptr sf, CPtr answerVector) {
   root = (TSTNptr)TabEnt_ground_trie(tab_ent);
   
   if ( IsNULL(root) ) {
-    dprintf("Created ground trie\n");
     TabEnt_ground_trie(tab_ent) = (sg_node_ptr)newTSTAnswerSet();
     root = (TSTNptr)TabEnt_ground_trie(tab_ent);
   }
@@ -220,10 +218,8 @@ TSTNptr grounded_answer_search(grounded_sf_ptr sf, CPtr answerVector) {
   
   /* update time stamp */
   SgFr_timestamp(sf) = TabEnt_ground_time_stamp(tab_ent);
-  dprintf("New time stamp: %ld\n", SgFr_timestamp(sf));
        
   Trail_Unwind_All;
-  dprintf("Inserted answer\n");
   return tstn;
 }
 
