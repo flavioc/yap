@@ -479,8 +479,7 @@ process_pending_subgoal_list(node_list_ptr list, grounded_sf_ptr sg_fr) {
   node_list_ptr orig = list;
   
   while(list) {
-    sg_node_ptr node = (sg_node_ptr)NodeList_node(list);
-    grounded_sf_ptr pending = (grounded_sf_ptr)TrNode_sg_fr(node);
+    grounded_sf_ptr pending = (grounded_sf_ptr)NodeList_node(list);
     
     if(pending != sg_fr) { /* ignore self! */
       if(SgFr_state(pending) == ready) {
