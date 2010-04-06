@@ -460,6 +460,7 @@ build_next_ground_producer_return_list(grounded_sf_ptr producer_sg) {
 
 #undef STANDARDIZE_AT_PTR
 
+#ifdef FDEBUG
 static inline void
 traverse_choice_points(choiceptr target)
 {
@@ -473,6 +474,7 @@ traverse_choice_points(choiceptr target)
   B = target;
   printf("FOUND CHOICE POINT\n");
 }
+#endif /* FDEBUG */
 
 static inline void
 process_pending_subgoal_list(node_list_ptr list, grounded_sf_ptr sg_fr) {

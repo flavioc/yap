@@ -216,8 +216,7 @@ TSTNptr grounded_answer_search(grounded_sf_ptr sf, CPtr answerVector) {
   
   auto_update_instructions = TRUE;
   
-  int isNew;
-  tstn = subsumptive_tst_search(root, arity, answerVector, (int)TabEnt_proper_consumers(tab_ent), &isNew );
+  tstn = subsumptive_tst_search(root, arity, answerVector, (int)TabEnt_proper_consumers(tab_ent));
   
   /* update time stamp */
   SgFr_timestamp(sf) = TabEnt_ground_time_stamp(tab_ent);

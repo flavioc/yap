@@ -49,7 +49,11 @@ inline
 static
 #endif
 TSTNptr subsumptive_answer_search(CTXTdeclc SubProdSF sf, int nTerms,
+#ifdef SUBSUMPTION_XSB
 				  CPtr answerVector, xsbBool *isNew) {
+#else
+          CPtr answerVector) {
+#endif
 
   TSTNptr root, tstn;
 
@@ -73,8 +77,13 @@ TSTNptr subsumptive_answer_search(CTXTdeclc SubProdSF sf, int nTerms,
     subg_ans_root_ptr(sf) = newAnswerSet(CTXTc nTerms, (TSTNptr) sf);
 #endif /* SUBSUMPTION_XSB */
   root = (TSTNptr)subg_ans_root_ptr(sf);
+#ifdef SUBSUMPTION_XSB
   tstn = subsumptive_tst_search( CTXTc root, nTerms, answerVector, 
        (xsbBool)ProducerSubsumesSubgoals(sf), isNew );
+#else
+  tstn = subsumptive_tst_search( CTXTc root, nTerms, answerVector,
+       (xsbBool)ProducerSubsumesSubgoals(sf));
+#endif
        
 #ifdef SUBSUMPTION_YAP
   Trail_Unwind_All;

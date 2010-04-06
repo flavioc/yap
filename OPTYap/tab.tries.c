@@ -107,8 +107,7 @@ ans_node_ptr answer_search(sg_fr_ptr sg_fr, CELL *subs_ptr) {
   else if(SgFr_is_sub_producer(sg_fr)) {
     int nTerms = *subs_ptr;
     CELL* answerVector = subs_ptr + nTerms;
-    int new;
-    return (ans_node_ptr)subsumptive_answer_search((subprod_fr_ptr)sg_fr, nTerms, answerVector, &new);
+    return (ans_node_ptr)subsumptive_answer_search((subprod_fr_ptr)sg_fr, nTerms, answerVector);
   } else if(SgFr_is_ground_producer(sg_fr)) {
     int nTerms = *subs_ptr;
     CELL* answerVector = subs_ptr + nTerms;
@@ -386,7 +385,7 @@ void free_subgoal_trie_branch(sg_node_ptr current_node, int nodes_left, int posi
 #else
 void free_subgoal_trie_branch(sg_node_ptr current_node, int nodes_left, int nodes_extra, int position) {
   int current_nodes_left = 0, current_nodes_extra = 0;
-  dprintf("Free subgoal trie branch\n");
+
   /* save current state if first sibling node */
   if (position == TRAVERSE_POSITION_FIRST) {
     current_nodes_left = nodes_left;

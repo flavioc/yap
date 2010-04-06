@@ -193,7 +193,7 @@ sg_fr_ptr subsumptive_call_search(yamop *code, CELL *answer_template, CELL **new
 
 /* vector de respostas é puxado de cima para baixo!! */
 TSTNptr subsumptive_tst_search(CTXTdeclc TSTNptr tstRoot, int nTerms, CPtr termVector,
-          xsbBool maintainTSI, xsbBool *isNew) {
+          xsbBool maintainTSI) {
   TSTNptr tstn = NULL;
   TriePathType path_type;
   
@@ -204,7 +204,6 @@ TSTNptr subsumptive_tst_search(CTXTdeclc TSTNptr tstRoot, int nTerms, CPtr termV
     
     if(IsEmptyTrie(tstRoot)) {
       tstn = tst_insert(CTXTc tstRoot, tstRoot, NO_INSERT_SYMBOL, maintainTSI);
-      *isNew = TRUE;
     }
     else {
       TermStackLog_ResetTOS;
@@ -213,17 +212,10 @@ TSTNptr subsumptive_tst_search(CTXTdeclc TSTNptr tstRoot, int nTerms, CPtr termV
         Trail_Unwind_All;
         tstn = tst_insert(CTXTc tstRoot, (TSTNptr)stl_restore_variant_cont(CTXT),
                 NO_INSERT_SYMBOL, maintainTSI);
-        *isNew = TRUE;
       }
-      else
-        *isNew = FALSE;
     }
-  } else {
-    // XXX
-    *isNew = TRUE;
-    dprintf("nTerms = 0 !!!\n");
-    return tstRoot;
-  }        
+  } else
+    return tstRoot;   
   
   return tstn;
 }
