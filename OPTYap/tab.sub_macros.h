@@ -194,7 +194,7 @@ STD_PROTO(static inline void process_pending_subgoal_list, (node_list_ptr, groun
         }                                                           \
       }
 
-#define show_ground_with_answers(SG_FR)                    \
+#define show_ground_with_answers(SG_FR)                             \
       {                                                             \
         CELL* vars = (CELL *)HeapTop - 1;                           \
         CELL *saved_H = construct_subgoal_heap(SgFr_leaf(SG_FR),    \
@@ -490,9 +490,15 @@ process_pending_subgoal_list(node_list_ptr list, grounded_sf_ptr sg_fr) {
          * that it can be seen as completed if
          * it is called again in the future
          */
-        SgFr_producer(pending) = sg_fr;
-        SgFr_type(pending) = GROUND_CONSUMER_SFT;
-        dprintf("MARKED AS CONSUMER\n");
+        grounded_sf_ptr producer = SgFr_producer(pending);
+        if(producer && SgFr_state(producer) >= complete) {
+          /* already completed */
+          mark_ground_consumer_as_completed(pending);
+        } else {
+          SgFr_producer(pending) = sg_fr;
+          SgFr_type(pending) = GROUND_CONSUMER_SFT;
+          dprintf("MARKED AS CONSUMER\n");
+        }
       } else if(SgFr_state(pending) == evaluating && SgFr_is_ground_producer(pending)) {
         /*
          * this is a consumer subgoal but is running

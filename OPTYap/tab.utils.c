@@ -451,7 +451,6 @@ recursive_construct_subgoal(CELL* trie_vars, CELL* placeholder)
   SymbolStack_Pop(symbol);
   
   if(IsAtomOrIntTerm(symbol)) {
-    dprintf("New constant\n");
     *placeholder = symbol;
   } else if(IsVarTerm(symbol)) {
     int index = DecodeTrieVar(symbol);
@@ -464,8 +463,6 @@ recursive_construct_subgoal(CELL* trie_vars, CELL* placeholder)
     } else {
       *placeholder = *(trie_vars - index);
     }
-    
-    dprintf("New var\n");
     
   } else if(IsApplTerm(symbol)) {
     Functor f = DecodeTrieFunctor(symbol);
@@ -488,8 +485,6 @@ recursive_construct_subgoal(CELL* trie_vars, CELL* placeholder)
       
       *placeholder = AbsAppl(H);
       
-      dprintf("New functor\n");
-      
       *H = (CELL)f;
       
       arguments = ++H;
@@ -504,13 +499,12 @@ recursive_construct_subgoal(CELL* trie_vars, CELL* placeholder)
     
     *placeholder = AbsPair(H);
     
-    dprintf("New pair\n");
-    
     H += 2;
     
     for(i = 0; i < 2; ++i)
       recursive_construct_subgoal(trie_vars, arguments + i);
   } else {
+    /* XXX */
     dprintf("BIG ERROR!!!\n");
   }
 }

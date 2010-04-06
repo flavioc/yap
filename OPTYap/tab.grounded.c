@@ -155,7 +155,7 @@ sg_fr_ptr grounded_call_search(yamop *code, CELL *answer_template, CELL **new_lo
         if(SgFr_state(subsumer) < complete || TabEnt_is_load(tab_ent)) {
             btn = variant_call_cont_insert(tab_ent, (sg_node_ptr)stl_restore_variant_cont(), variant_cont.bindings.num, CALL_SUB_TRIE_NT);
             Trail_Unwind_All;
-            dprintf("New ground consumer\n");
+            
             sg_fr = create_new_ground_consumer_subgoal(btn, tab_ent, code, subsumer);
             
             create_ground_answer_template(sg_fr, *new_local_stack);
@@ -173,10 +173,14 @@ sg_fr_ptr grounded_call_search(yamop *code, CELL *answer_template, CELL **new_lo
     }
     
     if(SgFr_is_ground_consumer(sg_fr)) {
-      if(SgFr_state(SgFr_producer(sg_fr)) < evaluating) {
+      grounded_sf_ptr producer = SgFr_producer(sg_fr);
+      if(SgFr_state(producer) < evaluating) {
         /* turn into producer */
         SgFr_type(sg_fr) = GROUND_PRODUCER_SFT; 
         SgFr_producer(sg_fr) = NULL;
+      }
+      if(SgFr_state(producer) >= complete && SgFr_state(sg_fr) < complete) {
+        mark_ground_consumer_as_completed(sg_fr);
       }
     }
   }

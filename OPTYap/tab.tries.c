@@ -908,6 +908,16 @@ void traverse_subgoal_trie(sg_node_ptr current_node, char *str, int str_index, i
       case GROUND_PRODUCER_SFT:
       case GROUND_CONSUMER_SFT:
         {
+          if(SgFr_is_ground_consumer(sg_fr)) {
+            grounded_sf_ptr ground_sg = (grounded_sf_ptr)sg_fr;
+            grounded_sf_ptr producer_sg = (grounded_sf_ptr)SgFr_producer(ground_sg);
+            
+            if(SgFr_state(ground_sg) < complete && SgFr_state(producer_sg) >= complete) {
+              mark_ground_consumer_as_completed(ground_sg);
+            }
+            
+            build_next_ground_consumer_return_list(ground_sg);
+          }
           if(SgFr_has_no_answers(sg_fr)) {
             if(SgFr_state(sg_fr) < complete) {
               TrStat_sg_incomplete++;
