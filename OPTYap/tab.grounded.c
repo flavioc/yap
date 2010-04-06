@@ -103,6 +103,16 @@ sg_fr_ptr grounded_call_search(yamop *code, CELL *answer_template, CELL **new_lo
   /* create answer template on local stack */
   *new_local_stack = copy_arguments_as_the_answer_template(answer_template, arity);
   
+  if(arity == 0) {
+    sg_node_ptr leaf = TrNode_child(btRoot);
+    
+    if(leaf == NULL) {
+      leaf = (sg_node_ptr)create_new_ground_producer_subgoal(btRoot, tab_ent, code);
+    }
+    
+    return (sg_fr_ptr)leaf;
+  }
+  
   TermStack_ResetTOS;
   TermStackLog_ResetTOS;
   Trail_ResetTOS;

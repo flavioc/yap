@@ -149,6 +149,7 @@ struct grounded_subgoal_frame {
                                       TSTN_time_stamp((tst_node_ptr)TabEnt_ground_trie(X))  \
                                       : 0)
 #define TabEnt_proper_consumers(X)  (TrNode_parent(TabEnt_subgoal_trie(X)))
+#define TabEnt_ground_yes(X)        (TabEnt_ground_trie(X) && TrNode_is_leaf(TabEnt_ground_trie(X)))
 
 #define GROUND_SUBGOAL_FRAME_MASK 0xC0
 

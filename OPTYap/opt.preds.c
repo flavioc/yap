@@ -859,6 +859,7 @@ abolish_table(tab_ent_ptr tab_ent) {
   hash = TabEnt_hash_chain(tab_ent);
   TabEnt_hash_chain(tab_ent) = NULL;
   free_subgoal_trie_hash_chain(hash);
+  
   if(TabEnt_subgoal_trie(tab_ent)) {
     if(TabEnt_is_grounded(tab_ent)) {
       /* if this is a grounded subgoal the answer trie is in the root subgoal trie node */

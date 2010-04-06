@@ -323,20 +323,20 @@
 #define check_yes_answer_no_unlock(SG_FR)   \
         if (SgFr_has_yes_answer(SG_FR)) {   \
           /* yes answer --> procceed */     \
-          PREG = (yamop *) CPREG;           \
-          PREFETCH_OP(PREG);                \
-          YENV = ENV;                       \
-          GONext();                         \
+          procceed_yes_answer();            \
         }
+        
+#define procceed_yes_answer()               \
+        PREG = (yamop *) CPREG;             \
+        PREFETCH_OP(PREG);                  \
+        YENV = ENV;                         \
+        GONext()
     	    
 #define check_yes_answer(SG_FR)             \
         if (SgFr_has_yes_answer(SG_FR)) {   \
     	    /* yes answer --> procceed */     \
     	    UNLOCK(SgFr_lock(SG_FR));         \
-    	    PREG = (yamop *) CPREG;           \
-    	    PREFETCH_OP(PREG);                \
-    	    YENV = ENV;                       \
-    	    GONext();                         \
+          procceed_yes_answer();            \
         }
         
 #ifdef LIMIT_TABLING
@@ -427,8 +427,16 @@
       SG_FR = (sg_fr_ptr)SgFr_producer((subcons_fr_ptr)(SG_FR));  \
       LOCK(SgFr_lock(SG_FR))
       
-#define exec_ground_trie(TAB_ENT) \
-      exec_compiled_trie((ans_node_ptr)TabEnt_ground_trie(TAB_ENT))
+#define exec_ground_trie(TAB_ENT)                                       \
+      if(TabEnt_arity(TAB_ENT) == 0) {                                  \
+        if(TabEnt_ground_yes(TAB_ENT)) {                                \
+          procceed_yes_answer();                                        \
+        } else {                                                        \
+          goto fail;                                                    \
+        }                                                               \
+      } else {                                                          \
+        exec_compiled_trie((ans_node_ptr)TabEnt_ground_trie(TAB_ENT));  \
+      }
       
 #define check_ground_pre_stored_answers(SG_FR, TAB_ENT, GROUND_SG)  \
     if(TabEnt_ground_time_stamp(TAB_ENT) > 0) {                     \
