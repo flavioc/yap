@@ -170,7 +170,6 @@ process_next:
     old_node = node;
     node = parent;
     free_subgoal_trie_node(old_node);
-    dprintf("Freeing one subgoal trie node %x\n", (void*)old_node);
     
     hash = NULL;
   }

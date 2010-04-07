@@ -469,6 +469,198 @@ build_next_ground_producer_return_list(grounded_sf_ptr producer_sg) {
 
 #undef STANDARDIZE_AT_PTR
 
+static void inline
+remove_generator_stack(grounded_sf_ptr sg_fr)
+{
+  sg_fr_ptr top = LOCAL_top_sg_fr;
+  sg_fr_ptr find = (sg_fr_ptr)sg_fr;
+  sg_fr_ptr before;
+  
+  while(top && top != find) {
+    before = top;
+    top = SgFr_next(top);
+  }
+  
+  printf("subgoal frame %d next points to %d\n", (int)before, (int)SgFr_next(find));
+  SgFr_next(before) = SgFr_next(find);
+  SgFr_next(find) = NULL;
+}
+
+static inline void
+abolish_generator_subgoals_between(choiceptr min, choiceptr max)
+{
+  sg_fr_ptr top;
+  
+#if 0
+  sg_fr_ptr top = SgFr_next(LOCAL_top_sg_fr); /* skip general subgoal frame */
+  
+  while(top) {
+    printf("top: %d\n", (int)SgFr_choice_point(top));
+    top = SgFr_next(top);
+  }
+#endif
+
+  top = SgFr_next(LOCAL_top_sg_fr);
+  sg_fr_ptr before = LOCAL_top_sg_fr;
+  
+  /* ignore younger generators */
+  while(top && YOUNGER_CP(SgFr_choice_point(top), max)) {
+    before = top;
+    printf("Ignored one younger generator\n");
+    top = SgFr_next(top);
+  }
+  
+  /* abolish generators */
+  while(top && YOUNGER_CP(SgFr_choice_point(top), min))
+  {
+    sg_fr_ptr sg_fr;
+    
+    sg_fr = top;
+    
+    top = SgFr_next(sg_fr);
+    
+    LOCK(SgFr_lock(sg_fr));
+    printf("PRODUCER ABOLISH!!! %d\n", (int)SgFr_choice_point(sg_fr));
+    abolish_incomplete_producer_subgoal(sg_fr);
+    UNLOCK(SgFr_lock(sg_fr));
+  }
+  /* remove generator = min
+   * top points to the consumer generator that we will delete
+   */
+  printf("Deleted generator %d\n", SgFr_choice_point(top));
+  SgFr_next(before) = SgFr_next(top);
+}
+
+static inline choiceptr
+find_other_consumer(choiceptr min, sg_fr_ptr cons)
+{
+  dep_fr_ptr top = LOCAL_top_dep_fr;
+  
+  while(top && YOUNGER_CP(DepFr_cons_cp(top), min)) {
+    if(DepFr_sg_fr(top) == cons) {
+      return DepFr_cons_cp(top);
+    }
+    top = DepFr_next(top);
+  }
+  
+  return NULL;
+}
+
+static inline void
+abolish_subsumptive_subgoals_between(choiceptr min, choiceptr max)
+{
+  subcons_fr_ptr top = LOCAL_top_subcons_sg_fr;
+  subcons_fr_ptr before = NULL;
+  
+  /* ignore younger subsumptive goals */
+  while(top && YOUNGER_CP(SgFr_choice_point(top), max)) {
+    before = top;
+    printf("jumped younger subsumptive goal\n");
+    top = SgFr_next(top);
+  }
+  
+  while (top && YOUNGER_CP(SgFr_choice_point(top), min)) {
+    subcons_fr_ptr sg_fr;
+    
+    sg_fr = top;
+    top = SgFr_next(sg_fr);
+    
+    choiceptr new = find_other_consumer(max, (sg_fr_ptr)sg_fr);
+    if(new) {
+      /* subgoal is running somewhere else */
+      printf("Keeping subgoal %d\n", (int)SgFr_choice_point(sg_fr));
+      SgFr_choice_point(sg_fr) = new;
+      before = sg_fr;
+    } else {
+      printf("Removing subsumptive goal %d\n", (int)SgFr_choice_point(sg_fr));
+      if(before == NULL)
+        LOCAL_top_subcons_sg_fr = top;
+      else
+        SgFr_next(before) = top;
+      LOCK(SgFr_lock(sg_fr));
+      abolish_incomplete_subsumptive_consumer_subgoal(sg_fr);
+      UNLOCK(SgFr_lock(sg_fr));
+    }
+  }
+}
+
+static inline void
+abolish_ground_subgoals_between(choiceptr min, choiceptr max)
+{
+  grounded_sf_ptr top = LOCAL_top_groundcons_sg_fr;
+  grounded_sf_ptr before = NULL;
+  
+  /* ignore younger ground goals */
+  while(top && YOUNGER_CP(SgFr_choice_point(top), max)) {
+    before = top;
+    printf("Jumped younger ground subgoal\n");
+    top = SgFr_next(top);
+  }
+  
+  while(top && YOUNGER_CP(SgFr_choice_point(top), min)) {
+    grounded_sf_ptr sg_fr;
+    
+    sg_fr = top;
+    top = SgFr_next(sg_fr);
+    
+    choiceptr new = find_other_consumer(max, (sg_fr_ptr)sg_fr);
+    if(new) {
+      printf("Keeping subgoal %d\n", (int)SgFr_choice_point(sg_fr));
+      SgFr_choice_point(sg_fr) = new;
+      before = sg_fr;
+    } else {
+      printf("Removing grounded goal %d\n", (int)SgFr_choice_point(sg_fr));
+      if(before == NULL)
+        LOCAL_top_groundcons_sg_fr = top;
+      else
+        SgFr_next(before) = top;
+      LOCK(SgFr_lock(sg_fr));
+      abolish_incomplete_ground_consumer_subgoal(sg_fr);
+      UNLOCK(SgFr_lock(sg_fr));
+    }
+  }
+}
+
+static inline void
+abolish_dependency_frames_between(choiceptr min, choiceptr max)
+{
+  dep_fr_ptr top = LOCAL_top_dep_fr;
+  dep_fr_ptr before = NULL;
+  
+  /* ignore younger dependency frames */
+  while(top && YOUNGER_CP(DepFr_cons_cp(top), max)) {
+    before = top;
+    printf("Skipped one consumer %d\n", (int)DepFr_cons_cp(top));
+    top = DepFr_next(top);
+  }
+  
+  while(top && YOUNGER_CP(DepFr_cons_cp(top), min)) {
+    dep_fr_ptr dep_fr = top;
+    top = DepFr_next(dep_fr);
+    printf("Removing consumer choice point %d\n", (int)DepFr_cons_cp(dep_fr));
+    FREE_DEPENDENCY_FRAME(dep_fr);
+  }
+  
+  if(before == NULL)
+    LOCAL_top_dep_fr = top;
+  else
+    DepFr_next(before) = top;
+}
+
+static inline void
+abolish_subgoals_between(choiceptr min, choiceptr max)
+{
+  printf("min=%d max=%d\n", (int)min, (int)max);
+  
+  abolish_generator_subgoals_between(min, max);
+  
+  abolish_subsumptive_subgoals_between(min, max);
+  
+  abolish_ground_subgoals_between(min, max);
+  
+  abolish_dependency_frames_between(min, max);
+}
+
 static inline void
 traverse_choice_points(grounded_sf_ptr sg_fr)
 {
@@ -476,6 +668,8 @@ traverse_choice_points(grounded_sf_ptr sg_fr)
   choiceptr new_ans = SgFr_new_answer_cp(sg_fr);
   
   dprintf("gen_cp=%d new_ans=%d\n", (int)gen_cp, (int)new_ans);
+  
+  abolish_subgoals_between(gen_cp, new_ans);
   
   if(TabEnt_is_load(SgFr_tab_ent(sg_fr)))
     /* set last answer consumed for load answers */
@@ -487,7 +681,7 @@ traverse_choice_points(grounded_sf_ptr sg_fr)
   if(gen_cp == new_ans)
     /* simple generator clause */
     return;
-    
+  
   while(new_ans != gen_cp) {
     /* fail with new_ans */
     new_ans->cp_ap = (yamop *)TRUSTFAILCODE;

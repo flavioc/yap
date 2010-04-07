@@ -188,6 +188,7 @@
           YAPOR_SET_LOAD(B);                                               \
           SET_BB(B);                                                       \
           TABLING_ERRORS_check_stack;                                      \
+          dprintf("New consumer cp %d\n", (int)B);                         \
         }
         
 #define CONSUME_ANSWER(ANS_NODE, ANSWER_TMPLT, SG_FR)                       \
