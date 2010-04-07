@@ -164,6 +164,7 @@ STD_PROTO(static inline void process_pending_subgoal_list, (node_list_ptr, groun
           while(cont) {                                     \
             TrStat_ground_answers++;                        \
             TrStat_answers++;                               \
+            cont = continuation_next(cont);                 \
           }                                                 \
       }
       
@@ -237,6 +238,16 @@ STD_PROTO(static inline void process_pending_subgoal_list, (node_list_ptr, groun
         } else {                                                    \
           dprintf("decrementing subgoal path\n");                   \
           decrement_generator_path((sg_node_ptr)leaf);              \
+        }                                                           \
+      }
+      
+#define count_subgoal_hash_index(HASH, COUNTER)                     \
+      { subg_hash_ptr subg_hash = (subg_hash_ptr)(HASH);            \
+        gen_index_ptr index = Hash_index_head(subg_hash);           \
+                                                                    \
+        while(index) {                                              \
+          (COUNTER)++;                                              \
+          index = GNIN_next(index);                                 \
         }                                                           \
       }
         

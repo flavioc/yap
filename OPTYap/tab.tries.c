@@ -544,10 +544,16 @@ void update_answer_trie(sg_fr_ptr sg_fr) {
 static struct trie_statistics{
   int show;
   long subgoals;
+  long sub_consumer_subgoals;
   long subgoals_incomplete;
   long subgoal_trie_nodes;
+  long long_subgoal_trie_nodes;
+  long float_subgoal_trie_nodes;
+  long subgoal_hash;
+  long subgoal_hash_buckets;
   long answers;
 #ifdef TABLING_CALL_SUBSUMPTION
+  long subgoal_indexes;
   long subsumptive_answers;
   long ground_answers;
 #endif /* TABLING_CALL_SUBSUMPTION */
@@ -567,6 +573,8 @@ static struct trie_statistics{
 #define TrStat_subgoals          trie_stats.subgoals
 #define TrStat_sg_incomplete     trie_stats.subgoals_incomplete
 #define TrStat_sg_nodes          trie_stats.subgoal_trie_nodes
+#define TrStat_float_sg_nodes    trie_stats.float_subgoal_trie_nodes
+#define TrStat_long_sg_nodes     trie_stats.long_subgoal_trie_nodes
 #define TrStat_answers           trie_stats.answers
 #define TrStat_sub_answers       trie_stats.subsumptive_answers
 #define TrStat_ground_answers    trie_stats.ground_answers
@@ -576,6 +584,10 @@ static struct trie_statistics{
 #define TrStat_ans_nodes         trie_stats.answer_trie_nodes
 #define TrStat_gt_terms          trie_stats.global_trie_terms
 #define TrStat_gt_nodes          trie_stats.global_trie_nodes
+#define TrStat_sg_hash           trie_stats.subgoal_hash
+#define TrStat_sg_hash_buckets   trie_stats.subgoal_hash_buckets
+#define TrStat_sg_indexes        trie_stats.subgoal_indexes
+#define TrStat_subcons_subgoals  trie_stats.sub_consumer_subgoals
 
 #define SHOW_TABLE_STRUCTURE(MESG, ARGS...)  if (TrStat_show == SHOW_MODE_STRUCTURE) fprintf(Yap_stdout, MESG, ##ARGS)
 #define STR_ARRAY_SIZE  100000
@@ -592,7 +604,14 @@ void show_table(tab_ent_ptr tab_ent, int show_mode) {
     TrStat_sg_incomplete = 0;
     TrStat_sg_nodes = 1;
     TrStat_answers = 0;
+    TrStat_float_sg_nodes = 0;
+    TrStat_long_sg_nodes = 0;
+    TrStat_sg_hash = 0;
+    TrStat_sg_hash_buckets = 0;
+#ifdef TABLING_CALL_SUBSUMPTION
     TrStat_sub_answers = 0;
+    TrStat_sg_indexes = 0;
+#endif /* TABLING_CALL_SUBSUMPTION */
     TrStat_answers_true = 0;
     TrStat_answers_no = 0;
 #ifdef TABLING_INNER_CUTS
@@ -639,9 +658,11 @@ void show_table(tab_ent_ptr tab_ent, int show_mode) {
   } else
     SHOW_TABLE_STRUCTURE("  EMPTY\n");
   if (show_mode == SHOW_MODE_STATISTICS) {
+    long bytes = 0;
+    
     fprintf(Yap_stdout, "  Subgoal trie structure\n");
-    fprintf(Yap_stdout, "    Subgoals: %ld (%ld incomplete)\n", TrStat_subgoals, TrStat_sg_incomplete);
-    fprintf(Yap_stdout, "    Subgoal trie nodes: %ld\n", TrStat_sg_nodes);
+    fprintf(Yap_stdout, "    Subgoals: %ld (%ld incomplete)\n", TrStat_subgoals + TrStat_subcons_subgoals, TrStat_sg_incomplete);
+    fprintf(Yap_stdout, "    Subgoal trie nodes: %ld\n", TrStat_sg_nodes + TrStat_float_sg_nodes + TrStat_long_sg_nodes);
     fprintf(Yap_stdout, "  Answer trie structure(s)\n");
 #ifdef TABLING_INNER_CUTS
     fprintf(Yap_stdout, "    Answers: %ld (%ld pruned)\n", TrStat_answers, TrStat_answers_pruned);
@@ -655,10 +676,39 @@ void show_table(tab_ent_ptr tab_ent, int show_mode) {
     fprintf(Yap_stdout, "    Answers 'TRUE': %ld\n", TrStat_answers_true);
     fprintf(Yap_stdout, "    Answers 'NO': %ld\n", TrStat_answers_no);
     fprintf(Yap_stdout, "    Answer trie nodes: %ld\n", TrStat_ans_nodes);
+	  
+    bytes += sizeof(struct table_entry);
+    
+    if(TabEnt_is_variant(tab_ent)) {
+      bytes += TrStat_sg_nodes * sizeof(struct subgoal_trie_node);
+      bytes += TrStat_float_sg_nodes * sizeof(struct float_subgoal_trie_node);
+      bytes += TrStat_long_sg_nodes * sizeof(struct long_subgoal_trie_node);
+      bytes += TrStat_sg_hash * sizeof(struct subgoal_trie_hash);
+      bytes += TrStat_subgoals * sizeof(struct subgoal_frame);
+#ifdef TABLING_CALL_SUBSUMPTION
+    } else {
+      bytes += TrStat_sg_nodes * sizeof(struct sub_subgoal_trie_node);
+      bytes += TrStat_float_sg_nodes * sizeof(struct float_sub_subgoal_trie_node);
+      bytes += TrStat_long_sg_nodes * sizeof(struct long_sub_subgoal_trie_node);
+      bytes += TrStat_sg_hash * sizeof(struct sub_subgoal_trie_hash);
+      bytes += TrStat_sg_indexes * sizeof(struct gen_index_node);
+      
+      if(TabEnt_is_grounded(tab_ent)) {
+        bytes += TrStat_subgoals * sizeof(struct grounded_subgoal_frame);
+      } else {
+        bytes += TrStat_subcons_subgoals * sizeof(struct subsumed_consumer_subgoal_frame);
+        bytes += TrStat_subgoals * sizeof(struct subsumptive_producer_subgoal_frame);
+      }
+#endif /* TABLING_CALL_SUBSUMPTION */ 
+    }
+    
+    bytes += TrStat_sg_hash_buckets * sizeof(void *);
+    
+    bytes += TrStat_ans_nodes * sizeof(struct answer_trie_node);
+    
+    
     /* XXX */
-    fprintf(Yap_stdout, "  Total memory in use: %ld bytes\n",
-	    sizeof(struct table_entry) + TrStat_sg_nodes * sizeof(struct subgoal_trie_node) +
-	    TrStat_ans_nodes * sizeof(struct answer_trie_node) + TrStat_subgoals * sizeof(struct subgoal_frame)); 
+    fprintf(Yap_stdout, "  Total memory in use: %ld bytes\n", bytes);
   }
   return;
 }
@@ -813,6 +863,16 @@ void traverse_subgoal_trie(sg_node_ptr current_node, char *str, int str_index, i
     last_bucket = bucket + Hash_num_buckets(hash);
     current_arity = (int *) malloc(sizeof(int) * (arity[0] + 1));
     memcpy(current_arity, arity, sizeof(int) * (arity[0] + 1));
+    
+    TrStat_sg_hash++;
+    TrStat_sg_hash_buckets += Hash_num_buckets(hash);
+    
+#ifdef TABLING_CALL_SUBSUMPTION
+    if(!TabEnt_is_variant(tab_ent)) {
+      count_subgoal_hash_index(hash, TrStat_sg_indexes);
+    }
+#endif
+    
     do {
       if (*bucket) {
         traverse_subgoal_trie(*bucket, str, str_index, arity, mode, TRAVERSE_POSITION_FIRST, tab_ent);
@@ -839,7 +899,13 @@ void traverse_subgoal_trie(sg_node_ptr current_node, char *str, int str_index, i
   }
 
   /* process current trie node */
-  TrStat_sg_nodes++;
+  if(TrNode_is_float(current_node))
+    TrStat_float_sg_nodes++;
+  else if(TrNode_is_long(current_node))
+    TrStat_long_sg_nodes++;
+  else
+    TrStat_sg_nodes++;
+    
 #ifdef GLOBAL_TRIE
   traverse_global_trie_for_subgoal(TrNode_entry(current_node), str, &str_index, arity, &mode);
 #else
@@ -853,7 +919,6 @@ void traverse_subgoal_trie(sg_node_ptr current_node, char *str, int str_index, i
     /* ... or show answers */
     sg_fr_ptr sg_fr = (sg_fr_ptr) TrNode_sg_fr(current_node);
     
-    TrStat_subgoals++;
     str[str_index] = 0;
     
     SHOW_TABLE_STRUCTURE("%s.\n", str);
@@ -861,6 +926,7 @@ void traverse_subgoal_trie(sg_node_ptr current_node, char *str, int str_index, i
     switch(SgFr_type(sg_fr)) {
       case VARIANT_PRODUCER_SFT:
       case SUBSUMPTIVE_PRODUCER_SFT:
+        TrStat_subgoals++;
         TrStat_ans_nodes++;
       
         if (SgFr_has_no_answers(sg_fr)) {
@@ -888,6 +954,8 @@ void traverse_subgoal_trie(sg_node_ptr current_node, char *str, int str_index, i
 #ifdef TABLING_CALL_SUBSUMPTION
       case SUBSUMED_CONSUMER_SFT:
         {
+          TrStat_subcons_subgoals++;
+          
           subcons_fr_ptr cons_sg = (subcons_fr_ptr)sg_fr;
           subprod_fr_ptr prod_sg = SgFr_producer(cons_sg);
       
@@ -907,6 +975,8 @@ void traverse_subgoal_trie(sg_node_ptr current_node, char *str, int str_index, i
       case GROUND_PRODUCER_SFT:
       case GROUND_CONSUMER_SFT:
         {
+          TrStat_subgoals++;
+          
           if(SgFr_is_ground_consumer(sg_fr)) {
             grounded_sf_ptr ground_sg = (grounded_sf_ptr)sg_fr;
             grounded_sf_ptr producer_sg = (grounded_sf_ptr)SgFr_producer(ground_sg);
@@ -972,6 +1042,7 @@ void traverse_answer_trie(ans_node_ptr current_node, char *str, int str_index, i
     last_bucket = bucket + Hash_num_buckets(hash);
     current_arity = (int *) malloc(sizeof(int) * (arity[0] + 1));
     memcpy(current_arity, arity, sizeof(int) * (arity[0] + 1));
+    
     do {
       if (*bucket) {
         traverse_answer_trie(*bucket, str, str_index, arity, var_index, mode, TRAVERSE_POSITION_FIRST);
