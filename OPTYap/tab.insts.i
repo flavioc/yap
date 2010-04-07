@@ -442,7 +442,6 @@
 #define check_ground_pre_stored_answers(SG_FR, TAB_ENT, GROUND_SG)  \
     if(TabEnt_ground_time_stamp(TAB_ENT) > 0) {                     \
       grounded_sf_ptr ground_sg = (grounded_sf_ptr)(SG_FR);         \
-      CELL *answer_template = YENV;                                 \
                                                                     \
       /* retrieve more answers */                                   \
       build_next_ground_producer_return_list(GROUND_SG);            \
@@ -451,13 +450,11 @@
                                                                     \
       if(cont) {                                                    \
         ans_node_ptr ans_node = continuation_answer(cont);          \
-                                                                    \
-        UNLOCK(SgFr_lock(sg_fr));                                   \
+        CELL *answer_template = (CELL *)(GEN_CP(B) + 1) + SgFr_arity(SG_FR);  \
                                                                     \
         SgFr_try_answer(GROUND_SG) = cont;                          \
                                                                     \
-        store_generator_node(TAB_ENT, SG_FR, PREG->u.Otapl.s,       \
-                                  TRY_GROUND_ANSWER);               \
+        B->cp_ap = TRY_GROUND_ANSWER;                               \
         PREG = (yamop *)CPREG;                                      \
         PREFETCH_OP(PREG);                                          \
         CONSUME_GROUND_ANSWER(ans_node, answer_template, GROUND_SG);\
@@ -478,7 +475,7 @@
       grounded_sf_ptr ground_sg = (grounded_sf_ptr)(SG_FR);         \
       check_ground_pending_subgoals(SG_FR, TAB_ENT, ground_sg);     \
       check_ground_pre_stored_answers(SG_FR, TAB_ENT, ground_sg);   \
-    }                                                               \
+    }
           
 
 /* Consume subsuming answer ANS_NODE using ANS_TMPLT
@@ -766,9 +763,6 @@
     if (is_new_generator_call(sg_fr)) {
       /* subgoal new */
       init_subgoal_frame(sg_fr);
-#ifdef TABLING_CALL_SUBSUMPTION
-      check_ground_generator(sg_fr, tab_ent);
-#endif
       
       UNLOCK(SgFr_lock(sg_fr));
 #ifdef DETERMINISTIC_TABLING
@@ -779,6 +773,9 @@
       {
 	      store_generator_node(tab_ent, sg_fr, PREG->u.Otapl.s, COMPLETION);
       }
+#ifdef TABLING_CALL_SUBSUMPTION
+      check_ground_generator(sg_fr, tab_ent);
+#endif
       PREG = PREG->u.Otapl.d;  /* should work also with PREG = NEXTOP(PREG,Otapl); */
       PREFETCH_OP(PREG);
       allocate_environment();
@@ -905,12 +902,11 @@
       /* subgoal new */
       init_subgoal_frame(sg_fr);
 
+      UNLOCK(SgFr_lock(sg_fr));
+      store_generator_node(tab_ent, sg_fr, PREG->u.Otapl.s, PREG->u.Otapl.d);
 #ifdef TABLING_CALL_SUBSUMPTION
       check_ground_generator(sg_fr, tab_ent);
 #endif
-
-      UNLOCK(SgFr_lock(sg_fr));
-      store_generator_node(tab_ent, sg_fr, PREG->u.Otapl.s, PREG->u.Otapl.d);
       PREG = NEXTOP(PREG, Otapl);
       PREFETCH_OP(PREG);
       allocate_environment();
@@ -1037,11 +1033,11 @@
     if (is_new_generator_call(sg_fr)) {
       /* subgoal new */
       init_subgoal_frame(sg_fr);
+      UNLOCK(SgFr_lock(sg_fr));
+      store_generator_node(tab_ent, sg_fr, PREG->u.Otapl.s, NEXTOP(PREG,Otapl));
 #ifdef TABLING_CALL_SUBSUMPTION
       check_ground_generator(sg_fr, tab_ent);
 #endif
-      UNLOCK(SgFr_lock(sg_fr));
-      store_generator_node(tab_ent, sg_fr, PREG->u.Otapl.s, NEXTOP(PREG,Otapl));
       PREG = PREG->u.Otapl.d;
       PREFETCH_OP(PREG);
       allocate_environment();
@@ -1156,7 +1152,7 @@
     sg_fr_ptr sg_fr = GEN_CP(B)->cp_sg_fr;
      
     if(SgFr_is_ground_producer(sg_fr)) {
-      printf("NEW_ANSWER_CP=NULL\n");
+      dprintf("NEW_ANSWER_CP=NULL\n");
       SgFr_new_answer_cp((grounded_sf_ptr)sg_fr) = NULL;
     }
 #endif /* TABLING_CALL_SUBSUMPTION */
@@ -1179,7 +1175,7 @@
     sg_fr_ptr sg_fr = GEN_CP(B)->cp_sg_fr;
      
     if(SgFr_is_ground_producer(sg_fr)) {
-      printf("NEW_ANSWER_CP=NULL\n");
+      dprintf("NEW_ANSWER_CP=NULL\n");
       SgFr_new_answer_cp((grounded_sf_ptr)sg_fr) = NULL;
     }
 #endif /* TABLING_CALL_SUBSUMPTION */
@@ -1202,7 +1198,7 @@
     sg_fr_ptr sg_fr = GEN_CP(B)->cp_sg_fr;
 
     if(SgFr_is_ground_producer(sg_fr)) {
-      printf("NEW_ANSWER_CP=NULL\n");
+      dprintf("NEW_ANSWER_CP=NULL\n");
       SgFr_new_answer_cp((grounded_sf_ptr)sg_fr) = NULL;
     }
 #endif /* TABLING_CALL_SUBSUMPTION */
@@ -1239,7 +1235,7 @@
     sg_fr_ptr sg_fr = GEN_CP(B)->cp_sg_fr;
      
     if(SgFr_is_ground_producer(sg_fr)) {
-      printf("NEW_ANSWER_CP=NULL\n");
+      dprintf("NEW_ANSWER_CP=NULL\n");
       SgFr_new_answer_cp((grounded_sf_ptr)sg_fr) = NULL;
     }
 #endif /* TABLING_CALL_SUBSUMPTION */
