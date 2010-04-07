@@ -192,6 +192,7 @@
 #ifdef TABLING
   yamop  table_load_answer_code[1];
   yamop  table_load_cons_answer_code[1];
+  yamop  table_run_completed_code[1];
   yamop  table_try_answer_code[1];
   yamop  table_try_ground_answer_code[1];
   yamop  table_answer_resolution_code[1];

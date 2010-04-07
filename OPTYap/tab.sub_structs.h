@@ -139,9 +139,12 @@ struct grounded_subgoal_frame {
   continuation_ptr try_answer;
   
   int is_most_general;
+  
+  choiceptr new_answer_cp;
 };
 
 #define SgFr_is_most_general(X)     ((X)->is_most_general)
+#define SgFr_new_answer_cp(X)       ((X)->new_answer_cp)
 
 #define TabEnt_ground_trie(X)       (TrNode_next(TabEnt_subgoal_trie(X)))
 #define TabEnt_has_ground_trie(X)   (TabEnt_ground_trie(X) != NULL)

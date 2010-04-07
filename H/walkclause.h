@@ -594,6 +594,7 @@
     case _table_load_cons_answer:
     case _table_retry:
     case _table_retry_me:
+    case _table_run_completed:
     case _table_trust:
     case _table_trust_me:
     case _table_try:

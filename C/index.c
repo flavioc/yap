@@ -991,6 +991,7 @@ has_cut(yamop *pc)
     case _table_trust:
     case _table_answer_resolution:
     case _table_completion:
+    case _table_run_completed:
 #endif /* TABLING */
       pc = NEXTOP(pc,Otapl);
       break;

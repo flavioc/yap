@@ -120,8 +120,6 @@ sg_fr_ptr grounded_call_search(yamop *code, CELL *answer_template, CELL **new_lo
   btn = iter_sub_trie_lookup(CTXTc btRoot, &path_type);
   Trail_Unwind_All;
   
-  dprintf("ground_call_search\n");
-  
 #ifdef FDEBUG
   if(btn) {
     printf("Subsumption call found: ");

@@ -192,6 +192,7 @@
 #ifdef TABLING
   InitOtaplInst(LOAD_ANSWER,_table_load_answer,PredFail);
   InitOtaplInst(LOAD_CONS_ANSWER,_table_load_cons_answer,PredFail);
+  InitOtaplInst(RUN_COMPLETED,_table_run_completed,PredFail);
   InitOtaplInst(TRY_ANSWER,_table_try_answer,PredFail);
   InitOtaplInst(TRY_GROUND_ANSWER,_table_try_ground_answer,PredFail);
   InitOtaplInst(ANSWER_RESOLUTION,_table_answer_resolution,PredFail);

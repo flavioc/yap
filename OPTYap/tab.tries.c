@@ -699,7 +699,7 @@ void show_table(tab_ent_ptr tab_ent, int show_mode) {
         bytes += TrStat_subcons_subgoals * sizeof(struct subsumed_consumer_subgoal_frame);
         bytes += TrStat_subgoals * sizeof(struct subsumptive_producer_subgoal_frame);
       }
-#endif /* TABLING_CALL_SUBSUMPTION */ 
+#endif /* TABLING_CALL_SUBSUMPTION */
     }
     
     bytes += TrStat_sg_hash_buckets * sizeof(void *);

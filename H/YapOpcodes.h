@@ -331,8 +331,9 @@
 #endif
   OPCODE(table_load_cons_answer     ,Otapl),
   OPCODE(table_load_answer          ,Otapl),
-  OPCODE(table_try_ground_answer    ,Otapl),
+  OPCODE(table_run_completed        ,Otapl),
   OPCODE(table_try_answer           ,Otapl),
+  OPCODE(table_try_ground_answer    ,Otapl),
   OPCODE(table_try_single           ,Otapl),
   OPCODE(table_try_me               ,Otapl),
   OPCODE(table_try                  ,Otapl),

@@ -192,6 +192,7 @@
 #ifdef TABLING
 #define LOAD_ANSWER Yap_heap_regs->table_load_answer_code
 #define LOAD_CONS_ANSWER Yap_heap_regs->table_load_cons_answer_code
+#define RUN_COMPLETED Yap_heap_regs->table_run_completed_code
 #define TRY_ANSWER Yap_heap_regs->table_try_answer_code
 #define TRY_GROUND_ANSWER Yap_heap_regs->table_try_ground_answer_code
 #define ANSWER_RESOLUTION Yap_heap_regs->table_answer_resolution_code

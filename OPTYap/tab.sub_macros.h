@@ -58,7 +58,8 @@ STD_PROTO(static inline void process_pending_subgoal_list, (node_list_ptr, groun
         SgFr_choice_point(SG_FR) = NULL;  \
         SgFr_timestamp(SG_FR) = 0;      \
         SgFr_is_most_general(SG_FR) = FALSE;  \
-        SgFr_answer_template(SG_FR) = NULL
+        SgFr_answer_template(SG_FR) = NULL;   \
+        SgFr_new_answer_cp(SG_FR) = NULL
   
 #define new_grounded_consumer_subgoal_frame(SG_FR, CODE, LEAF, PRODUCER) {  \
         new_basic_subgoal_frame(SG_FR, CODE, LEAF,                          \
@@ -223,9 +224,7 @@ STD_PROTO(static inline void process_pending_subgoal_list, (node_list_ptr, groun
 #define increment_sugoal_path(SG_FR)                                \
       { subg_node_ptr leaf = (subg_node_ptr)SgFr_leaf(SG_FR);       \
         if(TrNode_num_gen(leaf) == 1) {                             \
-          dprintf("Already generator updated\n");                   \
         } else {                                                    \
-          dprintf("Updating subgoal path\n");                       \
           update_generator_path((sg_node_ptr)leaf);                 \
         }                                                           \
       }
@@ -233,10 +232,9 @@ STD_PROTO(static inline void process_pending_subgoal_list, (node_list_ptr, groun
 #define decrement_subgoal_path(SG_FR)                               \
       { subg_node_ptr leaf = (subg_node_ptr)SgFr_leaf(SG_FR);       \
         if(TrNode_num_gen(leaf) != 1) {                             \
-          printf("a leaf node must be 1\n");                        \
-          exit(1);                                                  \
+          Yap_Error(INTERNAL_ERROR, TermNil,                        \
+            "leaf node must contain 1 (decrement_subgoal_path)");   \
         } else {                                                    \
-          dprintf("decrementing subgoal path\n");                   \
           decrement_generator_path((sg_node_ptr)leaf);              \
         }                                                           \
       }
@@ -471,21 +469,32 @@ build_next_ground_producer_return_list(grounded_sf_ptr producer_sg) {
 
 #undef STANDARDIZE_AT_PTR
 
-#ifdef FDEBUG
 static inline void
-traverse_choice_points(choiceptr target)
+traverse_choice_points(grounded_sf_ptr sg_fr)
 {
-  choiceptr cp = B;
+  choiceptr gen_cp = SgFr_choice_point(sg_fr);
+  choiceptr new_ans = SgFr_new_answer_cp(sg_fr);
   
-  while(cp && cp != target) {
-    printf("From %d to %d\n", cp, cp->cp_b);
+  dprintf("gen_cp=%d new_ans=%d\n", (int)gen_cp, (int)new_ans);
+  
+  if(TabEnt_is_load(SgFr_tab_ent(sg_fr)))
+    /* set last answer consumed for load answers */
+    SgFr_try_answer(sg_fr) = SgFr_last_answer(sg_fr);
+  
+  /* update generator choice point to point to RUN_COMPLETED */
+  gen_cp->cp_ap = (yamop *)RUN_COMPLETED;
+  
+  if(gen_cp == new_ans)
+    /* simple generator clause */
+    return;
     
-    cp = cp->cp_b;
+  while(new_ans != gen_cp) {
+    /* fail with new_ans */
+    new_ans->cp_ap = (yamop *)TRUSTFAILCODE;
+    printf("Set choiceptr %d with TRUSTFAILCODE\n", (int)new_ans);
+    new_ans = new_ans->cp_b;
   }
-  B = target;
-  printf("FOUND CHOICE POINT\n");
 }
-#endif /* FDEBUG */
 
 static inline void
 process_pending_subgoal_list(node_list_ptr list, grounded_sf_ptr sg_fr) {
@@ -518,11 +527,13 @@ process_pending_subgoal_list(node_list_ptr list, grounded_sf_ptr sg_fr) {
          * change the WAM stacks and tabling data
          * structures to change its status
          */
+        SgFr_producer(pending) = sg_fr;
+        SgFr_type(pending) = GROUND_CONSUMER_SFT;
 #ifdef FDEBUG
         printf("Found a specific subgoal already running\n");
         printSubgoalTriePath(stdout, SgFr_leaf(pending), SgFr_tab_ent(pending));
-        printf("\nChoice point %d\n", SgFr_choice_point(pending));
-        traverse_choice_points(SgFr_choice_point(pending));
+        printf("\n");
+        traverse_choice_points(pending);
 #endif
       }
     }

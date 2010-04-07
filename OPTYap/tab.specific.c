@@ -458,10 +458,12 @@ While_TSnotEmpty:
   /* new subgoal */
   
   ALN_InsertAnswer(returnList, TrNode_sg_fr(parent_node));
+#if 0
 #ifdef FDEBUG
   printf("Found subgoal ");
   printSubgoalTriePath(stdout, parent_node, tab_ent);
-#endif  
+#endif
+#endif
 
   if ( CPStack_IsEmpty ) {
     goto end_collect;

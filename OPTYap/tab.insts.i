@@ -586,61 +586,48 @@
     
     consume_answer_leaf(ans_node, ans_tmplt, CONSUME_VARIANT_ANSWER);
   ENDPBOp();
-
+  
+  PBOp(table_run_completed, Otapl)
 #ifdef TABLING_CALL_SUBSUMPTION
-  PBOp(table_try_ground_answer, Otapl)
-    grounded_sf_ptr sg_fr;
-    ans_node_ptr ans_node = NULL;
-    continuation_ptr next_cont;
+    dprintf("===> TABLE_RUN_COMPLETED\n");
     
-    dprintf("===> TABLE_TRY_GROUND_ANSWER\n");
+    grounded_sf_ptr sg_fr = (grounded_sf_ptr)GEN_CP(B)->cp_sg_fr;
+    tab_ent_ptr tab_ent = SgFr_tab_ent(sg_fr);
     
-    sg_fr = (grounded_sf_ptr)GEN_CP(B)->cp_sg_fr;
-    next_cont = continuation_next(SgFr_try_answer(sg_fr));
-    
-    if(next_cont) {
-      CELL *answer_template = (CELL *)(GEN_CP(B) + 1) + SgFr_arity(sg_fr);
+    if(TabEnt_is_load(tab_ent)) {
       
-      ans_node = continuation_answer(next_cont);
-      H = HBREG = PROTECT_FROZEN_H(B);
-      restore_yaam_reg_cpdepth(B);
-      CPREG = B->cp_cp;
-      ENV = B->cp_env;
-      SgFr_try_answer(sg_fr) = next_cont;
-      
-      PREG = (yamop *) CPREG;
-      PREFETCH_OP(PREG);
-      CONSUME_GROUND_ANSWER(ans_node, answer_template, sg_fr);
-      YENV = ENV;
-      GONext();
-    } else {
-      yamop *code_ap;
-      PREG = SgFr_code(sg_fr);
-      if (PREG->opc == Yap_opcode(_table_try)) {
-	      /* table_try */
-	      code_ap = NEXTOP(PREG,Otapl);
-	      PREG = PREG->u.Otapl.d;
-      } else if (PREG->opc == Yap_opcode(_table_try_single)) {
-	      /* table_try_single */
-	      code_ap = COMPLETION;
-	      PREG = PREG->u.Otapl.d;
-      } else {
-	      /* table_try_me */
-	      code_ap = PREG->u.Otapl.d;
-	      PREG = NEXTOP(PREG,Otapl);
+      if(SgFr_state(sg_fr) < complete) {
+        mark_ground_consumer_as_completed(sg_fr);
+        build_next_ground_consumer_return_list(sg_fr);
       }
-      PREFETCH_OP(PREG);
-      restore_generator_node(SgFr_arity(sg_fr), code_ap);
-      YENV = (CELL *) PROTECT_FROZEN_B(B);
-      set_cut(YENV, B->cp_b);
-      SET_BB(NORM_CP(YENV));
-      allocate_environment();
-      GONext();
+      
+      continuation_ptr next_cont = continuation_next(SgFr_try_answer(sg_fr));
+      
+      if(next_cont) {
+        CELL *answer_template = (CELL *) (GEN_CP(B) + 1) + SgFr_arity(sg_fr);
+        ans_node_ptr ans_node = continuation_answer(next_cont);
+        
+        H = HBREG = PROTECT_FROZEN_H(B);
+        restore_yaam_reg_cpdepth(B);
+        CPREG = B->cp_cp;
+        ENV = B->cp_env;
+        
+        SgFr_try_answer(sg_fr) = next_cont;
+        
+        PREG = (yamop *) CPREG;
+        PREFETCH_OP(PREG);
+        CONSUME_SUBSUMPTIVE_ANSWER(ans_node, answer_template);
+        YENV = ENV;
+        GONext();
+      } else {
+        B = B->cp_b;
+        goto fail;
+      }
     }
-    printf("ooops\n");
+    
     exit(1);
-  ENDPBOp();
 #endif /* TABLING_CALL_SUBSUMPTION */
+  ENDPBOp();
   
   PBOp(table_try_answer, Otapl)
     dprintf("===> TABLE_TRY_ANSWER\n");
@@ -704,7 +691,62 @@
 #endif /* INCOMPLETE_TABLING */
   ENDPBOp();
 
-
+  PBOp(table_try_ground_answer, Otapl)
+  #ifdef TABLING_CALL_SUBSUMPTION
+    grounded_sf_ptr sg_fr;
+    ans_node_ptr ans_node = NULL;
+    continuation_ptr next_cont;
+    
+    dprintf("===> TABLE_TRY_GROUND_ANSWER\n");
+    
+    sg_fr = (grounded_sf_ptr)GEN_CP(B)->cp_sg_fr;
+    next_cont = continuation_next(SgFr_try_answer(sg_fr));
+    
+    if(next_cont) {
+      CELL *answer_template = (CELL *)(GEN_CP(B) + 1) + SgFr_arity(sg_fr);
+      
+      ans_node = continuation_answer(next_cont);
+      H = HBREG = PROTECT_FROZEN_H(B);
+      restore_yaam_reg_cpdepth(B);
+      CPREG = B->cp_cp;
+      ENV = B->cp_env;
+      SgFr_try_answer(sg_fr) = next_cont;
+      
+      PREG = (yamop *) CPREG;
+      PREFETCH_OP(PREG);
+      CONSUME_GROUND_ANSWER(ans_node, answer_template, sg_fr);
+      YENV = ENV;
+      GONext();
+    } else {
+      yamop *code_ap;
+      PREG = SgFr_code(sg_fr);
+      if (PREG->opc == Yap_opcode(_table_try)) {
+	      /* table_try */
+	      code_ap = NEXTOP(PREG,Otapl);
+	      PREG = PREG->u.Otapl.d;
+      } else if (PREG->opc == Yap_opcode(_table_try_single)) {
+	      /* table_try_single */
+	      code_ap = COMPLETION;
+	      PREG = PREG->u.Otapl.d;
+      } else {
+	      /* table_try_me */
+	      code_ap = PREG->u.Otapl.d;
+	      PREG = NEXTOP(PREG,Otapl);
+      }
+      PREFETCH_OP(PREG);
+      restore_generator_node(SgFr_arity(sg_fr), code_ap);
+      YENV = (CELL *) PROTECT_FROZEN_B(B);
+      set_cut(YENV, B->cp_b);
+      SET_BB(NORM_CP(YENV));
+      allocate_environment();
+      GONext();
+    }
+#else
+    PREG = PREG->u.Otapl.d;
+    PREFETCH_OP(PREG);
+    GONext();
+#endif /* TABLING_CALL_SUBSUMPTION */
+  ENDPBOp();
 
   PBOp(table_try_single, Otapl)
     tab_ent_ptr tab_ent;
@@ -1108,6 +1150,16 @@
 
   Op(table_retry_me, Otapl)
     dprintf("===> TABLE_RETRY_ME\n");
+    
+#ifdef TABLING_CALL_SUBSUMPTION
+    sg_fr_ptr sg_fr = GEN_CP(B)->cp_sg_fr;
+     
+    if(SgFr_is_ground_producer(sg_fr)) {
+      printf("NEW_ANSWER_CP=NULL\n");
+      SgFr_new_answer_cp((grounded_sf_ptr)sg_fr) = NULL;
+    }
+#endif /* TABLING_CALL_SUBSUMPTION */
+    
     restore_generator_node(PREG->u.Otapl.s, PREG->u.Otapl.d);
     YENV = (CELL *) PROTECT_FROZEN_B(B);
     set_cut(YENV, B->cp_b);
@@ -1121,6 +1173,16 @@
 
   Op(table_retry, Otapl)
     dprintf("===> TABLE_RETRY\n");
+    
+#ifdef TABLING_CALL_SUBSUMPTION
+    sg_fr_ptr sg_fr = GEN_CP(B)->cp_sg_fr;
+     
+    if(SgFr_is_ground_producer(sg_fr)) {
+      printf("NEW_ANSWER_CP=NULL\n");
+      SgFr_new_answer_cp((grounded_sf_ptr)sg_fr) = NULL;
+    }
+#endif /* TABLING_CALL_SUBSUMPTION */
+    
     restore_generator_node(PREG->u.Otapl.s, NEXTOP(PREG,Otapl));
     YENV = (CELL *) PROTECT_FROZEN_B(B);
     set_cut(YENV, B->cp_b);
@@ -1135,6 +1197,15 @@
   Op(table_trust_me, Otapl)
     dprintf("===> TABLE_TRUST_ME\n");
     
+#ifdef TABLING_CALL_SUBSUMPTION
+    sg_fr_ptr sg_fr = GEN_CP(B)->cp_sg_fr;
+
+    if(SgFr_is_ground_producer(sg_fr)) {
+      printf("NEW_ANSWER_CP=NULL\n");
+      SgFr_new_answer_cp((grounded_sf_ptr)sg_fr) = NULL;
+    }
+#endif /* TABLING_CALL_SUBSUMPTION */
+
     restore_generator_node(PREG->u.Otapl.s, COMPLETION);
 #ifdef DETERMINISTIC_TABLING
     if (B_FZ > B && IS_BATCHED_NORM_GEN_CP(B)) {   
@@ -1163,14 +1234,18 @@
 
 
   Op(table_trust, Otapl)
-    
-    restore_generator_node(PREG->u.Otapl.s, COMPLETION);
-#ifdef FDEBUG
+#ifdef TABLING_CALL_SUBSUMPTION
     sg_fr_ptr sg_fr = GEN_CP(B)->cp_sg_fr;
+     
+    if(SgFr_is_ground_producer(sg_fr)) {
+      printf("NEW_ANSWER_CP=NULL\n");
+      SgFr_new_answer_cp((grounded_sf_ptr)sg_fr) = NULL;
+    }
+#endif /* TABLING_CALL_SUBSUMPTION */
+
+    restore_generator_node(PREG->u.Otapl.s, COMPLETION);
+    
     dprintf("===> TABLE_TRUST ");
-    printSubgoalTriePath(stdout, SgFr_leaf(sg_fr), SgFr_tab_ent(sg_fr));
-    dprintf("\n");
-#endif
 
 #ifdef DETERMINISTIC_TABLING
   if (B_FZ > B && IS_BATCHED_NORM_GEN_CP(B)) {    
@@ -1387,6 +1462,13 @@
 #endif /* TABLE_LOCK_LEVEL */
 
       push_new_answer_set(ans_node, SgFr_first_answer(sg_fr), SgFr_last_answer(sg_fr));
+      
+#ifdef TABLING_CALL_SUBSUMPTION
+      if(SgFr_is_ground_producer(sg_fr)) {
+        dprintf("NEW_ANSWER_CP=%d\n", (int)B);
+        SgFr_new_answer_cp((grounded_sf_ptr)sg_fr) = B;
+      }
+#endif
 
 #ifdef TABLING_ERRORS
       if(SgFr_first_answer(sg_fr)) {
