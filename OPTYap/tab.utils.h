@@ -39,7 +39,7 @@
 
 extern DynamicStack tstTermStack;
 
-#define TST_TERMSTACK_INITSIZE 25
+#define TST_TERMSTACK_INITSIZE 100
 
 #define TermStack_Top ((CPtr)DynStk_Top(tstTermStack))
 #define TermStack_Base ((CPtr)DynStk_Base(tstTermStack))
@@ -163,7 +163,7 @@ typedef tstLogFrame *pLogFrame;
 
 extern DynamicStack tstTermStackLog;
 
-#define TST_TERMSTACKLOG_INITSIZE 20
+#define TST_TERMSTACKLOG_INITSIZE 100
 
 #define TermStackLog_Top ((pLogFrame)DynStk_Top(tstTermStackLog))
 #define TermStackLog_Base ((pLogFrame)DynStk_Base(tstTermStackLog))
@@ -202,7 +202,7 @@ extern DynamicStack tstTermStackLog;
 
 extern DynamicStack tstSymbolStack;
 
-#define TST_SYMBOLSTACK_INITSIZE 25
+#define TST_SYMBOLSTACK_INITSIZE 100
 
 #define SymbolStack_Top   ((CPtr)DynStk_Top(tstSymbolStack))
 #define SymbolStack_Base  ((CPtr)DynStk_Base(tstSymbolStack))
@@ -277,7 +277,7 @@ extern DynamicStack tstSymbolStack;
  
 extern DynamicStack tstTrail;
  
-#define TST_TRAIL_INITSIZE  20
+#define TST_TRAIL_INITSIZE  100
 
 #define Trail_Top           ((CPtr *)DynStk_Top(tstTrail))
 #define Trail_Base          ((CPtr *)DynStk_Base(tstTrail))
@@ -542,7 +542,7 @@ extern CELL* AT;
 #endif /* TABLING_CALL_SUBSUMPTION */
 
 // deactivate to test
-#define FDEBUG
+//#define FDEBUG
 #ifdef FDEBUG
 #define dprintf(MESG, ARGS...) printf(MESG, ##ARGS)
 #else

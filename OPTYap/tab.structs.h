@@ -448,7 +448,15 @@ typedef sg_fr_ptr variant_sf_ptr;
 **      Struct dependency_frame      **
 ** --------------------------------- */
 
+enum {
+  NORMAL_DEP = 0x01, /* 0000 0001 */
+  TRANSFORMED_DEP = 0x02 /* 0000 0010 */
+};
+
+typedef unsigned char dependency_type;
+  
 typedef struct dependency_frame {
+  dependency_type type;
 #if defined(YAPOR) || defined(THREADS)
   lockvar lock;
 #endif
@@ -467,6 +475,7 @@ typedef struct dependency_frame {
   struct dependency_frame *next;
 } *dep_fr_ptr;
 
+#define DepFr_type(X)                    ((X)->type)
 #define DepFr_lock(X)                    ((X)->lock)
 #define DepFr_leader_dep_is_on_stack(X)  ((X)->leader_dependency_is_on_stack)
 #define DepFr_top_or_fr(X)               ((X)->top_or_frame)
@@ -477,7 +486,7 @@ typedef struct dependency_frame {
 #define DepFr_last_answer(X)             ((X)->last_consumed_answer)
 #define DepFr_sg_fr(X)                   ((X)->sg_fr)
 #define DepFr_next(X)                    ((X)->next)
-#define DepFr_H(X)                       (DepFr_cons_cp(X)->cp_h)
+#define DepFr_is_normal(X)               (DepFr_type(X) & NORMAL_DEP)
 
 /* ---------------------------------------------------------------------------------------------------- **
    DepFr_lock:                   lock variable to modify the frame fields.

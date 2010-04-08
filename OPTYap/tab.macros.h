@@ -274,6 +274,7 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
             }                                                                     \
             chain_dep_fr = DepFr_next(chain_dep_fr);                              \
           }                                                                       \
+          dprintf("LEADER_CP=%d\n", (int)LEADER_CP);                                    \
 	      }
 #endif /* YAPOR */
 
@@ -505,12 +506,6 @@ join_answers_subgoal_frame(sg_fr_ptr sg_fr, continuation_ptr first, continuation
                  
 #endif /* TABLING_ANSWER_LIST */
 
-/* --------------------------- **
-**   Subsumption macros        **
-** --------------------------- */
-
-#include "tab.sub_macros.h"
-
 
 #define new_dependency_frame(DEP_FR, DEP_ON_STACK, TOP_OR_FR, LEADER_CP, CONS_CP, SG_FR, NEXT)         \
         ALLOC_DEPENDENCY_FRAME(DEP_FR);                                                                \
@@ -521,7 +516,8 @@ join_answers_subgoal_frame(sg_fr_ptr sg_fr, continuation_ptr first, continuation
         DepFr_cons_cp(DEP_FR) = NORM_CP(CONS_CP);                                                      \
         DepFr_next(DEP_FR) = NEXT;                                                                     \
         DepFr_sg_fr(DEP_FR) = SG_FR;                                                                   \
-        DepFr_last_answer(DEP_FR) = (continuation_ptr)CONSUMER_DEFAULT_LAST_ANSWER(SG_FR, DEP_FR)
+        DepFr_last_answer(DEP_FR) = (continuation_ptr)CONSUMER_DEFAULT_LAST_ANSWER(SG_FR, DEP_FR);     \
+        DepFr_type(DEP_FR) = NORMAL_DEP
 
 #define new_table_entry(TAB_ENT, PRED_ENTRY, ATOM, ARITY)       \
         { ALLOC_TABLE_ENTRY(TAB_ENT);                           \
@@ -542,8 +538,6 @@ join_answers_subgoal_frame(sg_fr_ptr sg_fr, continuation_ptr first, continuation
         TrNode_child(NODE) = CHILD;                             \
         TrNode_parent(NODE) = PARENT;                           \
         TrNode_next(NODE) = NEXT
-        
-#include "tab.types.h"
 
 #define new_root_answer_trie_node(NODE)                                 \
         ALLOC_ANSWER_TRIE_NODE(NODE);                                   \
@@ -673,14 +667,25 @@ join_answers_subgoal_frame(sg_fr_ptr sg_fr, continuation_ptr first, continuation
 #endif /* LIMIT_TABLING */
 
 /* Get a pointer to the consumer answer template by using B */
-#define CONSUMER_ANSWER_TEMPLATE  ((CELL *) (CONS_CP(B) + 1))
+#define CONSUMER_NODE_ANSWER_TEMPLATE(CONSUMER_CP) ((CELL *) (CONS_CP(CONSUMER_CP) + 1))
+#define CONSUMER_ANSWER_TEMPLATE(DEP_FR)  (DepFr_is_normal(DEP_FR) ? CONSUMER_NODE_ANSWER_TEMPLATE(B)  \
+                                              : GENERATOR_ANSWER_TEMPLATE(DepFr_cons_cp(DEP_FR), DepFr_sg_fr(DEP_FR)))
 #define DEPENDENCY_FRAME_ANSWER_TEMPLATE(DEP_FR)  ((CELL *)(CONS_CP(DepFr_cons_cp(DEP_FR)) + 1))
+#define GENERATOR_ANSWER_TEMPLATE(GEN_CHOICEP, SG_FR) ((CELL *)(GEN_CP(GEN_CHOICEP) + 1) + SgFr_arity(SG_FR))
 
 #define trail_unwind(TR0)                   \
   while(TR != TR0)  {                       \
     CELL *var = (CELL *)TrailTerm(--TR);    \
     RESET_VARIABLE(var);                    \
   }
+  
+/* --------------------------- **
+**   Subsumption macros        **
+** --------------------------- */
+
+#include "tab.sub_macros.h"
+        
+#include "tab.types.h"
 
 /* ------------------------- **
 **      Inline funcions      **

@@ -658,7 +658,6 @@ MakeFloatTerm(Float dbl)
 static inline Term
 MakeFloatTerm(Float dbl)
 {
-  printf("AQUI\n");
   AT[0] = (CELL)FunctorDouble;
   *(Float *) (AT + 1) = dbl;
   AT[2] = EndSpecials;

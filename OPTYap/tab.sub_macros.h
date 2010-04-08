@@ -495,7 +495,7 @@ abolish_generator_subgoals_between(choiceptr min, choiceptr max)
   sg_fr_ptr top = SgFr_next(LOCAL_top_sg_fr); /* skip general subgoal frame */
   
   while(top) {
-    printf("top: %d\n", (int)SgFr_choice_point(top));
+    dprintf("top: %d\n", (int)SgFr_choice_point(top));
     top = SgFr_next(top);
   }
 #endif
@@ -527,7 +527,7 @@ abolish_generator_subgoals_between(choiceptr min, choiceptr max)
   /* remove generator = min
    * top points to the consumer generator that we will delete
    */
-  dprintf("Deleted generator %d\n", SgFr_choice_point(top));
+  dprintf("Deleted generator %d\n", (int)SgFr_choice_point(top));
   SgFr_next(before) = SgFr_next(top);
 }
 
@@ -593,7 +593,7 @@ abolish_ground_subgoals_between(choiceptr min, choiceptr max)
   /* ignore younger ground goals */
   while(top && YOUNGER_CP(SgFr_choice_point(top), max)) {
     before = top;
-    printf("Jumped younger ground subgoal\n");
+    dprintf("Jumped younger ground subgoal\n");
     top = SgFr_next(top);
   }
   
@@ -660,13 +660,22 @@ abolish_subgoals_between(choiceptr min, choiceptr max)
 }
 
 static inline void
+adjust_generator_to_consumer_answer_template(choiceptr cp, sg_fr_ptr sg_fr)
+{
+  CELL* current_at = GENERATOR_ANSWER_TEMPLATE(cp, sg_fr);
+  CELL* new_at = CONSUMER_NODE_ANSWER_TEMPLATE(cp);
+  
+  memmove(new_at, current_at, (1 + SgFr_arity(sg_fr)) * sizeof(CELL));
+}
+
+static inline void
 producer_to_consumer(grounded_sf_ptr sg_fr)
 {
   choiceptr gen_cp = SgFr_choice_point(sg_fr);
   choiceptr new_ans = SgFr_new_answer_cp(sg_fr);
   
   if(new_ans == NULL) {
-    printf("NULL!\n");
+    dprintf("NULL!\n");
     new_ans = B->cp_b;
     B->cp_cp = TRY_GROUND_ANSWER;
   }
@@ -681,17 +690,24 @@ producer_to_consumer(grounded_sf_ptr sg_fr)
   
   /* update generator choice point to point to RUN_COMPLETED */
   gen_cp->cp_ap = (yamop *)RUN_COMPLETED;
+  /* use cp_dep_fr to put the subgoal frame */
+  CONS_CP(gen_cp)->cp_dep_fr = (dep_fr_ptr)sg_fr;
+  adjust_generator_to_consumer_answer_template(gen_cp, (sg_fr_ptr)sg_fr);
   
   if(gen_cp == new_ans)
     /* simple generator clause */
     return;
   
+#if 0
   while(new_ans != gen_cp) {
     /* fail with new_ans */
     new_ans->cp_ap = (yamop *)TRUSTFAILCODE;
     dprintf("Set choiceptr %d with TRUSTFAILCODE\n", (int)new_ans);
     new_ans = new_ans->cp_b;
   }
+#endif
+  
+  B->cp_b = gen_cp;
 }
 
 static inline void
@@ -730,8 +746,7 @@ process_pending_subgoal_list(node_list_ptr list, grounded_sf_ptr sg_fr) {
 #ifdef FDEBUG
         printf("Found a specific subgoal already running\n");
         printSubgoalTriePath(stdout, SgFr_leaf(pending), SgFr_tab_ent(pending));
-        printf("\n");
-        
+        printf("\n");  
 #endif
         producer_to_consumer(pending);
       }
@@ -740,6 +755,67 @@ process_pending_subgoal_list(node_list_ptr list, grounded_sf_ptr sg_fr) {
     list = NodeList_next(list);
   }
   free_node_list(orig);
+}
+
+static inline void
+size_dep_space(void)
+{
+  dep_fr_ptr top = LOCAL_top_dep_fr;
+  int i = 0;
+  
+  while(top) {
+    ++i;
+    dprintf("Top: %d\n", (int)top);
+    top = DepFr_next(top);
+  }
+  
+  dprintf("TOTAL: %d\n", i);
+}
+
+static inline dep_fr_ptr
+find_next_dep_frame(dep_fr_ptr dep_fr, choiceptr cp)
+{
+  size_dep_space();
+  
+  if(LOCAL_top_dep_fr == NULL) {
+    LOCAL_top_dep_fr = dep_fr;
+    return NULL;
+  }
+    
+  dep_fr_ptr top = LOCAL_top_dep_fr;
+  dep_fr_ptr before = NULL;
+  
+  while(top && YOUNGER_CP(DepFr_cons_cp(top), cp)) {
+    before = top;
+    dprintf("One dep_fr %d\n", (int)top);
+    top = DepFr_next(top);
+  }
+  
+  if(before == NULL) {
+    dprintf("set to top\n");
+    LOCAL_top_dep_fr = dep_fr;
+  } else {
+    dprintf("set to next\n");
+    SgFr_next(before) = dep_fr;
+  }
+  
+  SgFr_next(dep_fr) = top;
+  dprintf("Now\n");
+  size_dep_space();
+}
+
+static inline void
+add_dependency_frame(grounded_sf_ptr sg_fr, choiceptr cp)
+{
+  dep_fr_ptr dep_fr;
+  
+  new_dependency_frame(dep_fr, TRUE, LOCAL_top_or_fr, SgFr_choice_point(SgFr_producer(sg_fr)), cp, (sg_fr_ptr)sg_fr, NULL);
+  find_next_dep_frame(dep_fr, cp);
+  
+  /* turn generator choice point as consumer */
+  CONS_CP(cp)->cp_dep_fr = dep_fr;
+  DepFr_last_answer(dep_fr) = SgFr_try_answer(sg_fr);
+  //DepFr_type(dep_fr) = TRANSFORMED_DEP;
 }
 
 #endif /* TABLING_CALL_SUBSUMPTION */

@@ -225,7 +225,7 @@
             subs_ptr = (CELL *) (GEN_CP(B) + 1);          \
             subs_ptr += SgFr_arity(GEN_CP(B)->cp_sg_fr);  \
 	        } else {                                        \
-            subs_ptr = CONSUMER_ANSWER_TEMPLATE;          \
+            subs_ptr = CONSUMER_ANSWER_TEMPLATE(DEP_FR);  \
 	        }                                               \
           CONSUME_ANSWER(ANSWER, subs_ptr, DepFr_sg_fr(DEP_FR));  \
           /* procceed */                                  \
@@ -495,6 +495,23 @@
   } else {                                                \
     CONSUME_SUBSUMPTIVE_ANSWER(ANS_NODE, ANS_TMPLT);      \
   }
+  
+#define consume_next_ground_answer(CONT, SG_FR)                 \
+  CELL *answer_template = CONSUMER_NODE_ANSWER_TEMPLATE(B);  \
+  ans_node_ptr ans_node = continuation_answer(CONT);            \
+                                                                \
+  H = HBREG = PROTECT_FROZEN_H(B);                              \
+  restore_yaam_reg_cpdepth(B);                                  \
+  CPREG = B->cp_cp;                                             \
+  ENV = B->cp_env;                                              \
+                                                                \
+  SgFr_try_answer(sg_fr) = CONT;                                \
+                                                                \
+  PREG = (yamop *) CPREG;                                       \
+  PREFETCH_OP(PREG);                                            \
+  CONSUME_SUBSUMPTIVE_ANSWER(ans_node, answer_template);        \
+  YENV = ENV;                                                   \
+  GONext()
 
 #else
 
@@ -589,40 +606,56 @@
 #ifdef TABLING_CALL_SUBSUMPTION
     dprintf("===> TABLE_RUN_COMPLETED\n");
     
-    grounded_sf_ptr sg_fr = (grounded_sf_ptr)GEN_CP(B)->cp_sg_fr;
+    /* cp_dep_fr points to the subgoal frame */
+    grounded_sf_ptr sg_fr = (grounded_sf_ptr)CONS_CP(B)->cp_dep_fr;
     tab_ent_ptr tab_ent = SgFr_tab_ent(sg_fr);
-    
-    if(TabEnt_is_load(tab_ent)) {
-      
-      if(SgFr_state(sg_fr) < complete) {
-        mark_ground_consumer_as_completed(sg_fr);
-        build_next_ground_consumer_return_list(sg_fr);
-      }
-      
+
+    if(SgFr_state(SgFr_producer(sg_fr)) < complete) {
+      dprintf("producer not completed!\n");
+      build_next_ground_consumer_return_list(sg_fr);
       continuation_ptr next_cont = continuation_next(SgFr_try_answer(sg_fr));
       
       if(next_cont) {
-        CELL *answer_template = (CELL *) (GEN_CP(B) + 1) + SgFr_arity(sg_fr);
-        ans_node_ptr ans_node = continuation_answer(next_cont);
-        
-        H = HBREG = PROTECT_FROZEN_H(B);
-        restore_yaam_reg_cpdepth(B);
-        CPREG = B->cp_cp;
-        ENV = B->cp_env;
-        
-        SgFr_try_answer(sg_fr) = next_cont;
-        
-        PREG = (yamop *) CPREG;
-        PREFETCH_OP(PREG);
-        CONSUME_SUBSUMPTIVE_ANSWER(ans_node, answer_template);
-        YENV = ENV;
-        GONext();
-      } else {
+        dprintf("Consuming...\n");
+        /* as long we can consume answers we
+         * can avoid being a real consumer */
+        consume_next_ground_answer(next_cont, sg_fr);
+      }
+      
+      /* no more answers to consume, transform this node
+         into a consumer */
+      dprintf("Not completed!\n");
+      add_dependency_frame(sg_fr, B);
+      B->cp_ap = ANSWER_RESOLUTION;
+      B = B->cp_b;
+      goto fail;
+    }
+    dprintf("just completed!\n");
+    /* producer subgoal just completed */
+    mark_ground_consumer_as_completed(sg_fr);
+    
+    if(TabEnt_is_load(tab_ent)) {
+      
+      build_next_ground_consumer_return_list(sg_fr);
+      continuation_ptr next_cont = continuation_next(SgFr_try_answer(sg_fr));
+      
+      if(!next_cont) {
+        /* fail now */
         B = B->cp_b;
         goto fail;
       }
+      
+      dprintf("Transform into loader\n");
+      
+      /* transform this generator/consumer choice point into a loader node */
+      LOAD_CP(B)->cp_last_answer = SgFr_try_answer(sg_fr);
+      B->cp_ap = LOAD_CONS_ANSWER;
+      goto fail;
+    } else {
+      /* XXX: run compiled code */
     }
     
+    printf("CANT BE HERE!!!\n");
     exit(1);
 #endif /* TABLING_CALL_SUBSUMPTION */
   ENDPBOp();
@@ -1542,11 +1575,8 @@
       UNLOCK_OR_FRAME(LOCAL_top_or_fr);
     }
 #endif /* YAPOR */
-    dprintf("===> TABLE_ANSWER_RESOLUTION\n");
     
   answer_resolution:
-    
-    dprintf("JUMP ANSWER_RESOLUTION\n");
   
     INIT_PREFETCH()
     dep_fr_ptr dep_fr;
@@ -1562,6 +1592,11 @@
     }
 #endif /* OPTYAP_ERRORS */
     dep_fr = CONS_CP(B)->cp_dep_fr;
+#ifdef FDEBUG
+    dprintf("===> TABLE_ANSWER_RESOLUTION ");
+    printSubgoalTriePath(stdout, SgFr_leaf(DepFr_sg_fr(dep_fr)), SgFr_tab_ent(DepFr_sg_fr(dep_fr)));
+    dprintf("\n");
+#endif
     LOCK(DepFr_lock(dep_fr));
     
     ans_node_ptr ans_node;
@@ -1624,14 +1659,21 @@
       while (YOUNGER_CP(DepFr_cons_cp(dep_fr), chain_cp)) {
         LOCK(DepFr_lock(dep_fr));
         
+#ifdef FDEBUG
+        printSubgoalTriePath(stdout, SgFr_leaf(DepFr_sg_fr(dep_fr)), SgFr_tab_ent(DepFr_sg_fr(dep_fr)));
+        dprintf("\n");
+#endif
+
         ans_node = NULL;
         next = get_next_answer_continuation(dep_fr);
         
         if(next) {
+          dprintf("UNCONSUMED ANSWERS\n");
           /* dependency frame with unconsumed answers */
           ans_node = continuation_answer(next);
           DepFr_last_answer(dep_fr) = next;
-        }
+        } else
+          dprintf("no unconsumed answers!\n");
 
         if(ans_node != NULL) {
 #ifdef YAPOR
@@ -1866,10 +1908,11 @@
     {
       if (IS_BATCHED_GEN_CP(B)) {
         B->cp_ap = NULL;
+        dprintf("LEADER_CP=%d\n", (int)DepFr_leader_cp(LOCAL_top_dep_fr));
         if (EQUAL_OR_YOUNGER_CP(B_FZ, B) && B != DepFr_leader_cp(LOCAL_top_dep_fr)) {
           /* not leader on that node */
-          B = B->cp_b;
           dprintf("not leader on that node\n");
+          B = B->cp_b;
           goto fail;
         }
       } else {
@@ -1905,19 +1948,27 @@
     }
 #endif /* YAPOR */
 
+    dprintf("checking deps\n");
     /* check for dependency frames with unconsumed answers */
     dep_fr = LOCAL_top_dep_fr;
     while (YOUNGER_CP(DepFr_cons_cp(dep_fr), B)) {
       LOCK(DepFr_lock(dep_fr));
       
+#ifdef FDEBUG
+      printSubgoalTriePath(stdout, SgFr_leaf(DepFr_sg_fr(dep_fr)), SgFr_tab_ent(DepFr_sg_fr(dep_fr)));
+      dprintf("\n");
+#endif
+      
       ans_node = NULL;
       next = get_next_answer_continuation(dep_fr);
       
       if(next) {
+        dprintf("UNCONSUMED ANSWERS!\n");
         /* dependency frame with unconsumed answers */
         ans_node = continuation_answer(next);
         DepFr_last_answer(dep_fr) = next;
-      }
+      } else
+        dprintf("EVERYTHING WAS CONSUMED!\n");
       
       if(ans_node != NULL) {
         if (B->cp_ap) {
