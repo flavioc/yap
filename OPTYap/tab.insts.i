@@ -1510,8 +1510,7 @@
 #ifdef TABLING_CALL_SUBSUMPTION
       if(SgFr_is_ground_producer(sg_fr)) {
         dprintf("NEW_ANSWER_CP=%d\n", (int)B);
-        SgFr_new_answer_cp((grounded_sf_ptr)sg_fr) = B;
-        Bind_and_Trail(&SgFr_executing((grounded_sf_ptr)sg_fr), MkIntegerTerm(2));
+        Bind_and_Trail(&SgFr_executing((grounded_sf_ptr)sg_fr), (Term)B);
       }
 #endif
 

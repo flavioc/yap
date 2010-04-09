@@ -140,18 +140,16 @@ struct grounded_subgoal_frame {
   
   int is_most_general;
   
-  choiceptr new_answer_cp;
-  
   CELL executing;
   CELL start;
 };
 
 #define SgFr_is_most_general(X)     ((X)->is_most_general)
-#define SgFr_new_answer_cp(X)       ((X)->new_answer_cp)
+#define SgFr_new_answer_cp(X)       ((choiceptr)SgFr_executing(X))
 #define SgFr_executing(X)           ((X)->executing)
 #define SgFr_start(X)               ((X)->start)
-#define SgFr_started(X)             (!IsVarTerm(SgFr_start(X)))
-#define SgFr_got_answer(X)          (!IsVarTerm(SgFr_executing(X)))
+#define SgFr_started(X)             ((CELL *)SgFr_start(X) != &SgFr_start(X))
+#define SgFr_got_answer(X)          ((CELL *)SgFr_executing(X) != &SgFr_executing(X))
 #define SgFr_is_internal(X)         (SgFr_started(X) && !SgFr_got_answer(X))
 #define SgFr_is_external(X)         ((SgFr_started(X) && SgFr_got_answer(X)) || (!SgFr_started(X)))
 
