@@ -634,28 +634,63 @@
       B = B->cp_b;
       goto fail;
     }
+    
     dprintf("just completed!\n");
+    
     /* producer subgoal just completed */
     mark_ground_consumer_as_completed(sg_fr);
     
     if(TabEnt_is_load(tab_ent)) {
       
       build_next_ground_consumer_return_list(sg_fr);
-      continuation_ptr next_cont = continuation_next(SgFr_try_answer(sg_fr));
+      continuation_ptr cont;
       
-      if(!next_cont) {
-        /* fail now */
-        B = B->cp_b;
-        goto fail;
+      if(SgFr_try_answer(sg_fr)) {
+        /* some answers were consumed before */
+        cont = continuation_next(SgFr_try_answer(sg_fr));
+        
+        if(!cont) {
+          /* fail sooner */
+          B = B->cp_b;
+          SET_BB(PROTECT_FROZEN_B(B));
+          goto fail;
+        }
+      } else {
+        /* first answer to consume */
+        if(SgFr_has_no_answers(sg_fr)) {
+          /* goto fail */
+          B = B->cp_b;
+          SET_BB(PROTECT_FROZEN_B(B));
+          goto fail;
+        }
+        
+        cont = SgFr_first_answer(sg_fr);
       }
       
-      dprintf("Transform into loader\n");
+      CELL *answer_template = CONSUMER_NODE_ANSWER_TEMPLATE(B);
       
-      /* transform this generator/consumer choice point into a loader node */
-      LOAD_CP(B)->cp_last_answer = SgFr_try_answer(sg_fr);
-      SgFr_try_answer(sg_fr) = NULL;
-      B->cp_ap = LOAD_CONS_ANSWER;
-      goto fail;
+      /* pop consumer/generator node */  
+      H = PROTECT_FROZEN_H(B);
+      pop_yaam_reg_cpdepth(B);
+      CPREG = B->cp_cp;
+      ENV = B->cp_env;
+      TR = B->cp_tr;
+      B = B->cp_b;
+      HBREG = PROTECT_FROZEN_H(B);
+      SET_BB(PROTECT_FROZEN_B(B));
+      YENV = answer_template;
+      
+      /* load first answer */
+      ans_node_ptr ans_node = continuation_answer(cont);
+        
+      /* ... and store a loader! */
+      if(continuation_has_next(cont)) {
+        dprintf("stored loader\n");
+        store_loader_node(tab_ent, cont, LOAD_CONS_ANSWER);
+      }
+      
+      consume_answer_leaf(ans_node, YENV, CONSUME_SUBSUMPTIVE_ANSWER);
+      
     } else {
       /* XXX: run compiled code */
     }
@@ -1195,15 +1230,6 @@
   Op(table_retry_me, Otapl)
     dprintf("===> TABLE_RETRY_ME\n");
     
-#ifdef TABLING_CALL_SUBSUMPTION
-    sg_fr_ptr sg_fr = GEN_CP(B)->cp_sg_fr;
-     
-    if(SgFr_is_ground_producer(sg_fr)) {
-      dprintf("NEW_ANSWER_CP=NULL\n");
-      SgFr_new_answer_cp((grounded_sf_ptr)sg_fr) = NULL;
-    }
-#endif /* TABLING_CALL_SUBSUMPTION */
-    
     restore_generator_node(PREG->u.Otapl.s, PREG->u.Otapl.d);
     YENV = (CELL *) PROTECT_FROZEN_B(B);
     set_cut(YENV, B->cp_b);
@@ -1218,15 +1244,6 @@
   Op(table_retry, Otapl)
     dprintf("===> TABLE_RETRY\n");
     
-#ifdef TABLING_CALL_SUBSUMPTION
-    sg_fr_ptr sg_fr = GEN_CP(B)->cp_sg_fr;
-     
-    if(SgFr_is_ground_producer(sg_fr)) {
-      dprintf("NEW_ANSWER_CP=NULL\n");
-      SgFr_new_answer_cp((grounded_sf_ptr)sg_fr) = NULL;
-    }
-#endif /* TABLING_CALL_SUBSUMPTION */
-    
     restore_generator_node(PREG->u.Otapl.s, NEXTOP(PREG,Otapl));
     YENV = (CELL *) PROTECT_FROZEN_B(B);
     set_cut(YENV, B->cp_b);
@@ -1240,15 +1257,6 @@
 
   Op(table_trust_me, Otapl)
     dprintf("===> TABLE_TRUST_ME\n");
-    
-#ifdef TABLING_CALL_SUBSUMPTION
-    sg_fr_ptr sg_fr = GEN_CP(B)->cp_sg_fr;
-
-    if(SgFr_is_ground_producer(sg_fr)) {
-      dprintf("NEW_ANSWER_CP=NULL\n");
-      SgFr_new_answer_cp((grounded_sf_ptr)sg_fr) = NULL;
-    }
-#endif /* TABLING_CALL_SUBSUMPTION */
 
     restore_generator_node(PREG->u.Otapl.s, COMPLETION);
 #ifdef DETERMINISTIC_TABLING
@@ -1278,14 +1286,6 @@
 
 
   Op(table_trust, Otapl)
-#ifdef TABLING_CALL_SUBSUMPTION
-    sg_fr_ptr sg_fr = GEN_CP(B)->cp_sg_fr;
-     
-    if(SgFr_is_ground_producer(sg_fr)) {
-      dprintf("NEW_ANSWER_CP=NULL\n");
-      SgFr_new_answer_cp((grounded_sf_ptr)sg_fr) = NULL;
-    }
-#endif /* TABLING_CALL_SUBSUMPTION */
 
     restore_generator_node(PREG->u.Otapl.s, COMPLETION);
     
@@ -1323,8 +1323,6 @@
     sg_fr_ptr sg_fr;
     ans_node_ptr ans_node;
 
-    dprintf("===> TABLE_NEW_ANSWER\n");
-
     gcp = NORM_CP(YENV[E_B]);
 #ifdef DETERMINISTIC_TABLING
     if (IS_DET_GEN_CP(gcp)){  
@@ -1336,6 +1334,12 @@
       sg_fr = GEN_CP(gcp)->cp_sg_fr;
       subs_ptr = (CELL *)(GEN_CP(gcp) + 1) + PREG->u.s.s;
     }
+#ifdef FDEBUG
+    dprintf("===> TABLE_NEW_ANSWER ");
+    printSubgoalTriePath(stdout, SgFr_leaf(sg_fr), SgFr_tab_ent(sg_fr));
+    dprintf("\n");
+#endif
+    
 #if defined(TABLING_ERRORS) && !defined(DETERMINISTIC_TABLING)
     {
       int i, j, arity_args, arity_subs;
@@ -1526,6 +1530,11 @@
       }
 #endif /* TABLING_ERRORS */
       UNLOCK(SgFr_lock(sg_fr));
+      
+      if(SgFr_is_ground_local_producer(sg_fr)) {
+        dprintf("GROUND_LOCAL PRODUCER\n");
+        goto fail;
+      }
       if (IS_BATCHED_GEN_CP(gcp)) {
 #ifdef TABLING_EARLY_COMPLETION
 	if (gcp == PROTECT_FROZEN_B(B) && (*subs_ptr == 0 || gcp->cp_ap == COMPLETION)) {
@@ -1555,6 +1564,7 @@
 #endif /* DEPTH_LIMIT */
         GONext();
       } else {
+        /* local scheduling */
 #ifdef TABLING_EARLY_COMPLETION
 	if (*subs_ptr == 0) {
 	  /* if the number of substitution variables is zero, an answer is sufficient to perform */
@@ -1895,11 +1905,14 @@
 
 
   BOp(table_completion, Otapl)
+    
 #ifdef FDEBUG
-    dprintf("===> TABLE_COMPLETION ");
+    {
       sg_fr_ptr sg_fr = GEN_CP(B)->cp_sg_fr;
+      dprintf("===> TABLE_COMPLETION ");
       printSubgoalTriePath(stdout, SgFr_leaf(sg_fr), SgFr_tab_ent(sg_fr));
       dprintf("\n");
+    }
 #endif
     
 #ifdef YAPOR
@@ -1920,6 +1933,18 @@
     } else
 #endif /* YAPOR */
     {
+#ifdef TABLING_CALL_SUBSUMPTION
+      sg_fr_ptr sg_fr = GEN_CP(B)->cp_sg_fr;
+      if(SgFr_is_ground_local_producer(sg_fr)) {
+        B->cp_ap = ANSWER_RESOLUTION;
+        if(B != DepFr_leader_cp(LOCAL_top_dep_fr)) {
+          /* not leader on that node */
+          B = B->cp_b;
+          dprintf("not leader on that node 3\n");
+          goto fail;
+        }
+      } else
+#endif /* TABLING_CALL_SUBSUMPTION */
       if (IS_BATCHED_GEN_CP(B)) {
         B->cp_ap = NULL;
         dprintf("LEADER_CP=%d\n", (int)DepFr_leader_cp(LOCAL_top_dep_fr));
@@ -2232,6 +2257,16 @@
       
       private_completion(sg_fr);
       
+#ifdef TABLING_CALL_SUBSUMPTION
+      if(SgFr_is_ground_local_producer(sg_fr)) {
+        /* more general subgoal has just completed,
+           get into the consumer! */
+        B = B->cp_b;
+        dprintf("Backtrack ground local producer\n");
+        SET_BB(PROTECT_FROZEN_B(B));
+        goto fail;     
+      } else
+#endif
       if (IS_BATCHED_GEN_CP(B)) {
         /* batched scheduling -> backtrack */
         B = B->cp_b;

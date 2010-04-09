@@ -135,9 +135,8 @@ sg_fr_ptr grounded_call_search(yamop *code, CELL *answer_template, CELL **new_lo
     sg_fr = create_new_ground_producer_subgoal(leaf, tab_ent, code);
     
     /* determine if is most general */
-    if(Trail_NumBindings == arity) {
-      SgFr_is_most_general(sg_fr) = TRUE;
-    }
+    if(Trail_NumBindings == arity)
+      SgFr_set_most_general(sg_fr);
     
     Trail_Unwind_All;
     
@@ -185,9 +184,6 @@ sg_fr_ptr grounded_call_search(yamop *code, CELL *answer_template, CELL **new_lo
         /* turn into producer */
         SgFr_type(sg_fr) = GROUND_PRODUCER_SFT; 
         SgFr_producer(sg_fr) = NULL;
-      }
-      if(SgFr_state(producer) >= complete && SgFr_state(sg_fr) < complete) {
-        mark_ground_consumer_as_completed(sg_fr);
       }
     }
   }

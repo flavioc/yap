@@ -57,9 +57,8 @@ STD_PROTO(static inline void process_pending_subgoal_list, (node_list_ptr, groun
 #define init_ground_subgoal_frame(SG_FR)  \
         SgFr_choice_point(SG_FR) = NULL;  \
         SgFr_timestamp(SG_FR) = 0;      \
-        SgFr_is_most_general(SG_FR) = FALSE;  \
+        SgFr_flags(SG_FR) = 0;            \
         SgFr_answer_template(SG_FR) = NULL;   \
-        SgFr_new_answer_cp(SG_FR) = NULL;     \
         RESET_VARIABLE(&SgFr_executing(SG_FR));  \
         RESET_VARIABLE(&SgFr_start(SG_FR))
   
@@ -233,10 +232,10 @@ STD_PROTO(static inline void process_pending_subgoal_list, (node_list_ptr, groun
       
 #define decrement_subgoal_path(SG_FR)                               \
       { subg_node_ptr leaf = (subg_node_ptr)SgFr_leaf(SG_FR);       \
-        if(TrNode_num_gen(leaf) != 1) {                             \
+        if(TrNode_num_gen(leaf) > 1) {                             \
           Yap_Error(INTERNAL_ERROR, TermNil,                        \
-            "leaf node must contain 1 (decrement_subgoal_path)");   \
-        } else {                                                    \
+            "leaf node be <= 1 (decrement_subgoal_path)");          \
+        } else if(TrNode_num_gen(leaf) == 1) {                      \
           decrement_generator_path((sg_node_ptr)leaf);              \
         }                                                           \
       }
@@ -705,10 +704,24 @@ adjust_generator_to_consumer_answer_template(choiceptr cp, sg_fr_ptr sg_fr)
   memmove(new_at, current_at, (1 + SgFr_arity(sg_fr)) * sizeof(CELL));
 }
 
-static inline void
-producer_to_consumer(grounded_sf_ptr sg_fr)
+static inline choiceptr
+locate_after_answer(choiceptr new_ans, choiceptr cp)
 {
-#ifdef FDBUG
+  choiceptr before = cp;
+  cp = cp->cp_b;
+    
+  while(cp != new_ans) {
+    before = cp;
+    cp = cp->cp_b;
+  }
+  
+  return before;
+}
+
+static inline void
+producer_to_consumer(grounded_sf_ptr sg_fr, grounded_sf_ptr producer)
+{
+#ifdef FDEBUG
   if(SgFr_is_external(sg_fr))
     printf("external\n");
   else
@@ -721,22 +734,29 @@ producer_to_consumer(grounded_sf_ptr sg_fr)
   if(SgFr_is_external(sg_fr))
     limit_cp = SgFr_new_answer_cp(sg_fr);
   else
-    limit_cp = B - 1;
+    limit_cp = B + 1;
   
-  dprintf("gen_cp=%d limir_cp=%d\n", (int)gen_cp, (int)limit_cp);
+  dprintf("gen_cp=%d limit_cp=%d\n", (int)gen_cp, (int)limit_cp);
   
   abolish_subgoals_between(gen_cp, limit_cp);
-  
-  /* set last answer consumed for load answers */
-  SgFr_try_answer(sg_fr) = SgFr_last_answer(sg_fr);
   
   /* update generator choice point to point to RUN_COMPLETED */
   gen_cp->cp_ap = (yamop *)RUN_COMPLETED;
   /* use cp_dep_fr to put the subgoal frame */
   CONS_CP(gen_cp)->cp_dep_fr = (dep_fr_ptr)sg_fr;
   adjust_generator_to_consumer_answer_template(gen_cp, (sg_fr_ptr)sg_fr);
+  /* set last answer consumed for load answers */
+  SgFr_try_answer(sg_fr) = SgFr_last_answer(sg_fr);
   
-  B->cp_b = gen_cp;
+  if(SgFr_is_internal(sg_fr)) {
+    dprintf("set as local producer\n");
+    SgFr_set_local_producer(producer);
+    B->cp_b = gen_cp;
+  } else {
+    choiceptr cp = locate_after_answer(limit_cp, B);
+    
+    cp->cp_b = gen_cp;
+  }
 }
 
 static inline void
@@ -777,7 +797,7 @@ process_pending_subgoal_list(node_list_ptr list, grounded_sf_ptr sg_fr) {
         printSubgoalTriePath(stdout, SgFr_leaf(pending), SgFr_tab_ent(pending));
         printf("\n");  
 #endif
-        producer_to_consumer(pending);
+        producer_to_consumer(pending, sg_fr);
       }
     }
     

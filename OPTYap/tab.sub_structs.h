@@ -111,6 +111,9 @@ typedef subsumptive_consumer_sf *subcons_fr_ptr;
 
 typedef struct grounded_subgoal_frame *grounded_sf_ptr;
 
+#define SG_FR_MOST_GENERAL 0x08
+#define SG_FR_LOCAL_PRODUCER 0x01
+
 struct grounded_subgoal_frame {
   subgoal_frame_type type;
   subgoal_state state_flag;
@@ -138,13 +141,17 @@ struct grounded_subgoal_frame {
   
   continuation_ptr try_answer;
   
-  int is_most_general;
+  unsigned char flags;
   
   CELL executing;
   CELL start;
 };
 
-#define SgFr_is_most_general(X)     ((X)->is_most_general)
+#define SgFr_flags(X)               ((X)->flags)
+#define SgFr_is_most_general(X)     (SgFr_flags(X) & SG_FR_MOST_GENERAL)
+#define SgFr_set_most_general(X)    (SgFr_flags(X) |= SG_FR_MOST_GENERAL)
+#define SgFr_set_local_producer(X)  (SgFr_flags(X) |= SG_FR_LOCAL_PRODUCER)
+#define SgFr_is_local_producer(X)   (SgFr_flags(X) & SG_FR_LOCAL_PRODUCER)
 #define SgFr_new_answer_cp(X)       ((choiceptr)SgFr_executing(X))
 #define SgFr_executing(X)           ((X)->executing)
 #define SgFr_start(X)               ((X)->start)
@@ -163,8 +170,9 @@ struct grounded_subgoal_frame {
 
 #define GROUND_SUBGOAL_FRAME_MASK 0xC0
 
-#define SgFr_is_ground(X)          (SgFr_type(X) & GROUND_SUBGOAL_FRAME_MASK)
-#define SgFr_is_ground_producer(X) (SgFr_type(X) == GROUND_PRODUCER_SFT)
-#define SgFr_is_ground_consumer(X) (SgFr_type(X) == GROUND_CONSUMER_SFT)
+#define SgFr_is_ground(X)                 (SgFr_type(X) & GROUND_SUBGOAL_FRAME_MASK)
+#define SgFr_is_ground_producer(X)        (SgFr_type(X) == GROUND_PRODUCER_SFT)
+#define SgFr_is_ground_consumer(X)        (SgFr_type(X) == GROUND_CONSUMER_SFT)
+#define SgFr_is_ground_local_producer(X) (SgFr_is_ground_producer(X) && SgFr_is_local_producer((grounded_sf_ptr)(X)))
 
 #endif /* TABLING_CALL_SUBSUMPTION */
