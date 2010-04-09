@@ -59,7 +59,9 @@ STD_PROTO(static inline void process_pending_subgoal_list, (node_list_ptr, groun
         SgFr_timestamp(SG_FR) = 0;      \
         SgFr_is_most_general(SG_FR) = FALSE;  \
         SgFr_answer_template(SG_FR) = NULL;   \
-        SgFr_new_answer_cp(SG_FR) = NULL
+        SgFr_new_answer_cp(SG_FR) = NULL;     \
+        RESET_VARIABLE(&SgFr_executing(SG_FR));  \
+        RESET_VARIABLE(&SgFr_start(SG_FR))
   
 #define new_grounded_consumer_subgoal_frame(SG_FR, CODE, LEAF, PRODUCER) {  \
         new_basic_subgoal_frame(SG_FR, CODE, LEAF,                          \
@@ -671,6 +673,11 @@ adjust_generator_to_consumer_answer_template(choiceptr cp, sg_fr_ptr sg_fr)
 static inline void
 producer_to_consumer(grounded_sf_ptr sg_fr)
 {
+  if(SgFr_is_external(sg_fr))
+    printf("external\n");
+  else
+    printf("internal\n");
+    
   choiceptr gen_cp = SgFr_choice_point(sg_fr);
   choiceptr new_ans = SgFr_new_answer_cp(sg_fr);
   

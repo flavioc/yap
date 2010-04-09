@@ -476,7 +476,11 @@
       check_ground_pending_subgoals(SG_FR, TAB_ENT, ground_sg);     \
       check_ground_pre_stored_answers(SG_FR, TAB_ENT, ground_sg);   \
     }
-          
+     
+#define precheck_ground_generator(SG_FR)                            \
+     if(SgFr_is_ground_producer(SG_FR)) {                           \
+       Bind_and_Trail(&SgFr_start((grounded_sf_ptr)(SG_FR)), MkIntegerTerm(2));        \
+     }
 
 /* Consume subsuming answer ANS_NODE using ANS_TMPLT
  * as the pointer to the answer template.
@@ -649,6 +653,7 @@
       
       /* transform this generator/consumer choice point into a loader node */
       LOAD_CP(B)->cp_last_answer = SgFr_try_answer(sg_fr);
+      SgFr_try_answer(sg_fr) = NULL;
       B->cp_ap = LOAD_CONS_ANSWER;
       goto fail;
     } else {
@@ -798,6 +803,9 @@
       init_subgoal_frame(sg_fr);
       
       UNLOCK(SgFr_lock(sg_fr));
+#ifdef TABLING_CALL_SUBSUMPTION
+      precheck_ground_generator(sg_fr);
+#endif
 #ifdef DETERMINISTIC_TABLING
       if (IsMode_Batched(TabEnt_mode(tab_ent))) {
 	      store_deterministic_generator_node(tab_ent, sg_fr);
@@ -936,6 +944,9 @@
       init_subgoal_frame(sg_fr);
 
       UNLOCK(SgFr_lock(sg_fr));
+#ifdef TABLING_CALL_SUBSUMPTION
+      precheck_ground_generator(sg_fr);
+#endif
       store_generator_node(tab_ent, sg_fr, PREG->u.Otapl.s, PREG->u.Otapl.d);
 #ifdef TABLING_CALL_SUBSUMPTION
       check_ground_generator(sg_fr, tab_ent);
@@ -1067,6 +1078,9 @@
       /* subgoal new */
       init_subgoal_frame(sg_fr);
       UNLOCK(SgFr_lock(sg_fr));
+#ifdef TABLING_CALL_SUBSUMPTION
+      precheck_ground_generator(sg_fr);
+#endif
       store_generator_node(tab_ent, sg_fr, PREG->u.Otapl.s, NEXTOP(PREG,Otapl));
 #ifdef TABLING_CALL_SUBSUMPTION
       check_ground_generator(sg_fr, tab_ent);
@@ -1497,6 +1511,7 @@
       if(SgFr_is_ground_producer(sg_fr)) {
         dprintf("NEW_ANSWER_CP=%d\n", (int)B);
         SgFr_new_answer_cp((grounded_sf_ptr)sg_fr) = B;
+        Bind_and_Trail(&SgFr_executing((grounded_sf_ptr)sg_fr), MkIntegerTerm(2));
       }
 #endif
 
