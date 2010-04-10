@@ -251,6 +251,12 @@ STD_PROTO(static inline void process_pending_subgoal_list, (node_list_ptr, groun
           index = GNIN_next(index);                                 \
         }                                                           \
       }
+
+#define ensure_has_proper_consumers(TAB_ENT)                        \
+      if(!TabEnt_proper_consumers(TAB_ENT)) {                       \
+        TabEnt_proper_consumers(TAB_ENT) = (void *)TRUE;            \
+        ground_trie_create_tsi(TAB_ENT);                            \
+      }
         
 static inline
 void mark_subsumptive_consumer_as_completed(subcons_fr_ptr sg_fr) {
@@ -795,6 +801,8 @@ process_pending_subgoal_list(node_list_ptr list, grounded_sf_ptr sg_fr) {
          */
         SgFr_producer(pending) = sg_fr;
         SgFr_type(pending) = GROUND_CONSUMER_SFT;
+        /* ensure creation of TST indices */
+        ensure_has_proper_consumers(SgFr_tab_ent(sg_fr));
 #ifdef FDEBUG
         printf("Found a specific subgoal already running\n");
         printSubgoalTriePath(stdout, SgFr_leaf(pending), SgFr_tab_ent(pending));
