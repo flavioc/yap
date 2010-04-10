@@ -321,8 +321,8 @@ CELL *load_substitution_variable(gt_node_ptr current_node, CELL *aux_stack_ptr) 
 
 
 void private_completion(sg_fr_ptr sg_fr) {
+  dprintf("Complete by choice point %d\n", (int)B);
   /* complete generator subgoals */
-  dprintf("Private completion\n");
 #ifdef LIMIT_TABLING
   sg_fr_ptr aux_sg_fr;
   while (LOCAL_top_sg_fr != sg_fr) {

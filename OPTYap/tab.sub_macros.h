@@ -871,4 +871,25 @@ add_dependency_frame(grounded_sf_ptr sg_fr, choiceptr cp)
   //DepFr_type(dep_fr) = TRANSFORMED_DEP;
 }
 
+static inline void
+add_ground_subgoal_stack(grounded_sf_ptr sg_fr, choiceptr cp)
+{
+  grounded_sf_ptr top = LOCAL_top_groundcons_sg_fr;
+  grounded_sf_ptr before = NULL;
+  
+  while(top && YOUNGER_CP(SgFr_choice_point(top), cp)) {
+    before = top;
+    top = SgFr_next(top);
+  }
+  
+  if(before == NULL) {
+    dprintf("SET TO TOP\n");
+    LOCAL_top_groundcons_sg_fr = sg_fr;
+    SgFr_next(sg_fr) = NULL;
+  } else {
+    dprintf("SET TO NEXT\n");
+    SgFr_next(before) = sg_fr;
+  }
+}
+
 #endif /* TABLING_CALL_SUBSUMPTION */

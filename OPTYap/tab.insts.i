@@ -654,6 +654,7 @@
          into a consumer */
       dprintf("Not completed!\n");
       add_dependency_frame(sg_fr, B);
+      add_ground_subgoal_stack(sg_fr, B);
       B->cp_ap = ANSWER_RESOLUTION;
       B = B->cp_b;
       goto fail;
