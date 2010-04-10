@@ -74,10 +74,9 @@
           aux_stack_ptr = YENV;                                 \
 	}
 #else
-
-#define CALCULATE_STACK_SIZE() (heap_arity + subs_arity + vars_arity + 3)
+ 
 #define copy_arity_stack()                                      \
-  {       int size = CALCULATE_STACK_SIZE();                    \
+  {       int size = heap_arity + subs_arity + vars_arity + 3;  \
           YENV -= size;                                         \
           memcpy(YENV, aux_stack_ptr, size * sizeof(CELL *));   \
           aux_stack_ptr = YENV;                                 \
@@ -219,7 +218,7 @@
 
 #define stack_trie_var_instr()                                   \
         if (heap_arity) {                                        \
-          CELL term;                                              \
+          CELL term;                                             \
           int i;                                                 \
           *aux_stack_ptr = heap_arity - 1;                       \
           term = Deref(*++aux_stack_ptr);                        \
@@ -284,60 +283,61 @@
 **      trie_val      **
 ** ------------------ */
 
-#define UNIFY_VAR() \
-  switch(cell_tag(aux_sub)) { \
-      case TAG_REF: \
-          switch(cell_tag(aux_var)) { \
-            case TAG_REF: \
-              if (aux_sub > aux_var) {                                                          \
-    	          if ((CELL *) aux_sub <= H) {                                                          \
-                  Bind_Global((CELL *) aux_sub, aux_var);                                       \
-                } else if ((CELL *) aux_var <= H) {                                             \
-                  Bind_Local((CELL *) aux_sub, aux_var);                                        \
-                } else {                                                                        \
-                  Bind_Local((CELL *) aux_var, aux_sub);                                        \
-                  *vars_ptr = aux_sub;                                                          \
-                }                                                                               \
-              } else {                                                                          \
-    	          if ((CELL *) aux_var <= H) {                                                    \
-                  Bind_Global((CELL *) aux_var, aux_sub);                                       \
-                  *vars_ptr = aux_sub;                                                          \
-                } else if ((CELL *) aux_sub <= H) {                                             \
-                  Bind_Local((CELL *) aux_var, aux_sub);                                        \
-                  *vars_ptr = aux_sub;                                                          \
-                } else {                                                                        \
-                  Bind_Local((CELL *) aux_sub, aux_var);                                        \
-                }                                                                               \
-              }                                                                                 \
-              break;  \
-              default:  \
-                Bind_Global((CELL *)aux_sub, aux_var);  \
-                break;  \
-          } \
-        break;  \
-      default:  \
-        switch(cell_tag(aux_var)) { \
-          case TAG_REF: \
-            if((CELL *) aux_var <= H) { \
-              Bind_Global((CELL *) aux_var, aux_sub); \
-              *vars_ptr = aux_sub;  /* ok */ \
-              dprintf("Bind Global 1\n");  \
-            } else { \
-              Bind_Local((CELL *) aux_var, aux_sub);  \
-              *vars_ptr = aux_sub;  \
-              dprintf("Bind local 1\n"); \
-            } \
-            break;      \
-          default:  \
-            /* run yap unification algorithm */ \
-            dprintf("Run yap unify \n"); \
-            if(!Yap_unify(aux_var, aux_sub)) {  \
-              dprintf("Unification failed\n"); \
-              goto fail;  \
-            } \
-            break;  \
-        } \
+#define unify_seen_var_var()                    \
+  if (aux_sub > aux_var) {                      \
+    if ((CELL *) aux_sub <= H) {                \
+      Bind_Global((CELL *) aux_sub, aux_var);   \
+    } else if ((CELL *) aux_var <= H) {         \
+      Bind_Local((CELL *) aux_sub, aux_var);    \
+    } else {                                    \
+      Bind_Local((CELL *) aux_var, aux_sub);    \
+      *vars_ptr = aux_sub;                      \
+    }                                           \
+  } else {                                      \
+    if ((CELL *) aux_var <= H) {                \
+      Bind_Global((CELL *) aux_var, aux_sub);   \
+      *vars_ptr = aux_sub;                      \
+    } else if ((CELL *) aux_sub <= H) {         \
+      Bind_Local((CELL *) aux_var, aux_sub);    \
+      *vars_ptr = aux_sub;                      \
+    } else {                                    \
+      Bind_Local((CELL *) aux_sub, aux_var);    \
+    }                                           \
   }
+
+#ifdef TABLING_CALL_SUBSUMPTION
+#define unify_seen_var()                                    \
+  switch(cell_tag(aux_sub)) {                               \
+      case TAG_REF:                                         \
+          switch(cell_tag(aux_var)) {                       \
+            case TAG_REF:                                   \
+              unify_seen_var_var();                         \
+              break;                                        \
+            default:                                        \
+              Bind_Global((CELL *)aux_sub, aux_var);        \
+              break;                                        \
+          }                                                 \
+        break;                                              \
+      default:                                              \
+        switch(cell_tag(aux_var)) {                         \
+          case TAG_REF:                                     \
+            if((CELL *) aux_var <= H) {                     \
+              Bind_Global((CELL *) aux_var, aux_sub);       \
+              *vars_ptr = aux_sub;                          \
+            } else {                                        \
+              Bind_Local((CELL *) aux_var, aux_sub);        \
+              *vars_ptr = aux_sub;                          \
+            }                                               \
+            break;                                          \
+          default:                                          \
+            if(!Yap_unify(aux_var, aux_sub))                \
+              goto fail;                                    \
+            break;                                          \
+        }                                                   \
+  }
+#else
+#define unify_seen_var unify_seen_var_var
+#endif /* TABLING_CALL_SUBSUMPTION */
 
 #define stack_trie_val_instr()                                                              \
         if (heap_arity) {                                                                   \
@@ -346,7 +346,7 @@
           vars_ptr = aux_stack_ptr + heap_arity + 1 + subs_arity + vars_arity - var_index;  \
           aux_sub = Deref(*aux_stack_ptr); /* substitution var */                           \
           aux_var = Deref(*vars_ptr);                                                       \
-          UNIFY_VAR();                                                                      \
+          unify_seen_var();                                                                 \
           INC_HEAP_ARITY(-1);                                                               \
           next_instruction(heap_arity - 1 || subs_arity, node);                             \
         } else {                                                                            \
@@ -357,7 +357,7 @@
           vars_ptr = aux_stack_ptr + vars_arity - var_index; /* pointer to trie var */      \
           aux_sub = Deref(*aux_stack_ptr);  /* substitution var */                          \
           aux_var = Deref(*vars_ptr);  /* trie var */                                       \
-          UNIFY_VAR();                                                                      \
+          unify_seen_var();                                                                 \
           ALIGN_STACK_LEFT();                                                               \
           next_instruction(subs_arity - 1, node);                                           \
         }
@@ -376,7 +376,7 @@
             Bind_Global((CELL *) aux_sub, aux_var);                                         \
           } else {                                                                          \
             RESET_VARIABLE(aux_sub);                                                        \
-  	    Bind_Local((CELL *) aux_var, aux_sub);                                              \
+  	        Bind_Local((CELL *) aux_var, aux_sub);                                            \
             *vars_ptr = aux_sub;                                                            \
           }                                                                                 \
         } else {                                                                            \
@@ -411,7 +411,7 @@
 
 
 /* ------------------- **
-**      trie_atom      **
+**    trie_long_int    **
 ** ------------------- */
 
 #define UNIFY_LONG_INT(BIND_FUN)                                                      \
@@ -443,6 +443,10 @@
     next_instruction(subs_arity - 1, node);                                           \
   }
   
+/* ------------------- **
+**   trie_float_val    **
+** ------------------- */
+  
 #define UNIFY_FLOAT(BIND_FUN)                                                         \
   CELL term = Deref(*aux_stack_ptr);                                                  \
   switch(cell_tag(term)) {                                                            \
@@ -472,6 +476,10 @@
     next_instruction(subs_arity - 1, node);                                           \
   }
   
+/* ------------------- **
+**      trie_atom      **
+** ------------------- */
+
 #define UNIFY_ATOM(BIND_FUN)  \
   CELL term = Deref(*aux_stack_ptr);                          \
   if(IsVarTerm(term)) {                                       \
@@ -483,8 +491,8 @@
   }
 
 #define stack_trie_atom_instr()                                      \
-dprintf("stack_trie_atom_instr\n");                                    \
-        dprintf("Heap arity: %d\n", heap_arity); \
+        dprintf("stack_trie_atom_instr\n");                          \
+        dprintf("Heap arity: %d\n", heap_arity);                     \
         if (heap_arity) {                                            \
           YENV = ++aux_stack_ptr;                                    \
           UNIFY_ATOM(Bind_Global);                                   \
