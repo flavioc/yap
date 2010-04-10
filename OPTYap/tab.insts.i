@@ -520,6 +520,7 @@
 #else
 
 #define CONSUME_SUBSUMPTIVE_ANSWER(ANS_NODE, ANS_TMPLT) Yap_Error(INTERNAL_ERROR, TermNil, "tabling by call subsumption not supported")
+#define CONSUME_GROUND_ANSWER(ANS_NODE, ANS_TMPLT, SG_FR) Yap_Error(INTERNAL_ERROR, TermNil, "grounded tabling not supported")
 
 #endif /* TABLING_CALL_SUBSUMPTION */
 
@@ -788,7 +789,7 @@
   ENDPBOp();
 
   PBOp(table_try_ground_answer, Otapl)
-  #ifdef TABLING_CALL_SUBSUMPTION
+#ifdef TABLING_CALL_SUBSUMPTION
     grounded_sf_ptr sg_fr;
     ans_node_ptr ans_node = NULL;
     continuation_ptr next_cont;
@@ -2398,6 +2399,7 @@
               }
             }
             break;
+#ifdef TABLING_CALL_SUBSUMPTION
           case GROUND_PRODUCER_SFT:
             {
               check_yes_answer_no_unlock(sg_fr);
@@ -2411,6 +2413,7 @@
               }
             }
             break;
+#endif /* TABLING_CALL_SUBSUMPTION */
           default: break;
 	      }
       }

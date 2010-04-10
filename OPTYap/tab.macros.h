@@ -607,6 +607,7 @@ join_answers_subgoal_frame(sg_fr_ptr sg_fr, continuation_ptr first, continuation
           new_subgoal_trie_hash(HASH, NUM_NODES, TAB_ENT)               \
         }
         
+#ifdef TABLING_CALL_SUBSUMPTION
 #define free_sub_subgoal_trie_hash(HASH)                            \
         { gen_index_ptr gen_index;                                  \
           gen_index = Hash_index_head((subg_hash_ptr)(HASH));       \
@@ -616,13 +617,16 @@ join_answers_subgoal_frame(sg_fr_ptr sg_fr, continuation_ptr first, continuation
           }                                                         \
           FREE_SUB_SUBGOAL_TRIE_HASH(HASH);                         \
         }
-        
+
 #define free_subgoal_trie_hash(HASH)                                \
         if(TrNode_is_sub_call(HASH)) {                              \
           free_sub_subgoal_trie_hash(HASH);                         \
         } else {                                                    \
           FREE_SUBGOAL_TRIE_HASH(HASH);                             \
         }
+#else
+#define free_subgoal_trie_hash FREE_SUBGOAL_TRIE_HASH
+#endif /* TABLING_CALL_SUBSUMPTION */
 
 #define new_answer_trie_hash(HASH, NUM_NODES, SG_FR)                \
         ALLOC_ANSWER_TRIE_HASH(HASH);                               \
@@ -632,6 +636,37 @@ join_answers_subgoal_frame(sg_fr_ptr sg_fr, continuation_ptr first, continuation
         Hash_num_nodes(HASH) = NUM_NODES;                           \
         AnsHash_init_next_field(HASH, SG_FR)
 
+#define new_basic_subgoal_trie_node(NODE, DATA, CHILD, PARENT, NEXT, FLAGS) \
+   if(IS_FLOAT_FLAG(FLAGS)) {                                               \
+     Float flt = *(Float *)(DATA);                                          \
+     new_float_subgoal_trie_node(NODE, flt, CHILD, PARENT, NEXT, FLAGS);    \
+   } else if(IS_LONG_INT_FLAG(FLAGS)) {                                     \
+     Int li = *(Int *)(DATA);                                               \
+     new_long_subgoal_trie_node(NODE, li, CHILD, PARENT, NEXT, FLAGS);      \
+   } else {                                                                 \
+     Term t = (Term)(DATA);                                                 \
+     new_subgoal_trie_node(NODE, t, CHILD, PARENT, NEXT, FLAGS);            \
+   }
+    
+#ifdef TABLING_CALL_SUBSUMPTION
+#define new_general_subgoal_trie_node(NODE, DATA, CHILD, PARENT, NEXT, FLAGS) \
+  if(IS_SUB_FLAG(FLAGS)) {                                                    \
+    if(IS_FLOAT_FLAG(FLAGS)) {                                                \
+      Float flt = *(Float *)(DATA);                                           \
+      new_float_sub_subgoal_trie_node(NODE, flt, CHILD, PARENT, NEXT, FLAGS); \
+    } else if(IS_LONG_INT_FLAG(FLAGS)) {                                      \
+      Int li = *(Int *)(DATA);                                                \
+      new_long_sub_subgoal_trie_node(NODE, li, CHILD, PARENT, NEXT, FLAGS);   \
+    } else {                                                                  \
+      Term t = (Term)(DATA);                                                  \
+      new_sub_subgoal_trie_node(NODE, t, CHILD, PARENT, NEXT, FLAGS);         \
+    }                                                                         \
+  } else {                                                                    \
+     new_basic_subgoal_trie_node(NODE, DATA, CHILD, PARENT, NEXT, FLAGS);     \
+  }
+#else
+#define new_general_subgoal_trie_node new_basic_subgoal_trie_node
+#endif
 
 #ifdef LIMIT_TABLING
 
@@ -902,6 +937,7 @@ TABLING_ERROR_MESSAGE("rebind_tr < end_tr (function restore_bindings)");
 
 static inline void
 free_answer_trie_node(ans_node_ptr node) {
+#ifdef TABLING_CALL_SUBSUMPTION
   if(TrNode_is_answer(node)) {
     FREE_ANSWER_TRIE_NODE(node);
   } else {
@@ -914,10 +950,14 @@ free_answer_trie_node(ans_node_ptr node) {
       FREE_TST_ANSWER_TRIE_NODE(node);
     }
   }
+#else
+  FREE_ANSWER_TRIE_NODE(node);
+#endif /* TABLING_CALL_SUBSUMPTION */
 }
 
 static inline void
 free_subgoal_trie_node(sg_node_ptr node) {
+#ifdef TABLING_CALL_SUBSUMPTION
   if(TrNode_is_sub_call(node)) {
     if(TrNode_is_long(node)) {
       FREE_LONG_SUB_SUBGOAL_TRIE_NODE(node);
@@ -926,14 +966,15 @@ free_subgoal_trie_node(sg_node_ptr node) {
     } else {
       FREE_SUB_SUBGOAL_TRIE_NODE(node);
     }
+    return;
+  }
+#endif /* TABLING_CALL_SUBSUMPTION */
+  if(TrNode_is_long(node)) {
+    FREE_LONG_SUBGOAL_TRIE_NODE(node);
+  } else if(TrNode_is_float(node)) {
+    FREE_FLOAT_SUBGOAL_TRIE_NODE(node);
   } else {
-    if(TrNode_is_long(node)) {
-      FREE_LONG_SUBGOAL_TRIE_NODE(node);
-    } else if(TrNode_is_float(node)) {
-      FREE_FLOAT_SUBGOAL_TRIE_NODE(node);
-    } else {
-      FREE_SUBGOAL_TRIE_NODE(node);
-    }
+    FREE_SUBGOAL_TRIE_NODE(node);
   }
 }
 
@@ -947,31 +988,6 @@ void free_node_list(node_list_ptr list) {
     list = next;
   }
 }
-
-#define new_general_subgoal_trie_node(NODE, DATA, CHILD, PARENT, NEXT, FLAGS) \
-  if(IS_SUB_FLAG(FLAGS)) {                                                    \
-    if(IS_FLOAT_FLAG(FLAGS)) {                                                \
-      Float flt = *(Float *)(DATA);                                           \
-      new_float_sub_subgoal_trie_node(NODE, flt, CHILD, PARENT, NEXT, FLAGS); \
-    } else if(IS_LONG_INT_FLAG(FLAGS)) {                                      \
-      Int li = *(Int *)(DATA);                                                \
-      new_long_sub_subgoal_trie_node(NODE, li, CHILD, PARENT, NEXT, FLAGS);   \
-    } else {                                                                  \
-      Term t = (Term)(DATA);                                                  \
-      new_sub_subgoal_trie_node(NODE, t, CHILD, PARENT, NEXT, FLAGS);         \
-    }                                                                         \
-   } else {                                                                   \
-     if(IS_FLOAT_FLAG(FLAGS)) {                                               \
-       Float flt = *(Float *)(DATA);                                          \
-       new_float_subgoal_trie_node(NODE, flt, CHILD, PARENT, NEXT, FLAGS);    \
-     } else if(IS_LONG_INT_FLAG(FLAGS)) {                                     \
-       Int li = *(Int *)(DATA);                                               \
-       new_long_subgoal_trie_node(NODE, li, CHILD, PARENT, NEXT, FLAGS);      \
-     } else {                                                                 \
-       Term t = (Term)(DATA);                                                 \
-       new_subgoal_trie_node(NODE, t, CHILD, PARENT, NEXT, FLAGS);            \
-     }                                                                        \
-  }
 
 static inline
 void free_variant_subgoal_data(sg_fr_ptr sg_fr, int delete_all) {

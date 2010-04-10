@@ -603,8 +603,11 @@ hashify_node_list(sg_node_ptr parent_node, sg_node_ptr child_node, int count_nod
   int entry;
   
   chain_node = child_node;
+
+#ifdef TABLING_CALL_SUBSUMPTION
   if(IS_SUB_FLAG(flags)) {
     new_sub_subgoal_trie_hash(hash, count_nodes, tab_ent);
+    TrNode_child(parent_node) = (sg_node_ptr) hash;
     
     do {
       entry = HASH_ENTRY(HASH_SUBGOAL_NODE(chain_node), BASE_HASH_BUCKETS - 1);
@@ -620,20 +623,22 @@ hashify_node_list(sg_node_ptr parent_node, sg_node_ptr child_node, int count_nod
       
       chain_node = next_node;
     } while (chain_node);
-  } else {
-    new_subgoal_trie_hash(hash, count_nodes, tab_ent);
-    do {
-      entry = HASH_ENTRY(HASH_SUBGOAL_NODE(chain_node), BASE_HASH_BUCKETS - 1);
-      bucket = Hash_bucket(hash, entry);
-      next_node = TrNode_next(chain_node);
-      TrNode_node_type(chain_node) |= HASHED_INTERIOR_NT;
-      TrNode_next(chain_node) = *bucket;
-      *bucket = chain_node;
-      chain_node = next_node;
-    } while (chain_node);
+    return;
   }
-  
+#endif /* TABLING_CALL_SUBSUMPTION */
+
+  new_subgoal_trie_hash(hash, count_nodes, tab_ent);
   TrNode_child(parent_node) = (sg_node_ptr) hash;
+
+  do {
+    entry = HASH_ENTRY(HASH_SUBGOAL_NODE(chain_node), BASE_HASH_BUCKETS - 1);
+    bucket = Hash_bucket(hash, entry);
+    next_node = TrNode_next(chain_node);
+    TrNode_node_type(chain_node) |= HASHED_INTERIOR_NT;
+    TrNode_next(chain_node) = *bucket;
+    *bucket = chain_node;
+    chain_node = next_node;
+  } while (chain_node);
 }
 
 static inline void

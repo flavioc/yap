@@ -17,6 +17,7 @@ typedef CELL Cell;
 typedef CELL *CPtr;
 typedef int xsbBool;
 typedef sg_node_ptr BTNptr;
+typedef Functor Psc;
 
 #define CTXTdeclc
 #define CTXTdecl void
@@ -25,7 +26,28 @@ typedef sg_node_ptr BTNptr;
 #define YES TRUE
 #define NO  FALSE
 
+#define XSB_STRING  TAG_ATOM
+#define XSB_INT     TAG_INT
+#define XSB_FLOAT   TAG_FLOAT
+#define XSB_STRUCT  TAG_STRUCT
+#define XSB_LIST    TAG_LIST
+#define XSB_REF     TAG_REF
+#define XSB_REF1    XSB_REF
+#define XSB_TrieVar TAG_TrieVar
+
+#define EncodeTrieConstant(Cell_Const) ((Cell)Cell_Const)
+#define EncodeTrieVar(INDEX)      MakeTableVarTerm(INDEX)
+#define EncodeNewTrieVar(INDEX)   MakeNewTableVarTerm(INDEX)
+#define EncodeTrieFunctor(TERM)   AbsAppl((Term *)FunctorOfTerm(TERM))
+#define EncodeTrieList(TERM)  AbsPair(NULL)
+
+/* FunctorOfTerm(t) === *RepAppl (t) */
+#define clref_val(REF)      RepAppl(REF)
+#define clrefp_val(REF)     RepPair(REF)
+
 #define XSB_Deref(X) ((X) = Deref(X))
+
+#define xsb_abort(MSG, ...) Yap_Error(FATAL_ERROR, TermNil, MSG, ##__VA_ARGS__)
 
 #define StandardizeVariable(DerefedVar, Index)  \
     (*((CELL *)DerefedVar) = GLOBAL_table_var_enumerator(Index))
@@ -53,33 +75,14 @@ typedef sg_node_ptr BTNptr;
 
 typedef unsigned long int counter;
 typedef sg_hash_ptr BTHTptr;
-typedef Functor Psc;
 
 #define get_str_psc(FUNCTOR) FunctorOfTerm(FUNCTOR)
-/* FunctorOfTerm(t) === *RepAppl (t) */
-#define clref_val(REF)      RepAppl(REF)
-#define clrefp_val(REF)     RepPair(REF)
 #define cs_val(REF)	RepAppl(REF)
 #define bld_ref(ADDR, VAL)  *((CELL *)ADDR) = (CELL)(VAL)
 #define cell(REF) *(REF)
 
 #define IsNonNULL(ptr)   ( (ptr) != NULL )
 #define IsNULL(ptr) ((ptr) == NULL)
-
-#define XSB_STRING  TAG_ATOM
-#define XSB_INT     TAG_INT
-#define XSB_FLOAT   TAG_FLOAT
-#define XSB_STRUCT  TAG_STRUCT
-#define XSB_LIST    TAG_LIST
-#define XSB_REF     TAG_REF
-#define XSB_REF1    XSB_REF
-#define XSB_TrieVar TAG_TrieVar
-
-#define EncodeTrieConstant(Cell_Const) ((Cell)Cell_Const)
-#define EncodeTrieVar(INDEX)      MakeTableVarTerm(INDEX)
-#define EncodeNewTrieVar(INDEX)   MakeNewTableVarTerm(INDEX)
-#define EncodeTrieFunctor(TERM)   AbsAppl((Term *)FunctorOfTerm(TERM))
-#define EncodeTrieList(TERM)  AbsPair(NULL)
 
 /* subgoal frames */
 #define BTN_Child(NODE)         TrNode_child(NODE)
@@ -102,11 +105,6 @@ typedef Functor Psc;
 #define ESCAPE_NODE_SYMBOL    (long)0xFFFFFFF
 #define IsTrieFunctor(SYMBOL) (cell_tag(SYMBOL) == TAG_STRUCT)
 #define IsTrieList(SYMBOL)  IsPairTerm(SYMBOL)
-
-#define xsb_abort(MSG, ...) Yap_Error(FATAL_ERROR, TermNil, MSG, ##__VA_ARGS__)
-
-#define SUBSUMPTION_YAP 1
-/* #define SUBSUMPTION_XSB 1 */
 
 #define SubProdSF subprod_fr_ptr
 
@@ -208,6 +206,9 @@ typedef Functor Psc;
 #define Sys_Trail_Unwind(TR0) trail_unwind(TR0)
 #define pushtrail0 DO_TRAIL
 #define bind_ref(A,D) Bind(A,D)
+
+#define SUBSUMPTION_YAP 1
+/* #define SUBSUMPTION_XSB 1 */
 
 #endif /* TABLING_CALL_SUBSUMPTION */
 

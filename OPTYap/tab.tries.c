@@ -65,11 +65,15 @@ sg_fr_ptr subgoal_search(yamop *preg, CELL **local_stack_ptr)
 
   if(TabEnt_subgoal_trie(tab_ent) == NULL) {
     sg_node_ptr root;
+#ifdef TABLING_CALL_SUBSUMPTION
     if(TabEnt_is_variant(tab_ent)) {
       new_root_subgoal_trie_node(root);
     } else {
       new_root_sub_subgoal_trie_node(root);
     }
+#else
+    new_root_subgoal_trie_node(root);
+#endif /* TABLING_CALL_SUBSUMPTION */
     TabEnt_subgoal_trie(tab_ent) = root;
   }
   
@@ -117,6 +121,7 @@ ans_node_ptr answer_search(sg_fr_ptr sg_fr, CELL *subs_ptr) {
   return NULL;
 }
 
+#ifdef TABLING_CALL_SUBSUMPTION
 void delete_subgoal_path(sg_fr_ptr sg_fr) {
   sg_node_ptr node = SgFr_leaf(sg_fr);
   sg_node_ptr parent, first_child, old_node, *bucket;
@@ -177,6 +182,7 @@ process_next:
   if(update_generators)
     decrement_generator_path(node);
 }
+#endif /* TABLING_CALL_SUBSUMPTION */
 
 #ifdef GLOBAL_TRIE
 CELL *load_substitution_variable(gt_node_ptr current_node, CELL *aux_stack_ptr) {

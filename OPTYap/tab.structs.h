@@ -118,6 +118,7 @@ typedef struct table_entry {
 #define TabEnt_set_load(X)        { if(TabEnt_is_empty(X) || TabEnt_is_variant(X)) SetMode_LoadAnswers(TabEnt_mode(X)); }
 #define TabEnt_set_exec(X)        { if(TabEnt_is_empty(X) || TabEnt_is_variant(X)) SetMode_ExecAnswers(TabEnt_mode(X)); }
 #else
+#define TabEnt_is_variant(X)      TRUE
 #define TabEnt_set_load(X)        { SetMode_LoadAnswers(TabEnt_mode(X)); }
 #define TabEnt_set_exec(X)        { SetMode_ExecAnswers(TabEnt_mode(X)); }
 #endif /* TABLING_CALL_SUBSUMPTION */
@@ -154,7 +155,7 @@ struct basic_trie_info {
   OPCODE instr;
   OPCODE compiled;
   unsigned char node_type;
-} __attribute__((__packed__));;
+} __attribute__((__packed__));
 
 /* -------------------------------------------------------------------------- **
 **      Structs global_trie_node, subgoal_trie_node and answer_trie_node      **

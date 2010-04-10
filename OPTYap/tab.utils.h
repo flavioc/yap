@@ -359,6 +359,62 @@ static inline CellTag cell_tag(Term t)
   return TAG_UNKNOWN;
 }
 
+/* --------------------------------------------- */
+
+#define TrieError_UnknownSubtermTagMsg				\
+   "Trie Subterm-to-Symbol Conversion\nUnknown subterm type (%d)"
+
+#define TrieError_UnknownSubtermTag(Subterm)			\
+   xsb_abort(TrieError_UnknownSubtermTagMsg, cell_tag(Subterm))
+
+#define ProcessNextSubtermFromTrieStacks(Symbol,NodeType,StdVarNum) {  \
+ Cell subterm; \
+ TermStack_Pop(subterm); \
+ XSB_Deref(subterm); \
+ NodeType = INTERIOR_NT; \
+ switch(cell_tag(subterm)) { \
+   case XSB_REF: \
+     if(!IsStandardizedVariable(subterm)) {  \
+       if (StdVarNum == MAX_TABLE_VARS)                \
+         Yap_Error(INTERNAL_ERROR, TermNil, "MAX_TABLE_VARS exceeded");  \
+       StandardizeVariable(subterm, StdVarNum);  \
+       Trail_Push(subterm);  \
+       Symbol = EncodeNewTrieVar(StdVarNum); \
+       StdVarNum++;  \
+     } \
+     else  \
+       Symbol = EncodeTrieVar(IndexOfStdVar(subterm)); \
+     break;  \
+   case XSB_STRING:  \
+   case XSB_INT: \
+     Symbol = EncodeTrieConstant(subterm); \
+     break;  \
+   case XSB_STRUCT:  \
+     Symbol = EncodeTrieFunctor(subterm);  \
+     TermStack_PushFunctorArgs(subterm); \
+     break;  \
+   case XSB_LIST:  \
+     Symbol = EncodeTrieList(subterm); \
+     TermStack_PushListArgs(subterm);  \
+     break;  \
+   case TAG_LONG_INT:                  \
+     li = LongIntOfTerm(subterm);      \
+     Symbol = (Cell)&li;               \
+     NodeType |= LONG_INT_NT;          \
+     break;  \
+   case TAG_FLOAT:                     \
+     flt = FloatOfTerm(subterm);     \
+     symbol = (Cell)&flt;              \
+     NodeType |= FLOAT_NT;                 \
+     break;                                \
+   default:  \
+     Symbol = 0; \
+     TrieError_UnknownSubtermTag(subterm); \
+   } \
+}
+
+/* --------------------------------------------- */
+
 void printTrieSymbol(FILE* fp, Cell symbol);
 void printAnswerTriePath(FILE *fp, ans_node_ptr leaf);
 
@@ -468,67 +524,11 @@ extern Cell TrieVarBindings[MAX_TABLE_VARS];
 
 extern int AnsVarCtr;
 
-#define TrieError_UnknownSubtermTagMsg				\
-   "Trie Subterm-to-Symbol Conversion\nUnknown subterm type (%d)"
-   
-#define TrieError_UnknownSubtermTag(Subterm)			\
-   xsb_abort(TrieError_UnknownSubtermTagMsg, cell_tag(Subterm))
-
 #define TrieSymbol_Deref(Symbol)	\
  if(IsTrieVar(Symbol)) {	\
    Symbol = TrieVarBindings[DecodeTrieVar(Symbol)];	\
    XSB_Deref(Symbol);	\
  } 
-
-/* --------------------------------------------- */
-
-#define ProcessNextSubtermFromTrieStacks(Symbol,NodeType,StdVarNum) {  \
- Cell subterm; \
- TermStack_Pop(subterm); \
- XSB_Deref(subterm); \
- NodeType = INTERIOR_NT; \
- switch(cell_tag(subterm)) { \
-   case XSB_REF: \
-     if(!IsStandardizedVariable(subterm)) {  \
-       if (StdVarNum == MAX_TABLE_VARS)                \
-         Yap_Error(INTERNAL_ERROR, TermNil, "MAX_TABLE_VARS exceeded");  \
-       StandardizeVariable(subterm, StdVarNum);  \
-       Trail_Push(subterm);  \
-       Symbol = EncodeNewTrieVar(StdVarNum); \
-       StdVarNum++;  \
-     } \
-     else  \
-       Symbol = EncodeTrieVar(IndexOfStdVar(subterm)); \
-     break;  \
-   case XSB_STRING:  \
-   case XSB_INT: \
-     Symbol = EncodeTrieConstant(subterm); \
-     break;  \
-   case XSB_STRUCT:  \
-     Symbol = EncodeTrieFunctor(subterm);  \
-     TermStack_PushFunctorArgs(subterm); \
-     break;  \
-   case XSB_LIST:  \
-     Symbol = EncodeTrieList(subterm); \
-     TermStack_PushListArgs(subterm);  \
-     break;  \
-   case TAG_LONG_INT:                  \
-     li = LongIntOfTerm(subterm);      \
-     Symbol = (Cell)&li;               \
-     NodeType |= LONG_INT_NT;          \
-     break;  \
-   case TAG_FLOAT:                     \
-     flt = FloatOfTerm(subterm);     \
-     symbol = (Cell)&flt;              \
-     NodeType |= FLOAT_NT;                 \
-     break;                                \
-   default:  \
-     Symbol = 0; \
-     TrieError_UnknownSubtermTag(subterm); \
-   } \
-}
-
-/* --------------------------------------------- */
 
 /* emu/tries.h */
 typedef enum Trie_Path_Type {

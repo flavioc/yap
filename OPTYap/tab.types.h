@@ -103,12 +103,12 @@ node_get_float(sg_node_ptr node) {
 }
 #else
 static inline Int
-node_get_float(sg_node_ptr node) {
+node_get_long_int(sg_node_ptr node) {
   return TrNode_long_int((long_sg_node_ptr)node);
 }
 
 static inline Float
-node_get_double(sg_node_ptr node) {
-  return TrNode_float(node);
+node_get_float(sg_node_ptr node) {
+  return TrNode_float((float_sg_node_ptr)node);
 }
 #endif /* TABLING_CALL_SUBSUMPTION */
