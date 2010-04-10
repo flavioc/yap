@@ -409,12 +409,13 @@
 #endif /* TRIE_COMPACT_PAIRS */
 
 
+#ifdef TABLING_CALL_SUBSUMPTION
 
 /* ------------------- **
 **    trie_long_int    **
 ** ------------------- */
 
-#define UNIFY_LONG_INT(BIND_FUN)                                                      \
+#define unify_long_int(BIND_FUN)                                                      \
   CELL term = Deref(*aux_stack_ptr);                                                  \
   switch(cell_tag(term)) {                                                            \
     case TAG_REF:                                                                     \
@@ -431,14 +432,14 @@
 #define stack_trie_long_instr()                                                       \
   if(heap_arity) {                                                                    \
     YENV = ++aux_stack_ptr;                                                           \
-    UNIFY_LONG_INT(Bind_Global);                                                      \
+    unify_long_int(Bind_Global);                                                      \
     INC_HEAP_ARITY(-1);                                                               \
     next_instruction(heap_arity - 1 || subs_arity, node);                             \
   } else {                                                                            \
     aux_stack_ptr += 2;                                                               \
     *aux_stack_ptr = subs_arity - 1;                                                  \
     aux_stack_ptr += subs_arity;                                                      \
-    UNIFY_LONG_INT(Bind);                                                             \
+    unify_long_int(Bind);                                                             \
     ALIGN_STACK_LEFT();                                                               \
     next_instruction(subs_arity - 1, node);                                           \
   }
@@ -447,7 +448,7 @@
 **   trie_float_val    **
 ** ------------------- */
   
-#define UNIFY_FLOAT(BIND_FUN)                                                         \
+#define unify_float(BIND_FUN)                                                         \
   CELL term = Deref(*aux_stack_ptr);                                                  \
   switch(cell_tag(term)) {                                                            \
     case TAG_REF:                                                                     \
@@ -464,45 +465,50 @@
 #define stack_trie_float_instr()                                                      \
   if(heap_arity) {                                                                    \
     YENV = ++aux_stack_ptr;                                                           \
-    UNIFY_FLOAT(Bind_Global);                                                         \
+    unify_float(Bind_Global);                                                         \
     INC_HEAP_ARITY(-1);                                                               \
     next_instruction(heap_arity - 1 || subs_arity, node);                             \
   } else {                                                                            \
     aux_stack_ptr += 2;                                                               \
     *aux_stack_ptr = subs_arity - 1;                                                  \
     aux_stack_ptr += subs_arity;                                                      \
-    UNIFY_FLOAT(Bind);                                                                \
+    unify_float(Bind);                                                                \
     ALIGN_STACK_LEFT();                                                               \
     next_instruction(subs_arity - 1, node);                                           \
   }
   
+#endif /* TABLING_CALL_SUBSUMPTION */
+
 /* ------------------- **
 **      trie_atom      **
 ** ------------------- */
 
-#define UNIFY_ATOM(BIND_FUN)  \
+#ifdef TABLING_CALL_SUBSUMPTION
+#define unify_atom(BIND_FUN)                                  \
   CELL term = Deref(*aux_stack_ptr);                          \
   if(IsVarTerm(term)) {                                       \
-    BIND_FUN((CELL *)term, TrNode_entry(node));  \
+    BIND_FUN((CELL *)term, TrNode_entry(node));               \
   } else {                                                    \
     if(term != TrNode_entry(node)) {                          \
       goto fail;                                              \
     }                                                         \
   }
+#else
+#define unify_atom(BIND_FUN) BIND_FUN((CELL *)*aux_stack_ptr, TrNode_entry(node))
+#endif /* TABLING_CALL_SUBSUMPTION */
 
 #define stack_trie_atom_instr()                                      \
         dprintf("stack_trie_atom_instr\n");                          \
-        dprintf("Heap arity: %d\n", heap_arity);                     \
         if (heap_arity) {                                            \
           YENV = ++aux_stack_ptr;                                    \
-          UNIFY_ATOM(Bind_Global);                                   \
+          unify_atom(Bind_Global);                                   \
           INC_HEAP_ARITY(-1);                                        \
           next_instruction(heap_arity - 1 || subs_arity, node);      \
         } else {                                                     \
           aux_stack_ptr += 2;                                        \
           *aux_stack_ptr = subs_arity - 1;                           \
           aux_stack_ptr += subs_arity;                               \
-          UNIFY_ATOM(Bind);                                          \
+          unify_atom(Bind);                                          \
           ALIGN_STACK_LEFT();                                        \
           next_instruction(subs_arity - 1, node);                    \
         }
@@ -556,12 +562,12 @@
 
 #ifdef TRIE_COMPACT_PAIRS
 /* trie compiled code for term 'CompactPairEndList' */
-#define stack_trie_pair_instr()		                     \
+#define stack_trie_pair_instr()		                           \
         if (heap_arity) {                                    \
           aux_stack_ptr++;                                   \
           Bind_Global((CELL *) *aux_stack_ptr, AbsPair(H));  \
           *aux_stack_ptr = (CELL) H;                         \
-	} else {                                             \
+	      } else {                                             \
           int i;                                             \
           *aux_stack_ptr-- = (CELL) H;                       \
           *aux_stack_ptr = 1;                                \
@@ -574,7 +580,7 @@
             *aux_stack_ptr = *(aux_stack_ptr + 1);           \
             aux_stack_ptr++;                                 \
           }                                                  \
-	}                                                    \
+	      }                                                    \
         Bind_Global(H + 1, TermNil);                         \
         H += 2;                                              \
         next_trie_instruction(node)
