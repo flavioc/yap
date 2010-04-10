@@ -544,20 +544,20 @@
 **      trie_pair      **
 ** ------------------- */
 
-#define PUSH_LIST_ARGS(TERM) {  \
+#define push_list_args(TERM) {              \
   *aux_stack_ptr-- = *(RepPair(TERM) + 1);  \
   *aux_stack_ptr-- = *(RepPair(TERM) + 0);  \
 }
 
-#define PUSH_NEW_LIST() { \
-  *aux_stack_ptr-- = (CELL) (H + 1);                 \
-  *aux_stack_ptr-- = (CELL) H;                       \
+#define push_new_list() {               \
+  *aux_stack_ptr-- = (CELL) (H + 1);    \
+  *aux_stack_ptr-- = (CELL) H;          \
 }
 
-#define MARK_HEAP_LIST() {  \
-    RESET_VARIABLE(H);  \
-    RESET_VARIABLE(H+1);  \
-    H += 2; \
+#define mark_heap_list() {  \
+    RESET_VARIABLE(H);      \
+    RESET_VARIABLE(H+1);    \
+    H += 2;                 \
   }
 
 #ifdef TRIE_COMPACT_PAIRS
@@ -584,59 +584,85 @@
         Bind_Global(H + 1, TermNil);                         \
         H += 2;                                              \
         next_trie_instruction(node)
+#else /* !TRIE_COMPACT_PAIRS */
+
+#define unify_heap_var_pair()                             \
+        Bind_Global((CELL *) *aux_stack_ptr, AbsPair(H)); \
+        push_new_list();                                  \
+        INC_HEAP_ARITY(1);                                \
+        YENV = aux_stack_ptr;                             \
+        mark_heap_list()
+        
+#ifdef TABLING_CALL_SUBSUMPTION
+#define unify_heap_pair()                                       \
+        switch(cell_tag(term)) {                                \
+          case TAG_LIST: {                                      \
+              push_list_args(term);                             \
+              INC_HEAP_ARITY(1);                                \
+              YENV = aux_stack_ptr;                             \
+            }                                                   \
+            break;                                              \
+          case TAG_REF: {                                       \
+              unify_heap_var_pair();                            \
+            }                                                   \
+            break;                                              \
+          default:                                              \
+            goto fail;                                          \
+        }
 #else
-#define stack_trie_pair_instr()                              \
-        if (heap_arity) {                                    \
-          aux_stack_ptr++;                                   \
-          Term term = Deref(*aux_stack_ptr);                 \
-          switch(cell_tag(term)) {                           \
-            case TAG_LIST: {                                 \
-                PUSH_LIST_ARGS(term);                        \
-                INC_HEAP_ARITY(1);                            \
-                YENV = aux_stack_ptr;                         \
-              }                                                   \
-              break;                                              \
-            case TAG_REF: {                                     \
-                Bind_Global((CELL *) *aux_stack_ptr, AbsPair(H));  \
-                PUSH_NEW_LIST();                                   \
-                INC_HEAP_ARITY(1);                                \
-                YENV = aux_stack_ptr;                           \
-                MARK_HEAP_LIST();                               \
-              }                                                \
-              break;                                          \
-            default:                                          \
-              goto fail;                                     \
-            }                                               \
-        } else {                                             \
+#define unify_heap_pair unify_heap_var_pair
+#endif
+
+#define unify_subs_var_pair()                           \
+        push_new_list();                                \
+        INC_HEAP_ARITY(2);                              \
+        YENV = aux_stack_ptr;                           \
+        /* jump to subs */                              \
+        aux_stack_ptr += 2 + 2;                         \
+        /* change subs arity */                         \
+        *aux_stack_ptr = subs_arity - 1;                \
+        aux_stack_ptr += subs_arity;                    \
+        Bind((CELL *) *aux_stack_ptr, AbsPair(H));      \
+        ALIGN_STACK_LEFT();                             \
+        mark_heap_list()
+
+#ifdef TABLING_CALL_SUBSUMPTION
+#define unify_subs_pair()                                     \
+        switch(cell_tag(term))  {                             \
+          case TAG_LIST:  {                                   \
+              push_list_args(term);                           \
+              INC_HEAP_ARITY(2);                              \
+              YENV = aux_stack_ptr;                           \
+              /* jump to subs */                              \
+              aux_stack_ptr += 2 + 2;                         \
+              /* update subs arity */                         \
+              *aux_stack_ptr = subs_arity - 1;                \
+              aux_stack_ptr += subs_arity;                    \
+              ALIGN_STACK_LEFT();                             \
+            }                                                 \
+            break;                                            \
+          case TAG_REF: {                                     \
+              unify_subs_var_pair();                          \
+            }                                                 \
+            break;                                            \
+          default:                                            \
+              goto fail;                                      \
+        }
+#else
+#define unify_subs_pair unify_subs_var_pair
+#endif /* TABLING_CALL_SUBSUMPTION */
+        
+#define stack_trie_pair_instr()                                 \
+        if (heap_arity) {                                       \
+          aux_stack_ptr++;                                      \
+          Term term = Deref(*aux_stack_ptr);                    \
+          unify_heap_pair();                                    \
+        } else {                                                \
           CELL term = Deref(*(aux_stack_ptr + 2 + subs_arity)); \
-          switch(cell_tag(term))  { \
-            case TAG_LIST:  { \
-                PUSH_LIST_ARGS(term); \
-                INC_HEAP_ARITY(2);  \
-                YENV = aux_stack_ptr; \
-                aux_stack_ptr += 2 + 2; /* jump to subs */ \
-                *aux_stack_ptr = subs_arity - 1; /* update subs arity */ \
-                aux_stack_ptr += subs_arity;        \
-                ALIGN_STACK_LEFT();     \
-              } \
-              break;  \
-            case TAG_REF: { \
-                PUSH_NEW_LIST();  \
-                INC_HEAP_ARITY(2);  \
-                YENV = aux_stack_ptr; \
-                aux_stack_ptr += 2 + 2; /* jump to subs */ \
-                *aux_stack_ptr = subs_arity - 1; /* change subs arity */ \
-                aux_stack_ptr += subs_arity;  \
-                Bind((CELL *) *aux_stack_ptr, AbsPair(H));         \
-                ALIGN_STACK_LEFT(); \
-                MARK_HEAP_LIST(); \
-              } \
-            break;  \
-            default:  \
-                goto fail;  \
-          } \
-        }                                                    \
+          unify_subs_pair();                                    \
+        }                                                       \
         next_trie_instruction(node)
+        
 #endif /* TRIE_COMPACT_PAIRS */
 
 
