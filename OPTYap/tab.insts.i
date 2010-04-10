@@ -617,13 +617,18 @@
     if(SgFr_state(SgFr_producer(sg_fr)) < complete) {
       dprintf("producer not completed!\n");
       build_next_ground_consumer_return_list(sg_fr);
-      continuation_ptr next_cont = continuation_next(SgFr_try_answer(sg_fr));
+      continuation_ptr cont;
       
-      if(next_cont) {
+      if(SgFr_try_answer(sg_fr))
+        cont = continuation_next(SgFr_try_answer(sg_fr));
+      else
+        cont = SgFr_first_answer(sg_fr);
+      
+      if(cont) {
         dprintf("Consuming...\n");
         /* as long we can consume answers we
          * can avoid being a real consumer */
-        consume_next_ground_answer(next_cont, sg_fr);
+        consume_next_ground_answer(cont, sg_fr);
       }
       
       /* no more answers to consume, transform this node

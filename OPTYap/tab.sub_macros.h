@@ -863,7 +863,8 @@ add_dependency_frame(grounded_sf_ptr sg_fr, choiceptr cp)
   
   /* turn generator choice point as consumer */
   CONS_CP(cp)->cp_dep_fr = dep_fr;
-  DepFr_last_answer(dep_fr) = SgFr_try_answer(sg_fr);
+  if(SgFr_try_answer(sg_fr))
+    DepFr_last_answer(dep_fr) = SgFr_try_answer(sg_fr);
   //DepFr_type(dep_fr) = TRANSFORMED_DEP;
 }
 
