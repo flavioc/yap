@@ -59,6 +59,8 @@ STD_PROTO(static inline void process_pending_subgoal_list, (node_list_ptr, groun
         SgFr_timestamp(SG_FR) = 0;      \
         SgFr_flags(SG_FR) = 0;            \
         SgFr_answer_template(SG_FR) = NULL;   \
+        SgFr_num_ans(SG_FR) = 0;                \
+        SgFr_saved_cp(SG_FR) = 0;               \
         RESET_VARIABLE(&SgFr_executing(SG_FR));  \
         RESET_VARIABLE(&SgFr_start(SG_FR))
   
@@ -751,6 +753,7 @@ producer_to_consumer(grounded_sf_ptr sg_fr, grounded_sf_ptr producer)
   if(SgFr_is_internal(sg_fr)) {
     dprintf("set as local producer\n");
     SgFr_set_local_producer(producer);
+    SgFr_set_local_consumer(sg_fr);
     B->cp_b = gen_cp;
   } else {
     choiceptr cp = locate_after_answer(limit_cp, B);

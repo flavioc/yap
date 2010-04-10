@@ -17,6 +17,8 @@
 #include "tab.xsb.h"
 #include "tab.stack.h"
 
+#define POWER_OF_TWO(X) (((X) & ((X) - 1)) == 0)
+
 #ifdef BITS64
 #define IntegerFormatString	"%ld"
 #else
@@ -542,7 +544,7 @@ extern CELL* AT;
 #endif /* TABLING_CALL_SUBSUMPTION */
 
 // deactivate to test
-//#define FDEBUG
+// #define FDEBUG
 #ifdef FDEBUG
 #define dprintf(MESG, ARGS...) printf(MESG, ##ARGS)
 #else

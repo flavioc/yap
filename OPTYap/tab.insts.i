@@ -629,6 +629,25 @@
         /* as long we can consume answers we
          * can avoid being a real consumer */
         consume_next_ground_answer(cont, sg_fr);
+      } else if(SgFr_saved_cp(SgFr_producer(sg_fr))) {
+        grounded_sf_ptr prod = SgFr_producer(sg_fr);
+        choiceptr cp = SgFr_saved_cp(prod);
+        dprintf("saved_cp %d B %d\n", (int)cp, (int)B);
+        dprintf("rebind_variables\n");
+        //restore_bindings(B->cp_tr, cp->cp_tr);
+        dprintf("cp->cp_tr %d B->cp_tr %d\n", (int)cp->cp_tr, (int)B->cp_tr);
+        rebind_variables(cp->cp_tr, B->cp_tr);
+        B = cp;
+        SgFr_saved_cp(prod) = NULL;
+        H = HBREG = PROTECT_FROZEN_H(B);
+        restore_yaam_reg_cpdepth(B);
+        TR = cp->cp_tr;
+        ENV = B->cp_env;
+        PREG = (yamop *) B->cp_ap;
+        PREFETCH_OP(PREG);
+        YENV = ENV;
+        dprintf("Going to next!\n");
+        GONext();
       }
       
       /* no more answers to consume, transform this node
@@ -1294,7 +1313,7 @@
 
     restore_generator_node(PREG->u.Otapl.s, COMPLETION);
     
-    dprintf("===> TABLE_TRUST ");
+    dprintf("===> TABLE_TRUST\n");
 
 #ifdef DETERMINISTIC_TABLING
   if (B_FZ > B && IS_BATCHED_NORM_GEN_CP(B)) {    
@@ -1536,10 +1555,46 @@
 #endif /* TABLING_ERRORS */
       UNLOCK(SgFr_lock(sg_fr));
       
+#ifdef TABLING_CALL_SUBSUMPTION
       if(SgFr_is_ground_local_producer(sg_fr)) {
         dprintf("GROUND_LOCAL PRODUCER\n");
-        goto fail;
+        grounded_sf_ptr ground = (grounded_sf_ptr)sg_fr;
+        SgFr_num_ans(ground)++;
+        dprintf("SgFr_num_ans(ground)=%d\n", SgFr_num_ans(ground));
+        if(SgFr_num_ans(ground) > 1 && POWER_OF_TWO(SgFr_num_ans(ground))) {
+          dprintf("Act as batched\n");
+          choiceptr mycp = SgFr_choice_point(sg_fr);
+          choiceptr target = mycp->cp_b;
+          SgFr_saved_cp(ground) = B;
+          dprintf("TR %d B->cp_tr %d target->cp_tr %d mycp->cp_tr %d\n", (int)TR, (int)B->cp_tr, (int)target->cp_tr, (int)mycp->cp_tr);
+          dprintf("Saved_cp %d target %d\n", (int)B, target);
+          unbind_variables(TR, target->cp_tr);
+          
+          /* protect stacks */
+          if(B->cp_tr > TR_FZ)
+            TR_FZ = B->cp_tr;
+          TR = B->cp_tr;
+          if(B_FZ > B)
+            B_FZ = B;
+            
+          dprintf("TR %d B->cp_tr %d target->cp_tr %d mycp->cp_tr %d\n", (int)TR, (int)B->cp_tr, (int)target->cp_tr, (int)mycp->cp_tr);
+          B = target;
+          H = HBREG = PROTECT_FROZEN_H(B);
+          restore_yaam_reg_cpdepth(B);
+          CPREG = B->cp_ap;
+          ENV = B->cp_env;
+          PREG = (yamop *)CPREG;
+          PREFETCH_OP(PREG);
+          YENV = ENV;
+          dprintf("Go specific goal!\n");
+          GONext();
+        } else {
+          dprintf("Act as local\n");
+          /* act as local scheduling */
+          goto fail;
+        }
       }
+#endif /* TABLING_CALL_SUBSUMPTION */
       if (IS_BATCHED_GEN_CP(gcp)) {
 #ifdef TABLING_EARLY_COMPLETION
 	if (gcp == PROTECT_FROZEN_B(B) && (*subs_ptr == 0 || gcp->cp_ap == COMPLETION)) {
@@ -1640,6 +1695,30 @@
     }
 
     UNLOCK(DepFr_lock(dep_fr));
+    
+#ifdef TABLING_CALL_SUBSUMPTION
+    if(SgFr_is_ground_local_consumer(DepFr_sg_fr(dep_fr))) {
+      grounded_sf_ptr sg_fr = (grounded_sf_ptr)DepFr_sg_fr(dep_fr);
+      grounded_sf_ptr prod = SgFr_producer(sg_fr);
+      if(SgFr_state(prod) < complete && SgFr_saved_cp(prod)) {
+        choiceptr cp = SgFr_saved_cp(prod);
+        dprintf("saved_cp %d B %d\n", (int)cp, (int)B);
+        dprintf("rebind_variables cp->cp_tr %d B->cp_tr %d\n", (int)cp->cp_tr, (int)B->cp_tr);
+        rebind_variables(cp->cp_tr, B->cp_tr);
+        B = cp;
+        SgFr_saved_cp(prod) = NULL;
+        H = HBREG = PROTECT_FROZEN_H(B);
+        restore_yaam_reg_cpdepth(B);
+        TR = cp->cp_tr;
+        ENV = B->cp_env;
+        PREG = (yamop *) B->cp_ap;
+        PREFETCH_OP(PREG);
+        YENV = ENV;
+        dprintf("Going to next!\n");
+        GONext();
+      }
+    }
+#endif /* TABLING_CALL_SUBSUMPTION */
 
 #ifdef YAPOR
     if (B == DepFr_leader_cp(LOCAL_top_dep_fr)) {

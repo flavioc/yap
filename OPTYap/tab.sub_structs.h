@@ -113,6 +113,7 @@ typedef struct grounded_subgoal_frame *grounded_sf_ptr;
 
 #define SG_FR_MOST_GENERAL 0x08
 #define SG_FR_LOCAL_PRODUCER 0x01
+#define SG_FR_LOCAL_CONSUMER 0x02
 
 struct grounded_subgoal_frame {
   subgoal_frame_type type;
@@ -145,13 +146,20 @@ struct grounded_subgoal_frame {
   
   CELL executing;
   CELL start;
+  
+  int num_ans;
+  choiceptr saved_cp;
 };
 
+#define SgFr_num_ans(X)             ((X)->num_ans)
+#define SgFr_saved_cp(X)            ((X)->saved_cp)
 #define SgFr_flags(X)               ((X)->flags)
 #define SgFr_is_most_general(X)     (SgFr_flags(X) & SG_FR_MOST_GENERAL)
 #define SgFr_set_most_general(X)    (SgFr_flags(X) |= SG_FR_MOST_GENERAL)
 #define SgFr_set_local_producer(X)  (SgFr_flags(X) |= SG_FR_LOCAL_PRODUCER)
 #define SgFr_is_local_producer(X)   (SgFr_flags(X) & SG_FR_LOCAL_PRODUCER)
+#define SgFr_set_local_consumer(X)  (SgFr_flags(X) |= SG_FR_LOCAL_CONSUMER)
+#define SgFr_is_local_consumer(X)   (SgFr_flags(X) & SG_FR_LOCAL_CONSUMER)
 #define SgFr_new_answer_cp(X)       ((choiceptr)SgFr_executing(X))
 #define SgFr_executing(X)           ((X)->executing)
 #define SgFr_start(X)               ((X)->start)
@@ -174,5 +182,6 @@ struct grounded_subgoal_frame {
 #define SgFr_is_ground_producer(X)        (SgFr_type(X) == GROUND_PRODUCER_SFT)
 #define SgFr_is_ground_consumer(X)        (SgFr_type(X) == GROUND_CONSUMER_SFT)
 #define SgFr_is_ground_local_producer(X) (SgFr_is_ground_producer(X) && SgFr_is_local_producer((grounded_sf_ptr)(X)))
+#define SgFr_is_ground_local_consumer(X)  (SgFr_is_ground_consumer(X) && SgFr_is_local_consumer((grounded_sf_ptr)(X)))
 
 #endif /* TABLING_CALL_SUBSUMPTION */
