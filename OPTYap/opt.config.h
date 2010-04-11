@@ -88,6 +88,11 @@
 ** ----------------------------------------------------------------- */
 #define TABLING_CALL_SUBSUMPTION 1
 
+/* ------------------------------------------------------------------ **
+**  use completed table optimization for subsumptive and ground goals **
+** ------------------------------------------------------------------ */
+#define TABLING_COMPLETE_TABLE 1
+
 
 /* ---------------------------------------------------------------- **
 **                  YAPOR Configuration Parameters                  **
@@ -216,6 +221,9 @@
 #if defined(TABLING_CALL_SUBSUMPTION) && defined(TABLING_ANSWER_CHILD)
 #error "Call by subsumption can't use this organization scheme"
 #endif
+#ifndef TABLING_CALL_SUBSUMPTION
+#undef TABLING_COMPLETE_TABLE
+#endif /* TABLING_CALL_SUBSUMPTION */
 #endif /* TABLING */
 
 #if defined(YAPOR) && defined(TABLING)

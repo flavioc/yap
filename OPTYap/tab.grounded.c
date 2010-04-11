@@ -65,7 +65,8 @@ create_new_ground_consumer_subgoal(sg_node_ptr leaf_node, tab_ent_ptr tab_ent, y
 
   new_grounded_consumer_subgoal_frame(sg_fr, code, leaf_node, subsumer);
   
-    /* unlock table entry */
+  /* XXX MUST REMOVE THIS */
+  /* unlock table entry */
 #if defined(TABLE_LOCK_AT_ENTRY_LEVEL)
   UNLOCK(TabEnt_lock(tab_ent));
 #elif defined(TABLE_LOCK_AT_NODE_LEVEL)
@@ -77,7 +78,32 @@ create_new_ground_consumer_subgoal(sg_node_ptr leaf_node, tab_ent_ptr tab_ent, y
   return sg_fr;
 }
 
-static inline CELL*
+#ifdef TABLING_COMPLETE_TABLE
+void
+free_subgoal_trie_from_ground_table(tab_ent_ptr tab_ent)
+{
+  sg_hash_ptr hash;
+  sg_node_ptr sg_node;
+  printf("Cleaning ground table\n");
+
+  hash = TabEnt_hash_chain(tab_ent);
+  TabEnt_hash_chain(tab_ent) = NULL;
+  free_subgoal_trie_hash_chain(hash);
+  
+  if(TabEnt_subgoal_trie(tab_ent)) {
+    sg_node = TrNode_child(TabEnt_subgoal_trie(tab_ent));
+    
+    /* keep the root node */
+    TrNode_child(TabEnt_subgoal_trie(tab_ent)) = NULL;
+    
+    if (sg_node) {
+      free_subgoal_trie_branch(sg_node, TabEnt_arity(tab_ent), 0, TRAVERSE_POSITION_FIRST);
+    }
+  }
+}
+#endif /* TABLING_COMPLETE_TABLE */
+
+CELL*
 copy_arguments_as_the_answer_template(CELL *answer_template, int arity)
 {
   int i;

@@ -260,6 +260,15 @@ void mark_ground_consumer_as_completed(grounded_sf_ptr sg_fr) {
 static inline
 void mark_ground_producer_as_completed(grounded_sf_ptr sg_fr) {
   decrement_subgoal_path(sg_fr);
+#ifdef TABLING_COMPLETE_TABLE
+  if(SgFr_is_most_general(sg_fr)) {
+    tab_ent_ptr tab_ent = SgFr_tab_ent(sg_fr);
+    
+    TabEnt_set_completed(tab_ent);
+    if(TabEnt_is_exec(tab_ent))
+      free_subgoal_trie_from_ground_table(tab_ent);
+  }
+#endif /* TABLING_COMPLETE_TABLE */
 }
 
 static inline void
@@ -875,13 +884,10 @@ add_ground_subgoal_stack(grounded_sf_ptr sg_fr, choiceptr cp)
   }
   
   if(before == NULL) {
-    dprintf("SET TO TOP\n");
     LOCAL_top_groundcons_sg_fr = sg_fr;
     SgFr_next(sg_fr) = NULL;
-  } else {
-    dprintf("SET TO NEXT\n");
+  } else
     SgFr_next(before) = sg_fr;
-  }
 }
 
 #endif /* TABLING_CALL_SUBSUMPTION */

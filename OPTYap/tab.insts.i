@@ -524,6 +524,20 @@
 
 #endif /* TABLING_CALL_SUBSUMPTION */
 
+#ifdef TABLING_COMPLETE_TABLE
+#define completed_table_optimization(TAB_ENT)                                       \
+  if(TabEnt_is_grounded(TAB_ENT) && TabEnt_is_exec(TAB_ENT)                         \
+      && TabEnt_subgoal_trie(TAB_ENT) != NULL && TabEnt_completed(TAB_ENT))         \
+  {                                                                                 \
+    YENV2MEM;                                                                       \
+    YENV = copy_arguments_as_the_answer_template(YENV - 1, TabEnt_arity(TAB_ENT));  \
+    MEM2YENV;                                                                       \
+    exec_ground_trie(TAB_ENT);                                                      \
+  }
+#else
+#define completed_table_optimization(TAB_ENT) /* nothing */
+#endif /* TABLING_COMPLETE_TABLE */
+
 /* Consume a variant answer ANS_NODE using ANS_TMPLT
  * as the pointer to the answer template.
  */
@@ -853,6 +867,9 @@
 
     check_trail(TR);
     tab_ent = PREG->u.Otapl.te;
+    
+    completed_table_optimization(tab_ent);
+    
     YENV2MEM;
     sg_fr = subgoal_search(PREG, YENV_ADDRESS);
     MEM2YENV;
@@ -994,6 +1011,9 @@
 
     check_trail(TR);
     tab_ent = PREG->u.Otapl.te;
+    
+    completed_table_optimization(tab_ent);
+    
     YENV2MEM;
     sg_fr = subgoal_search(PREG, YENV_ADDRESS);
     MEM2YENV;
@@ -1129,6 +1149,9 @@
 
     check_trail(TR);
     tab_ent = PREG->u.Otapl.te;
+    
+    completed_table_optimization(tab_ent);
+    
     YENV2MEM;
     sg_fr = subgoal_search(PREG, YENV_ADDRESS);
     MEM2YENV;

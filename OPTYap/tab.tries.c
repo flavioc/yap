@@ -358,6 +358,7 @@ void private_completion(sg_fr_ptr sg_fr) {
   /* complete subsumptive consumer subgoals */
   while(LOCAL_top_subcons_sg_fr && YOUNGER_CP(SgFr_choice_point(LOCAL_top_subcons_sg_fr), B)) {
     mark_subsumptive_consumer_as_completed(LOCAL_top_subcons_sg_fr);
+    dprintf("One subsumptive consumer completed\n");
     LOCAL_top_subcons_sg_fr = SgFr_next(LOCAL_top_subcons_sg_fr);
   }
   
@@ -638,9 +639,9 @@ void show_table(tab_ent_ptr tab_ent, int show_mode) {
     AtomName(TabEnt_atom(tab_ent)), TabEnt_arity(tab_ent));
     
   sg_node = TabEnt_subgoal_trie(tab_ent);
-  if (sg_node) {
+  if (sg_node && TrNode_child(sg_node)) {
     sg_node = TrNode_child(sg_node);
-    if (TabEnt_arity(tab_ent)) {
+    if (TabEnt_arity(tab_ent) > 0) {
       char *str = (char *) malloc(sizeof(char) * STR_ARRAY_SIZE);
       int str_index = sprintf(str, "  ?- %s(", AtomName(TabEnt_atom(tab_ent)));
       int *arity = (int *) malloc(sizeof(int) * ARITY_ARRAY_SIZE);
@@ -649,7 +650,7 @@ void show_table(tab_ent_ptr tab_ent, int show_mode) {
       traverse_subgoal_trie(sg_node, str, str_index, arity, TRAVERSE_MODE_NORMAL, TRAVERSE_POSITION_FIRST, tab_ent);
       free(str);
       free(arity);
-    } else {
+    } else if(TabEnt_arity(tab_ent) == 0) {
       sg_fr_ptr sg_fr = (sg_fr_ptr) sg_node;
       TrStat_subgoals++;
       SHOW_TABLE_STRUCTURE("  ?- %s.\n", AtomName(TabEnt_atom(tab_ent)));
@@ -670,6 +671,7 @@ void show_table(tab_ent_ptr tab_ent, int show_mode) {
     }
   } else
     SHOW_TABLE_STRUCTURE("  EMPTY\n");
+    
   if (show_mode == SHOW_MODE_STATISTICS) {
     long bytes = 0;
     
@@ -1105,6 +1107,9 @@ traverse_ground_trie(ans_node_ptr node)
 static void
 ground_trie_statistics(tab_ent_ptr tab_ent)
 {
+  if(TabEnt_subgoal_trie(tab_ent) == NULL)
+    return;
+    
   ans_node_ptr root = (ans_node_ptr)TabEnt_ground_trie(tab_ent);
   
   traverse_ground_trie(root);
