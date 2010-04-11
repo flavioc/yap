@@ -238,7 +238,7 @@ STD_PROTO(static inline void process_pending_subgoal_list, (node_list_ptr, groun
 
 #define ensure_has_proper_consumers(TAB_ENT)                        \
       if(!TabEnt_proper_consumers(TAB_ENT)) {                       \
-        TabEnt_proper_consumers(TAB_ENT) = (void *)TRUE;            \
+        TabEnt_set_proper_consumers(TAB_ENT);                       \
         ground_trie_create_tsi(TAB_ENT);                            \
       }
         

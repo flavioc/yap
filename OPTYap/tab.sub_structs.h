@@ -173,15 +173,28 @@ struct grounded_subgoal_frame {
 #define TabEnt_ground_time_stamp(X) (TabEnt_ground_trie(X) ? \
                                       TSTN_time_stamp((tst_node_ptr)TabEnt_ground_trie(X))  \
                                       : 0)
-#define TabEnt_proper_consumers(X)  (TrNode_parent(TabEnt_subgoal_trie(X)))
-#define TabEnt_ground_yes(X)        (TabEnt_ground_trie(X) && TrNode_is_leaf(TabEnt_ground_trie(X)))
+                                      
+/* table entry flags */
+#define TABLE_ENTRY_COMPLETED 0x01
+#define TABLE_ENTRY_PROPER_CONSUMERS 0x02
+
+#define TabEnt_flags(X)                 (TrNode_parent(TabEnt_subgoal_trie(X)))
+#define TabEnt_set_flag(X, FLAG)        (TabEnt_flags(X) = (sg_node_ptr)((unsigned int)TabEnt_flags(X) | (unsigned int)FLAG))
+#define TabEnt_has_flag(X, FLAG)        ((unsigned int)TabEnt_flags(X) & (unsigned int)(FLAG))
+#define TabEnt_set_proper_consumers(X)  TabEnt_set_flag(X, TABLE_ENTRY_PROPER_CONSUMERS)
+#define TabEnt_proper_consumers(X)      TabEnt_has_flag(X, TABLE_ENTRY_PROPER_CONSUMERS)
+
+#define TabEnt_set_completed(X) TabEnt_set_flag(X, TABLE_ENTRY_COMPLETED)
+#define TabEnt_completed(X)     TabEnt_has_flag(X, TABLE_ENTRY_COMPLETED)
+
+#define TabEnt_ground_yes(X)    (TabEnt_ground_trie(X) && TrNode_is_leaf(TabEnt_ground_trie(X)))
 
 #define GROUND_SUBGOAL_FRAME_MASK 0xC0
 
 #define SgFr_is_ground(X)                 (SgFr_type(X) & GROUND_SUBGOAL_FRAME_MASK)
 #define SgFr_is_ground_producer(X)        (SgFr_type(X) == GROUND_PRODUCER_SFT)
 #define SgFr_is_ground_consumer(X)        (SgFr_type(X) == GROUND_CONSUMER_SFT)
-#define SgFr_is_ground_local_producer(X) (SgFr_is_ground_producer(X) && SgFr_is_local_producer((grounded_sf_ptr)(X)))
+#define SgFr_is_ground_local_producer(X)  (SgFr_is_ground_producer(X) && SgFr_is_local_producer((grounded_sf_ptr)(X)))
 #define SgFr_is_ground_local_consumer(X)  (SgFr_is_ground_consumer(X) && SgFr_is_local_consumer((grounded_sf_ptr)(X)))
 
 #endif /* TABLING_CALL_SUBSUMPTION */

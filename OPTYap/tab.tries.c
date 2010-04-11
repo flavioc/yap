@@ -1105,7 +1105,7 @@ traverse_ground_trie(ans_node_ptr node)
 static void
 ground_trie_statistics(tab_ent_ptr tab_ent)
 {
-  ans_node_ptr root = TabEnt_ground_trie(tab_ent);
+  ans_node_ptr root = (ans_node_ptr)TabEnt_ground_trie(tab_ent);
   
   traverse_ground_trie(root);
 }
