@@ -567,6 +567,8 @@ static struct trie_statistics{
   long answers_true;
   long answers_no;
   long answer_trie_nodes;
+  long float_answer_trie_nodes;
+  long long_answer_trie_nodes;
 #ifdef GLOBAL_TRIE
   long global_trie_terms;
   long global_trie_nodes;
@@ -586,6 +588,8 @@ static struct trie_statistics{
 #define TrStat_answers_no        trie_stats.answers_no
 #define TrStat_answers_pruned    trie_stats.answers_pruned
 #define TrStat_ans_nodes         trie_stats.answer_trie_nodes
+#define TrStat_float_ans_nodes   trie_stats.float_answer_trie_nodes
+#define TrStat_long_ans_nodes    trie_stats.long_answer_trie_nodes
 #define TrStat_gt_terms          trie_stats.global_trie_terms
 #define TrStat_gt_nodes          trie_stats.global_trie_nodes
 #define TrStat_sg_hash           trie_stats.subgoal_hash
@@ -624,6 +628,8 @@ void show_table(tab_ent_ptr tab_ent, int show_mode) {
     TrStat_answers_pruned = 0;
 #endif /* TABLING_INNER_CUTS */
     TrStat_ans_nodes = 0;
+    TrStat_float_ans_nodes = 0;
+    TrStat_long_sg_nodes = 0;
   }
   
   fprintf(Yap_stdout, "Table %s for predicate '%s/%d'\n",
@@ -681,7 +687,7 @@ void show_table(tab_ent_ptr tab_ent, int show_mode) {
 #endif /* TABLING_CALL_SUBSUMPTION */
     fprintf(Yap_stdout, "    Answers 'TRUE': %ld\n", TrStat_answers_true);
     fprintf(Yap_stdout, "    Answers 'NO': %ld\n", TrStat_answers_no);
-    fprintf(Yap_stdout, "    Answer trie nodes: %ld\n", TrStat_ans_nodes);
+    fprintf(Yap_stdout, "    Answer trie nodes: %ld\n", TrStat_ans_nodes + TrStat_float_ans_nodes + TrStat_long_ans_nodes);
 	  
     bytes += sizeof(struct table_entry);
     
@@ -691,6 +697,7 @@ void show_table(tab_ent_ptr tab_ent, int show_mode) {
       bytes += TrStat_long_sg_nodes * sizeof(struct long_subgoal_trie_node);
       bytes += TrStat_sg_hash * sizeof(struct subgoal_trie_hash);
       bytes += TrStat_subgoals * sizeof(struct subgoal_frame);
+      bytes += TrStat_ans_nodes * sizeof(struct answer_trie_node);
 #ifdef TABLING_CALL_SUBSUMPTION
     } else {
       bytes += TrStat_sg_nodes * sizeof(struct sub_subgoal_trie_node);
@@ -698,6 +705,9 @@ void show_table(tab_ent_ptr tab_ent, int show_mode) {
       bytes += TrStat_long_sg_nodes * sizeof(struct long_sub_subgoal_trie_node);
       bytes += TrStat_sg_hash * sizeof(struct sub_subgoal_trie_hash);
       bytes += TrStat_sg_indexes * sizeof(struct gen_index_node);
+      bytes += TrStat_ans_nodes * sizeof(struct time_stamped_trie_node);
+      bytes += TrStat_float_ans_nodes * sizeof(struct float_time_stamped_trie_node);
+      bytes += TrStat_long_ans_nodes * sizeof(struct long_time_stamped_trie_node);
       
       if(TabEnt_is_grounded(tab_ent)) {
         bytes += TrStat_subgoals * sizeof(struct grounded_subgoal_frame);
@@ -709,8 +719,6 @@ void show_table(tab_ent_ptr tab_ent, int show_mode) {
     }
     
     bytes += TrStat_sg_hash_buckets * sizeof(void *);
-    
-    bytes += TrStat_ans_nodes * sizeof(struct answer_trie_node);
 
 #ifdef TABLING_ANSWER_CHILD
     /* do nothing */
@@ -951,6 +959,8 @@ void traverse_subgoal_trie(sg_node_ptr current_node, char *str, int str_index, i
       case VARIANT_PRODUCER_SFT:
       case SUBSUMPTIVE_PRODUCER_SFT:
         TrStat_subgoals++;
+        
+        /* root node */
         TrStat_ans_nodes++;
       
         if (SgFr_has_no_answers(sg_fr)) {
@@ -1100,7 +1110,13 @@ void traverse_answer_trie(ans_node_ptr current_node, char *str, int str_index, i
   }
 
   /* process current trie node */
-  TrStat_ans_nodes++;
+  if(TrNode_is_float(current_node))
+    TrStat_float_ans_nodes++;
+  else if(TrNode_is_long(current_node))
+    TrStat_long_ans_nodes++;
+  else
+    TrStat_ans_nodes++;
+    
 #ifdef GLOBAL_TRIE
   traverse_global_trie_for_answer(TrNode_entry(current_node), str, &str_index, arity, &mode);
 #else
