@@ -83,6 +83,16 @@
 	}
 #endif /* GLOBAL_TRIE */
 
+#define align_stack_left() {                              \
+      int i;                                              \
+      for(i = 0; i < vars_arity; i++, aux_stack_ptr++) {  \
+        *aux_stack_ptr = *(aux_stack_ptr + 1);            \
+      }                                                   \
+    }
+
+/* if aux_stack_ptr is positioned on the heap arity cell, increment it by TOTAL */
+#define inc_heap_arity(TOTAL) *aux_stack_ptr = heap_arity + (TOTAL)
+
 #define next_trie_instruction(NODE) \
         next_node_instruction(TrNode_child(NODE))
         
@@ -166,9 +176,9 @@
           really_pop_trie_node();                     \
         }
 #else
-#define pop_trie_node()  {  \
-        dprintf("pop_trie_node\n");  \
-      really_pop_trie_node()  \
+#define pop_trie_node()  {          \
+      dprintf("pop_trie_node\n");   \
+      really_pop_trie_node()        \
     }
 #endif /* YAPOR */
 
@@ -347,7 +357,7 @@
           aux_sub = Deref(*aux_stack_ptr); /* substitution var */                           \
           aux_var = Deref(*vars_ptr);                                                       \
           unify_seen_var();                                                                 \
-          INC_HEAP_ARITY(-1);                                                               \
+          inc_heap_arity(-1);                                                               \
           next_instruction(heap_arity - 1 || subs_arity, node);                             \
         } else {                                                                            \
           CELL aux_sub, aux_var, *vars_ptr;                                                 \
@@ -358,7 +368,7 @@
           aux_sub = Deref(*aux_stack_ptr);  /* substitution var */                          \
           aux_var = Deref(*vars_ptr);  /* trie var */                                       \
           unify_seen_var();                                                                 \
-          ALIGN_STACK_LEFT();                                                               \
+          align_stack_left();                                                               \
           next_instruction(subs_arity - 1, node);                                           \
         }
 
@@ -376,7 +386,7 @@
             Bind_Global((CELL *) aux_sub, aux_var);                                         \
           } else {                                                                          \
             RESET_VARIABLE(aux_sub);                                                        \
-  	        Bind_Local((CELL *) aux_var, aux_sub);                                            \
+  	        Bind_Local((CELL *) aux_var, aux_sub);                                          \
             *vars_ptr = aux_sub;                                                            \
           }                                                                                 \
         } else {                                                                            \
@@ -433,14 +443,14 @@
   if(heap_arity) {                                                                    \
     YENV = ++aux_stack_ptr;                                                           \
     unify_long_int(Bind_Global);                                                      \
-    INC_HEAP_ARITY(-1);                                                               \
+    inc_heap_arity(-1);                                                               \
     next_instruction(heap_arity - 1 || subs_arity, node);                             \
   } else {                                                                            \
     aux_stack_ptr += 2;                                                               \
     *aux_stack_ptr = subs_arity - 1;                                                  \
     aux_stack_ptr += subs_arity;                                                      \
     unify_long_int(Bind);                                                             \
-    ALIGN_STACK_LEFT();                                                               \
+    align_stack_left();                                                               \
     next_instruction(subs_arity - 1, node);                                           \
   }
   
@@ -466,14 +476,14 @@
   if(heap_arity) {                                                                    \
     YENV = ++aux_stack_ptr;                                                           \
     unify_float(Bind_Global);                                                         \
-    INC_HEAP_ARITY(-1);                                                               \
+    inc_heap_arity(-1);                                                               \
     next_instruction(heap_arity - 1 || subs_arity, node);                             \
   } else {                                                                            \
     aux_stack_ptr += 2;                                                               \
     *aux_stack_ptr = subs_arity - 1;                                                  \
     aux_stack_ptr += subs_arity;                                                      \
     unify_float(Bind);                                                                \
-    ALIGN_STACK_LEFT();                                                               \
+    align_stack_left();                                                               \
     next_instruction(subs_arity - 1, node);                                           \
   }
   
@@ -502,14 +512,14 @@
         if (heap_arity) {                                            \
           YENV = ++aux_stack_ptr;                                    \
           unify_atom(Bind_Global);                                   \
-          INC_HEAP_ARITY(-1);                                        \
+          inc_heap_arity(-1);                                        \
           next_instruction(heap_arity - 1 || subs_arity, node);      \
         } else {                                                     \
           aux_stack_ptr += 2;                                        \
           *aux_stack_ptr = subs_arity - 1;                           \
           aux_stack_ptr += subs_arity;                               \
           unify_atom(Bind);                                          \
-          ALIGN_STACK_LEFT();                                        \
+          align_stack_left();                                        \
           next_instruction(subs_arity - 1, node);                    \
         }
 
@@ -589,7 +599,7 @@
 #define unify_heap_var_pair()                             \
         Bind_Global((CELL *) *aux_stack_ptr, AbsPair(H)); \
         push_new_list();                                  \
-        INC_HEAP_ARITY(1);                                \
+        inc_heap_arity(1);                                \
         YENV = aux_stack_ptr;                             \
         mark_heap_list()
         
@@ -598,7 +608,7 @@
         switch(cell_tag(term)) {                                \
           case TAG_LIST: {                                      \
               push_list_args(term);                             \
-              INC_HEAP_ARITY(1);                                \
+              inc_heap_arity(1);                                \
               YENV = aux_stack_ptr;                             \
             }                                                   \
             break;                                              \
@@ -615,7 +625,7 @@
 
 #define unify_subs_var_pair()                           \
         push_new_list();                                \
-        INC_HEAP_ARITY(2);                              \
+        inc_heap_arity(2);                              \
         YENV = aux_stack_ptr;                           \
         /* jump to subs */                              \
         aux_stack_ptr += 2 + 2;                         \
@@ -623,7 +633,7 @@
         *aux_stack_ptr = subs_arity - 1;                \
         aux_stack_ptr += subs_arity;                    \
         Bind((CELL *) *aux_stack_ptr, AbsPair(H));      \
-        ALIGN_STACK_LEFT();                             \
+        align_stack_left();                             \
         mark_heap_list()
 
 #ifdef TABLING_CALL_SUBSUMPTION
@@ -631,14 +641,14 @@
         switch(cell_tag(term))  {                             \
           case TAG_LIST:  {                                   \
               push_list_args(term);                           \
-              INC_HEAP_ARITY(2);                              \
+              inc_heap_arity(2);                              \
               YENV = aux_stack_ptr;                           \
               /* jump to subs */                              \
               aux_stack_ptr += 2 + 2;                         \
               /* update subs arity */                         \
               *aux_stack_ptr = subs_arity - 1;                \
               aux_stack_ptr += subs_arity;                    \
-              ALIGN_STACK_LEFT();                             \
+              align_stack_left();                             \
             }                                                 \
             break;                                            \
           case TAG_REF: {                                     \
@@ -665,124 +675,125 @@
         
 #endif /* TRIE_COMPACT_PAIRS */
 
-
-#define ALIGN_STACK_LEFT() { \
-      int i;    \
-      for(i = 0; i < vars_arity; i++, aux_stack_ptr++) { \
-        *aux_stack_ptr = *(aux_stack_ptr + 1);  \
-      } \
-    }
-
-/* given a functor term this put
-   starting from aux_stack_ptr (from high to low)
-   the functor arguments of TERM */
-#define PUSH_FUNCTOR_ARGS(TERM)  { \
-    int i;  \
-    for(i = 0; i < func_arity; ++i) { \
-      *aux_stack_ptr-- = (CELL)*(RepAppl(TERM) + func_arity - i);    \
-      dprintf("Pushed one old arg\n"); \
-    } \
-  }
-  
-#define PUSH_NEW_FUNCTOR()  { \
-    int i;                                                 \
-    for (i = 0; i < func_arity; i++) {                       \
-    *aux_stack_ptr-- = (CELL) (H + func_arity - i);      \
-    dprintf("Pushed one arg\n"); \
-  } \
-  }
-
-/* tag a functor on the heap */
-#define MARK_HEAP_FUNCTOR() { \
-  *H = (CELL)func;  \
-  int i;  \
-  for(i = 0; i < func_arity; ++i) \
-    RESET_VARIABLE(H + 1 + i);  \
-  H += 1 + func_arity;  \
-}
-
-/* if aux_stack_ptr is positioned on the heap arity cell, increment it by TOTAL */
-#define INC_HEAP_ARITY(TOTAL)  { \
-    *aux_stack_ptr = heap_arity + (TOTAL);  \
-  }
-
 /* --------------------- **
 **      trie_struct      **
 ** --------------------- */
 
-#define stack_trie_struct_instr()                                \
-        if (heap_arity) {                                        \
-          dprintf("struct heap arity %d\n", heap_arity); \
-          aux_stack_ptr++;                                       \
-          CELL term = Deref(*aux_stack_ptr);                     \
-          switch(cell_tag(term))  {                               \
-            case TAG_STRUCT:  {                                   \
-              dprintf("TAG_STRUCT\n"); \
-              Functor func2 = FunctorOfTerm(term);                \
-              if(func != func2) {                                 \
-                dprintf("NOT SAME FUNCTOR\n");                     \
-                goto fail;                                        \
-              }                                                   \
-              dprintf("Pushing already built functor on the stack with arity %d\n", func_arity); \
-              PUSH_FUNCTOR_ARGS(term);  \
-              YENV = aux_stack_ptr; \
-              INC_HEAP_ARITY(func_arity - 1); \
-            } \
-            break;  \
-            case TAG_REF: { \
-              dprintf("TAG_REF\n");  \
-              /* bind this variable to a new functor  \
-                 that is built using the arguments on the trie  \
-                 */ \
-              Bind_Global((CELL *) term, AbsAppl(H)); \
-              PUSH_NEW_FUNCTOR(); \
-              YENV = aux_stack_ptr; \
-              INC_HEAP_ARITY(func_arity - 1); \
-              MARK_HEAP_FUNCTOR();  \
-            } \
-            break;  \
-            default:  \
-              dprintf("??\n"); \
-              goto fail;  \
-          } \
-        } else {                                                 \
-          CELL term = Deref(*(aux_stack_ptr + 2 + subs_arity));               \
-          switch(cell_tag(term))  { \
-            case TAG_STRUCT: {  \
-              dprintf("TAG_STRUCT NON HEAP\n");  \
-              Functor func2 = FunctorOfTerm(term);     \
-              if(func != func2) {  \
-                dprintf("NOT A FUNCTOR\n");  \
-                goto fail;                                          \
-              }             \
-              dprintf("Pushing already built functor on the stack with arity %d\n", func_arity); \
-              /* push already built functor terms on the stack */         \
-              PUSH_FUNCTOR_ARGS(term);  \
-              YENV = aux_stack_ptr; \
-              INC_HEAP_ARITY(func_arity); \
-              aux_stack_ptr += func_arity + 2; /* jump to subs*/ \
-              *aux_stack_ptr = subs_arity - 1; /* new subs arity */ \
-              aux_stack_ptr += subs_arity;  \
-              ALIGN_STACK_LEFT(); \
-            } \
-            break;  \
-            case TAG_REF:     {                                      \
-              dprintf("TAG_REF NON HEAP\n"); \
-              PUSH_NEW_FUNCTOR();                                     \
-              INC_HEAP_ARITY(func_arity); \
-              YENV = aux_stack_ptr;                                  \
-              aux_stack_ptr += func_arity + 2; /* jump to subs */    \
-              *aux_stack_ptr = subs_arity - 1; /* new subs arity */  \
-              aux_stack_ptr += subs_arity;                           \
-              Bind((CELL *) *aux_stack_ptr, AbsAppl(H));      \
-              ALIGN_STACK_LEFT(); \
-              MARK_HEAP_FUNCTOR();  \
-            } \
-              break;  \
-            default:  \
-              goto fail;  \
-          } \
-        }                                                        \
+/* given a functor term this push on the stack
+   starting from aux_stack_ptr (from high to low)
+   the functor arguments of TERM */
+#define push_functor_args(TERM)  {                  \
+    int i;                                          \
+    for(i = 0; i < func_arity; ++i) {               \
+      *aux_stack_ptr-- =                            \
+          (CELL)*(RepAppl(TERM) + func_arity - i);  \
+    }                                               \
+  }
+  
+#define push_new_functor()  {                         \
+    int i;                                            \
+    for (i = 0; i < func_arity; i++) {                \
+      *aux_stack_ptr-- = (CELL) (H + func_arity - i); \
+    }                                                 \
+  }
+
+/* tag a functor on the heap */
+#define mark_heap_functor() {       \
+  *H = (CELL)func;                  \
+  int i;                            \
+  for(i = 0; i < func_arity; ++i)   \
+    RESET_VARIABLE(H + 1 + i);      \
+  H += 1 + func_arity;              \
+}
+
+#define unify_heap_struct_var()                       \
+    /* bind this variable to a new functor            \
+      that is built using the arguments on the trie   \
+     */                                               \
+    Bind_Global((CELL *) term, AbsAppl(H));           \
+    push_new_functor();                               \
+    YENV = aux_stack_ptr;                             \
+    inc_heap_arity(func_arity - 1);                   \
+    mark_heap_functor()
+    
+#ifdef TABLING_CALL_SUBSUMPTION
+#define unify_heap_struct()                                 \
+    switch(cell_tag(term))  {                               \
+      case TAG_STRUCT:  {                                   \
+          Functor func2 = FunctorOfTerm(term);              \
+          if(func != func2) {                               \
+            goto fail;                                      \
+          }                                                 \
+          push_functor_args(term);                          \
+          YENV = aux_stack_ptr;                             \
+          inc_heap_arity(func_arity - 1);                   \
+        }                                                   \
+        break;                                              \
+      case TAG_REF: {                                       \
+          unify_heap_struct_var();                          \
+        }                                                   \
+        break;                                              \
+      default:                                              \
+        goto fail;                                          \
+    }
+#else
+#define unify_heap_struct unify_heap_struct_var
+#endif /* TABLING_CALL_SUBSUMPTION */
+
+#define unify_subs_struct_var()                 \
+    push_new_functor();                                 \
+    inc_heap_arity(func_arity);                         \
+    YENV = aux_stack_ptr;                               \
+    /* jump to subs */                                  \
+    aux_stack_ptr += func_arity + 2;                    \
+    /* new subs arity */                                \
+    *aux_stack_ptr = subs_arity - 1;                    \
+    aux_stack_ptr += subs_arity;                        \
+    Bind((CELL *) *aux_stack_ptr, AbsAppl(H));          \
+    align_stack_left();                                 \
+    mark_heap_functor()
+
+#ifdef TABLING_CALL_SUBSUMPTION
+#define unify_subs_struct()                                   \
+    switch(cell_tag(term))  {                                 \
+      case TAG_STRUCT: {                                      \
+          Functor func2 = FunctorOfTerm(term);                \
+          if(func != func2) {                                 \
+            goto fail;                                        \
+          }                                                   \
+          /* push already built functor terms on the stack */ \
+          push_functor_args(term);                            \
+          YENV = aux_stack_ptr;                               \
+          inc_heap_arity(func_arity);                         \
+          /* jump to subs*/                                   \
+          aux_stack_ptr += func_arity + 2;                    \
+          /* new subs arity */                                \
+          *aux_stack_ptr = subs_arity - 1;                    \
+          aux_stack_ptr += subs_arity;                        \
+          align_stack_left();                                 \
+        }                                                     \
+        break;                                                \
+      case TAG_REF:     {                                     \
+          unify_subs_struct_var();                            \
+        }                                                     \
+        break;                                                \
+      default:                                                \
+        goto fail;                                            \
+    }
+#else
+#define unify_subs_struct unify_subs_struct_var
+#endif /* TABLING_CALL_SUBSUMPTION */
+
+#define stack_trie_struct_instr()                                 \
+        dprintf("stack_trie_struct_instr\n");                     \
+        if (heap_arity) {                                         \
+          aux_stack_ptr++;                                        \
+          CELL term = Deref(*aux_stack_ptr);                      \
+          unify_heap_struct();                                    \
+        } else {                                                  \
+          CELL term = Deref(*(aux_stack_ptr + 2 + subs_arity));   \
+          unify_subs_struct();                                    \
+        }                                                         \
         next_trie_instruction(node)
 
 #ifdef TRIE_COMPACT_PAIRS
@@ -856,7 +867,7 @@
             *aux_stack_ptr = *(aux_stack_ptr + 1);               \
             aux_stack_ptr++;                                     \
           }                                                      \
-	  next_instruction(subs_arity - 1, node);                \
+	        next_instruction(subs_arity - 1, node);                \
         }
 
 
@@ -866,7 +877,7 @@
 ** --------------------------- */
 
   PBOp(trie_do_null, e)
-  dprintf("trie_do_null\n");
+    dprintf("trie_do_null\n");
 #ifndef GLOBAL_TRIE
     register ans_node_ptr node = (ans_node_ptr) PREG;
 
@@ -1911,28 +1922,28 @@
 #endif /* TABLING_CALL_SUBSUMPTION */
   ENDBOp();
   
-#define store_hash_node()                             \
-        { register choiceptr cp;                      \
-          YENV = (CELL *)(HASH_CP(YENV) - 1);         \
-          cp = NORM_CP(YENV);                         \
-          HBREG = H;                                  \
-          store_yaam_reg_cpdepth(cp);                 \
-          cp->cp_tr = TR;                             \
-          cp->cp_h = H;                               \
-          cp->cp_b = B;                               \
-          cp->cp_cp = CPREG;                          \
-          cp->cp_ap = TRIE_RETRY_HASH;                \
-          cp->cp_env = ENV;                           \
-          B = cp;                                     \
-          YAPOR_SET_LOAD(B);                          \
-          SET_BB(B);                                  \
-          TABLING_ERRORS_check_stack;                 \
-        }                                             \
-        if(heap_arity)                                \
-          aux_stack_ptr--;                            \
-        else                                          \
-          aux_stack_ptr -= (2 + subs_arity);          \
-        copy_arity_stack()
+#define store_hash_node()                         \
+    { register choiceptr cp;                      \
+      YENV = (CELL *)(HASH_CP(YENV) - 1);         \
+      cp = NORM_CP(YENV);                         \
+      HBREG = H;                                  \
+      store_yaam_reg_cpdepth(cp);                 \
+      cp->cp_tr = TR;                             \
+      cp->cp_h = H;                               \
+      cp->cp_b = B;                               \
+      cp->cp_cp = CPREG;                          \
+      cp->cp_ap = TRIE_RETRY_HASH;                \
+      cp->cp_env = ENV;                           \
+      B = cp;                                     \
+      YAPOR_SET_LOAD(B);                          \
+      SET_BB(B);                                  \
+      TABLING_ERRORS_check_stack;                 \
+    }                                             \
+    if(heap_arity)                                \
+      aux_stack_ptr--;                            \
+    else                                          \
+      aux_stack_ptr -= (2 + subs_arity);          \
+    copy_arity_stack()
   
 #define restore_hash_node()                               \
     /* restore choice point */                            \
