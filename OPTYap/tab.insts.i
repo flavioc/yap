@@ -436,7 +436,11 @@
           goto fail;                                                    \
         }                                                               \
       } else {                                                          \
-        exec_compiled_trie((ans_node_ptr)TabEnt_ground_trie(TAB_ENT));  \
+        ans_node_ptr trie = (ans_node_ptr)TabEnt_ground_trie(TAB_ENT);  \
+        if(trie == NULL || TrNode_child(trie) == NULL) {                \
+          goto fail;                                                    \
+        }                                                               \
+        exec_compiled_trie(trie);                                       \
       }
       
 #define check_ground_pre_stored_answers(SG_FR, TAB_ENT, GROUND_SG)  \
@@ -526,8 +530,7 @@
 
 #ifdef TABLING_COMPLETE_TABLE
 #define completed_table_optimization(TAB_ENT)                                       \
-  if(TabEnt_is_grounded(TAB_ENT) && TabEnt_is_exec(TAB_ENT)                         \
-      && TabEnt_subgoal_trie(TAB_ENT) != NULL && TabEnt_completed(TAB_ENT))         \
+  if(TabEnt_is_exec(TAB_ENT) && TabEnt_completed(TAB_ENT))                          \
   {                                                                                 \
     YENV2MEM;                                                                       \
     YENV = copy_arguments_as_the_answer_template(YENV - 1, TabEnt_arity(TAB_ENT));  \

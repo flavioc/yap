@@ -13,14 +13,15 @@
 
 #ifdef TABLING_CALL_SUBSUMPTION
 
-STD_PROTO(static inline void mark_subsumptive_consumer_as_completed, (subcons_fr_ptr sg_fr));
+STD_PROTO(static inline void mark_subsumptive_consumer_as_completed, (subcons_fr_ptr));
+STD_PROTO(static inline void mark_subsumptive_producer_as_completed, (subprod_fr_ptr));
 STD_PROTO(static inline void mark_ground_consumer_as_completed, (grounded_sf_ptr));
 STD_PROTO(static inline void mark_ground_producer_as_completed, (grounded_sf_ptr));
 
 STD_PROTO(static inline void gen_index_remove, (subg_node_ptr, subg_hash_ptr));
 STD_PROTO(static inline void gen_index_add, (subg_node_ptr, subg_hash_ptr, int));
 STD_PROTO(static inline void free_tst_hash_chain, (tst_ans_hash_ptr));
-STD_PROTO(static inline void free_tst_hash_index, (tst_ans_hash_ptr hash));
+STD_PROTO(static inline void free_tst_hash_index, (tst_ans_hash_ptr));
 
 STD_PROTO(static inline void free_producer_subgoal_data, (sg_fr_ptr, int));
 STD_PROTO(static inline void free_consumer_subgoal_data, (subcons_fr_ptr));
@@ -249,6 +250,25 @@ void mark_subsumptive_consumer_as_completed(subcons_fr_ptr sg_fr) {
 }
 
 static inline
+void mark_subsumptive_producer_as_completed(subprod_fr_ptr sg_fr) {
+  /* SgFr_state = completed done early */
+  
+  if(TabEnt_is_exec(SgFr_tab_ent(sg_fr))) {
+    free_tst_hash_index((tst_ans_hash_ptr)SgFr_hash_chain(sg_fr));
+    SgFr_hash_chain(sg_fr) = NULL;
+    /* answer list or blocks are not removed because of show_table */
+    
+#ifdef TABLING_COMPLETE_TABLE
+    if(SgFr_is_most_general(sg_fr)) {
+      dprintf("Completing most general\n");
+      TabEnt_set_completed(SgFr_tab_ent(sg_fr));
+      transform_subsumptive_into_ground_trie(sg_fr);
+    }
+#endif /* TABLING_COMPLETE_TABLE */
+  }
+}
+
+static inline
 void mark_ground_consumer_as_completed(grounded_sf_ptr sg_fr) {
   LOCK(SgFr_lock(sg_fr));
   SgFr_state(sg_fr) = complete;
@@ -313,12 +333,15 @@ gen_index_add(subg_node_ptr sub_node, subg_hash_ptr hash, int num_gen) {
 
 static inline
 void free_producer_subgoal_data(sg_fr_ptr sg_fr, int delete_all) {
-  free_tst_hash_chain((tst_ans_hash_ptr)SgFr_hash_chain(sg_fr));
   tst_node_ptr answer_trie = (tst_node_ptr)SgFr_answer_trie(sg_fr);
-  if(TrNode_child(answer_trie))
-    free_answer_trie_branch((ans_node_ptr)TrNode_child(answer_trie), TRAVERSE_POSITION_FIRST);
-  if(delete_all)
-    FREE_TST_ANSWER_TRIE_NODE(answer_trie);
+  if(answer_trie) {
+    /* hash chain inside answer trie */
+    free_tst_hash_chain((tst_ans_hash_ptr)SgFr_hash_chain(sg_fr));
+    if(TrNode_child(answer_trie))
+      free_answer_trie_branch((ans_node_ptr)TrNode_child(answer_trie), TRAVERSE_POSITION_FIRST);
+    if(delete_all)
+      FREE_TST_ANSWER_TRIE_NODE(answer_trie);
+  }
   free_answer_continuation(SgFr_first_answer(sg_fr));
 }
 

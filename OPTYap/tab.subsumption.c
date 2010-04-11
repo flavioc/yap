@@ -32,6 +32,27 @@
 
 #include "xsb.lookup.c"
 
+#ifdef TABLING_COMPLETE_TABLE
+void
+transform_subsumptive_into_ground_trie(subprod_fr_ptr sg_fr)
+{
+  tab_ent_ptr tab_ent = SgFr_tab_ent(sg_fr);
+  ans_node_ptr answer_trie = SgFr_answer_trie(sg_fr);
+  
+  /* compile answer trie */
+  update_answer_trie((sg_fr_ptr)sg_fr);
+  
+  /* remove answer trie from subgoal */
+  SgFr_answer_trie(sg_fr) = NULL;
+  
+  /* ... and put it on the table entry */
+  TabEnt_ground_trie(tab_ent) = (sg_node_ptr)answer_trie;
+  
+  /* now remove the subgoal trie and its subgoals */
+  free_subgoal_trie_from_ground_table(tab_ent);
+}
+#endif /* TABLING_COMPLETE_TABLE */
+
 static inline sg_fr_ptr
 create_new_consumer_subgoal(sg_node_ptr leaf_node, subprod_fr_ptr subsumer, tab_ent_ptr tab_ent, yamop *code) {
   subcons_fr_ptr sg_fr;
@@ -151,6 +172,12 @@ sg_fr_ptr subsumptive_call_search(yamop *code, CELL *answer_template, CELL **new
     
     *new_local_stack = extract_template_from_insertion(answer_template);
     sg_fr = create_new_producer_subgoal(leaf, tab_ent, code);
+
+#ifdef TABLING_COMPLETE_TABLE
+    /* determine if is most general */
+    if(is_most_general_call(leaf, TabEnt_arity(tab_ent)))
+      SgFr_set_most_general(sg_fr);
+#endif /* TABLING_COMPLETE_TABLE */
     
     Trail_Unwind_All;
   } else { /* new consumer */

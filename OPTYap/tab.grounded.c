@@ -78,13 +78,45 @@ create_new_ground_consumer_subgoal(sg_node_ptr leaf_node, tab_ent_ptr tab_ent, y
   return sg_fr;
 }
 
+int
+is_most_general_call(sg_node_ptr leaf, int arity)
+{
+  int i, index;
+  Term symbol;
+  
+  for(i = 0; i < arity; ++i) {
+    symbol = TrNode_entry(leaf);
+    
+    if(IsNewTableVarTerm(symbol)) {
+      if(IsVarTerm(symbol)) {
+        index = VarIndexOfTableTerm(symbol);
+        
+        if(index != (arity - i - 1)) {
+          dprintf("index %d arity - i - 1 %d\n", index, arity - i - 1);
+          return FALSE;
+        }
+      } else
+        return FALSE;
+    } else
+      return FALSE;
+    
+    leaf = TrNode_parent(leaf);
+  }
+  
+  if(!TrNode_is_root(leaf)) {
+    dprintf("IS ROOT\n");
+    return FALSE;
+  }
+  
+  return TRUE;
+}
+
 #ifdef TABLING_COMPLETE_TABLE
 void
 free_subgoal_trie_from_ground_table(tab_ent_ptr tab_ent)
 {
   sg_hash_ptr hash;
   sg_node_ptr sg_node;
-  printf("Cleaning ground table\n");
 
   hash = TabEnt_hash_chain(tab_ent);
   TabEnt_hash_chain(tab_ent) = NULL;
@@ -160,11 +192,11 @@ sg_fr_ptr grounded_call_search(yamop *code, CELL *answer_template, CELL **new_lo
       
     sg_fr = create_new_ground_producer_subgoal(leaf, tab_ent, code);
     
-    /* determine if is most general */
-    if(Trail_NumBindings == arity)
-      SgFr_set_most_general(sg_fr);
-    
     Trail_Unwind_All;
+    
+    /* determine if is most general */
+    if(is_most_general_call(leaf, arity))
+      SgFr_set_most_general(sg_fr);
     
     create_ground_answer_template(sg_fr, *new_local_stack);
     

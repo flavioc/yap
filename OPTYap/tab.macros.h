@@ -755,10 +755,7 @@ void mark_as_completed(sg_fr_ptr sg_fr) {
       break;
 #ifdef TABLING_CALL_SUBSUMPTION
     case SUBSUMPTIVE_PRODUCER_SFT:
-      if(TabEnt_is_exec(SgFr_tab_ent(sg_fr))) {
-        free_tst_hash_index((tst_ans_hash_ptr)SgFr_hash_chain(sg_fr));
-        /* answer list or blocks are not removed because of show_table */
-      }
+      mark_subsumptive_producer_as_completed((subprod_fr_ptr)sg_fr);
       break;
     case GROUND_PRODUCER_SFT:
       dprintf("One ground producer completed\n");

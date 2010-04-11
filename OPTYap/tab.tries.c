@@ -613,7 +613,7 @@ void show_table(tab_ent_ptr tab_ent, int show_mode) {
   if (show_mode == SHOW_MODE_STATISTICS) {
     TrStat_subgoals = 0;
     TrStat_sg_incomplete = 0;
-    TrStat_sg_nodes = 1;
+    TrStat_sg_nodes = 0;
     TrStat_answers = 0;
     TrStat_float_sg_nodes = 0;
     TrStat_long_sg_nodes = 0;
@@ -676,6 +676,9 @@ void show_table(tab_ent_ptr tab_ent, int show_mode) {
     long bytes = 0;
     
     bytes += sizeof(struct table_entry);
+    
+    if(TabEnt_subgoal_trie(tab_ent))
+      TrStat_sg_nodes++;
 
     if(TabEnt_is_variant(tab_ent)) {
       bytes += TrStat_sg_nodes * sizeof(struct subgoal_trie_node);
@@ -693,6 +696,8 @@ void show_table(tab_ent_ptr tab_ent, int show_mode) {
       } else {
         bytes += TrStat_subcons_subgoals * sizeof(struct subsumed_consumer_subgoal_frame);
         bytes += TrStat_subgoals * sizeof(struct subsumptive_producer_subgoal_frame);
+        if(TabEnt_completed(tab_ent))
+          ground_trie_statistics(tab_ent);
       }
       
       bytes += TrStat_sg_nodes * sizeof(struct sub_subgoal_trie_node);

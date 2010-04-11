@@ -185,7 +185,7 @@ struct grounded_subgoal_frame {
 #define TabEnt_proper_consumers(X)      TabEnt_has_flag(X, TABLE_ENTRY_PROPER_CONSUMERS)
 
 #define TabEnt_set_completed(X) TabEnt_set_flag(X, TABLE_ENTRY_COMPLETED)
-#define TabEnt_completed(X)     TabEnt_has_flag(X, TABLE_ENTRY_COMPLETED)
+#define TabEnt_completed(X)     (TabEnt_subgoal_trie(X) && TabEnt_has_flag(X, TABLE_ENTRY_COMPLETED))
 
 #define TabEnt_ground_yes(X)    (TabEnt_ground_trie(X) && TrNode_is_leaf(TabEnt_ground_trie(X)))
 

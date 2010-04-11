@@ -91,7 +91,7 @@
 /* ------------------------------------------------------------------ **
 **  use completed table optimization for subsumptive and ground goals **
 ** ------------------------------------------------------------------ */
-#define TABLING_COMPLETE_TABLE 1
+// #define TABLING_COMPLETE_TABLE 1
 
 
 /* ---------------------------------------------------------------- **

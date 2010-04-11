@@ -99,6 +99,9 @@ void consume_variant_answer(ans_node_ptr ans_node, int size, CELL *answer_templa
 ** ----------------- */
 
 #ifdef TABLING_CALL_SUBSUMPTION
+#ifdef TABLING_COMPLETE_TABLE
+void transform_subsumptive_into_ground_trie(subprod_fr_ptr sg_fr);
+#endif /* TABLING_COMPLETE_TABLE */
 void update_generator_path(sg_node_ptr node);
 void decrement_generator_path(sg_node_ptr start);
 void *stl_restore_variant_cont(CTXTdecl);
@@ -118,6 +121,7 @@ void *newTSTAnswerSet(void);
 #ifdef TABLING_COMPLETE_TABLE
 void free_subgoal_trie_from_ground_table(tab_ent_ptr tab_ent);
 #endif /* TABLING_COMPLETE_TABLE */
+int is_most_general_call(sg_node_ptr leaf, int arity);
 CELL* copy_arguments_as_the_answer_template(CELL *answer_template, int arity);
 sg_fr_ptr grounded_call_search(yamop *code, CELL *answer_template, CELL **new_local_stack);
 inline TSTNptr grounded_answer_search(grounded_sf_ptr sf, CPtr answerVector);
