@@ -376,8 +376,6 @@ void private_completion(sg_fr_ptr sg_fr) {
   
   /* adjust freeze registers */
   adjust_freeze_registers();
-  
-  dprintf("completion done\n");
 
   return;
 }
@@ -557,6 +555,7 @@ static struct trie_statistics{
   long subgoal_hash;
   long subgoal_hash_buckets;
   long answers;
+  long continuations;
 #ifdef TABLING_CALL_SUBSUMPTION
   long subgoal_indexes;
   long subsumptive_answers;
@@ -593,6 +592,7 @@ static struct trie_statistics{
 #define TrStat_sg_hash_buckets   trie_stats.subgoal_hash_buckets
 #define TrStat_sg_indexes        trie_stats.subgoal_indexes
 #define TrStat_subcons_subgoals  trie_stats.sub_consumer_subgoals
+#define TrStat_continuations     trie_stats.continuations
 
 #define SHOW_TABLE_STRUCTURE(MESG, ARGS...)  if (TrStat_show == SHOW_MODE_STRUCTURE) fprintf(Yap_stdout, MESG, ##ARGS)
 #define STR_ARRAY_SIZE  100000
@@ -613,6 +613,7 @@ void show_table(tab_ent_ptr tab_ent, int show_mode) {
     TrStat_long_sg_nodes = 0;
     TrStat_sg_hash = 0;
     TrStat_sg_hash_buckets = 0;
+    TrStat_continuations = 0;
 #ifdef TABLING_CALL_SUBSUMPTION
     TrStat_sub_answers = 0;
     TrStat_sg_indexes = 0;
@@ -710,8 +711,15 @@ void show_table(tab_ent_ptr tab_ent, int show_mode) {
     bytes += TrStat_sg_hash_buckets * sizeof(void *);
     
     bytes += TrStat_ans_nodes * sizeof(struct answer_trie_node);
-    
-    
+
+#ifdef TABLING_ANSWER_CHILD
+    /* do nothing */
+#elif defined(TABLING_ANSWER_LIST)
+    bytes += TrStat_continuations * sizeof(struct node_list);
+#else /* TABLING_ANSWER_BLOCKS */
+    bytes += ((TrStat_continuations + ANSWER_BLOCK_SIZE) / ANSWER_BLOCK_SIZE) * (sizeof(void *) * (ANSWER_BLOCK_SIZE + 1));
+#endif /* TABLING_ANSWER_CHILD */
+
     /* XXX */
     fprintf(Yap_stdout, "  Total memory in use: %ld bytes\n", bytes);
   }
@@ -928,6 +936,17 @@ void traverse_subgoal_trie(sg_node_ptr current_node, char *str, int str_index, i
     
     SHOW_TABLE_STRUCTURE("%s.\n", str);
     
+    if(TrStat_show == SHOW_MODE_STATISTICS) {
+      /* count continuations */
+      continuation_ptr cont = SgFr_first_answer(sg_fr);
+    
+      while(cont) {
+        TrStat_continuations++;
+        cont = continuation_next(cont);
+      }
+    }
+    
+    /* show subgoal */
     switch(SgFr_type(sg_fr)) {
       case VARIANT_PRODUCER_SFT:
       case SUBSUMPTIVE_PRODUCER_SFT:
