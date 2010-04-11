@@ -205,7 +205,7 @@ sg_fr_ptr grounded_call_search(yamop *code, CELL *answer_template, CELL **new_lo
       grounded_sf_ptr producer = SgFr_producer(sg_fr);
       if(SgFr_state(producer) < evaluating) {
         /* turn into producer */
-        SgFr_type(sg_fr) = GROUND_PRODUCER_SFT; 
+        SgFr_set_type(sg_fr, GROUND_PRODUCER_SFT); 
         SgFr_producer(sg_fr) = NULL;
       }
     }

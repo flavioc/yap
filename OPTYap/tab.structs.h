@@ -325,6 +325,9 @@ enum SubgoalFrameType {
   GROUND_PRODUCER_SFT         = 0x05, /* 0101 */
   GROUND_CONSUMER_SFT         = 0x08  /* 1000 */
 };
+
+#define SUBGOAL_FRAME_TYPE_MASK 0x0F
+
 typedef unsigned char subgoal_frame_type;
 
 enum SubgoalState {
@@ -344,7 +347,7 @@ typedef unsigned char subgoal_state;
 ** ------------------------------ */
 
 typedef struct subgoal_frame {
-  subgoal_frame_type type; /* subgoal frame type */
+  subgoal_frame_type flags; /* subgoal type + other things */
   subgoal_state state_flag;
   
   yamop *code_of_subgoal;
@@ -383,7 +386,9 @@ typedef sg_fr_ptr variant_sf_ptr;
 
 #define CAST_SF(X)             ((variant_sf_ptr)(X))
 
-#define SgFr_type(X)           (CAST_SF(X)->type)
+#define SgFr_flags(X)          (CAST_SF(X)->flags)
+#define SgFr_type(X)           (SgFr_flags(X) & SUBGOAL_FRAME_TYPE_MASK)
+#define SgFr_set_type(X, TYPE) (SgFr_flags(X) = (SgFr_flags(X) & ~(SUBGOAL_FRAME_TYPE_MASK)) | (TYPE))
 #define SgFr_lock(X)           (CAST_SF(X)->lock)
 #define SgFr_gen_worker(X)     (CAST_SF(X)->generator_worker)
 #define SgFr_gen_top_or_fr(X)  (CAST_SF(X)->top_or_frame_on_generator_branch)

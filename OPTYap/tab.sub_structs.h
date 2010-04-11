@@ -71,7 +71,7 @@ typedef subsumptive_producer_sf *subprod_fr_ptr;
   (SgFr_is_sub_producer(X) && SgFr_prod_consumers(X) != NULL)
 
 struct subsumed_consumer_subgoal_frame {
-  subgoal_frame_type type; /* subgoal frame type */
+  subgoal_frame_type flags;
   subgoal_state state_flag;
   
   yamop *code_of_subgoal;
@@ -111,12 +111,13 @@ typedef subsumptive_consumer_sf *subcons_fr_ptr;
 
 typedef struct grounded_subgoal_frame *grounded_sf_ptr;
 
-#define SG_FR_MOST_GENERAL 0x08
-#define SG_FR_LOCAL_PRODUCER 0x01
-#define SG_FR_LOCAL_CONSUMER 0x02
+#define SUBGOAL_FRAME_TYPE_OTHER_MASK 0xF0
+#define SG_FR_MOST_GENERAL 0x80
+#define SG_FR_LOCAL_PRODUCER 0x10
+#define SG_FR_LOCAL_CONSUMER 0x20
 
 struct grounded_subgoal_frame {
-  subgoal_frame_type type;
+  subgoal_frame_type flags;
   subgoal_state state_flag;
   
   yamop *code_of_subgoal;
@@ -142,8 +143,6 @@ struct grounded_subgoal_frame {
   
   continuation_ptr try_answer;
   
-  unsigned char flags;
-  
   CELL executing;
   CELL start;
   
@@ -153,13 +152,14 @@ struct grounded_subgoal_frame {
 
 #define SgFr_num_ans(X)             ((X)->num_ans)
 #define SgFr_saved_cp(X)            ((X)->saved_cp)
-#define SgFr_flags(X)               ((X)->flags)
+
 #define SgFr_is_most_general(X)     (SgFr_flags(X) & SG_FR_MOST_GENERAL)
 #define SgFr_set_most_general(X)    (SgFr_flags(X) |= SG_FR_MOST_GENERAL)
 #define SgFr_set_local_producer(X)  (SgFr_flags(X) |= SG_FR_LOCAL_PRODUCER)
 #define SgFr_is_local_producer(X)   (SgFr_flags(X) & SG_FR_LOCAL_PRODUCER)
 #define SgFr_set_local_consumer(X)  (SgFr_flags(X) |= SG_FR_LOCAL_CONSUMER)
 #define SgFr_is_local_consumer(X)   (SgFr_flags(X) & SG_FR_LOCAL_CONSUMER)
+
 #define SgFr_new_answer_cp(X)       ((choiceptr)SgFr_executing(X))
 #define SgFr_executing(X)           ((X)->executing)
 #define SgFr_start(X)               ((X)->start)

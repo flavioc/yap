@@ -57,7 +57,6 @@ STD_PROTO(static inline void process_pending_subgoal_list, (node_list_ptr, groun
 #define init_ground_subgoal_frame(SG_FR)  \
         SgFr_choice_point(SG_FR) = NULL;  \
         SgFr_timestamp(SG_FR) = 0;      \
-        SgFr_flags(SG_FR) = 0;            \
         SgFr_answer_template(SG_FR) = NULL;   \
         SgFr_num_ans(SG_FR) = 0;                \
         SgFr_saved_cp(SG_FR) = 0;               \
@@ -782,7 +781,7 @@ process_pending_subgoal_list(node_list_ptr list, grounded_sf_ptr sg_fr) {
           mark_ground_consumer_as_completed(pending);
         } else {
           SgFr_producer(pending) = sg_fr;
-          SgFr_type(pending) = GROUND_CONSUMER_SFT;
+          SgFr_set_type(pending, GROUND_CONSUMER_SFT);
           dprintf("MARKED AS CONSUMER\n");
         }
       } else if(SgFr_state(pending) == evaluating && SgFr_is_ground_producer(pending)) {
@@ -793,7 +792,7 @@ process_pending_subgoal_list(node_list_ptr list, grounded_sf_ptr sg_fr) {
          * structures to change its status
          */
         SgFr_producer(pending) = sg_fr;
-        SgFr_type(pending) = GROUND_CONSUMER_SFT;
+        SgFr_set_type(pending, GROUND_CONSUMER_SFT);
         /* ensure creation of TST indices */
         ensure_has_proper_consumers(SgFr_tab_ent(sg_fr));
 #ifdef FDEBUG
