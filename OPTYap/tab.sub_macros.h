@@ -152,26 +152,6 @@ STD_PROTO(static inline void process_pending_subgoal_list, (node_list_ptr, groun
         HB = saved_HB;                                      \
       }
 
-#define count_subsumptive_answers(CONS_SG)                  \
-      {                                                     \
-        continuation_ptr cont = SgFr_first_answer(CONS_SG); \
-        while(cont) {                                       \
-          TrStat_sub_answers++;                             \
-          TrStat_answers++;                                 \
-          cont = continuation_next(cont);                   \
-        }                                                   \
-      }
-
-#define count_ground_answers(SG_FR)                         \
-      {                                                     \
-          continuation_ptr cont = SgFr_first_answer(SG_FR); \
-          while(cont) {                                     \
-            TrStat_ground_answers++;                        \
-            TrStat_answers++;                               \
-            cont = continuation_next(cont);                 \
-          }                                                 \
-      }
-      
 #define show_consumer_subsumptive_with_answers(CONS_SG, PROD_SG)    \
       {                                                             \
         CELL* vars = (CELL * )HeapTop - 1;                          \
@@ -180,13 +160,10 @@ STD_PROTO(static inline void process_pending_subgoal_list, (node_list_ptr, groun
                                                                     \
         if((int)*vars == 0) {                                       \
           TrStat_answers_true++;                                    \
-          TrStat_sub_answers++;                                     \
           SHOW_TABLE_STRUCTURE("    TRUE\n");                       \
         } else {                                                    \
-          if(TrStat_show == SHOW_MODE_STRUCTURE) {                        \
-            show_consumer_subsumptive_answers(CONS_SG, PROD_SG,vars);     \
-          } else {                                                        \
-            count_subsumptive_answers(CONS_SG);                     \
+          if(TrStat_show == SHOW_MODE_STRUCTURE) {                  \
+            show_consumer_subsumptive_answers(CONS_SG, PROD_SG,vars);   \
           }                                                         \
         }                                                           \
                                                                     \
@@ -207,14 +184,11 @@ STD_PROTO(static inline void process_pending_subgoal_list, (node_list_ptr, groun
                                                                     \
         if((int)*vars == 0) {                                       \
           TrStat_answers_true++;                                    \
-          TrStat_ground_answers++;                                  \
           SHOW_TABLE_STRUCTURE("    TRUE\n");                       \
         } else {                                                    \
           if(TrStat_show == SHOW_MODE_STRUCTURE) {                  \
             CELL *answer_template = saved_H + SgFr_arity(SG_FR) -1; \
             show_ground_answers(SG_FR, answer_template, vars);      \
-          } else {                                                  \
-            count_ground_answers(SG_FR);                            \
           }                                                         \
         }                                                           \
         H = saved_H;                                                \
@@ -234,7 +208,7 @@ STD_PROTO(static inline void process_pending_subgoal_list, (node_list_ptr, groun
       
 #define decrement_subgoal_path(SG_FR)                               \
       { subg_node_ptr leaf = (subg_node_ptr)SgFr_leaf(SG_FR);       \
-        if(TrNode_num_gen(leaf) > 1) {                             \
+        if(TrNode_num_gen(leaf) > 1) {                              \
           Yap_Error(INTERNAL_ERROR, TermNil,                        \
             "leaf node be <= 1 (decrement_subgoal_path)");          \
         } else if(TrNode_num_gen(leaf) == 1) {                      \
@@ -249,6 +223,16 @@ STD_PROTO(static inline void process_pending_subgoal_list, (node_list_ptr, groun
         while(index) {                                              \
           (COUNTER)++;                                              \
           index = GNIN_next(index);                                 \
+        }                                                           \
+      }
+
+#define count_tst_indices(HASH, COUNTER)                            \
+      { tst_ans_hash_ptr tst_hash = (tst_ans_hash_ptr)(HASH);       \
+        tst_index_ptr index = TSTHT_index_head(tst_hash);           \
+                                                                    \
+        while(index) {                                              \
+          (COUNTER)++;                                              \
+          index = TSIN_next(index);                                 \
         }                                                           \
       }
 
