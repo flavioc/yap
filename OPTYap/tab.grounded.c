@@ -91,10 +91,8 @@ is_most_general_call(sg_node_ptr leaf, int arity)
       if(IsVarTerm(symbol)) {
         index = VarIndexOfTableTerm(symbol);
         
-        if(index != (arity - i - 1)) {
-          dprintf("index %d arity - i - 1 %d\n", index, arity - i - 1);
+        if(index != (arity - i - 1))
           return FALSE;
-        }
       } else
         return FALSE;
     } else
@@ -103,12 +101,7 @@ is_most_general_call(sg_node_ptr leaf, int arity)
     leaf = TrNode_parent(leaf);
   }
   
-  if(!TrNode_is_root(leaf)) {
-    dprintf("IS ROOT\n");
-    return FALSE;
-  }
-  
-  return TRUE;
+  return TrNode_is_root(leaf);
 }
 
 #ifdef TABLING_COMPLETE_TABLE

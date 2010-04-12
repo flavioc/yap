@@ -368,6 +368,12 @@ typedef struct subgoal_frame {
   struct subgoal_frame *previous;
 #endif /* LIMIT_TABLING */
 
+#ifdef TABLING_CALL_SUBSUMPTION
+  CELL executing;
+  CELL start;
+  choiceptr saved_cp;
+#endif /* TABLING_CALL_SUBSUMPTION */
+
 #ifdef INCOMPLETE_TABLING
   continuation_ptr try_answer;
 #endif /* INCOMPLETE_TABLING */
@@ -405,6 +411,17 @@ typedef sg_fr_ptr variant_sf_ptr;
 #define SgFr_try_answer(X)     ((X)->try_answer)
 #define SgFr_previous(X)       (CAST_SF(X)->previous)
 #define SgFr_next(X)           ((X)->next)
+
+#ifdef TABLING_CALL_SUBSUMPTION
+#define SgFr_new_answer_cp(X)       ((choiceptr)SgFr_executing(X))
+#define SgFr_saved_cp(X)            (CAST_SF(X)->saved_cp)
+#define SgFr_executing(X)           (CAST_SF(X)->executing)
+#define SgFr_start(X)               (CAST_SF(X)->start)
+#define SgFr_started(X)             ((CELL *)SgFr_start(X) != &SgFr_start(X))
+#define SgFr_got_answer(X)          ((CELL *)SgFr_executing(X) != &SgFr_executing(X))
+#define SgFr_is_internal(X)         (SgFr_started(X) && !SgFr_got_answer(X))
+#define SgFr_is_external(X)         ((SgFr_started(X) && SgFr_got_answer(X)) || (!SgFr_started(X)))
+#endif
 
 /* ------------------------------------------------------------------------------------------- **
    SgFr_lock:          spin-lock to modify the frame fields.
@@ -454,15 +471,13 @@ typedef sg_fr_ptr variant_sf_ptr;
 **      Struct dependency_frame      **
 ** --------------------------------- */
 
-enum {
-  NORMAL_DEP = 0x01, /* 0000 0001 */
-  TRANSFORMED_DEP = 0x02 /* 0000 0010 */
-};
+#define DEP_FR_FIRST_CONSUMER 0x01
+#define DEP_FR_TOP_CONSUMER 0x02
 
 typedef unsigned char dependency_type;
   
 typedef struct dependency_frame {
-  dependency_type type;
+  dependency_type flags;
 #if defined(YAPOR) || defined(THREADS)
   lockvar lock;
 #endif
@@ -492,7 +507,12 @@ typedef struct dependency_frame {
 #define DepFr_last_answer(X)             ((X)->last_consumed_answer)
 #define DepFr_sg_fr(X)                   ((X)->sg_fr)
 #define DepFr_next(X)                    ((X)->next)
-#define DepFr_is_normal(X)               (DepFr_type(X) & NORMAL_DEP)
+#define DepFr_flags(X)                   ((X)->flags)
+#define DepFr_set_flag(X, FLAG)          ((X)->flags |= (FLAG))
+#define DepFr_is_first_consumer(X)       (DepFr_flags(X) & DEP_FR_FIRST_CONSUMER)
+#define DepFr_set_first_consumer(X)      (DepFr_set_flag(X, DEP_FR_FIRST_CONSUMER))
+#define DepFr_is_top_consumer(X)         (DepFr_flags(X) & DEP_FR_TOP_CONSUMER)
+#define DepFr_set_top_consumer(X)        (DepFr_set_flag(X, DEP_FR_TOP_CONSUMER))
 
 /* ---------------------------------------------------------------------------------------------------- **
    DepFr_lock:                   lock variable to modify the frame fields.

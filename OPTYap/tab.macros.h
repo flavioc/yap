@@ -370,6 +370,9 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
         new_basic_subgoal_frame(SG_FR, CODE, LEAF,                \
           VARIANT_PRODUCER_SFT, ALLOC_VARIANT_SUBGOAL_FRAME);     \
         add_answer_trie_subgoal_frame(SG_FR);                     \
+        RESET_VARIABLE(&SgFr_executing(SG_FR));                   \
+        RESET_VARIABLE(&SgFr_start(SG_FR));                       \
+        SgFr_saved_cp(SG_FR) = NULL;                              \
     }
 
 #define init_subgoal_frame(SG_FR)                                  \
@@ -518,7 +521,7 @@ join_answers_subgoal_frame(sg_fr_ptr sg_fr, continuation_ptr first, continuation
         DepFr_next(DEP_FR) = NEXT;                                                                     \
         DepFr_sg_fr(DEP_FR) = SG_FR;                                                                   \
         DepFr_last_answer(DEP_FR) = (continuation_ptr)CONSUMER_DEFAULT_LAST_ANSWER(SG_FR, DEP_FR);     \
-        DepFr_type(DEP_FR) = NORMAL_DEP
+        DepFr_flags(DEP_FR) = 0
 
 #define new_table_entry(TAB_ENT, PRED_ENTRY, ATOM, ARITY)       \
         { ALLOC_TABLE_ENTRY(TAB_ENT);                           \
@@ -704,8 +707,7 @@ join_answers_subgoal_frame(sg_fr_ptr sg_fr, continuation_ptr first, continuation
 
 /* Get a pointer to the consumer answer template by using B */
 #define CONSUMER_NODE_ANSWER_TEMPLATE(CONSUMER_CP) ((CELL *) (CONS_CP(CONSUMER_CP) + 1))
-#define CONSUMER_ANSWER_TEMPLATE(DEP_FR)  (DepFr_is_normal(DEP_FR) ? CONSUMER_NODE_ANSWER_TEMPLATE(B)  \
-                                              : GENERATOR_ANSWER_TEMPLATE(DepFr_cons_cp(DEP_FR), DepFr_sg_fr(DEP_FR)))
+#define CONSUMER_ANSWER_TEMPLATE(DEP_FR) CONSUMER_NODE_ANSWER_TEMPLATE(B)
 #define DEPENDENCY_FRAME_ANSWER_TEMPLATE(DEP_FR)  ((CELL *)(CONS_CP(DepFr_cons_cp(DEP_FR)) + 1))
 #define GENERATOR_ANSWER_TEMPLATE(GEN_CHOICEP, SG_FR) ((CELL *)(GEN_CP(GEN_CHOICEP) + 1) + SgFr_arity(SG_FR))
 

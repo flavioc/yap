@@ -115,6 +115,7 @@ typedef struct grounded_subgoal_frame *grounded_sf_ptr;
 #define SG_FR_MOST_GENERAL 0x80
 #define SG_FR_LOCAL_PRODUCER 0x10
 #define SG_FR_LOCAL_CONSUMER 0x20
+#define SG_FR_PRODUCER 0x40
 
 struct grounded_subgoal_frame {
   subgoal_frame_type flags;
@@ -135,6 +136,10 @@ struct grounded_subgoal_frame {
   
   struct grounded_subgoal_frame *next;
   
+  CELL executing;
+  CELL start;
+  choiceptr saved_cp;
+  
   time_stamp ts;
   grounded_sf_ptr producer;
   CELL* answer_template;
@@ -143,15 +148,10 @@ struct grounded_subgoal_frame {
   
   continuation_ptr try_answer;
   
-  CELL executing;
-  CELL start;
-  
   int num_ans;
-  choiceptr saved_cp;
 };
 
 #define SgFr_num_ans(X)             ((X)->num_ans)
-#define SgFr_saved_cp(X)            ((X)->saved_cp)
 
 #define SgFr_is_most_general(X)     (SgFr_flags(X) & SG_FR_MOST_GENERAL)
 #define SgFr_set_most_general(X)    (SgFr_flags(X) |= SG_FR_MOST_GENERAL)
@@ -159,14 +159,8 @@ struct grounded_subgoal_frame {
 #define SgFr_is_local_producer(X)   (SgFr_flags(X) & SG_FR_LOCAL_PRODUCER)
 #define SgFr_set_local_consumer(X)  (SgFr_flags(X) |= SG_FR_LOCAL_CONSUMER)
 #define SgFr_is_local_consumer(X)   (SgFr_flags(X) & SG_FR_LOCAL_CONSUMER)
-
-#define SgFr_new_answer_cp(X)       ((choiceptr)SgFr_executing(X))
-#define SgFr_executing(X)           ((X)->executing)
-#define SgFr_start(X)               ((X)->start)
-#define SgFr_started(X)             ((CELL *)SgFr_start(X) != &SgFr_start(X))
-#define SgFr_got_answer(X)          ((CELL *)SgFr_executing(X) != &SgFr_executing(X))
-#define SgFr_is_internal(X)         (SgFr_started(X) && !SgFr_got_answer(X))
-#define SgFr_is_external(X)         ((SgFr_started(X) && SgFr_got_answer(X)) || (!SgFr_started(X)))
+#define SgFr_is_producer(X)         (SgFr_flags(X) & SG_FR_PRODUCER)
+#define SgFr_set_producer(X)        (SgFr_flags(X) |= SG_FR_PRODUCER)
 
 #define TabEnt_ground_trie(X)       (TrNode_next(TabEnt_subgoal_trie(X)))
 #define TabEnt_has_ground_trie(X)   (TabEnt_ground_trie(X) != NULL)

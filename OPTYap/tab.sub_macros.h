@@ -46,6 +46,8 @@ STD_PROTO(static inline void process_pending_subgoal_list, (node_list_ptr, groun
           SUBSUMPTIVE_PRODUCER_SFT, ALLOC_SUBPROD_SUBGOAL_FRAME);   \
         SgFr_prod_consumers(SG_FR) = NULL;                          \
         SgFr_answer_trie(SG_FR) = newTSTAnswerSet();                \
+        RESET_VARIABLE(&SgFr_executing(SG_FR));                     \
+        RESET_VARIABLE(&SgFr_start(SG_FR));                         \
     }
     
 #define new_grounded_producer_subgoal_frame(SG_FR, CODE, LEAF) {  \
@@ -60,7 +62,7 @@ STD_PROTO(static inline void process_pending_subgoal_list, (node_list_ptr, groun
         SgFr_timestamp(SG_FR) = 0;      \
         SgFr_answer_template(SG_FR) = NULL;   \
         SgFr_num_ans(SG_FR) = 0;                \
-        SgFr_saved_cp(SG_FR) = 0;               \
+        SgFr_saved_cp(SG_FR) = NULL;               \
         RESET_VARIABLE(&SgFr_executing(SG_FR));  \
         RESET_VARIABLE(&SgFr_start(SG_FR))
   
@@ -511,10 +513,8 @@ remove_generator_stack(grounded_sf_ptr sg_fr)
 }
 
 static inline int
-is_internal(sg_fr_ptr sf, choiceptr limit)
+is_internal_choice_point(choiceptr cp, choiceptr limit)
 {
-  choiceptr cp = SgFr_choice_point(sf);
-  
   while(cp && cp <= limit) {
     if(cp == limit)
       return TRUE;
@@ -525,34 +525,42 @@ is_internal(sg_fr_ptr sf, choiceptr limit)
 }
 
 static inline int
+is_internal_subgoal_frame(sg_fr_ptr sf, choiceptr limit)
+{
+  return is_internal_choice_point(SgFr_choice_point(sf), limit);
+}
+
+static inline int
 is_internal_dep_fr(dep_fr_ptr dep_fr, choiceptr limit)
 {
-  choiceptr cp = DepFr_cons_cp(dep_fr);
+  return is_internal_choice_point(DepFr_cons_cp(dep_fr), limit);
+}
+
+static inline dep_fr_ptr
+find_external_consumer(choiceptr min, choiceptr max, sg_fr_ptr gen)
+{
+  choiceptr cp = SgFr_choice_point(gen);
+  dep_fr_ptr top = LOCAL_top_dep_fr;
+  dep_fr_ptr found = NULL;
   
-  while(cp && cp <= limit) {
-    if(cp == limit)
-      return TRUE;
-    cp = cp->cp_b;
+  while(top && YOUNGER_CP(DepFr_cons_cp(top), max)) {
+    if(DepFr_sg_fr(top) == gen) {
+      if(is_internal_dep_fr(top, max)) {
+        dprintf("Found one external dep_fr %d\n", (int)top);
+        found = top;
+      }
+    }
+    /* XXX: subsumptive, ground */
+    top = DepFr_next(top);
   }
   
-  return FALSE;
+  return found;
 }
 
 static inline void
 abolish_generator_subgoals_between(choiceptr min, choiceptr max)
 {
-  sg_fr_ptr top;
-  
-#if 0
-  sg_fr_ptr top = SgFr_next(LOCAL_top_sg_fr); /* skip general subgoal frame */
-  
-  while(top) {
-    dprintf("top: %d\n", (int)SgFr_choice_point(top));
-    top = SgFr_next(top);
-  }
-#endif
-
-  top = SgFr_next(LOCAL_top_sg_fr);
+  sg_fr_ptr top = SgFr_next(LOCAL_top_sg_fr);
   sg_fr_ptr before = LOCAL_top_sg_fr;
   
   /* ignore younger generators */
@@ -571,10 +579,33 @@ abolish_generator_subgoals_between(choiceptr min, choiceptr max)
     
     top = SgFr_next(sg_fr);
     
-    if(is_internal(sg_fr, min)) {
-      dprintf("PRODUCER ABOLISH!!! %d\n", (int)SgFr_choice_point(sg_fr));
+    if(SgFr_choice_point(sg_fr) == min) {
       abolish_incomplete_producer_subgoal(sg_fr);
       SgFr_next(before) = top;
+    } else
+    if(is_internal_subgoal_frame(sg_fr, min)) {
+      dprintf("PRODUCER ABOLISH!!! %d\n", (int)SgFr_choice_point(sg_fr));
+      dep_fr_ptr external = find_external_consumer(min, max, sg_fr);
+      if(external) {
+        /* generator subgoal must be kept */
+        dprintf("External dep_fr %d cp %d\n", external, DepFr_cons_cp(external));
+        dprintf("Dependency frame kept\n");
+        choiceptr gen_cp = SgFr_choice_point(sg_fr);
+        
+        if(SgFr_got_answer(sg_fr)) {
+          SgFr_saved_cp(sg_fr) = SgFr_new_answer_cp(sg_fr);
+          printf("Generator has generated an answer\n");
+        }
+        
+        DepFr_set_first_consumer(external);
+        gen_cp->cp_b = DepFr_cons_cp(external);
+        SgFr_set_producer(sg_fr);
+        
+        before = sg_fr;
+      } else {
+        abolish_incomplete_producer_subgoal(sg_fr);
+        SgFr_next(before) = top;
+      }
     } else
       before = sg_fr;
   }
@@ -614,7 +645,7 @@ abolish_subsumptive_subgoals_between(choiceptr min, choiceptr max)
     sg_fr = top;
     top = SgFr_next(sg_fr);
     
-    if(is_internal((sg_fr_ptr)sg_fr, min)) {
+    if(is_internal_subgoal_frame((sg_fr_ptr)sg_fr, min)) {
       dprintf("Internal cp %d\n", (int)SgFr_choice_point(sg_fr));
       choiceptr new = find_other_consumer(max, (sg_fr_ptr)sg_fr);
       if(new) {
@@ -656,7 +687,7 @@ abolish_ground_subgoals_between(choiceptr min, choiceptr max)
     sg_fr = top;
     top = SgFr_next(sg_fr);
     
-    if(is_internal((sg_fr_ptr)sg_fr, min)) {
+    if(is_internal_subgoal_frame((sg_fr_ptr)sg_fr, min)) {
       choiceptr new = find_other_consumer(max, (sg_fr_ptr)sg_fr);
       if(new) {
         dprintf("Keeping subgoal %d\n", (int)SgFr_choice_point(sg_fr));
@@ -683,12 +714,7 @@ abolish_dependency_frames_between(choiceptr min, choiceptr max)
   dep_fr_ptr top = LOCAL_top_dep_fr;
   dep_fr_ptr before = NULL;
   
-  /* ignore younger dependency frames */
-  while(top && YOUNGER_CP(DepFr_cons_cp(top), max)) {
-    before = top;
-    dprintf("Skipped one consumer %d\n", (int)DepFr_cons_cp(top));
-    top = DepFr_next(top);
-  }
+  dprintf("min=%d max=%d\n", (int)min, (int)max);
   
   while(top && YOUNGER_CP(DepFr_cons_cp(top), min)) {
     dep_fr_ptr dep_fr = top;
@@ -714,8 +740,6 @@ abolish_subgoals_between(choiceptr min, choiceptr max)
   abolish_subsumptive_subgoals_between(min, max);
   
   abolish_ground_subgoals_between(min, max);
-  
-  abolish_dependency_frames_between(min, max);
 }
 
 static inline void
@@ -757,11 +781,23 @@ producer_to_consumer(grounded_sf_ptr sg_fr, grounded_sf_ptr producer)
   if(SgFr_is_external(sg_fr))
     limit_cp = SgFr_new_answer_cp(sg_fr);
   else
-    limit_cp = B + 1;
+    limit_cp = B->cp_b;
   
   dprintf("gen_cp=%d limit_cp=%d\n", (int)gen_cp, (int)limit_cp);
   
-  abolish_subgoals_between(gen_cp, limit_cp);
+  if(SgFr_is_external(sg_fr)) {
+    if(gen_cp == limit_cp && B_FZ < limit_cp) {
+      dprintf("ABOLISH B_FZ %d\n", (int)B_FZ);
+      abolish_subgoals_between(gen_cp, B_FZ);
+      abolish_dependency_frames_between(gen_cp, B_FZ);
+    } else {
+      abolish_subgoals_between(gen_cp, limit_cp);
+      abolish_dependency_frames_between(gen_cp, limit_cp);
+    }
+  } else {
+    abolish_subgoals_between(gen_cp, limit_cp);
+    abolish_dependency_frames_between(gen_cp, limit_cp);
+  }
   
   /* update generator choice point to point to RUN_COMPLETED */
   gen_cp->cp_ap = (yamop *)RUN_COMPLETED;
@@ -883,15 +919,17 @@ static inline void
 add_dependency_frame(grounded_sf_ptr sg_fr, choiceptr cp)
 {
   dep_fr_ptr dep_fr;
+  grounded_sf_ptr producer = SgFr_producer(sg_fr);
   
-  new_dependency_frame(dep_fr, TRUE, LOCAL_top_or_fr, SgFr_choice_point(SgFr_producer(sg_fr)), cp, (sg_fr_ptr)sg_fr, NULL);
+  new_dependency_frame(dep_fr, TRUE, LOCAL_top_or_fr, SgFr_choice_point(producer), cp, (sg_fr_ptr)sg_fr, NULL);
   find_next_dep_frame(dep_fr, cp);
   
   /* turn generator choice point as consumer */
   CONS_CP(cp)->cp_dep_fr = dep_fr;
   if(SgFr_try_answer(sg_fr))
     DepFr_last_answer(dep_fr) = SgFr_try_answer(sg_fr);
-  //DepFr_type(dep_fr) = TRANSFORMED_DEP;
+  if(SgFr_is_ground_local_producer(producer))
+    DepFr_set_top_consumer(dep_fr);
 }
 
 static inline void
