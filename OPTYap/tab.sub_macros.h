@@ -255,7 +255,6 @@ void mark_subsumptive_producer_as_completed(subprod_fr_ptr sg_fr) {
   
   if(TabEnt_is_exec(SgFr_tab_ent(sg_fr))) {
     free_tst_hash_index((tst_ans_hash_ptr)SgFr_hash_chain(sg_fr));
-    SgFr_hash_chain(sg_fr) = NULL;
     /* answer list or blocks are not removed because of show_table */
     
 #ifdef TABLING_COMPLETE_TABLE
@@ -336,7 +335,8 @@ void free_producer_subgoal_data(sg_fr_ptr sg_fr, int delete_all) {
   tst_node_ptr answer_trie = (tst_node_ptr)SgFr_answer_trie(sg_fr);
   if(answer_trie) {
     /* hash chain inside answer trie */
-    free_tst_hash_chain((tst_ans_hash_ptr)SgFr_hash_chain(sg_fr));
+    if(SgFr_hash_chain(sg_fr))
+      free_tst_hash_chain((tst_ans_hash_ptr)SgFr_hash_chain(sg_fr));
     if(TrNode_child(answer_trie))
       free_answer_trie_branch((ans_node_ptr)TrNode_child(answer_trie), TRAVERSE_POSITION_FIRST);
     if(delete_all)

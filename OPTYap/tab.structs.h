@@ -404,7 +404,7 @@ typedef sg_fr_ptr variant_sf_ptr;
 #define SgFr_state(X)          (CAST_SF(X)->state_flag)
 #define SgFr_choice_point(X)   (CAST_SF(X)->choice_point)
 #define SgFr_leaf(X)           (CAST_SF(X)->leaf_ptr)
-#define SgFr_hash_chain(X)     (TrNode_next(CAST_SF(X)->answer_trie)) /* sibling of root answer trie node */
+#define SgFr_hash_chain(X)     (TrNode_next(SgFr_answer_trie(X))) /* sibling of root answer trie node */
 #define SgFr_answer_trie(X)    (CAST_SF(X)->answer_trie)
 #define SgFr_first_answer(X)   (CAST_SF(X)->first_answer)
 #define SgFr_last_answer(X)    (CAST_SF(X)->last_answer)

@@ -696,8 +696,10 @@ void show_table(tab_ent_ptr tab_ent, int show_mode) {
       } else {
         bytes += TrStat_subcons_subgoals * sizeof(struct subsumed_consumer_subgoal_frame);
         bytes += TrStat_subgoals * sizeof(struct subsumptive_producer_subgoal_frame);
+#ifdef TABLING_COMPLETE_TABLE
         if(TabEnt_completed(tab_ent))
           ground_trie_statistics(tab_ent);
+#endif /* TABLING_COMPLETE_TABLE */
       }
       
       bytes += TrStat_sg_nodes * sizeof(struct sub_subgoal_trie_node);
