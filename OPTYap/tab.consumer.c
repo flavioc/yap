@@ -324,18 +324,10 @@ producer_to_consumer(grounded_sf_ptr sg_fr, grounded_sf_ptr producer)
   
   dprintf("gen_cp=%d limit_cp=%d\n", (int)gen_cp, (int)limit_cp);
   
-  if(SgFr_is_external(sg_fr)) {
-    if(gen_cp == limit_cp && B_FZ < limit_cp) {
-      dprintf("ABOLISH B_FZ %d\n", (int)B_FZ);
-      abolish_subgoals_between(gen_cp, B_FZ);
-      abolish_dependency_frames_between(gen_cp, B_FZ);
-    } else {
-      abolish_subgoals_between(gen_cp, limit_cp);
-      abolish_dependency_frames_between(gen_cp, limit_cp);
-    }
-  } else {
-    abolish_subgoals_between(gen_cp, limit_cp);
-    abolish_dependency_frames_between(gen_cp, limit_cp);
+  if(gen_cp == limit_cp && B_FZ < limit_cp) {
+    dprintf("ABOLISH B_FZ %d\n", (int)B_FZ);
+    abolish_subgoals_between(gen_cp, B_FZ);
+    abolish_dependency_frames_between(gen_cp, B_FZ);
   }
   
   /* update generator choice point to point to RUN_COMPLETED */

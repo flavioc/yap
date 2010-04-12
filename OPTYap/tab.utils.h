@@ -544,9 +544,10 @@ extern CELL* AT;
 #endif /* TABLING_CALL_SUBSUMPTION */
 
 // deactivate to test
+#undef __USE_XOPEN2K8
 //#define FDEBUG
 #ifdef FDEBUG
-#define dprintf(MESG, ARGS...) printf(MESG, ##ARGS)
+#define dprintf(...) fprintf(stderr,  __VA_ARGS__)
 #else
 #define dprintf(MESG, ARGS...)
 #endif
