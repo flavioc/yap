@@ -544,7 +544,7 @@ extern CELL* AT;
 #endif /* TABLING_CALL_SUBSUMPTION */
 
 // deactivate to test
-// #define FDEBUG
+//#define FDEBUG
 #ifdef FDEBUG
 #define dprintf(MESG, ARGS...) printf(MESG, ##ARGS)
 #else

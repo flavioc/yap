@@ -133,7 +133,17 @@ inline TSTNptr grounded_answer_search(grounded_sf_ptr sf, CPtr answerVector);
 
 #ifdef TABLING_CALL_SUBSUMPTION
 void consume_subsumptive_answer(CTXTdeclc BTNptr pAnsLeaf, int sizeTmplt, CPtr pAnsTmplt);
-#endif  
+#endif /* TABLING_CALL_SUBSUMPTION */
+
+/* ---------------- **
+**   tab.consumer.c **
+** ---------------- */
+
+#ifdef TABLING_CALL_SUBSUMPTION
+void process_pending_subgoal_list(node_list_ptr list, grounded_sf_ptr sg_fr);
+void add_dependency_frame(grounded_sf_ptr sg_fr, choiceptr cp);
+void add_ground_subgoal_stack(grounded_sf_ptr sg_fr, choiceptr cp);
+#endif /* TABLING_CALL_SUBSUMPTION */
 
 /* --------------- **
 **  tab.suspend.c  **
