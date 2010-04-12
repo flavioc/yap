@@ -122,6 +122,17 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
 #define CODE_ARITY(CODE)       ((CODE)->u.Otapl.s)
 #define CALL_ARGUMENTS() (XREGS + 1)
 
+/* LOCAL_top_gen_cp macros */
+#ifdef TABLING_CALL_SUBSUMPTION
+#define SET_TOP_GEN_CP(CP) do { printf("LOCAL_top_gen_cp now %d\n", (int)CP); LOCAL_top_gen_cp = CP; } while(0)
+#define SAVE_TOP_GEN_CP(DEP_FR) do { printf("LOCAL_top_gen_cp %d saved into cp %d\n", (int)LOCAL_top_gen_cp, (int)DepFr_cons_cp(DEP_FR)); DepFr_top_gen_cp(DEP_FR) = LOCAL_top_gen_cp; } while (0)
+#define RESTORE_TOP_GEN_CP(DEP_FR) do { printf("Restored LOCAL_top_gen_cp to %d from cp %d\n", (int)DepFr_top_gen_cp(DEP_FR), (int)DepFr_cons_cp(DEP_FR)); LOCAL_top_gen_cp = DepFr_top_gen_cp(DEP_FR); } while(0)
+#else
+#define SET_TOP_GEN(CP) /* nothing */
+#define SAVE_TOP_GEN_CP(DEP_FR) /* nothing */
+#define RESTORE_TOP_GEN_CP(DEP_FR) /* nothing */
+#endif /* TABLING_CALL_SUBSUMPTION */
+
 
 #define STACK_NOT_EMPTY(STACK, STACK_BASE)  STACK != STACK_BASE
 #define STACK_PUSH_UP(ITEM, STACK)          *--STACK = (CELL)(ITEM)
@@ -1084,6 +1095,14 @@ void abolish_incomplete_subgoals(choiceptr prune_cp) {
     insert_into_global_sg_fr_list(sg_fr);
 #endif /* LIMIT_TABLING */
   }
+
+#ifdef TABLING_CALL_SUBSUMPTION
+  if(LOCAL_top_sg_fr == NULL) {
+    SET_TOP_GEN_CP(NULL);
+  } else {
+    SET_TOP_GEN_CP(SgFr_choice_point(LOCAL_top_sg_fr));
+  }
+#endif
 
 #ifdef TABLING_CALL_SUBSUMPTION
   while (LOCAL_top_subcons_sg_fr && EQUAL_OR_YOUNGER_CP(SgFr_choice_point(LOCAL_top_subcons_sg_fr), prune_cp)) {

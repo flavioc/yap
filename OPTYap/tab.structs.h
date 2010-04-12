@@ -492,6 +492,9 @@ typedef struct dependency_frame {
   choiceptr leader_choice_point;
   choiceptr consumer_choice_point;
   continuation_ptr last_consumed_answer;
+#ifdef TABLING_CALL_SUBSUMPTION
+  choiceptr top_gen_cp; /* NEW */
+#endif /* TABLING_CALL_SUBSUMPTION */
   sg_fr_ptr sg_fr; /* NEW */
   struct dependency_frame *next;
 } *dep_fr_ptr;
@@ -503,6 +506,7 @@ typedef struct dependency_frame {
 #define DepFr_timestamp(X)               ((X)->timestamp)
 #define DepFr_backchain_cp(X)            ((X)->backchain_choice_point)
 #define DepFr_leader_cp(X)               ((X)->leader_choice_point)
+#define DepFr_top_gen_cp(X)              ((X)->top_gen_cp)
 #define DepFr_cons_cp(X)                 ((X)->consumer_choice_point)
 #define DepFr_last_answer(X)             ((X)->last_consumed_answer)
 #define DepFr_sg_fr(X)                   ((X)->sg_fr)

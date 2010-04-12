@@ -355,6 +355,12 @@ void private_completion(sg_fr_ptr sg_fr) {
 #endif /* LIMIT_TABLING */
 
 #ifdef TABLING_CALL_SUBSUMPTION
+  if(LOCAL_top_sg_fr == NULL) {
+    SET_TOP_GEN_CP(NULL);
+  } else {
+    SET_TOP_GEN_CP(SgFr_choice_point(LOCAL_top_sg_fr));
+  }
+
   /* complete subsumptive consumer subgoals */
   while(LOCAL_top_subcons_sg_fr && YOUNGER_CP(SgFr_choice_point(LOCAL_top_subcons_sg_fr), B)) {
     mark_subsumptive_consumer_as_completed(LOCAL_top_subcons_sg_fr);
