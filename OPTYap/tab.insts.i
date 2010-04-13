@@ -82,8 +82,8 @@
           B = gcp;                                                    \
           YAPOR_SET_LOAD(B);                                          \
           SET_BB(B);                                                  \
-          SET_TOP_GEN_SG(SG_FR);                                      \
           SAVE_SG_TOP_GEN_SG(SG_FR);                                  \
+          SET_TOP_GEN_SG(SG_FR);                                      \
           TABLING_ERRORS_check_stack;                                 \
         }
 
