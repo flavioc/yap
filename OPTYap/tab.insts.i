@@ -49,7 +49,7 @@
           /* initialize gcp and adjust subgoal frame field */         \
           YENV = (CELL *) (GEN_CP(YENV) - 1);                         \
           gcp = NORM_CP(YENV);                                        \
-          dprintf("New generator choice point: %d\n", gcp);           \
+          dprintf("New generator choice point: %d Frame %d\n", gcp, (int)SG_FR);           \
           SgFr_choice_point(SG_FR) = gcp;                             \
           /* store generator choice point */                          \
           HBREG = H;                                                  \

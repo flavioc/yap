@@ -90,6 +90,8 @@ struct subsumed_consumer_subgoal_frame {
   
   struct subsumed_consumer_subgoal_frame *next;
   
+  sg_fr_ptr top_gen_sg;
+  
   time_stamp ts;
   subprod_fr_ptr producer;
   CELL* answer_template;
@@ -136,9 +138,10 @@ struct grounded_subgoal_frame {
   
   struct grounded_subgoal_frame *next;
   
+  sg_fr_ptr top_gen_sg;
+  
   CELL executing;
   CELL start;
-  sg_fr_ptr top_gen_sg;
   choiceptr saved_cp;
   
   time_stamp ts;

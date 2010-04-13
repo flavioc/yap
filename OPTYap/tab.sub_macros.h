@@ -90,6 +90,7 @@ STD_PROTO(static inline int build_next_ground_producer_return_list, (grounded_sf
           SgFr_choice_point(SG_FR) = B;                             \
           SgFr_next(SG_FR) = LOCAL_top_subcons_sg_fr;               \
           LOCAL_top_subcons_sg_fr = SG_FR;                          \
+          SAVE_SG_TOP_GEN_SG(SG_FR);                                \
         }
         
 #define init_ground_consumer_subgoal_frame(SG_FR)                   \
@@ -98,6 +99,7 @@ STD_PROTO(static inline int build_next_ground_producer_return_list, (grounded_sf
           SgFr_next(SG_FR) = LOCAL_top_groundcons_sg_fr;            \
           LOCAL_top_groundcons_sg_fr = SG_FR;                       \
           increment_sugoal_path(SG_FR);                             \
+          SAVE_SG_TOP_GEN_SG(SG_FR);                                \
         }
         
 #define create_ground_answer_template(SG_FR, FROM)      \

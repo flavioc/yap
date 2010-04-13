@@ -44,22 +44,19 @@ remove_generator_stack(grounded_sf_ptr sg_fr)
   SgFr_next(find) = NULL;
 }
 
-static inline int
-is_internal_choice_point(choiceptr cp, choiceptr limit)
+static int
+is_internal_subgoal_frame(sg_fr_ptr specific_sg, sg_fr_ptr sf, choiceptr limit)
 {
-  while(cp && cp <= limit) {
-    if(cp == limit)
+  sg_fr_ptr top_gen = SgFr_top_gen_sg(sf);
+  
+  while(top_gen && SgFr_choice_point(top_gen) <= limit) {
+    if(top_gen == specific_sg)
       return TRUE;
-    cp = cp->cp_b;
+      
+    top_gen = SgFr_top_gen_sg(top_gen);
   }
   
   return FALSE;
-}
-
-static inline int
-is_internal_subgoal_frame(sg_fr_ptr sf, choiceptr limit)
-{
-  return is_internal_choice_point(SgFr_choice_point(sf), limit);
 }
 
 static inline int
@@ -80,6 +77,8 @@ is_internal_dep_fr(sg_fr_ptr specific_sg, dep_fr_ptr dep_fr, choiceptr limit)
 static inline dep_fr_ptr
 find_external_consumer(choiceptr min, choiceptr max, sg_fr_ptr gen)
 {
+  return FALSE;
+  /* XXX */
   choiceptr cp = SgFr_choice_point(gen);
   dep_fr_ptr top = LOCAL_top_dep_fr;
   dep_fr_ptr found = NULL;
@@ -99,7 +98,7 @@ find_external_consumer(choiceptr min, choiceptr max, sg_fr_ptr gen)
 }
 
 static inline void
-abolish_generator_subgoals_between(choiceptr min, choiceptr max)
+abolish_generator_subgoals_between(sg_fr_ptr specific_sg, choiceptr min, choiceptr max)
 {
   sg_fr_ptr top = SgFr_next(LOCAL_top_sg_fr);
   sg_fr_ptr before = LOCAL_top_sg_fr;
@@ -124,8 +123,8 @@ abolish_generator_subgoals_between(choiceptr min, choiceptr max)
       abolish_incomplete_producer_subgoal(sg_fr);
       SgFr_next(before) = top;
     } else
-    if(is_internal_subgoal_frame(sg_fr, min)) {
-      dprintf("Trying to abolish %d\n", (int)SgFr_choice_point(sg_fr));
+    if(is_internal_subgoal_frame(specific_sg, sg_fr, min)) {
+      dprintf("Trying to abolish %d\n", (int)sg_fr);
       dep_fr_ptr external = find_external_consumer(min, max, sg_fr);
       if(external) {
         /* generator subgoal must be kept */
@@ -144,7 +143,7 @@ abolish_generator_subgoals_between(choiceptr min, choiceptr max)
         
         before = sg_fr;
       } else {
-        dprintf("REALLY ABOLISHED %d\n", (int)SgFr_choice_point(sg_fr));
+        dprintf("REALLY ABOLISHED %d\n", (int)sg_fr);
         abolish_incomplete_producer_subgoal(sg_fr);
         SgFr_next(before) = top;
       }
@@ -169,7 +168,7 @@ find_other_consumer(choiceptr min, sg_fr_ptr cons)
 }
 
 static inline void
-abolish_subsumptive_subgoals_between(choiceptr min, choiceptr max)
+abolish_subsumptive_subgoals_between(sg_fr_ptr specific_sg, choiceptr min, choiceptr max)
 {
   subcons_fr_ptr top = LOCAL_top_subcons_sg_fr;
   subcons_fr_ptr before = NULL;
@@ -187,7 +186,7 @@ abolish_subsumptive_subgoals_between(choiceptr min, choiceptr max)
     sg_fr = top;
     top = SgFr_next(sg_fr);
     
-    if(is_internal_subgoal_frame((sg_fr_ptr)sg_fr, min)) {
+    if(is_internal_subgoal_frame(specific_sg, (sg_fr_ptr)sg_fr, min)) {
       dprintf("Internal cp %d\n", (int)SgFr_choice_point(sg_fr));
       choiceptr new = find_other_consumer(max, (sg_fr_ptr)sg_fr);
       if(new) {
@@ -211,7 +210,7 @@ abolish_subsumptive_subgoals_between(choiceptr min, choiceptr max)
 }
 
 static inline void
-abolish_ground_subgoals_between(choiceptr min, choiceptr max)
+abolish_ground_subgoals_between(sg_fr_ptr specific_sg, choiceptr min, choiceptr max)
 {
   grounded_sf_ptr top = LOCAL_top_groundcons_sg_fr;
   grounded_sf_ptr before = NULL;
@@ -229,7 +228,7 @@ abolish_ground_subgoals_between(choiceptr min, choiceptr max)
     sg_fr = top;
     top = SgFr_next(sg_fr);
     
-    if(is_internal_subgoal_frame((sg_fr_ptr)sg_fr, min)) {
+    if(is_internal_subgoal_frame(specific_sg, (sg_fr_ptr)sg_fr, min)) {
       choiceptr new = find_other_consumer(max, (sg_fr_ptr)sg_fr);
       if(new) {
         dprintf("Keeping subgoal %d\n", (int)SgFr_choice_point(sg_fr));
@@ -281,13 +280,13 @@ abolish_dependency_frames_between(sg_fr_ptr specific_sg, choiceptr min, choicept
 }
 
 static inline void
-abolish_subgoals_between(choiceptr min, choiceptr max)
+abolish_subgoals_between(sg_fr_ptr specific_sg, choiceptr min, choiceptr max)
 {
-  abolish_generator_subgoals_between(min, max);
+  abolish_generator_subgoals_between(specific_sg, min, max);
   
-  abolish_subsumptive_subgoals_between(min, max);
+  abolish_subsumptive_subgoals_between(specific_sg, min, max);
   
-  abolish_ground_subgoals_between(min, max);
+  abolish_ground_subgoals_between(specific_sg, min, max);
 }
 
 static inline void
@@ -335,10 +334,10 @@ producer_to_consumer(grounded_sf_ptr sg_fr, grounded_sf_ptr producer)
   
   if(gen_cp == limit_cp && B_FZ < limit_cp) {
     dprintf("ABOLISH B_FZ %d\n", (int)B_FZ);
-    abolish_subgoals_between(gen_cp, B_FZ);
+    abolish_subgoals_between((sg_fr_ptr)sg_fr, gen_cp, B_FZ);
     abolish_dependency_frames_between((sg_fr_ptr)sg_fr, gen_cp, B_FZ);
   } else {
-    abolish_subgoals_between(gen_cp, limit_cp);
+    abolish_subgoals_between((sg_fr_ptr)sg_fr, gen_cp, limit_cp);
     abolish_dependency_frames_between((sg_fr_ptr)sg_fr, gen_cp, limit_cp);
   }
   

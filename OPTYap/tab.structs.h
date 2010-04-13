@@ -369,9 +369,10 @@ typedef struct subgoal_frame {
 #endif /* LIMIT_TABLING */
 
 #ifdef TABLING_CALL_SUBSUMPTION
+  struct subgoal_frame *top_gen_sg;
+  
   CELL executing;
   CELL start;
-  struct subgoal_frame *top_gen_sg;
   choiceptr saved_cp;
 #endif /* TABLING_CALL_SUBSUMPTION */
 
