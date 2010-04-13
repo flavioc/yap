@@ -416,6 +416,7 @@ typedef sg_fr_ptr variant_sf_ptr;
 
 #ifdef TABLING_CALL_SUBSUMPTION
 #define SgFr_top_gen_sg(X)          (CAST_SF(X)->top_gen_sg)
+#define SgFr_start_cp(X)            ((choiceptr)SgFr_start(X))
 #define SgFr_new_answer_cp(X)       ((choiceptr)SgFr_executing(X))
 #define SgFr_saved_cp(X)            (CAST_SF(X)->saved_cp)
 #define SgFr_executing(X)           (CAST_SF(X)->executing)

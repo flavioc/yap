@@ -490,7 +490,7 @@
      
 #define precheck_ground_generator(SG_FR)                            \
      if(SgFr_is_ground_producer(SG_FR)) {                           \
-       Bind_and_Trail(&SgFr_start((grounded_sf_ptr)(SG_FR)), MkIntegerTerm(2));        \
+       Bind_and_Trail(&SgFr_start((grounded_sf_ptr)(SG_FR)), (Term)B_FZ);        \
      }
 
 /* Consume subsuming answer ANS_NODE using ANS_TMPLT
@@ -1572,6 +1572,15 @@
       
 #ifdef TABLING_CALL_SUBSUMPTION
       dprintf("NEW_ANSWER_CP=%d\n", (int)B);
+      
+      if(B_FZ < SgFr_start_cp(sg_fr)) {
+        /* some branches were suspend */
+        dprintf("Suspended branches!\n");
+        SgFr_start(sg_fr) = B_FZ < B ? B_FZ : B;
+      } else {
+        dprintf("No branches suspended!\n");
+        SgFr_start(sg_fr) = B;
+      }
       Bind_and_Trail(&SgFr_executing(sg_fr), (Term)B);
 #endif
 
