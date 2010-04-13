@@ -371,6 +371,7 @@ typedef struct subgoal_frame {
 #ifdef TABLING_CALL_SUBSUMPTION
   CELL executing;
   CELL start;
+  struct subgoal_frame *top_gen_sg;
   choiceptr saved_cp;
 #endif /* TABLING_CALL_SUBSUMPTION */
 
@@ -413,6 +414,7 @@ typedef sg_fr_ptr variant_sf_ptr;
 #define SgFr_next(X)           ((X)->next)
 
 #ifdef TABLING_CALL_SUBSUMPTION
+#define SgFr_top_gen_sg(X)          (CAST_SF(X)->top_gen_sg)
 #define SgFr_new_answer_cp(X)       ((choiceptr)SgFr_executing(X))
 #define SgFr_saved_cp(X)            (CAST_SF(X)->saved_cp)
 #define SgFr_executing(X)           (CAST_SF(X)->executing)
@@ -493,7 +495,7 @@ typedef struct dependency_frame {
   choiceptr consumer_choice_point;
   continuation_ptr last_consumed_answer;
 #ifdef TABLING_CALL_SUBSUMPTION
-  choiceptr top_gen_cp; /* NEW */
+  sg_fr_ptr top_gen_sg; /* NEW */
 #endif /* TABLING_CALL_SUBSUMPTION */
   sg_fr_ptr sg_fr; /* NEW */
   struct dependency_frame *next;
@@ -506,7 +508,7 @@ typedef struct dependency_frame {
 #define DepFr_timestamp(X)               ((X)->timestamp)
 #define DepFr_backchain_cp(X)            ((X)->backchain_choice_point)
 #define DepFr_leader_cp(X)               ((X)->leader_choice_point)
-#define DepFr_top_gen_cp(X)              ((X)->top_gen_cp)
+#define DepFr_top_gen_sg(X)              ((X)->top_gen_sg)
 #define DepFr_cons_cp(X)                 ((X)->consumer_choice_point)
 #define DepFr_last_answer(X)             ((X)->last_consumed_answer)
 #define DepFr_sg_fr(X)                   ((X)->sg_fr)

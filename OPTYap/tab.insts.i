@@ -82,7 +82,8 @@
           B = gcp;                                                    \
           YAPOR_SET_LOAD(B);                                          \
           SET_BB(B);                                                  \
-          SET_TOP_GEN_CP(B);                                          \
+          SET_TOP_GEN_SG(SG_FR);                                      \
+          SAVE_SG_TOP_GEN_SG(SG_FR);                                  \
           TABLING_ERRORS_check_stack;                                 \
         }
 
@@ -107,7 +108,7 @@
           B = gcp;                                                    \
           YAPOR_SET_LOAD(B);                                          \
           SET_BB(B);                                                  \
-          SET_TOP_GEN_CP(B);                                          \
+          SET_TOP_GEN_SG(SG_FR);                                      \
           TABLING_ERRORS_check_stack;                                 \
 	}
 #endif /* DETERMINISTIC_TABLING */
@@ -132,7 +133,7 @@
             --pt_args;                                  \
             *x_args = x;                                \
 	        }                                             \
-          SET_TOP_GEN_CP(gcp);                          \
+          SET_TOP_GEN_SG(GEN_CP(gcp)->cp_sg_fr);        \
         }
 
 
@@ -157,7 +158,7 @@
             x_args[-1] = x;                     \
           }                                     \
           YENV = pt_args;		    	              \
-          SET_TOP_GEN_CP(gcp);                  \
+          SET_TOP_GEN_SG(GEN_CP(gcp)->cp_sg_fr);\
           SET_BB(PROTECT_FROZEN_B(B));          \
         }
 
@@ -175,7 +176,7 @@
           /* store dependency frame */                                     \
           new_dependency_frame(new_dep_fr, DEP_ON_STACK, LOCAL_top_or_fr,  \
                                LEADER_CP, ccp, SG_FR, LOCAL_top_dep_fr);   \
-          SAVE_TOP_GEN_CP(new_dep_fr);                                     \
+          SAVE_TOP_GEN_SG(new_dep_fr);                                     \
           LOCAL_top_dep_fr = new_dep_fr;                                   \
           /* store consumer choice point */                                \
           HBREG = H;                                                       \
@@ -219,7 +220,7 @@
           restore_yaam_reg_cpdepth(B);                    \
           CPREG = B->cp_cp;                               \
           ENV = B->cp_env;                                \
-          RESTORE_TOP_GEN_CP(DEP_FR);                     \
+          RESTORE_TOP_GEN_SG(DEP_FR);                     \
           /* set_cut(YENV, B->cp_b); --> no effect */     \
           PREG = (yamop *) CPREG;                         \
           PREFETCH_OP(PREG);                              \

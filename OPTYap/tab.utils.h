@@ -545,9 +545,9 @@ extern CELL* AT;
 
 // deactivate to test
 #undef __USE_XOPEN2K8
-//#define FDEBUG
+#define FDEBUG
 #ifdef FDEBUG
-#define dprintf(...) fprintf(stderr,  __VA_ARGS__)
+#define dprintf(...) fprintf(stdout,  __VA_ARGS__)
 #else
 #define dprintf(MESG, ARGS...)
 #endif

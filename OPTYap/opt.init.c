@@ -231,7 +231,7 @@ void Yap_init_local(void) {
   LOCAL_next_free_ans_node = NULL;
   LOCAL_top_sg_fr = NULL; 
 #ifdef TABLING_CALL_SUBSUMPTION
-  LOCAL_top_gen_cp = NULL;
+  LOCAL_top_gen_sg = NULL;
   LOCAL_top_subcons_sg_fr = NULL;
   LOCAL_top_groundcons_sg_fr = NULL;
 #endif /* TABLING_CALL_SUBSUMPTION */

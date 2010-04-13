@@ -122,15 +122,17 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
 #define CODE_ARITY(CODE)       ((CODE)->u.Otapl.s)
 #define CALL_ARGUMENTS() (XREGS + 1)
 
-/* LOCAL_top_gen_cp macros */
+/* LOCAL_top_gen_sg macros */
 #ifdef TABLING_CALL_SUBSUMPTION
-#define SET_TOP_GEN_CP(CP) do { printf("LOCAL_top_gen_cp now %d\n", (int)CP); LOCAL_top_gen_cp = CP; } while(0)
-#define SAVE_TOP_GEN_CP(DEP_FR) do { printf("LOCAL_top_gen_cp %d saved into cp %d\n", (int)LOCAL_top_gen_cp, (int)DepFr_cons_cp(DEP_FR)); DepFr_top_gen_cp(DEP_FR) = LOCAL_top_gen_cp; } while (0)
-#define RESTORE_TOP_GEN_CP(DEP_FR) do { printf("Restored LOCAL_top_gen_cp to %d from cp %d\n", (int)DepFr_top_gen_cp(DEP_FR), (int)DepFr_cons_cp(DEP_FR)); LOCAL_top_gen_cp = DepFr_top_gen_cp(DEP_FR); } while(0)
+#define SET_TOP_GEN_SG(SG_FR) do { printf("LOCAL_top_gen_sg cp now %d\n", SG_FR == NULL ? NULL : (int)SgFr_choice_point(SG_FR)); LOCAL_top_gen_sg = SG_FR; } while(0)
+#define SAVE_TOP_GEN_SG(DEP_FR) do { printf("LOCAL_top_gen_sg cp %d saved into cp %d\n", (int)SgFr_choice_point(LOCAL_top_gen_sg), (int)DepFr_cons_cp(DEP_FR)); DepFr_top_gen_sg(DEP_FR) = LOCAL_top_gen_sg; } while (0)
+#define RESTORE_TOP_GEN_SG(DEP_FR) do { printf("Restored LOCAL_top_gen_sg gen to %d from cp %d\n", (int)SgFr_choice_point(DepFr_top_gen_sg(DEP_FR)), (int)DepFr_cons_cp(DEP_FR)); LOCAL_top_gen_sg = DepFr_top_gen_sg(DEP_FR); } while(0)
+#define SAVE_SG_TOP_GEN_SG(SG_FR) do { printf("LOCAL_top_gen_sg cp %d saved into gen cp %d\n", LOCAL_top_gen_sg ? (int)SgFr_choice_point(LOCAL_top_gen_sg) : 0, SgFr_choice_point(SG_FR)); SgFr_top_gen_sg(SG_FR) = LOCAL_top_gen_sg; } while(0)
 #else
-#define SET_TOP_GEN(CP) /* nothing */
-#define SAVE_TOP_GEN_CP(DEP_FR) /* nothing */
-#define RESTORE_TOP_GEN_CP(DEP_FR) /* nothing */
+#define SET_TOP_SG(SG_FR) /* nothing */
+#define SAVE_TOP_GEN_SG(DEP_FR) /* nothing */
+#define RESTORE_TOP_GEN_SG(DEP_FR) /* nothing */
+#define SAVE_SG_TOP_GEN_SG(SG_FR) /* nothing */
 #endif /* TABLING_CALL_SUBSUMPTION */
 
 
@@ -1096,13 +1098,7 @@ void abolish_incomplete_subgoals(choiceptr prune_cp) {
 #endif /* LIMIT_TABLING */
   }
 
-#ifdef TABLING_CALL_SUBSUMPTION
-  if(LOCAL_top_sg_fr == NULL) {
-    SET_TOP_GEN_CP(NULL);
-  } else {
-    SET_TOP_GEN_CP(SgFr_choice_point(LOCAL_top_sg_fr));
-  }
-#endif
+  SET_TOP_GEN_SG(LOCAL_top_sg_fr);
 
 #ifdef TABLING_CALL_SUBSUMPTION
   while (LOCAL_top_subcons_sg_fr && EQUAL_OR_YOUNGER_CP(SgFr_choice_point(LOCAL_top_subcons_sg_fr), prune_cp)) {

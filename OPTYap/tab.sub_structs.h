@@ -138,6 +138,7 @@ struct grounded_subgoal_frame {
   
   CELL executing;
   CELL start;
+  sg_fr_ptr top_gen_sg;
   choiceptr saved_cp;
   
   time_stamp ts;
