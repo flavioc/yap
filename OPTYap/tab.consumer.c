@@ -193,7 +193,8 @@ abolish_generator_subgoals_between(sg_fr_ptr specific_sg, choiceptr min, choicep
            safe for the next iteration of this loop */
         reorder_subgoal_frame(sg_fr, cons_cp);
         
-        /* note: dependency frame will be deleted in RESTART_GENERATOR */
+        GEN_CP(cons_cp)->cp_dep_fr = (dep_fr_ptr)DepFr_last_answer(external);
+        abolish_dependency_frame(external);
       } else {
         dprintf("REALLY ABOLISHED %d\n", (int)sg_fr);
         abolish_incomplete_producer_subgoal(sg_fr);

@@ -642,9 +642,6 @@
   
   PBOp(table_restart_generator, Otapl)
     dprintf("==> TABLE_RESTART_GENERATOR\n");
-    dep_fr_ptr dep_fr = CONS_CP(B)->cp_dep_fr;
-    printf("To delete dep_fr %d\n", (int)dep_fr);
-    abolish_dependency_frame(dep_fr);
     exit(1);
   ENDPBOp();
     
