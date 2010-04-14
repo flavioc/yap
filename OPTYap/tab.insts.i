@@ -117,6 +117,7 @@
 #define restore_generator_node(ARITY, AP)               \
         { register CELL *pt_args, *x_args;              \
           register choiceptr gcp = B;                   \
+          SET_TOP_GEN_SG(GEN_CP(gcp)->cp_sg_fr);        \
           /* restore generator choice point */          \
           H = HBREG = PROTECT_FROZEN_H(gcp);            \
           restore_yaam_reg_cpdepth(gcp);                \
@@ -133,13 +134,13 @@
             --pt_args;                                  \
             *x_args = x;                                \
 	        }                                             \
-          SET_TOP_GEN_SG(GEN_CP(gcp)->cp_sg_fr);        \
         }
 
 
 #define pop_generator_node(ARITY)               \
         { register CELL *pt_args, *x_args;      \
           register choiceptr gcp = B;           \
+          SET_TOP_GEN_SG(GEN_CP(gcp)->cp_sg_fr);\
           /* pop generator choice point */      \
           H = PROTECT_FROZEN_H(gcp);            \
           pop_yaam_reg_cpdepth(gcp);            \
@@ -158,7 +159,6 @@
             x_args[-1] = x;                     \
           }                                     \
           YENV = pt_args;		    	              \
-          SET_TOP_GEN_SG(GEN_CP(gcp)->cp_sg_fr);\
           SET_BB(PROTECT_FROZEN_B(B));          \
         }
 
@@ -484,13 +484,14 @@
 #define check_ground_generator(SG_FR, TAB_ENT)                      \
     if(SgFr_is_ground_producer(SG_FR)) {                            \
       grounded_sf_ptr ground_sg = (grounded_sf_ptr)(SG_FR);         \
-      check_ground_pending_subgoals(SG_FR, TAB_ENT, ground_sg);     \
-      check_ground_pre_stored_answers(SG_FR, TAB_ENT, ground_sg);   \
+      /*check_ground_pending_subgoals(SG_FR, TAB_ENT, ground_sg);     \
+      check_ground_pre_stored_answers(SG_FR, TAB_ENT, ground_sg);*/   \
     }
      
 #define precheck_ground_generator(SG_FR)                            \
      if(SgFr_is_ground_producer(SG_FR)) {                           \
-       Bind_and_Trail(&SgFr_start((grounded_sf_ptr)(SG_FR)), (Term)B_FZ);        \
+       printf("AQUI\n");                                            \
+       /*Bind_and_Trail(&SgFr_start((grounded_sf_ptr)(SG_FR)), (Term)B_FZ);*/        \
      }
 
 /* Consume subsuming answer ANS_NODE using ANS_TMPLT
@@ -632,6 +633,7 @@
   ENDPBOp();
   
   PBOp(table_run_completed, Otapl)
+#if 0
 #ifdef TABLING_CALL_SUBSUMPTION
     dprintf("===> TABLE_RUN_COMPLETED\n");
     
@@ -748,6 +750,7 @@
     printf("CANT BE HERE!!!\n");
     exit(1);
 #endif /* TABLING_CALL_SUBSUMPTION */
+#endif
   ENDPBOp();
   
   PBOp(table_try_answer, Otapl)
@@ -1573,6 +1576,7 @@
 #ifdef TABLING_CALL_SUBSUMPTION
       dprintf("NEW_ANSWER_CP=%d\n", (int)B);
       
+#if 0
       if(B_FZ < SgFr_start_cp(sg_fr)) {
         /* some branches were suspend */
         dprintf("Suspended branches!\n");
@@ -1582,6 +1586,7 @@
         SgFr_start(sg_fr) = B;
       }
       Bind_and_Trail(&SgFr_executing(sg_fr), (Term)B);
+#endif
 #endif
 
 #ifdef TABLING_ERRORS
@@ -1597,6 +1602,7 @@
 #endif /* TABLING_ERRORS */
       UNLOCK(SgFr_lock(sg_fr));
       
+#if 0
 #ifdef TABLING_CALL_SUBSUMPTION
       if(SgFr_is_producer(sg_fr)) {
         dprintf("act as local\n");
@@ -1642,6 +1648,7 @@
         }
       }
 #endif /* TABLING_CALL_SUBSUMPTION */
+#endif
       if (IS_BATCHED_GEN_CP(gcp)) {
 #ifdef TABLING_EARLY_COMPLETION
 	if (gcp == PROTECT_FROZEN_B(B) && (*subs_ptr == 0 || gcp->cp_ap == COMPLETION)) {
@@ -1743,6 +1750,7 @@
 
     UNLOCK(DepFr_lock(dep_fr));
     
+#if 0
 #ifdef TABLING_CALL_SUBSUMPTION
     if(DepFr_is_first_consumer(dep_fr)) {
       sg_fr_ptr prod = DepFr_sg_fr(dep_fr);
@@ -1807,6 +1815,7 @@
       }
     }
 #endif /* TABLING_CALL_SUBSUMPTION */
+#endif
 
 #ifdef YAPOR
     if (B == DepFr_leader_cp(LOCAL_top_dep_fr)) {
@@ -2080,13 +2089,15 @@
     
     {
       sg_fr_ptr sg_fr = GEN_CP(B)->cp_sg_fr;
-      
+
+#if 0
 #ifdef TABLING_CALL_SUBSUMPTION
       if(SgFr_is_producer(sg_fr)) {
         printf("NULLIFY saved_cp\n");
         SgFr_saved_cp(sg_fr) = NULL;
       }
 #endif /* TABLING_CALL_SUBSUMPTION */
+#endif
 #ifdef FDEBUG
       dprintf("===> TABLE_COMPLETION ");
       printSubgoalTriePath(stdout, SgFr_leaf(sg_fr), SgFr_tab_ent(sg_fr));

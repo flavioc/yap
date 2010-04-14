@@ -90,8 +90,6 @@ struct subsumed_consumer_subgoal_frame {
   
   struct subsumed_consumer_subgoal_frame *next;
   
-  sg_fr_ptr top_gen_sg;
-  
   time_stamp ts;
   subprod_fr_ptr producer;
   CELL* answer_template;
@@ -138,7 +136,7 @@ struct grounded_subgoal_frame {
   
   struct grounded_subgoal_frame *next;
   
-  sg_fr_ptr top_gen_sg;
+  //sg_fr_ptr top_gen_sg;
   
   CELL executing;
   CELL start;
@@ -187,9 +185,6 @@ struct grounded_subgoal_frame {
 
 #define TabEnt_ground_yes(X)    (TabEnt_ground_trie(X) && TrNode_is_leaf(TabEnt_ground_trie(X)))
 
-#define GROUND_SUBGOAL_FRAME_MASK 0xC0
-
-#define SgFr_is_ground(X)                 (SgFr_type(X) & GROUND_SUBGOAL_FRAME_MASK)
 #define SgFr_is_ground_producer(X)        (SgFr_type(X) == GROUND_PRODUCER_SFT)
 #define SgFr_is_ground_consumer(X)        (SgFr_type(X) == GROUND_CONSUMER_SFT)
 #define SgFr_is_ground_local_producer(X)  (SgFr_is_ground_producer(X) && SgFr_is_local_producer((grounded_sf_ptr)(X)))

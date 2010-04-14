@@ -44,8 +44,7 @@ STD_PROTO(static inline int build_next_ground_producer_return_list, (grounded_sf
           SUBSUMPTIVE_PRODUCER_SFT, ALLOC_SUBPROD_SUBGOAL_FRAME);   \
         SgFr_prod_consumers(SG_FR) = NULL;                          \
         SgFr_answer_trie(SG_FR) = newTSTAnswerSet();                \
-        RESET_VARIABLE(&SgFr_executing(SG_FR));                     \
-        RESET_VARIABLE(&SgFr_start(SG_FR));                         \
+        /* faltava o saved_cp */                                    \
     }
     
 #define new_grounded_producer_subgoal_frame(SG_FR, CODE, LEAF) {  \
@@ -60,9 +59,6 @@ STD_PROTO(static inline int build_next_ground_producer_return_list, (grounded_sf
         SgFr_timestamp(SG_FR) = 0;      \
         SgFr_answer_template(SG_FR) = NULL;   \
         SgFr_num_ans(SG_FR) = 0;                \
-        SgFr_saved_cp(SG_FR) = NULL;               \
-        RESET_VARIABLE(&SgFr_executing(SG_FR));  \
-        RESET_VARIABLE(&SgFr_start(SG_FR))
   
 #define new_grounded_consumer_subgoal_frame(SG_FR, CODE, LEAF, PRODUCER) {  \
         new_basic_subgoal_frame(SG_FR, CODE, LEAF,                          \
@@ -90,7 +86,6 @@ STD_PROTO(static inline int build_next_ground_producer_return_list, (grounded_sf
           SgFr_choice_point(SG_FR) = B;                             \
           SgFr_next(SG_FR) = LOCAL_top_subcons_sg_fr;               \
           LOCAL_top_subcons_sg_fr = SG_FR;                          \
-          SAVE_SG_TOP_GEN_SG(SG_FR);                                \
         }
         
 #define init_ground_consumer_subgoal_frame(SG_FR)                   \
@@ -99,7 +94,6 @@ STD_PROTO(static inline int build_next_ground_producer_return_list, (grounded_sf
           SgFr_next(SG_FR) = LOCAL_top_groundcons_sg_fr;            \
           LOCAL_top_groundcons_sg_fr = SG_FR;                       \
           increment_sugoal_path(SG_FR);                             \
-          SAVE_SG_TOP_GEN_SG(SG_FR);                                \
         }
         
 #define create_ground_answer_template(SG_FR, FROM)      \

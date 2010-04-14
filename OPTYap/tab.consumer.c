@@ -27,6 +27,7 @@
 #include "tab.utils.h"
 #include "tab.tries.h"
 
+#if 0
 static void inline
 remove_generator_stack(grounded_sf_ptr sg_fr)
 {
@@ -321,8 +322,8 @@ update_top_gen_sg_fields(sg_fr_ptr specific_sg, choiceptr limit)
   sg_fr_ptr top_gen = LOCAL_top_sg_fr;
   while(top_gen && SgFr_choice_point(top_gen) <= limit) {
     if(SgFr_top_gen_sg(top_gen) == specific_sg) {
-      //printf("Updated one top gen sg\n");
-      SgFr_top_gen_sg(top_gen) = new_top;
+      printf("Updated one top gen sg\n");
+      //SgFr_top_gen_sg(top_gen) = new_top;
     }
     top_gen = SgFr_next(top_gen);
   }
@@ -332,7 +333,7 @@ update_top_gen_sg_fields(sg_fr_ptr specific_sg, choiceptr limit)
   while(top_sub && SgFr_choice_point(top_sub) <= limit) {
     if(SgFr_top_gen_sg(top_sub) == specific_sg) {
       printf("Update one top sub sg\n");
-      SgFr_top_gen_sg(top_sub) = new_top;
+      //SgFr_top_gen_sg(top_sub) = new_top;
     }
     top_sub = SgFr_next(top_sub);
   }
@@ -342,7 +343,7 @@ update_top_gen_sg_fields(sg_fr_ptr specific_sg, choiceptr limit)
   while(top_ground && SgFr_choice_point(top_ground) <= limit) {
     if(SgFr_top_gen_sg(top_ground) == specific_sg) {
       printf("Update one top ground sg\n");
-      SgFr_top_gen_sg(top_ground) = new_top;
+      //SgFr_top_gen_sg(top_ground) = new_top;
     }
     
     top_ground = SgFr_next(top_ground);
@@ -413,11 +414,11 @@ producer_to_consumer(grounded_sf_ptr sg_fr, grounded_sf_ptr producer)
     cp->cp_b = gen_cp;
   }
 }
-
+#endif
 void
 process_pending_subgoal_list(node_list_ptr list, grounded_sf_ptr sg_fr) {
   node_list_ptr orig = list;
-  
+
   while(list) {
     grounded_sf_ptr pending = (grounded_sf_ptr)NodeList_node(list);
     
@@ -454,14 +455,13 @@ process_pending_subgoal_list(node_list_ptr list, grounded_sf_ptr sg_fr) {
         printSubgoalTriePath(stdout, SgFr_leaf(pending), SgFr_tab_ent(pending));
         printf("\n");  
 #endif
-        producer_to_consumer(pending, sg_fr);
+        //producer_to_consumer(pending, sg_fr);
       }
     }
     
     list = NodeList_next(list);
   }
   free_node_list(orig);
-  
   dprintf("ok\n");
 }
 

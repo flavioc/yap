@@ -362,19 +362,21 @@ typedef struct subgoal_frame {
   
   continuation_ptr first_answer;
   continuation_ptr last_answer;
-    
+  
   struct subgoal_frame *next;
+  
+#ifdef TABLING_CALL_SUBSUMPTION
+  CELL executing;
+  //CELL start;
+  choiceptr saved_cp;
+
+  struct subgoal_frame *a;
+  struct subgoal_frame *top_gen_sg;
+#endif /* TABLING_CALL_SUBSUMPTION */
+  
 #ifdef LIMIT_TABLING
   struct subgoal_frame *previous;
 #endif /* LIMIT_TABLING */
-
-#ifdef TABLING_CALL_SUBSUMPTION
-  struct subgoal_frame *top_gen_sg;
-  
-  CELL executing;
-  CELL start;
-  choiceptr saved_cp;
-#endif /* TABLING_CALL_SUBSUMPTION */
 
 #ifdef INCOMPLETE_TABLING
   continuation_ptr try_answer;
@@ -415,7 +417,7 @@ typedef sg_fr_ptr variant_sf_ptr;
 #define SgFr_next(X)           ((X)->next)
 
 #ifdef TABLING_CALL_SUBSUMPTION
-#define SgFr_top_gen_sg(X)          (CAST_SF(X)->top_gen_sg)
+#define SgFr_top_gen_sg(X)          (NULL)//(CAST_SF(X)->top_gen_sg)
 #define SgFr_start_cp(X)            ((choiceptr)SgFr_start(X))
 #define SgFr_new_answer_cp(X)       ((choiceptr)SgFr_executing(X))
 #define SgFr_saved_cp(X)            (CAST_SF(X)->saved_cp)
