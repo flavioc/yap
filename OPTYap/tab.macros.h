@@ -740,10 +740,14 @@ join_answers_subgoal_frame(sg_fr_ptr sg_fr, continuation_ptr first, continuation
 #define remove_from_global_sg_fr_list(SG_FR)
 #endif /* LIMIT_TABLING */
 
-/* Get a pointer to the consumer answer template by using B */
-#define CONSUMER_NODE_ANSWER_TEMPLATE(CONSUMER_CP) ((CELL *) (CONS_CP(CONSUMER_CP) + 1))
-#define CONSUMER_ANSWER_TEMPLATE(DEP_FR) CONSUMER_NODE_ANSWER_TEMPLATE(B)
-#define DEPENDENCY_FRAME_ANSWER_TEMPLATE(DEP_FR)  ((CELL *)(CONS_CP(DepFr_cons_cp(DEP_FR)) + 1))
+#ifdef TABLING_GROUNDED
+#define CONSUMER_NODE_ANSWER_TEMPLATE(CONSUMER_CP) ((CELL *) (CONS_CP(CONSUMER_CP) + 1) + \
+      SgFr_arity(DepFr_sg_fr(CONS_CP(CONSUMER_CP)->cp_dep_fr)))
+#else
+#define CONSUMER_NODE_ANSWER_TEMPLATE(CONSUMER_CP) ((CELL *)(CONS_CP(CONSUMER_CP) + 1))
+#endif /* TABLING_GROUNDED */
+
+#define CONSUMER_ANSWER_TEMPLATE(DEP_FR) CONSUMER_NODE_ANSWER_TEMPLATE(DepFr_cons_cp(DEP_FR))
 #define GENERATOR_ANSWER_TEMPLATE(GEN_CHOICEP, SG_FR) ((CELL *)(GEN_CP(GEN_CHOICEP) + 1) + SgFr_arity(SG_FR))
 
 #define trail_unwind(TR0)                   \

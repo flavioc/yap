@@ -34,18 +34,27 @@
 #define TABLING_ERRORS_consume_answer_and_procceed
 #endif /* TABLING_ERRORS */
 
+#define store_args_local_stack(ARITY)                             \
+    { register CELL *pt_args;                                     \
+      /* store args */                                            \
+      pt_args = XREGS + (ARITY);                                  \
+      while (pt_args > XREGS) {                                   \
+        register CELL aux_arg = pt_args[0];                       \
+        --YENV;                                                   \
+        --pt_args;                                                \
+        *YENV = aux_arg;                                          \
+      }                                                           \
+    }
+
+#ifdef TABLING_GROUNDED
+#define store_cons_args_local_stack(ARITY) store_args_local_stack(ARITY)
+#else
+#define store_cons_args_local_stack(ARITY) /* do nothing */
+#endif /* TABLING_GROUNDED */
 
 #define store_generator_node(TAB_ENT, SG_FR, ARITY, AP)               \
-        { register CELL *pt_args;                                     \
-          register choiceptr gcp;                                     \
-          /* store args */                                            \
-          pt_args = XREGS + (ARITY);                                  \
-	        while (pt_args > XREGS) {                                   \
-            register CELL aux_arg = pt_args[0];                       \
-            --YENV;                                                   \
-            --pt_args;                                                \
-            *YENV = aux_arg;                                          \
-	        }                                                           \
+        { register choiceptr gcp;                                     \
+          store_args_local_stack(ARITY);                              \
           /* initialize gcp and adjust subgoal frame field */         \
           YENV = (CELL *) (GEN_CP(YENV) - 1);                         \
           gcp = NORM_CP(YENV);                                        \
@@ -167,6 +176,7 @@
 #define store_consumer_node(TAB_ENT, SG_FR, LEADER_CP, DEP_ON_STACK)       \
         { register choiceptr ccp;                                          \
           register dep_fr_ptr new_dep_fr;                                  \
+          store_cons_args_local_stack(TabEnt_arity(TAB_ENT));                   \
 	        /* initialize ccp */                                             \
           YENV = (CELL *) (CONS_CP(YENV) - 1);                             \
           ccp = NORM_CP(YENV);                                             \
@@ -521,7 +531,7 @@
   }
   
 #define consume_next_ground_answer(CONT, SG_FR)                 \
-  CELL *answer_template = CONSUMER_NODE_ANSWER_TEMPLATE(B);  \
+  CELL *answer_template = GENERATOR_ANSWER_TEMPLATE(B, SG_FR);  \
   ans_node_ptr ans_node = continuation_answer(CONT);            \
                                                                 \
   H = HBREG = PROTECT_FROZEN_H(B);                              \
@@ -641,16 +651,69 @@
   ENDPBOp();
   
   PBOp(table_restart_generator, Otapl)
+#ifdef TABLING_GROUNDED
     dprintf("==> TABLE_RESTART_GENERATOR\n");
-    exit(1);
+    sg_fr_ptr sg_fr;
+    ans_node_ptr ans_node = NULL;
+    continuation_ptr next_cont;
+
+    sg_fr = GEN_CP(B)->cp_sg_fr;
+    next_cont = continuation_next(SgFr_try_answer(sg_fr));
+  
+    if(next_cont) {
+      CELL *subs_ptr = GENERATOR_ANSWER_TEMPLATE(B, sg_fr);
+
+      ans_node = continuation_answer(next_cont);
+      H = HBREG = PROTECT_FROZEN_H(B);
+      restore_yaam_reg_cpdepth(B);
+      CPREG = B->cp_cp;
+      ENV = B->cp_env;
+      SgFr_try_answer(sg_fr) = next_cont;
+
+      SET_BB(PROTECT_FROZEN_B(B));
+
+      PREG = (yamop *) CPREG;
+      PREFETCH_OP(PREG);
+      CONSUME_VARIANT_ANSWER(ans_node, subs_ptr);
+      YENV = ENV;
+      GONext();
+    } else {
+      dprintf("Executing code!\n");
+      yamop *code_ap;
+      PREG = SgFr_code(sg_fr);
+      if (PREG->opc == Yap_opcode(_table_try)) {
+        /* table_try */
+        code_ap = NEXTOP(PREG,Otapl);
+        PREG = PREG->u.Otapl.d;
+      } else if (PREG->opc == Yap_opcode(_table_try_single)) {
+        /* table_try_single */
+        code_ap = COMPLETION;
+        PREG = PREG->u.Otapl.d;
+      } else {
+        /* table_try_me */
+        code_ap = PREG->u.Otapl.d;
+        PREG = NEXTOP(PREG,Otapl);
+      }
+      PREFETCH_OP(PREG);
+      restore_generator_node(SgFr_arity(sg_fr), code_ap);
+      YENV = (CELL *) PROTECT_FROZEN_B(B);
+      set_cut(YENV, B->cp_b);
+      SET_BB(NORM_CP(YENV));
+      allocate_environment();
+      GONext();
+    }
+#else
+    PREG = PREG->u.Otapl.d;
+    PREFETCH_OP(PREG);
+    GONext();    
+#endif /* TABLING_GROUNDED */
   ENDPBOp();
     
   PBOp(table_run_completed, Otapl)
-#ifdef TABLING_CALL_SUBSUMPTION
+#ifdef TABLING_GROUNDED
     dprintf("===> TABLE_RUN_COMPLETED\n");
     
-    /* cp_dep_fr points to the subgoal frame */
-    grounded_sf_ptr sg_fr = (grounded_sf_ptr)CONS_CP(B)->cp_dep_fr;
+    grounded_sf_ptr sg_fr = (grounded_sf_ptr)CONS_CP(B)->cp_sg_fr;
     tab_ent_ptr tab_ent = SgFr_tab_ent(sg_fr);
 
     if(SgFr_state(SgFr_producer(sg_fr)) < complete) {
@@ -730,7 +793,7 @@
         cont = SgFr_first_answer(sg_fr);
       }
       
-      CELL *answer_template = CONSUMER_NODE_ANSWER_TEMPLATE(B);
+      CELL *answer_template = GENERATOR_ANSWER_TEMPLATE(B, sg_fr);
       
       /* pop consumer/generator node */  
       H = PROTECT_FROZEN_H(B);
@@ -740,8 +803,8 @@
       TR = B->cp_tr;
       B = B->cp_b;
       HBREG = PROTECT_FROZEN_H(B);
-      SET_BB(PROTECT_FROZEN_B(B));
       YENV = answer_template;
+      SET_BB(PROTECT_FROZEN_B(B));
       
       /* load first answer */
       ans_node_ptr ans_node = continuation_answer(cont);
@@ -752,7 +815,7 @@
         store_loader_node(tab_ent, cont, LOAD_CONS_ANSWER);
       }
       
-      consume_answer_leaf(ans_node, YENV, CONSUME_SUBSUMPTIVE_ANSWER);
+      consume_answer_leaf(ans_node, answer_template, CONSUME_SUBSUMPTIVE_ANSWER);
       
     } else {
       /* XXX: run compiled code */
@@ -760,7 +823,7 @@
     
     printf("CANT BE HERE!!!\n");
     exit(1);
-#endif /* TABLING_CALL_SUBSUMPTION */
+#endif /* TABLING_GROUNDED */
   ENDPBOp();
   
   PBOp(table_try_answer, Otapl)
@@ -826,7 +889,7 @@
   ENDPBOp();
 
   PBOp(table_try_ground_answer, Otapl)
-#ifdef TABLING_CALL_SUBSUMPTION
+#ifdef TABLING_GROUNDED
     grounded_sf_ptr sg_fr;
     ans_node_ptr ans_node = NULL;
     continuation_ptr next_cont;
@@ -879,7 +942,7 @@
     PREG = PREG->u.Otapl.d;
     PREFETCH_OP(PREG);
     GONext();
-#endif /* TABLING_CALL_SUBSUMPTION */
+#endif /* TABLING_GROUNDED */
   ENDPBOp();
 
   PBOp(table_try_single, Otapl)
@@ -904,7 +967,7 @@
       init_subgoal_frame(sg_fr);
       
       UNLOCK(SgFr_lock(sg_fr));
-#ifdef TABLING_CALL_SUBSUMPTION
+#ifdef TABLING_GROUNDED
       precheck_ground_generator(sg_fr);
 #endif
 #ifdef DETERMINISTIC_TABLING
@@ -915,7 +978,7 @@
       {
 	      store_generator_node(tab_ent, sg_fr, PREG->u.Otapl.s, COMPLETION);
       }
-#ifdef TABLING_CALL_SUBSUMPTION
+#ifdef TABLING_GROUNDED
       check_ground_generator(sg_fr, tab_ent);
 #endif
       PREG = PREG->u.Otapl.d;  /* should work also with PREG = NEXTOP(PREG,Otapl); */
@@ -1048,11 +1111,11 @@
       init_subgoal_frame(sg_fr);
 
       UNLOCK(SgFr_lock(sg_fr));
-#ifdef TABLING_CALL_SUBSUMPTION
+#ifdef TABLING_GROUNDED
       precheck_ground_generator(sg_fr);
 #endif
       store_generator_node(tab_ent, sg_fr, PREG->u.Otapl.s, PREG->u.Otapl.d);
-#ifdef TABLING_CALL_SUBSUMPTION
+#ifdef TABLING_GROUNDED
       check_ground_generator(sg_fr, tab_ent);
 #endif
       PREG = NEXTOP(PREG, Otapl);
@@ -1185,11 +1248,11 @@
       /* subgoal new */
       init_subgoal_frame(sg_fr);
       UNLOCK(SgFr_lock(sg_fr));
-#ifdef TABLING_CALL_SUBSUMPTION
+#ifdef TABLING_GROUNDED
       precheck_ground_generator(sg_fr);
 #endif
       store_generator_node(tab_ent, sg_fr, PREG->u.Otapl.s, NEXTOP(PREG,Otapl));
-#ifdef TABLING_CALL_SUBSUMPTION
+#ifdef TABLING_GROUNDED
       check_ground_generator(sg_fr, tab_ent);
 #endif
       PREG = PREG->u.Otapl.d;

@@ -144,6 +144,8 @@ struct grounded_subgoal_frame {
   
   sg_fr_ptr top_gen_sg;
   
+  continuation_ptr try_answer;
+  
   CELL executing;
   CELL start;
   choiceptr saved_cp;
@@ -155,8 +157,6 @@ struct grounded_subgoal_frame {
   CELL* answer_template;
   int at_size;
   CELL at_block[AT_BLOCK_SIZE];
-  
-  continuation_ptr try_answer;
   
   int num_ans;
 };

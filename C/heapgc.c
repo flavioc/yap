@@ -2088,10 +2088,21 @@ mark_choicepoints(register choiceptr gc_B, tr_fr_ptr saved_TR, int very_verbose)
 	}
 	nargs = 0;
 	break;
+      case _table_restart_generator:
       case _table_answer_resolution:
 	{
 	  CELL *vars_ptr, vars;
+
+#ifdef TABLING_GROUNDED
+	  vars_ptr = (CELL *)(CONS_CP(gc_B) + 1);
+	  nargs = rtp->u.Otapl.s;
+	  while (nargs--) {	
+	    mark_external_reference(vars_ptr);
+	    vars_ptr++;
+	  }
+#else
 	  init_substitution_pointer(gc_B, vars_ptr, CONS_CP(gc_B)->cp_dep_fr);
+#endif /* TABLING_GROUNDED */
 	  vars = *vars_ptr++;
 	  while (vars--) {	
 	    mark_external_reference(vars_ptr);
@@ -3000,10 +3011,27 @@ sweep_choicepoints(choiceptr gc_B)
       }
       break;
     case _table_answer_resolution:
+    case _table_restart_generator:
       {
 	CELL *vars_ptr, vars;
 	sweep_environments(gc_B->cp_env, EnvSize(gc_B->cp_cp), EnvBMap(gc_B->cp_cp));
-	init_substitution_pointer(gc_B, vars_ptr, CONS_CP(gc_B)->cp_dep_fr);
+#ifdef TABLING_GROUNDED
+  int nargs;
+	vars_ptr = (CELL *)(CONS_CP(gc_B) + 1);
+	nargs = rtp->u.Otapl.s;
+	while(nargs--) {
+	  CELL cp_cell = *vars_ptr;
+	  if (MARKED_PTR(vars_ptr)) {
+	    UNMARK(vars_ptr);
+	    if (HEAP_PTR(cp_cell)) {
+	      into_relocation_chain(vars_ptr, GET_NEXT(cp_cell));
+	    }
+	  }
+	  vars_ptr++;
+	}
+#else
+	  init_substitution_pointer(gc_B, vars_ptr, CONS_CP(gc_B)->cp_dep_fr);
+#endif /* TABLING_GROUNDED */
 	vars = *vars_ptr++;
 	while (vars--) {	
 	  CELL cp_cell = *vars_ptr;

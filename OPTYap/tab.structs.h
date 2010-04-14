@@ -373,9 +373,9 @@ typedef struct subgoal_frame {
   struct subgoal_frame *top_gen_sg;
 #endif /* TABLING_CALL_SUBSUMPTION */
 
-#ifdef INCOMPLETE_TABLING
+#if defined(INCOMPLETE_TABLING) || defined(TABLING_GROUNDED)
   continuation_ptr try_answer;
-#endif /* INCOMPLETE_TABLING */
+#endif /* INCOMPLETE_TABLING || TABLING_GROUNDED */
   
   struct answer_trie_node *answer_trie;
   
@@ -587,10 +587,10 @@ struct deterministic_generator_choicept {
 struct consumer_choicept {
   struct choicept cp;
   struct dependency_frame *cp_dep_fr;
-#ifdef TABLING_CALL_SUBSUMPTION
+#ifdef TABLING_GROUNDED
   /* to restart a consumer node as generator node */
   struct subgoal_frame *cp_sg_fr;
-#endif /* TABLING_CALL_SUBSUMPTION */
+#endif /* TABLING_GROUNDED */
 #ifdef LOW_LEVEL_TRACER
   struct pred_entry *cp_pred_entry;
 #endif /* LOW_LEVEL_TRACER */

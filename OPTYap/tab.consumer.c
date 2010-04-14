@@ -13,7 +13,7 @@
 ** ------------------ */
 
 #include "Yap.h"
-#ifdef TABLING_CALL_SUBSUMPTION
+#ifdef TABLING_GROUNDED
  
 #include <stdio.h>
 #ifdef HAVE_STRING_H
@@ -172,6 +172,7 @@ abolish_generator_subgoals_between(sg_fr_ptr specific_sg, choiceptr min, choicep
         dprintf("External dep_fr %d cp %d\n", (int)external, (int)DepFr_cons_cp(external));
         dprintf("Dependency frame kept\n");
         choiceptr cons_cp = DepFr_cons_cp(external);
+        choiceptr gen_cp = SgFr_choice_point(sg_fr);
         
         /* delete dependency frame from dependency space */
         if(external_before == NULL)
@@ -181,6 +182,10 @@ abolish_generator_subgoals_between(sg_fr_ptr specific_sg, choiceptr min, choicep
         
         /* execute RESTART_GENERATOR on backtracking */
         cons_cp->cp_ap = RESTART_GENERATOR;
+        CONS_CP(cons_cp)->cp_sg_fr = sg_fr;
+        /* don't know if the subgoal frame uses local scheduling,
+           but this should work */
+        CONS_CP(cons_cp)->cp_dep_fr = GEN_CP(gen_cp)->cp_dep_fr;        
         
         /* update leader information to point to this choice point */
         update_leader_fields(SgFr_choice_point(sg_fr), cons_cp, max);
@@ -193,7 +198,7 @@ abolish_generator_subgoals_between(sg_fr_ptr specific_sg, choiceptr min, choicep
            safe for the next iteration of this loop */
         reorder_subgoal_frame(sg_fr, cons_cp);
         
-        GEN_CP(cons_cp)->cp_dep_fr = (dep_fr_ptr)DepFr_last_answer(external);
+        SgFr_try_answer(sg_fr) = DepFr_last_answer(external);
         abolish_dependency_frame(external);
       } else {
         dprintf("REALLY ABOLISHED %d\n", (int)sg_fr);
@@ -252,10 +257,13 @@ abolish_dependency_frames_between(sg_fr_ptr specific_sg, choiceptr min, choicept
 static inline void
 adjust_generator_to_consumer_answer_template(choiceptr cp, sg_fr_ptr sg_fr)
 {
+#if 0
+  /* consumer choice points have the same configuration *for now* */
   CELL* current_at = GENERATOR_ANSWER_TEMPLATE(cp, sg_fr);
   CELL* new_at = CONSUMER_NODE_ANSWER_TEMPLATE(cp);
   
   memmove(new_at, current_at, (1 + SgFr_arity(sg_fr)) * sizeof(CELL));
+#endif
 }
 
 static inline choiceptr
@@ -337,7 +345,8 @@ producer_to_consumer(grounded_sf_ptr sg_fr, grounded_sf_ptr producer)
   /* update generator choice point to point to RUN_COMPLETED */
   gen_cp->cp_ap = (yamop *)RUN_COMPLETED;
   /* use cp_dep_fr to put the subgoal frame */
-  CONS_CP(gen_cp)->cp_dep_fr = (dep_fr_ptr)sg_fr;
+  CONS_CP(gen_cp)->cp_sg_fr = sg_fr;
+  CONS_CP(gen_cp)->cp_dep_fr = NULL;
   adjust_generator_to_consumer_answer_template(gen_cp, (sg_fr_ptr)sg_fr);
   /* set last answer consumed for load answers */
   SgFr_try_answer(sg_fr) = SgFr_last_answer(sg_fr);
@@ -463,10 +472,11 @@ add_dependency_frame(grounded_sf_ptr sg_fr, choiceptr cp)
   
   /* turn generator choice point as consumer */
   CONS_CP(cp)->cp_dep_fr = dep_fr;
+  CONS_CP(cp)->cp_sg_fr = NULL;
   if(SgFr_try_answer(sg_fr))
     DepFr_last_answer(dep_fr) = SgFr_try_answer(sg_fr);
   if(SgFr_is_ground_local_producer(producer))
     DepFr_set_top_consumer(dep_fr);
 }
 
-#endif /* TABLING_CALL_SUBSUMPTION */
+#endif /* TABLING_GROUNDED */
