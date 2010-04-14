@@ -162,6 +162,16 @@ struct grounded_subgoal_frame {
 
 #define SgFr_num_ans(X)             ((X)->num_ans)
 
+#define SgFr_start_cp(X)            ((choiceptr)SgFr_start(X))
+#define SgFr_new_answer_cp(X)       ((choiceptr)SgFr_executing(X))
+#define SgFr_saved_cp(X)            ((X)->saved_cp)
+#define SgFr_executing(X)           ((X)->executing)
+#define SgFr_start(X)               ((X)->start)
+#define SgFr_started(X)             ((CELL *)SgFr_start(X) != &SgFr_start(X))
+#define SgFr_got_answer(X)          ((CELL *)SgFr_executing(X) != &SgFr_executing(X))
+#define SgFr_is_internal(X)         (SgFr_started(X) && !SgFr_got_answer(X))
+#define SgFr_is_external(X)         ((SgFr_started(X) && SgFr_got_answer(X)) || (!SgFr_started(X)))
+
 #define SgFr_is_most_general(X)     (SgFr_flags(X) & SG_FR_MOST_GENERAL)
 #define SgFr_set_most_general(X)    (SgFr_flags(X) |= SG_FR_MOST_GENERAL)
 #define SgFr_set_local_producer(X)  (SgFr_flags(X) |= SG_FR_LOCAL_PRODUCER)

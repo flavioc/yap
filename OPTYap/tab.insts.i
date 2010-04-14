@@ -1581,15 +1581,20 @@
 #ifdef TABLING_CALL_SUBSUMPTION
       dprintf("NEW_ANSWER_CP=%d\n", (int)B);
       
-      if(B_FZ < SgFr_start_cp(sg_fr)) {
-        /* some branches were suspend */
-        dprintf("Suspended branches!\n");
-        SgFr_start(sg_fr) = B_FZ < B ? B_FZ : B;
-      } else {
-        dprintf("No branches suspended!\n");
-        SgFr_start(sg_fr) = B;
+      if(SgFr_is_ground_producer(sg_fr)) {
+        grounded_sf_ptr ground = (grounded_sf_ptr)sg_fr;
+        
+        if(B_FZ < SgFr_start_cp(ground)) {
+          /* some branches were suspend */
+          dprintf("Suspended branches!\n");
+          SgFr_start(ground) = B_FZ < B ? B_FZ : B;
+        } else {
+          dprintf("No branches suspended!\n");
+          SgFr_start(ground) = B;
+        }
+        
+        Bind_and_Trail(&SgFr_executing(ground), (Term)B);
       }
-      Bind_and_Trail(&SgFr_executing(sg_fr), (Term)B);
 #endif
 
 #ifdef TABLING_ERRORS

@@ -384,9 +384,6 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
         new_basic_subgoal_frame(SG_FR, CODE, LEAF,                \
           VARIANT_PRODUCER_SFT, ALLOC_VARIANT_SUBGOAL_FRAME);     \
         add_answer_trie_subgoal_frame(SG_FR);                     \
-        RESET_VARIABLE(&SgFr_executing(SG_FR));                   \
-        RESET_VARIABLE(&SgFr_start(SG_FR));                       \
-        SgFr_saved_cp(SG_FR) = NULL;                              \
     }
 
 #define init_subgoal_frame(SG_FR)                                  \

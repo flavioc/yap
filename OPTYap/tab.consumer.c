@@ -77,8 +77,9 @@ is_internal_dep_fr(sg_fr_ptr specific_sg, dep_fr_ptr dep_fr, choiceptr limit)
 static inline dep_fr_ptr
 find_external_consumer(choiceptr min, choiceptr max, sg_fr_ptr gen)
 {
-  return FALSE;
+  return NULL;
   /* XXX */
+#if 0
   choiceptr cp = SgFr_choice_point(gen);
   dep_fr_ptr top = LOCAL_top_dep_fr;
   dep_fr_ptr found = NULL;
@@ -95,6 +96,7 @@ find_external_consumer(choiceptr min, choiceptr max, sg_fr_ptr gen)
   }
   
   return found;
+#endif
 }
 
 static inline void
@@ -125,6 +127,7 @@ abolish_generator_subgoals_between(sg_fr_ptr specific_sg, choiceptr min, choicep
     } else
     if(is_internal_subgoal_frame(specific_sg, sg_fr, min)) {
       dprintf("Trying to abolish %d\n", (int)sg_fr);
+#if 0
       dep_fr_ptr external = find_external_consumer(min, max, sg_fr);
       if(external) {
         /* generator subgoal must be kept */
@@ -143,10 +146,10 @@ abolish_generator_subgoals_between(sg_fr_ptr specific_sg, choiceptr min, choicep
         
         before = sg_fr;
       } else {
+#endif
         dprintf("REALLY ABOLISHED %d\n", (int)sg_fr);
         abolish_incomplete_producer_subgoal(sg_fr);
         SgFr_next(before) = top;
-      }
     } else
       before = sg_fr;
   }

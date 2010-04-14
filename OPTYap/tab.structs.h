@@ -372,8 +372,6 @@ typedef struct subgoal_frame {
   struct subgoal_frame *top_gen_sg;
   
   /* se calhar só ground! XXX */
-  CELL executing;
-  CELL start;
   choiceptr saved_cp;
 #endif /* TABLING_CALL_SUBSUMPTION */
 
@@ -414,18 +412,8 @@ typedef sg_fr_ptr variant_sf_ptr;
 #define SgFr_try_answer(X)     ((X)->try_answer)
 #define SgFr_previous(X)       (CAST_SF(X)->previous)
 #define SgFr_next(X)           ((X)->next)
-
 #ifdef TABLING_CALL_SUBSUMPTION
-#define SgFr_top_gen_sg(X)          (CAST_SF(X)->top_gen_sg)
-#define SgFr_start_cp(X)            ((choiceptr)SgFr_start(X))
-#define SgFr_new_answer_cp(X)       ((choiceptr)SgFr_executing(X))
-#define SgFr_saved_cp(X)            (CAST_SF(X)->saved_cp)
-#define SgFr_executing(X)           (CAST_SF(X)->executing)
-#define SgFr_start(X)               (CAST_SF(X)->start)
-#define SgFr_started(X)             ((CELL *)SgFr_start(X) != &SgFr_start(X))
-#define SgFr_got_answer(X)          ((CELL *)SgFr_executing(X) != &SgFr_executing(X))
-#define SgFr_is_internal(X)         (SgFr_started(X) && !SgFr_got_answer(X))
-#define SgFr_is_external(X)         ((SgFr_started(X) && SgFr_got_answer(X)) || (!SgFr_started(X)))
+#define SgFr_top_gen_sg(X)     (CAST_SF(X)->top_gen_sg)
 #endif
 
 /* ------------------------------------------------------------------------------------------- **
