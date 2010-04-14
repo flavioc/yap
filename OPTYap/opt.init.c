@@ -232,8 +232,6 @@ void Yap_init_local(void) {
   LOCAL_top_sg_fr = NULL; 
 #ifdef TABLING_CALL_SUBSUMPTION
   LOCAL_top_gen_sg = NULL;
-  LOCAL_top_subcons_sg_fr = NULL;
-  LOCAL_top_groundcons_sg_fr = NULL;
 #endif /* TABLING_CALL_SUBSUMPTION */
   LOCAL_top_dep_fr = GLOBAL_root_dep_fr; 
 #ifdef YAPOR

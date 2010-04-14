@@ -92,6 +92,8 @@ struct subsumed_consumer_subgoal_frame {
   
   sg_fr_ptr top_gen_sg;
   
+  int num_deps;
+  
   time_stamp ts;
   subprod_fr_ptr producer;
   CELL* answer_template;
@@ -110,6 +112,7 @@ typedef subsumptive_consumer_sf *subcons_fr_ptr;
 #define SgFr_answer_template(X) ((X)->answer_template)
 #define SgFr_at_size(X)         ((X)->at_size)
 #define SgFr_at_block(X)        ((X)->at_block)
+#define SgFr_num_deps(X)        ((X)->num_deps)
 
 typedef struct grounded_subgoal_frame *grounded_sf_ptr;
 
@@ -143,6 +146,8 @@ struct grounded_subgoal_frame {
   CELL executing;
   CELL start;
   choiceptr saved_cp;
+  
+  int num_deps;
   
   time_stamp ts;
   grounded_sf_ptr producer;

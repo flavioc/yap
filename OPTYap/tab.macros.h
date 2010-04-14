@@ -43,6 +43,7 @@ STD_PROTO(static inline void free_variant_subgoal_data, (sg_fr_ptr, int));
 
 STD_PROTO(static void abolish_incomplete_variant_subgoal, (sg_fr_ptr sg_fr));
 STD_PROTO(static inline void abolish_incomplete_producer_subgoal, (sg_fr_ptr sg_fr));
+STD_PROTO(static inline void abolish_dependency_frame, (dep_fr_ptr dep_fr));
 STD_PROTO(static inline void abolish_incomplete_subgoals, (choiceptr));
 
 STD_PROTO(static inline continuation_ptr get_next_answer_continuation, (dep_fr_ptr dep_fr));
@@ -899,7 +900,7 @@ void restore_bindings(tr_fr_ptr unbind_tr, tr_fr_ptr rebind_tr) {
 	--unbind_tr;
 	if (!Yap_lookup_ma_var(pt)) {
 	  pt[0] = TrailVal(unbind_tr);
-	}
+      }
 #endif
       }
     }
@@ -1060,6 +1061,37 @@ abolish_incomplete_producer_subgoal(sg_fr_ptr sg_fr) {
   }
 }
 
+static inline void
+abolish_dependency_frame(dep_fr_ptr dep_fr)
+{
+#ifdef TABLING_CALL_SUBSUMPTION
+  sg_fr_ptr sg_fr = DepFr_sg_fr(dep_fr);
+  
+  switch(SgFr_type(sg_fr)) {
+    case VARIANT_PRODUCER_SFT:
+    case SUBSUMPTIVE_PRODUCER_SFT:
+    case GROUND_PRODUCER_SFT:
+      /* do nothing */
+      break;
+    case SUBSUMED_CONSUMER_SFT:
+      SgFr_num_deps((subcons_fr_ptr)sg_fr)--;
+      if(SgFr_num_deps((subcons_fr_ptr)sg_fr) == 0) {
+        dprintf("incomplete subsumptive goal abolished\n");
+        abolish_incomplete_subsumptive_consumer_subgoal((subcons_fr_ptr)sg_fr);
+      }
+      break;
+    case GROUND_CONSUMER_SFT:
+      SgFr_num_deps((grounded_sf_ptr)sg_fr)--;
+      if(SgFr_num_deps((grounded_sf_ptr)sg_fr) == 0) {
+        dprintf("incomplete ground goal abolished\n");
+        abolish_incomplete_ground_consumer_subgoal((grounded_sf_ptr)sg_fr);
+      }
+      break;
+  }
+#endif /* TABLING_CALL_SUBSUMPTION */
+  FREE_DEPENDENCY_FRAME(dep_fr);
+}
+
 static inline
 void abolish_incomplete_subgoals(choiceptr prune_cp) {
 #ifdef YAPOR
@@ -1075,7 +1107,7 @@ void abolish_incomplete_subgoals(choiceptr prune_cp) {
     do {
       dep_fr_ptr dep_fr = LOCAL_top_dep_fr;
       LOCAL_top_dep_fr = DepFr_next(dep_fr);
-      FREE_DEPENDENCY_FRAME(dep_fr);
+      abolish_dependency_frame(dep_fr);
     } while (EQUAL_OR_YOUNGER_CP(DepFr_cons_cp(LOCAL_top_dep_fr), prune_cp));
     adjust_freeze_registers();
   }
@@ -1099,32 +1131,6 @@ void abolish_incomplete_subgoals(choiceptr prune_cp) {
   }
 
   SET_TOP_GEN_SG(LOCAL_top_sg_fr);
-
-#ifdef TABLING_CALL_SUBSUMPTION
-  while (LOCAL_top_subcons_sg_fr && EQUAL_OR_YOUNGER_CP(SgFr_choice_point(LOCAL_top_subcons_sg_fr), prune_cp)) {
-    subcons_fr_ptr sg_fr;
-    
-    sg_fr = LOCAL_top_subcons_sg_fr;
-    LOCAL_top_subcons_sg_fr = SgFr_next(sg_fr);
-    
-    LOCK(SgFr_lock(sg_fr));
-    abolish_incomplete_subsumptive_consumer_subgoal(sg_fr);
-    UNLOCK(SgFr_lock(sg_fr));
-  }
-  
-  while(LOCAL_top_groundcons_sg_fr && EQUAL_OR_YOUNGER_CP(SgFr_choice_point(LOCAL_top_groundcons_sg_fr), prune_cp)) {
-    grounded_sf_ptr sg_fr;
-    
-    sg_fr = LOCAL_top_groundcons_sg_fr;
-    LOCAL_top_groundcons_sg_fr = SgFr_next(sg_fr);
-    
-    LOCK(SgFr_lock(sg_fr));
-    abolish_incomplete_ground_consumer_subgoal(sg_fr);
-    dprintf("one incomplete grounded consumer\n");
-    UNLOCK(SgFr_lock(sg_fr));
-  }
-#endif /* TABLING_CALL_SUBSUMPTION */
-
   return;
 }
 

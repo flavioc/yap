@@ -46,6 +46,7 @@ STD_PROTO(static inline int build_next_ground_producer_return_list, (grounded_sf
         SgFr_answer_trie(SG_FR) = newTSTAnswerSet();                \
         RESET_VARIABLE(&SgFr_executing(SG_FR));                     \
         RESET_VARIABLE(&SgFr_start(SG_FR));                         \
+        SgFr_saved_cp(SG_FR) = NULL;                                \
     }
     
 #define new_grounded_producer_subgoal_frame(SG_FR, CODE, LEAF) {  \
@@ -76,10 +77,11 @@ STD_PROTO(static inline int build_next_ground_producer_return_list, (grounded_sf
             SUBSUMED_CONSUMER_SFT, ALLOC_SUBCONS_SUBGOAL_FRAME);            \
         add_answer_trie_subgoal_frame(SG_FR);                               \
         SgFr_timestamp(SG_FR) = 0;                                          \
-        SgFr_choice_point(SG_FR) = NULL;                                         \
+        SgFr_choice_point(SG_FR) = NULL;                                    \
         SgFr_answer_template(SG_FR) = NULL;                                 \
         SgFr_producer(SG_FR) = PRODUCER;                                    \
         SgFr_consumers(SG_FR) = SgFr_prod_consumers(PRODUCER);              \
+        SgFr_num_deps(SG_FR) = 0;                                           \
         if (!SgFr_prod_consumers(PRODUCER))                                 \
           tstCreateTSIs((tst_node_ptr)SgFr_answer_trie(PRODUCER));          \
         SgFr_prod_consumers(PRODUCER) = (subcons_fr_ptr)(SG_FR);            \
@@ -88,18 +90,12 @@ STD_PROTO(static inline int build_next_ground_producer_return_list, (grounded_sf
 #define init_sub_consumer_subgoal_frame(SG_FR)                      \
         { SgFr_state(SG_FR) = evaluating;                           \
           SgFr_choice_point(SG_FR) = B;                             \
-          SgFr_next(SG_FR) = LOCAL_top_subcons_sg_fr;               \
-          LOCAL_top_subcons_sg_fr = SG_FR;                          \
-          SAVE_SG_TOP_GEN_SG(SG_FR);                                \
         }
         
 #define init_ground_consumer_subgoal_frame(SG_FR)                   \
         { SgFr_state(SG_FR) = evaluating;                           \
           SgFr_choice_point(SG_FR) = B;                             \
-          SgFr_next(SG_FR) = LOCAL_top_groundcons_sg_fr;            \
-          LOCAL_top_groundcons_sg_fr = SG_FR;                       \
           increment_sugoal_path(SG_FR);                             \
-          SAVE_SG_TOP_GEN_SG(SG_FR);                                \
         }
         
 #define create_ground_answer_template(SG_FR, FROM)      \
@@ -248,6 +244,7 @@ static inline
 void mark_subsumptive_consumer_as_completed(subcons_fr_ptr sg_fr) {
   LOCK(SgFr_lock(sg_fr));
   SgFr_state(sg_fr) = complete;
+  SgFr_num_deps(sg_fr) = 0;
   UNLOCK(SgFr_lock(sg_fr));
 }
 
@@ -273,6 +270,7 @@ static inline
 void mark_ground_consumer_as_completed(grounded_sf_ptr sg_fr) {
   LOCK(SgFr_lock(sg_fr));
   SgFr_state(sg_fr) = complete;
+  SgFr_num_deps(sg_fr) = 0;
   decrement_subgoal_path(sg_fr);
   UNLOCK(SgFr_lock(sg_fr));
 }

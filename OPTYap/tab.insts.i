@@ -94,7 +94,7 @@
           /* initialize gcp and adjust subgoal frame field */         \
           YENV = (CELL *) (DET_GEN_CP(YENV) - 1);                     \
 	        gcp = NORM_CP(YENV);                                        \
-          SgFr_choice_point(SG_FR) = gcp;                                   \
+          SgFr_choice_point(SG_FR) = gcp;                             \
           /* store deterministic generator choice point */            \
           HBREG = H;                                                  \
           store_yaam_reg_cpdepth(gcp);                                \
@@ -108,6 +108,7 @@
           B = gcp;                                                    \
           YAPOR_SET_LOAD(B);                                          \
           SET_BB(B);                                                  \
+          SAVE_SG_TOP_GEN_SG(SG_FR);                                  \
           SET_TOP_GEN_SG(SG_FR);                                      \
           TABLING_ERRORS_check_stack;                                 \
 	}
@@ -140,6 +141,7 @@
 #define pop_generator_node(ARITY)               \
         { register CELL *pt_args, *x_args;      \
           register choiceptr gcp = B;           \
+          SET_TOP_GEN_SG(GEN_CP(gcp)->cp_sg_fr);\
           /* pop generator choice point */      \
           H = PROTECT_FROZEN_H(gcp);            \
           pop_yaam_reg_cpdepth(gcp);            \
@@ -158,7 +160,6 @@
             x_args[-1] = x;                     \
           }                                     \
           YENV = pt_args;		    	              \
-          SET_TOP_GEN_SG(GEN_CP(gcp)->cp_sg_fr);\
           SET_BB(PROTECT_FROZEN_B(B));          \
         }
 
@@ -303,6 +304,14 @@
 
 #ifdef TABLING_CALL_SUBSUMPTION
 #define init_consumer_subgoal_frame(SG_FR)  \
+        switch(SgFr_type(sg_fr)) {  \
+          case SUBSUMED_CONSUMER_SFT: \
+            SgFr_num_deps((subcons_fr_ptr)sg_fr)++; \
+            break;  \
+          case GROUND_CONSUMER_SFT: \
+            SgFr_num_deps((grounded_sf_ptr)sg_fr)++; \
+            break;  \
+        } \
         if(SgFr_state(sg_fr) < evaluating) {  \
           switch(SgFr_type(sg_fr)) {  \
             case SUBSUMED_CONSUMER_SFT: \
@@ -679,7 +688,6 @@
          into a consumer */
       dprintf("Not completed!\n");
       add_dependency_frame(sg_fr, B);
-      add_ground_subgoal_stack(sg_fr, B);
       B->cp_ap = ANSWER_RESOLUTION;
       B = B->cp_b;
       goto fail;

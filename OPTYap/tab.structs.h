@@ -371,6 +371,7 @@ typedef struct subgoal_frame {
 #ifdef TABLING_CALL_SUBSUMPTION
   struct subgoal_frame *top_gen_sg;
   
+  /* se calhar só ground! XXX */
   CELL executing;
   CELL start;
   choiceptr saved_cp;

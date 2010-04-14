@@ -168,88 +168,6 @@ find_other_consumer(choiceptr min, sg_fr_ptr cons)
 }
 
 static inline void
-abolish_subsumptive_subgoals_between(sg_fr_ptr specific_sg, choiceptr min, choiceptr max)
-{
-  subcons_fr_ptr top = LOCAL_top_subcons_sg_fr;
-  subcons_fr_ptr before = NULL;
-  
-  /* ignore younger subsumptive goals */
-  while(top && YOUNGER_CP(SgFr_choice_point(top), max)) {
-    before = top;
-    dprintf("jumped younger subsumptive goal\n");
-    top = SgFr_next(top);
-  }
-  
-  while (top && YOUNGER_CP(SgFr_choice_point(top), min)) {
-    subcons_fr_ptr sg_fr;
-    
-    sg_fr = top;
-    top = SgFr_next(sg_fr);
-    
-    if(is_internal_subgoal_frame(specific_sg, (sg_fr_ptr)sg_fr, min)) {
-      dprintf("Internal cp %d\n", (int)SgFr_choice_point(sg_fr));
-      choiceptr new = find_other_consumer(max, (sg_fr_ptr)sg_fr);
-      if(new) {
-        /* subgoal is running somewhere else */
-        dprintf("Keeping subgoal %d\n", (int)SgFr_choice_point(sg_fr));
-        SgFr_choice_point(sg_fr) = new;
-        before = sg_fr;
-      } else {
-        dprintf("Removing subsumptive goal %d\n", (int)SgFr_choice_point(sg_fr));
-        if(before == NULL)
-          LOCAL_top_subcons_sg_fr = top;
-        else
-          SgFr_next(before) = top;
-        LOCK(SgFr_lock(sg_fr));
-        abolish_incomplete_subsumptive_consumer_subgoal(sg_fr);
-        UNLOCK(SgFr_lock(sg_fr));
-      }
-    } else
-      before = sg_fr;
-  }
-}
-
-static inline void
-abolish_ground_subgoals_between(sg_fr_ptr specific_sg, choiceptr min, choiceptr max)
-{
-  grounded_sf_ptr top = LOCAL_top_groundcons_sg_fr;
-  grounded_sf_ptr before = NULL;
-  
-  /* ignore younger ground goals */
-  while(top && YOUNGER_CP(SgFr_choice_point(top), max)) {
-    before = top;
-    dprintf("Jumped younger ground subgoal\n");
-    top = SgFr_next(top);
-  }
-  
-  while(top && YOUNGER_CP(SgFr_choice_point(top), min)) {
-    grounded_sf_ptr sg_fr;
-    
-    sg_fr = top;
-    top = SgFr_next(sg_fr);
-    
-    if(is_internal_subgoal_frame(specific_sg, (sg_fr_ptr)sg_fr, min)) {
-      choiceptr new = find_other_consumer(max, (sg_fr_ptr)sg_fr);
-      if(new) {
-        dprintf("Keeping subgoal %d\n", (int)SgFr_choice_point(sg_fr));
-        SgFr_choice_point(sg_fr) = new;
-        before = sg_fr;
-      } else {
-        dprintf("Removing grounded goal %d\n", (int)SgFr_choice_point(sg_fr));
-        if(before == NULL)
-          LOCAL_top_groundcons_sg_fr = top;
-        else
-          SgFr_next(before) = top;
-        LOCK(SgFr_lock(sg_fr));
-        abolish_incomplete_ground_consumer_subgoal(sg_fr);
-        UNLOCK(SgFr_lock(sg_fr));
-      }
-    } else
-      before = sg_fr;
-  }
-}
-
-static inline void
 abolish_dependency_frames_between(sg_fr_ptr specific_sg, choiceptr min, choiceptr max)
 {
   dep_fr_ptr top = LOCAL_top_dep_fr;
@@ -273,20 +191,10 @@ abolish_dependency_frames_between(sg_fr_ptr specific_sg, choiceptr min, choicept
       else
         DepFr_next(before) = top;
       dprintf("Removing consumer choice point %d\n", (int)DepFr_cons_cp(dep_fr));
-      FREE_DEPENDENCY_FRAME(dep_fr);
+      abolish_dependency_frame(dep_fr);
     } else
       before = dep_fr;
   }
-}
-
-static inline void
-abolish_subgoals_between(sg_fr_ptr specific_sg, choiceptr min, choiceptr max)
-{
-  abolish_generator_subgoals_between(specific_sg, min, max);
-  
-  abolish_subsumptive_subgoals_between(specific_sg, min, max);
-  
-  abolish_ground_subgoals_between(specific_sg, min, max);
 }
 
 static inline void
@@ -325,27 +233,6 @@ update_top_gen_sg_fields(sg_fr_ptr specific_sg, choiceptr limit)
       SgFr_top_gen_sg(top_gen) = new_top;
     }
     top_gen = SgFr_next(top_gen);
-  }
-  
-  /* subsumptive subgoal frames */
-  subcons_fr_ptr top_sub = LOCAL_top_subcons_sg_fr;
-  while(top_sub && SgFr_choice_point(top_sub) <= limit) {
-    if(SgFr_top_gen_sg(top_sub) == specific_sg) {
-      printf("Update one top sub sg\n");
-      SgFr_top_gen_sg(top_sub) = new_top;
-    }
-    top_sub = SgFr_next(top_sub);
-  }
-  
-  /* ground subgoal frames */
-  grounded_sf_ptr top_ground = LOCAL_top_groundcons_sg_fr;
-  while(top_ground && SgFr_choice_point(top_ground) <= limit) {
-    if(SgFr_top_gen_sg(top_ground) == specific_sg) {
-      printf("Update one top ground sg\n");
-      SgFr_top_gen_sg(top_ground) = new_top;
-    }
-    
-    top_ground = SgFr_next(top_ground);
   }
   
   /* dependency frames */
@@ -389,7 +276,7 @@ producer_to_consumer(grounded_sf_ptr sg_fr, grounded_sf_ptr producer)
     /* start_cp contains the max limit */
     max = SgFr_start_cp(sg_fr);
   
-  abolish_subgoals_between((sg_fr_ptr)sg_fr, min, max);
+  abolish_generator_subgoals_between((sg_fr_ptr)sg_fr, min, max);
   abolish_dependency_frames_between((sg_fr_ptr)sg_fr, min, max);
   /* update top generator subgoal */
   update_top_gen_sg_fields((sg_fr_ptr)sg_fr, max);
@@ -519,6 +406,7 @@ add_dependency_frame(grounded_sf_ptr sg_fr, choiceptr cp)
   
   new_dependency_frame(dep_fr, TRUE, LOCAL_top_or_fr, SgFr_choice_point(producer), cp, (sg_fr_ptr)sg_fr, NULL);
   find_next_dep_frame(dep_fr, cp);
+  SgFr_num_deps(sg_fr)++;
   
   /* turn generator choice point as consumer */
   CONS_CP(cp)->cp_dep_fr = dep_fr;
@@ -526,24 +414,6 @@ add_dependency_frame(grounded_sf_ptr sg_fr, choiceptr cp)
     DepFr_last_answer(dep_fr) = SgFr_try_answer(sg_fr);
   if(SgFr_is_ground_local_producer(producer))
     DepFr_set_top_consumer(dep_fr);
-}
-
-void
-add_ground_subgoal_stack(grounded_sf_ptr sg_fr, choiceptr cp)
-{
-  grounded_sf_ptr top = LOCAL_top_groundcons_sg_fr;
-  grounded_sf_ptr before = NULL;
-  
-  while(top && YOUNGER_CP(SgFr_choice_point(top), cp)) {
-    before = top;
-    top = SgFr_next(top);
-  }
-  
-  if(before == NULL) {
-    LOCAL_top_groundcons_sg_fr = sg_fr;
-    SgFr_next(sg_fr) = NULL;
-  } else
-    SgFr_next(before) = sg_fr;
 }
 
 #endif /* TABLING_CALL_SUBSUMPTION */

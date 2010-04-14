@@ -328,9 +328,51 @@ CELL *load_substitution_variable(gt_node_ptr current_node, CELL *aux_stack_ptr) 
 }
 #endif /* GLOBAL_TRIE */
 
+static inline void
+complete_dependency_frame(dep_fr_ptr dep_fr)
+{
+#ifdef TABLING_CALL_SUBSUMPTION
+  sg_fr_ptr sg_fr = DepFr_sg_fr(dep_fr);
+  switch(SgFr_type(sg_fr)) {
+    case VARIANT_PRODUCER_SFT:
+    case SUBSUMPTIVE_PRODUCER_SFT:
+    case GROUND_PRODUCER_SFT:
+      dprintf("IS GEN\n");
+      /* do nothing */
+      break;
+    case SUBSUMED_CONSUMER_SFT:
+      SgFr_num_deps((subcons_fr_ptr)sg_fr)--;
+      dprintf("dep sub %d\n", SgFr_num_deps((subcons_fr_ptr)sg_fr));
+      if(SgFr_num_deps((subcons_fr_ptr)sg_fr) == 0) {
+        mark_subsumptive_consumer_as_completed((subcons_fr_ptr)sg_fr);
+        dprintf("One subsumptive consumer completed\n");
+      }
+      break;
+    case GROUND_CONSUMER_SFT:
+      if(SgFr_state(sg_fr) < complete) {
+        mark_ground_consumer_as_completed((grounded_sf_ptr)sg_fr);
+        dprintf("One ground consumer completed\n");
+      }
+      break;
+    default:
+    printf("FAIL\n");
+      break;
+  }
+#endif /* TABLING_CALL_SUBSUMPTION */
+  FREE_DEPENDENCY_FRAME(LOCAL_top_dep_fr);
+}
 
 void private_completion(sg_fr_ptr sg_fr) {
   dprintf("Complete by choice point %d\n", (int)B);
+  
+  /* release dependency frames */
+  while (EQUAL_OR_YOUNGER_CP(DepFr_cons_cp(LOCAL_top_dep_fr), B)) {  /* never equal if batched scheduling */
+    dep_fr_ptr dep_fr = DepFr_next(LOCAL_top_dep_fr);
+    dprintf("ONE DEPENDENCY FRAME FREED\n");
+    complete_dependency_frame(LOCAL_top_dep_fr);
+    LOCAL_top_dep_fr = dep_fr;
+  }
+  
   /* complete generator subgoals */
 #ifdef LIMIT_TABLING
   sg_fr_ptr aux_sg_fr;
@@ -354,31 +396,7 @@ void private_completion(sg_fr_ptr sg_fr) {
   LOCAL_top_sg_fr = SgFr_next(LOCAL_top_sg_fr);
 #endif /* LIMIT_TABLING */
 
-#ifdef TABLING_CALL_SUBSUMPTION
   SET_TOP_GEN_SG(LOCAL_top_sg_fr);
-
-  /* complete subsumptive consumer subgoals */
-  while(LOCAL_top_subcons_sg_fr && YOUNGER_CP(SgFr_choice_point(LOCAL_top_subcons_sg_fr), B)) {
-    mark_subsumptive_consumer_as_completed(LOCAL_top_subcons_sg_fr);
-    dprintf("One subsumptive consumer completed\n");
-    LOCAL_top_subcons_sg_fr = SgFr_next(LOCAL_top_subcons_sg_fr);
-  }
-  
-  /* complete ground consumer subgoals */
-  while(LOCAL_top_groundcons_sg_fr && YOUNGER_CP(SgFr_choice_point(LOCAL_top_groundcons_sg_fr), B)) {
-    mark_ground_consumer_as_completed(LOCAL_top_groundcons_sg_fr);
-    dprintf("One ground consumer completed\n");
-    LOCAL_top_groundcons_sg_fr = SgFr_next(LOCAL_top_groundcons_sg_fr);
-  }
-#endif /* TABLING_CALL_SUBSUMPTION */
-
-  /* release dependency frames */
-  while (EQUAL_OR_YOUNGER_CP(DepFr_cons_cp(LOCAL_top_dep_fr), B)) {  /* never equal if batched scheduling */
-    dep_fr_ptr dep_fr = DepFr_next(LOCAL_top_dep_fr);
-    dprintf("ONE DEPENDENCY FRAME FREED\n");
-    FREE_DEPENDENCY_FRAME(LOCAL_top_dep_fr);
-    LOCAL_top_dep_fr = dep_fr;
-  }
   
   /* adjust freeze registers */
   adjust_freeze_registers();

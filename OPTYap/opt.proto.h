@@ -142,7 +142,6 @@ void consume_subsumptive_answer(CTXTdeclc BTNptr pAnsLeaf, int sizeTmplt, CPtr p
 #ifdef TABLING_CALL_SUBSUMPTION
 void process_pending_subgoal_list(node_list_ptr list, grounded_sf_ptr sg_fr);
 void add_dependency_frame(grounded_sf_ptr sg_fr, choiceptr cp);
-void add_ground_subgoal_stack(grounded_sf_ptr sg_fr, choiceptr cp);
 #endif /* TABLING_CALL_SUBSUMPTION */
 
 /* --------------- **

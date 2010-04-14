@@ -401,8 +401,6 @@ struct local_data{
   struct subgoal_frame *top_subgoal_frame; /* MUST BE BASE XXXX */
 #ifdef TABLING_CALL_SUBSUMPTION
   struct subgoal_frame *top_gen_sg;
-  struct subsumed_consumer_subgoal_frame *top_subsumptive_consumer_sf;
-  struct grounded_subgoal_frame *top_ground_consumer_sf;
 #endif /* TABLING_CALL_SUBSUMPTION */
   struct dependency_frame *top_dependency_frame;
 #ifdef TABLING_INNER_CUTS
@@ -451,8 +449,6 @@ struct local_data{
 #define LOCAL_end_trail_copy               (LOCAL->trail_copy.end)
 #define LOCAL_next_free_ans_node           (LOCAL->next_free_answer_trie_node)
 #define LOCAL_top_sg_fr                    (LOCAL->top_subgoal_frame)
-#define LOCAL_top_subcons_sg_fr            (LOCAL->top_subsumptive_consumer_sf)
-#define LOCAL_top_groundcons_sg_fr         (LOCAL->top_ground_consumer_sf)
 #define LOCAL_top_dep_fr                   (LOCAL->top_dependency_frame)
 #define LOCAL_top_gen_sg                   (LOCAL->top_gen_sg)
 #define LOCAL_pruning_scope                (LOCAL->bottom_pruning_scope)

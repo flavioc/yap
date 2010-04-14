@@ -1221,10 +1221,6 @@ fix_tabling_info(void)
      pointing back to the global stack. */
   dep_fr_ptr df;
   sg_fr_ptr sg;
-#ifdef TABLING_CALL_SUBSUMPTION
-  subcons_fr_ptr cons;
-  grounded_sf_ptr ground;
-#endif /* TABLING_CALL_SUBSUMPTION */
 
   df = LOCAL_top_dep_fr;
   while (df) {
@@ -1239,20 +1235,6 @@ fix_tabling_info(void)
     SgFr_choice_point(sg) = GeneratorChoicePtrAdjust(SgFr_choice_point(sg));
     sg = SgFr_next(sg);
   }
-  
-#ifdef TABLING_CALL_SUBSUMPTION
-  cons = LOCAL_top_subcons_sg_fr;
-  while (cons) {
-    SgFr_choice_point(cons) = ConsumerChoicePtrAdjust(SgFr_choice_point(cons));
-    cons = SgFr_next(cons);
-  }
-  
-  ground = LOCAL_top_groundcons_sg_fr;
-  while(ground) {
-    SgFr_choice_point(ground) = ConsumerChoicePtrAdjust(SgFr_choice_point(ground));
-    ground = SgFr_next(ground);
-  }
-#endif /* TABLING_CALL_SUBSUMPTION */
 }
 #endif /* TABLING */
 
