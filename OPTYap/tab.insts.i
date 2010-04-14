@@ -678,7 +678,7 @@
       YENV = ENV;
       GONext();
     } else {
-      dprintf("Executing code!\n");
+      dprintf(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> EXECUTING CODE! <<<<<<<<<<<<<<<<<<<<<<<<<<<<\n");
       yamop *code_ap;
       PREG = SgFr_code(sg_fr);
       if (PREG->opc == Yap_opcode(_table_try)) {
@@ -1651,15 +1651,18 @@
       
       if(SgFr_is_ground_producer(sg_fr)) {
         grounded_sf_ptr ground = (grounded_sf_ptr)sg_fr;
-        
+        choiceptr max;
+        /* XXX: guardar sempre o maximo */
         if(B_FZ < SgFr_start_cp(ground)) {
           /* some branches were suspend */
-          dprintf("Suspended branches!\n");
-          SgFr_start(ground) = B_FZ < B ? B_FZ : B;
+          max = B_FZ < B ? B_FZ : B;
+          dprintf("Suspended branches! %d\n", max);
         } else {
           dprintf("No branches suspended!\n");
-          SgFr_start(ground) = B;
+          max = B;
         }
+        
+        SgFr_saved_max(ground) = max;
         
         Bind_and_Trail(&SgFr_executing(ground), (Term)B);
       }

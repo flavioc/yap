@@ -148,7 +148,7 @@ abolish_generator_subgoals_between(sg_fr_ptr specific_sg, choiceptr min, choicep
   
   /* ignore younger generators */
   while(top && YOUNGER_CP(SgFr_choice_point(top), max)) {
-    dprintf("Ignored one younger generator\n");
+    dprintf("Ignored one younger generator cp %d\n", (int)SgFr_choice_point(top));
     top = SgFr_next(top);
   }
   
@@ -169,8 +169,8 @@ abolish_generator_subgoals_between(sg_fr_ptr specific_sg, choiceptr min, choicep
       external = find_external_consumer(max, sg_fr, &external_before);
       if(external) {
         /* generator subgoal must be kept */
-        dprintf("External dep_fr %d cp %d\n", (int)external, (int)DepFr_cons_cp(external));
-        dprintf("Dependency frame kept\n");
+        dprintf("External dep_fr %d cp %d (REMOVED)\n", (int)external, (int)DepFr_cons_cp(external));
+        
         choiceptr cons_cp = DepFr_cons_cp(external);
         choiceptr gen_cp = SgFr_choice_point(sg_fr);
         
@@ -333,8 +333,9 @@ producer_to_consumer(grounded_sf_ptr sg_fr, grounded_sf_ptr producer)
   if(SgFr_is_internal(sg_fr))
     max = B_FZ < limit_cp ? B_FZ : limit_cp;
   else
-    /* start_cp contains the max limit */
-    max = SgFr_start_cp(sg_fr);
+    max = SgFr_saved_max(sg_fr);
+    
+  dprintf("min=%d max=%d\n", (int)min, (int)max);
   
   abolish_generator_subgoals_between((sg_fr_ptr)sg_fr, min, max);
   abolish_dependency_frames_between((sg_fr_ptr)sg_fr, min, max);
