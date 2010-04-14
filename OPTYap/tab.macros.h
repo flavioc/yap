@@ -125,10 +125,22 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
 
 /* LOCAL_top_gen_sg macros */
 #ifdef TABLING_CALL_SUBSUMPTION
-#define SET_TOP_GEN_SG(SG_FR) do { dprintf("LOCAL_top_gen_sg now %d\n", (int)SG_FR); LOCAL_top_gen_sg = SG_FR; } while(0)
-#define SAVE_TOP_GEN_SG(DEP_FR) do { dprintf("LOCAL_top_gen_sg cp %d saved into dep_fr %d\n", (int)LOCAL_top_gen_sg, (int)DEP_FR); DepFr_top_gen_sg(DEP_FR) = LOCAL_top_gen_sg; } while (0)
-#define RESTORE_TOP_GEN_SG(DEP_FR) do { dprintf("Restored LOCAL_top_gen_sg %d from dep_fr %d\n", (int)DepFr_top_gen_sg(DEP_FR), (int)DEP_FR); LOCAL_top_gen_sg = DepFr_top_gen_sg(DEP_FR); } while(0)
-#define SAVE_SG_TOP_GEN_SG(SG_FR) do { dprintf("LOCAL_top_gen_sg %d saved into gen %d\n", (int)LOCAL_top_gen_sg, (int)SG_FR); SgFr_top_gen_sg(SG_FR) = LOCAL_top_gen_sg; } while(0)
+#define SET_TOP_GEN_SG(SG_FR) do { \
+    /*dprintf("LOCAL_top_gen_sg now %d\n", (int)SG_FR);*/ \
+    LOCAL_top_gen_sg = SG_FR; \
+  } while(0)
+#define SAVE_TOP_GEN_SG(DEP_FR) do { \
+    /*dprintf("LOCAL_top_gen_sg cp %d saved into dep_fr %d\n", (int)LOCAL_top_gen_sg, (int)DEP_FR);*/ \
+    DepFr_top_gen_sg(DEP_FR) = LOCAL_top_gen_sg; \
+  } while (0)
+#define RESTORE_TOP_GEN_SG(DEP_FR) do { \
+    /*dprintf("Restored LOCAL_top_gen_sg %d from dep_fr %d\n", (int)DepFr_top_gen_sg(DEP_FR), (int)DEP_FR);*/ \
+    LOCAL_top_gen_sg = DepFr_top_gen_sg(DEP_FR); \
+  } while(0)
+#define SAVE_SG_TOP_GEN_SG(SG_FR) do { \
+    /*dprintf("LOCAL_top_gen_sg %d saved into gen %d\n", (int)LOCAL_top_gen_sg, (int)SG_FR);*/ \
+    SgFr_top_gen_sg(SG_FR) = LOCAL_top_gen_sg; \
+  } while(0)
 #else
 #define SET_TOP_SG(SG_FR) /* nothing */
 #define SAVE_TOP_GEN_SG(DEP_FR) /* nothing */
@@ -385,10 +397,22 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
           VARIANT_PRODUCER_SFT, ALLOC_VARIANT_SUBGOAL_FRAME);     \
         add_answer_trie_subgoal_frame(SG_FR);                     \
     }
+    
+#ifdef TABLING_CALL_SUBSUMPTION
+#define SgFr_init_prev_fields(SG_FR)  \
+    SgFr_prev(SG_FR) = NULL;  \
+    if(LOCAL_top_sg_fr != NULL) \
+      SgFr_prev(LOCAL_top_sg_fr) = SG_FR
+
+#define SgFr_is_top_stack(SG_FR) SgFr_prev(SG_FR) == NULL
+#else
+#define SgFr_init_prev_fields(SG_FR) /* nothing */
+#endif /* TABLING_CALL_SUBSUMPTION */
 
 #define init_subgoal_frame(SG_FR)                                  \
         { SgFr_init_yapor_fields(SG_FR);                           \
           SgFr_state(SG_FR) = evaluating;                          \
+          SgFr_init_prev_fields(SG_FR);                            \
           SgFr_next(SG_FR) = LOCAL_top_sg_fr;                      \
           LOCAL_top_sg_fr = SG_FR;                                 \
 	      }
@@ -1126,9 +1150,12 @@ void abolish_incomplete_subgoals(choiceptr prune_cp) {
     insert_into_global_sg_fr_list(sg_fr);
 #endif /* LIMIT_TABLING */
   }
-
+  
+#ifdef TABLING_CALL_SUBSUMPTION
+  if(LOCAL_top_sg_fr != NULL)
+    SgFr_prev(LOCAL_top_sg_fr) = NULL;
   SET_TOP_GEN_SG(LOCAL_top_sg_fr);
-  return;
+#endif /* TABLING_CALL_SUBSUMPTION */
 }
 
 static inline

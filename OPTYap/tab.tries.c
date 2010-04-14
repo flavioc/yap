@@ -396,6 +396,11 @@ void private_completion(sg_fr_ptr sg_fr) {
   LOCAL_top_sg_fr = SgFr_next(LOCAL_top_sg_fr);
 #endif /* LIMIT_TABLING */
 
+#ifdef TABLING_CALL_SUBSUMPTION
+  if(LOCAL_top_sg_fr != NULL)
+    SgFr_prev(LOCAL_top_sg_fr) = NULL;
+#endif
+
   SET_TOP_GEN_SG(LOCAL_top_sg_fr);
   
   /* adjust freeze registers */

@@ -120,7 +120,6 @@ typedef struct grounded_subgoal_frame *grounded_sf_ptr;
 #define SG_FR_MOST_GENERAL 0x80
 #define SG_FR_LOCAL_PRODUCER 0x10
 #define SG_FR_LOCAL_CONSUMER 0x20
-#define SG_FR_PRODUCER 0x40
 
 struct grounded_subgoal_frame {
   subgoal_frame_type flags;
@@ -140,6 +139,8 @@ struct grounded_subgoal_frame {
   continuation_ptr last_answer;
   
   struct grounded_subgoal_frame *next;
+  
+  sg_fr_ptr prev;
   
   sg_fr_ptr top_gen_sg;
   

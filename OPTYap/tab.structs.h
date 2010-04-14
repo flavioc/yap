@@ -369,10 +369,8 @@ typedef struct subgoal_frame {
 #endif /* LIMIT_TABLING */
 
 #ifdef TABLING_CALL_SUBSUMPTION
+  struct subgoal_frame *prev;
   struct subgoal_frame *top_gen_sg;
-  
-  /* se calhar só ground! XXX */
-  choiceptr saved_cp;
 #endif /* TABLING_CALL_SUBSUMPTION */
 
 #ifdef INCOMPLETE_TABLING
@@ -413,6 +411,7 @@ typedef sg_fr_ptr variant_sf_ptr;
 #define SgFr_previous(X)       (CAST_SF(X)->previous)
 #define SgFr_next(X)           ((X)->next)
 #ifdef TABLING_CALL_SUBSUMPTION
+#define SgFr_prev(X)           ((X)->prev)
 #define SgFr_top_gen_sg(X)     (CAST_SF(X)->top_gen_sg)
 #endif
 
@@ -464,8 +463,7 @@ typedef sg_fr_ptr variant_sf_ptr;
 **      Struct dependency_frame      **
 ** --------------------------------- */
 
-#define DEP_FR_FIRST_CONSUMER 0x01
-#define DEP_FR_TOP_CONSUMER 0x02
+#define DEP_FR_TOP_CONSUMER 0x01
 
 typedef unsigned char dependency_type;
   
@@ -506,8 +504,6 @@ typedef struct dependency_frame {
 #define DepFr_next(X)                    ((X)->next)
 #define DepFr_flags(X)                   ((X)->flags)
 #define DepFr_set_flag(X, FLAG)          ((X)->flags |= (FLAG))
-#define DepFr_is_first_consumer(X)       (DepFr_flags(X) & DEP_FR_FIRST_CONSUMER)
-#define DepFr_set_first_consumer(X)      (DepFr_set_flag(X, DEP_FR_FIRST_CONSUMER))
 #define DepFr_is_top_consumer(X)         (DepFr_flags(X) & DEP_FR_TOP_CONSUMER)
 #define DepFr_set_top_consumer(X)        (DepFr_set_flag(X, DEP_FR_TOP_CONSUMER))
 
@@ -591,6 +587,10 @@ struct deterministic_generator_choicept {
 struct consumer_choicept {
   struct choicept cp;
   struct dependency_frame *cp_dep_fr;
+#ifdef TABLING_CALL_SUBSUMPTION
+  /* to restart a consumer node as generator node */
+  struct subgoal_frame *cp_sg_fr;
+#endif /* TABLING_CALL_SUBSUMPTION */
 #ifdef LOW_LEVEL_TRACER
   struct pred_entry *cp_pred_entry;
 #endif /* LOW_LEVEL_TRACER */

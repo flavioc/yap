@@ -27,23 +27,6 @@
 #include "tab.utils.h"
 #include "tab.tries.h"
 
-static void inline
-remove_generator_stack(grounded_sf_ptr sg_fr)
-{
-  sg_fr_ptr top = LOCAL_top_sg_fr;
-  sg_fr_ptr find = (sg_fr_ptr)sg_fr;
-  sg_fr_ptr before;
-  
-  while(top && top != find) {
-    before = top;
-    top = SgFr_next(top);
-  }
-  
-  dprintf("subgoal frame %d next points to %d\n", (int)before, (int)SgFr_next(find));
-  SgFr_next(before) = SgFr_next(find);
-  SgFr_next(find) = NULL;
-}
-
 static int
 is_internal_subgoal_frame(sg_fr_ptr specific_sg, sg_fr_ptr sf, choiceptr limit)
 {
@@ -75,39 +58,96 @@ is_internal_dep_fr(sg_fr_ptr specific_sg, dep_fr_ptr dep_fr, choiceptr limit)
 }
 
 static inline dep_fr_ptr
-find_external_consumer(choiceptr min, choiceptr max, sg_fr_ptr gen)
+find_external_consumer(choiceptr max, sg_fr_ptr gen, dep_fr_ptr *external_before)
 {
-  return NULL;
-  /* XXX */
-#if 0
-  choiceptr cp = SgFr_choice_point(gen);
   dep_fr_ptr top = LOCAL_top_dep_fr;
   dep_fr_ptr found = NULL;
+  dep_fr_ptr before = NULL;
   
+  /* find first running consumer starting from max */
   while(top && YOUNGER_CP(DepFr_cons_cp(top), max)) {
     if(DepFr_sg_fr(top) == gen) {
-      /*if(is_internal_dep_fr(top, max)) {
-        dprintf("Found one external dep_fr %d\n", (int)top);
-        found = top;
-      }*/
+      dprintf("Found one external dep_fr %d\n", (int)top);
+      *external_before = before;
+      found = top;
     }
     /* XXX: subsumptive, ground */
+    before = top;
     top = DepFr_next(top);
   }
   
   return found;
-#endif
 }
 
+static inline void
+update_leader_fields(choiceptr old_leader, choiceptr new_leader, choiceptr max)
+{
+  dep_fr_ptr top = LOCAL_top_dep_fr;
+  
+  while(top && YOUNGER_CP(DepFr_cons_cp(top), max)) {
+    if(DepFr_leader_cp(top) == old_leader) {
+      dprintf("Changed leader from %d to %d on cp %d dep_fr %d\n", (int)old_leader, (int)new_leader, (int)DepFr_cons_cp(top), (int)top);
+      DepFr_leader_cp(top) = new_leader;
+    }
+    
+    top = DepFr_next(top);
+  }
+}
+
+/* assumes there's something up in the stack (prev != NULL) */
+#define remove_subgoal_frame_from_stack(SG_FR)      \
+  SgFr_next(SgFr_prev(SG_FR)) = SgFr_next(SG_FR);   \
+  if(SgFr_next(SG_FR))                              \
+    SgFr_prev(SgFr_next(SG_FR)) = SgFr_prev(SG_FR)
+
+static inline void
+reorder_subgoal_frame(sg_fr_ptr sg_fr, choiceptr new_gen_cp)
+{
+  sg_fr_ptr prev = SgFr_prev(sg_fr);
+  
+  dprintf("Reordering subgoal frame on the stack\n");
+  
+  if(prev) {
+    if(new_gen_cp > SgFr_choice_point(prev))
+      return; /* new_gen_cp is still older! */
+    
+    /* prepare to move the subgoal frame up in the stack */
+    remove_subgoal_frame_from_stack(sg_fr);
+    
+    prev = SgFr_prev(prev);
+    
+    while(prev && SgFr_choice_point(prev) > new_gen_cp)
+      /* while new_gen_cp is newer than the current sg frame ... */
+      prev = SgFr_prev(prev); /* .. move up */
+    
+    /* now put the subgoal frame here, with SgFr_prev(sg_fr) = prev */
+    if(prev == NULL) {
+      /* prev goes to the top! */
+      if(LOCAL_top_sg_fr)
+        SgFr_prev(LOCAL_top_sg_fr) = sg_fr;
+      SgFr_next(sg_fr) = LOCAL_top_sg_fr;
+      LOCAL_top_sg_fr = sg_fr;
+    } else {
+      sg_fr_ptr before = SgFr_next(prev);
+      
+      if(before)
+        SgFr_prev(before) = sg_fr;
+      SgFr_next(prev) = sg_fr;
+      SgFr_next(sg_fr) = before;
+    }
+    SgFr_prev(sg_fr) = prev; /* prev can be NULL */
+  }
+}
+
+/* note that the general subgoal is always on the top of the generator stack ;-) */
 static inline void
 abolish_generator_subgoals_between(sg_fr_ptr specific_sg, choiceptr min, choiceptr max)
 {
   sg_fr_ptr top = SgFr_next(LOCAL_top_sg_fr);
-  sg_fr_ptr before = LOCAL_top_sg_fr;
+  dep_fr_ptr external, external_before = NULL;
   
   /* ignore younger generators */
   while(top && YOUNGER_CP(SgFr_choice_point(top), max)) {
-    before = top;
     dprintf("Ignored one younger generator\n");
     top = SgFr_next(top);
   }
@@ -123,35 +163,43 @@ abolish_generator_subgoals_between(sg_fr_ptr specific_sg, choiceptr min, choicep
     
     if(SgFr_choice_point(sg_fr) == min) {
       abolish_incomplete_producer_subgoal(sg_fr);
-      SgFr_next(before) = top;
-    } else
-    if(is_internal_subgoal_frame(specific_sg, sg_fr, min)) {
+      remove_subgoal_frame_from_stack(sg_fr);
+    } else if(is_internal_subgoal_frame(specific_sg, sg_fr, min)) {
       dprintf("Trying to abolish %d\n", (int)sg_fr);
-#if 0
-      dep_fr_ptr external = find_external_consumer(min, max, sg_fr);
+      external = find_external_consumer(max, sg_fr, &external_before);
       if(external) {
         /* generator subgoal must be kept */
-        dprintf("External dep_fr %d cp %d\n", external, DepFr_cons_cp(external));
+        dprintf("External dep_fr %d cp %d\n", (int)external, (int)DepFr_cons_cp(external));
         dprintf("Dependency frame kept\n");
-        choiceptr gen_cp = SgFr_choice_point(sg_fr);
+        choiceptr cons_cp = DepFr_cons_cp(external);
         
-        if(SgFr_got_answer(sg_fr)) {
-          SgFr_saved_cp(sg_fr) = SgFr_new_answer_cp(sg_fr);
-          printf("Generator has generated an answer\n");
-        }
+        /* delete dependency frame from dependency space */
+        if(external_before == NULL)
+          LOCAL_top_dep_fr = DepFr_next(external);
+        else
+          DepFr_next(external_before) = DepFr_next(external);
         
-        DepFr_set_first_consumer(external);
-        gen_cp->cp_b = DepFr_cons_cp(external);
-        SgFr_set_producer(sg_fr);
+        /* execute RESTART_GENERATOR on backtracking */
+        cons_cp->cp_ap = RESTART_GENERATOR;
         
-        before = sg_fr;
+        /* update leader information to point to this choice point */
+        update_leader_fields(SgFr_choice_point(sg_fr), cons_cp, max);
+        
+        /* change generator choice point */
+        SgFr_choice_point(sg_fr) = cons_cp;
+        
+        /* reorder this generator on the generator stack
+           possibly moving it back, so it's pretty
+           safe for the next iteration of this loop */
+        reorder_subgoal_frame(sg_fr, cons_cp);
+        
+        /* note: dependency frame will be deleted in RESTART_GENERATOR */
       } else {
-#endif
         dprintf("REALLY ABOLISHED %d\n", (int)sg_fr);
         abolish_incomplete_producer_subgoal(sg_fr);
-        SgFr_next(before) = top;
-    } else
-      before = sg_fr;
+        remove_subgoal_frame_from_stack(sg_fr);
+      }
+    }
   }
 }
 
@@ -214,7 +262,7 @@ locate_after_answer(choiceptr new_ans, choiceptr cp)
 {
   choiceptr before = cp;
   cp = cp->cp_b;
-    
+
   while(cp != new_ans) {
     before = cp;
     cp = cp->cp_b;
@@ -242,7 +290,7 @@ update_top_gen_sg_fields(sg_fr_ptr specific_sg, choiceptr limit)
   dep_fr_ptr top_dep = LOCAL_top_dep_fr;
   while(top_dep && DepFr_cons_cp(top_dep) <= limit) {
     if(DepFr_top_gen_sg(top_dep) == specific_sg) {
-      printf("Update one top dep fr sg\n");
+      dprintf("Update one top dep fr sg\n");
       DepFr_top_gen_sg(top_dep) = new_top;
     }
     
@@ -282,7 +330,8 @@ producer_to_consumer(grounded_sf_ptr sg_fr, grounded_sf_ptr producer)
   abolish_generator_subgoals_between((sg_fr_ptr)sg_fr, min, max);
   abolish_dependency_frames_between((sg_fr_ptr)sg_fr, min, max);
   /* update top generator subgoal */
-  update_top_gen_sg_fields((sg_fr_ptr)sg_fr, max);
+  /* use min to include internal subgoal frames that have external consumers */
+  update_top_gen_sg_fields((sg_fr_ptr)sg_fr, min);
   
   /* update generator choice point to point to RUN_COMPLETED */
   gen_cp->cp_ap = (yamop *)RUN_COMPLETED;

@@ -640,6 +640,14 @@
     consume_answer_leaf(ans_node, ans_tmplt, CONSUME_VARIANT_ANSWER);
   ENDPBOp();
   
+  PBOp(table_restart_generator, Otapl)
+    dprintf("==> TABLE_RESTART_GENERATOR\n");
+    dep_fr_ptr dep_fr = CONS_CP(B)->cp_dep_fr;
+    printf("To delete dep_fr %d\n", (int)dep_fr);
+    abolish_dependency_frame(dep_fr);
+    exit(1);
+  ENDPBOp();
+    
   PBOp(table_run_completed, Otapl)
 #ifdef TABLING_CALL_SUBSUMPTION
     dprintf("===> TABLE_RUN_COMPLETED\n");
@@ -1611,10 +1619,7 @@
       UNLOCK(SgFr_lock(sg_fr));
       
 #ifdef TABLING_CALL_SUBSUMPTION
-      if(SgFr_is_producer(sg_fr)) {
-        dprintf("act as local\n");
-        goto fail;
-      } else if(SgFr_is_ground_local_producer(sg_fr)) {
+      if(SgFr_is_ground_local_producer(sg_fr)) {
         dprintf("GROUND_LOCAL PRODUCER\n");
         grounded_sf_ptr ground = (grounded_sf_ptr)sg_fr;
         SgFr_num_ans(ground)++;
@@ -1655,6 +1660,7 @@
         }
       }
 #endif /* TABLING_CALL_SUBSUMPTION */
+
       if (IS_BATCHED_GEN_CP(gcp)) {
 #ifdef TABLING_EARLY_COMPLETION
 	if (gcp == PROTECT_FROZEN_B(B) && (*subs_ptr == 0 || gcp->cp_ap == COMPLETION)) {
@@ -1757,47 +1763,6 @@
     UNLOCK(DepFr_lock(dep_fr));
     
 #ifdef TABLING_CALL_SUBSUMPTION
-    if(DepFr_is_first_consumer(dep_fr)) {
-      sg_fr_ptr prod = DepFr_sg_fr(dep_fr);
-      if(SgFr_state(prod) > evaluating) {
-        printf("PRODUCER COMPLETED\n");
-      } else if(SgFr_saved_cp(prod)) {
-        choiceptr cp = SgFr_saved_cp(prod);
-        printf("PRODUCER SAVED CP %d\n", (int)cp);
-        restore_bindings(B->cp_tr, cp->cp_tr);
-        //unbind_variables(B->cp_tr, cp->cp_tr);
-        printf("TR %d B->cp_tr %d cp->cp_tr %d TR_FZ %d\n", (int)TR, (int)B->cp_tr, (int)cp->cp_tr, (int)TR_FZ);
-        
-        B = cp;
-        H = HBREG = PROTECT_FROZEN_H(B);
-        restore_yaam_reg_cpdepth(B);
-        TR = TR_FZ;
-        //TRAIL_LINK(cp->cp_tr);
-        ENV = cp->cp_env;
-        PREG = (yamop *) cp->cp_ap;
-        PREFETCH_OP(PREG);
-        YENV = ENV;
-        
-        GONext();
-      } else {
-        printf("GO TO PRODUCER COMPLETION\n");
-        /* go to generator completion */
-        choiceptr cp = SgFr_choice_point(prod);
-        if(TR < TR_FZ)
-          printf("MUST FREEZE TR2\n");
-        printf("TR %d B->cp_tr %d cp->cp_tr %d TR_FZ %d\n", (int)TR, (int)B->cp_tr, (int)cp->cp_tr, (int)TR_FZ);
-        
-        unbind_variables(B->cp_tr, cp->cp_tr);
-        PREG = cp->cp_ap;
-        PREFETCH_OP(PREG);
-        B = cp;
-        TR = TR_FZ;
-        TRAIL_LINK(B->cp_tr);
-        GONext();
-      }
-      printf("FIRST CONSUMER!\n");
-    }
-    
     if(DepFr_is_top_consumer(dep_fr)) {
       grounded_sf_ptr sg_fr = (grounded_sf_ptr)DepFr_sg_fr(dep_fr);
       grounded_sf_ptr prod = SgFr_producer(sg_fr);
@@ -2090,22 +2055,16 @@
 
 
   BOp(table_completion, Otapl)
-    
+
+#ifdef FDEBUG
     {
       sg_fr_ptr sg_fr = GEN_CP(B)->cp_sg_fr;
       
-#ifdef TABLING_CALL_SUBSUMPTION
-      if(SgFr_is_producer(sg_fr)) {
-        printf("NULLIFY saved_cp\n");
-        SgFr_saved_cp(sg_fr) = NULL;
-      }
-#endif /* TABLING_CALL_SUBSUMPTION */
-#ifdef FDEBUG
       dprintf("===> TABLE_COMPLETION ");
       printSubgoalTriePath(stdout, SgFr_leaf(sg_fr), SgFr_tab_ent(sg_fr));
       dprintf("\n");
-#endif
     }
+#endif
     
 #ifdef YAPOR
     if (SCH_top_shared_cp(B)) {
@@ -2450,32 +2409,16 @@
       private_completion(sg_fr);
       
 #ifdef TABLING_CALL_SUBSUMPTION
-      if(SgFr_is_producer(sg_fr)) {
-        dprintf("Backtrack producer\n");
-        choiceptr cons_cp = B->cp_b;
-        restore_bindings(B->cp_tr, cons_cp->cp_tr);
-        B = cons_cp;
-        
-        /* run answer resolution on the first consumer */
-        H = HBREG = PROTECT_FROZEN_H(B);
-        restore_yaam_reg_cpdepth(B);
-        TR = TR_FZ;
-        ENV = B->cp_env;
-        PREG = (yamop *) B->cp_ap;
-        PREFETCH_OP(PREG);
-        YENV = ENV;
-        dprintf("GO consumer!\n");
-        GONext();
-        
-      } else if(SgFr_is_ground_local_producer(sg_fr)) {
+      if(SgFr_is_ground_local_producer(sg_fr)) {
         /* more general subgoal has just completed,
            get into the consumer! */
         B = B->cp_b;
         dprintf("Backtrack ground local producer\n");
         SET_BB(PROTECT_FROZEN_B(B));
         goto fail;     
-      } else
+      }
 #endif
+
       if (IS_BATCHED_GEN_CP(B)) {
         /* batched scheduling -> backtrack */
         B = B->cp_b;
