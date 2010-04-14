@@ -44,6 +44,8 @@ STD_PROTO(static inline int build_next_ground_producer_return_list, (grounded_sf
           SUBSUMPTIVE_PRODUCER_SFT, ALLOC_SUBPROD_SUBGOAL_FRAME);   \
         SgFr_prod_consumers(SG_FR) = NULL;                          \
         SgFr_answer_trie(SG_FR) = newTSTAnswerSet();                \
+        RESET_VARIABLE(&SgFr_executing((sg_fr_ptr)SG_FR));  \
+        RESET_VARIABLE(&SgFr_start((sg_fr_ptr)SG_FR)); \
     }
     
 #define new_grounded_producer_subgoal_frame(SG_FR, CODE, LEAF) {  \
@@ -58,6 +60,7 @@ STD_PROTO(static inline int build_next_ground_producer_return_list, (grounded_sf
         SgFr_timestamp(SG_FR) = 0;      \
         SgFr_answer_template(SG_FR) = NULL;   \
         SgFr_num_ans(SG_FR) = 0;                \
+        SgFr_saved_max(SG_FR) = NULL; \
         SgFr_saved_cp(SG_FR) = NULL;               \
         RESET_VARIABLE(&SgFr_executing(SG_FR));  \
         RESET_VARIABLE(&SgFr_start(SG_FR))

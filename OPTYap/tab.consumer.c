@@ -30,13 +30,14 @@
 static int
 is_internal_subgoal_frame(sg_fr_ptr specific_sg, sg_fr_ptr sf, choiceptr limit)
 {
-  sg_fr_ptr top_gen = SgFr_top_gen_sg(sf);
+  sg_fr_ptr top_gen = SgFr_get_top_gen_sg(sf);
   
   while(top_gen && SgFr_choice_point(top_gen) <= limit) {
     if(top_gen == specific_sg)
-      return TRUE;
-      
-    top_gen = SgFr_top_gen_sg(top_gen);
+      return SgFr_is_top_internal(sf);
+    
+    sf = top_gen;
+    top_gen = SgFr_get_top_gen_sg(top_gen);
   }
   
   return FALSE;
@@ -45,13 +46,20 @@ is_internal_subgoal_frame(sg_fr_ptr specific_sg, sg_fr_ptr sf, choiceptr limit)
 static inline int
 is_internal_dep_fr(sg_fr_ptr specific_sg, dep_fr_ptr dep_fr, choiceptr limit)
 {
-  sg_fr_ptr top_gen = DepFr_top_gen_sg(dep_fr);
+  sg_fr_ptr top_gen = DepFr_get_top_gen_sg(dep_fr);
+  
+  if(top_gen == specific_sg)
+    return DepFr_is_top_internal(dep_fr);
+  
+  sg_fr_ptr sf = top_gen;
+  top_gen = SgFr_get_top_gen_sg(top_gen);
   
   while(top_gen && SgFr_choice_point(top_gen) <= limit) {
     if(top_gen == specific_sg)
-      return TRUE;
+      return SgFr_is_internal(sf);
     
-    top_gen = SgFr_top_gen_sg(top_gen);
+    sf = top_gen;
+    top_gen = SgFr_get_top_gen_sg(top_gen);
   }
   
   return FALSE;
@@ -283,12 +291,12 @@ locate_after_answer(choiceptr new_ans, choiceptr cp)
 static inline void
 update_top_gen_sg_fields(sg_fr_ptr specific_sg, choiceptr limit)
 {
-  sg_fr_ptr new_top = SgFr_top_gen_sg(specific_sg);
+  sg_fr_ptr new_top = SgFr_get_top_gen_sg(specific_sg);
  
   /* generator subgoal frames */
   sg_fr_ptr top_gen = LOCAL_top_sg_fr;
   while(top_gen && SgFr_choice_point(top_gen) <= limit) {
-    if(SgFr_top_gen_sg(top_gen) == specific_sg) {
+    if(SgFr_get_top_gen_sg(top_gen) == specific_sg) {
       //printf("Updated one top gen sg\n");
       SgFr_top_gen_sg(top_gen) = new_top;
     }
@@ -298,7 +306,7 @@ update_top_gen_sg_fields(sg_fr_ptr specific_sg, choiceptr limit)
   /* dependency frames */
   dep_fr_ptr top_dep = LOCAL_top_dep_fr;
   while(top_dep && DepFr_cons_cp(top_dep) <= limit) {
-    if(DepFr_top_gen_sg(top_dep) == specific_sg) {
+    if(DepFr_get_top_gen_sg(top_dep) == specific_sg) {
       dprintf("Update one top dep fr sg\n");
       DepFr_top_gen_sg(top_dep) = new_top;
     }
@@ -311,19 +319,19 @@ static inline void
 producer_to_consumer(grounded_sf_ptr sg_fr, grounded_sf_ptr producer)
 {
 #ifdef FDEBUG
-  if(SgFr_is_external(sg_fr))
-    printf("external\n");
-  else
+  if(SgFr_is_internal(sg_fr))
     printf("internal\n");
+  else
+    printf("external\n");
 #endif
   
   choiceptr gen_cp = SgFr_choice_point(sg_fr);
   choiceptr limit_cp;
   
-  if(SgFr_is_external(sg_fr))
-    limit_cp = SgFr_new_answer_cp(sg_fr);
-  else
+  if(SgFr_is_internal(sg_fr))
     limit_cp = B->cp_b;
+  else
+    limit_cp = SgFr_new_answer_cp(sg_fr);
   
   dprintf("gen_cp=%d limit_cp=%d\n", (int)gen_cp, (int)limit_cp);
   
@@ -346,7 +354,7 @@ producer_to_consumer(grounded_sf_ptr sg_fr, grounded_sf_ptr producer)
   /* update generator choice point to point to RUN_COMPLETED */
   gen_cp->cp_ap = (yamop *)RUN_COMPLETED;
   /* use cp_dep_fr to put the subgoal frame */
-  CONS_CP(gen_cp)->cp_sg_fr = sg_fr;
+  CONS_CP(gen_cp)->cp_sg_fr = (sg_fr_ptr)sg_fr;
   CONS_CP(gen_cp)->cp_dep_fr = NULL;
   adjust_generator_to_consumer_answer_template(gen_cp, (sg_fr_ptr)sg_fr);
   /* set last answer consumed for load answers */

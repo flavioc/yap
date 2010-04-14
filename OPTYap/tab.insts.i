@@ -508,9 +508,9 @@
     }
      
 #define precheck_ground_generator(SG_FR)                            \
-     if(SgFr_is_ground_producer(SG_FR)) {                           \
-       Bind_and_Trail(&SgFr_start((grounded_sf_ptr)(SG_FR)), (Term)B_FZ);        \
-     }
+     if(SgFr_is_ground_producer(SG_FR))                             \
+       SgFr_saved_max((grounded_sf_ptr)SG_FR) = B_FZ;               \
+     Bind_and_Trail(&SgFr_start(SG_FR), (Term)B_FZ)
 
 /* Consume subsuming answer ANS_NODE using ANS_TMPLT
  * as the pointer to the answer template.
@@ -1652,8 +1652,8 @@
       if(SgFr_is_ground_producer(sg_fr)) {
         grounded_sf_ptr ground = (grounded_sf_ptr)sg_fr;
         choiceptr max;
-        /* XXX: guardar sempre o maximo */
-        if(B_FZ < SgFr_start_cp(ground)) {
+        
+        if(B_FZ < SgFr_saved_max(ground)) {
           /* some branches were suspend */
           max = B_FZ < B ? B_FZ : B;
           dprintf("Suspended branches! %d\n", max);
@@ -1662,10 +1662,10 @@
           max = B;
         }
         
-        SgFr_saved_max(ground) = max;
-        
-        Bind_and_Trail(&SgFr_executing(ground), (Term)B);
+        if(max < SgFr_saved_max(ground))
+          SgFr_saved_max(ground) = max;
       }
+      Bind_and_Trail(&SgFr_executing(sg_fr), (Term)B);
 #endif
 
 #ifdef TABLING_ERRORS

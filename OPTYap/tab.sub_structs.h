@@ -172,7 +172,6 @@ struct grounded_subgoal_frame {
 #define SgFr_started(X)             ((CELL *)SgFr_start(X) != &SgFr_start(X))
 #define SgFr_got_answer(X)          ((CELL *)SgFr_executing(X) != &SgFr_executing(X))
 #define SgFr_is_internal(X)         (SgFr_started(X) && !SgFr_got_answer(X))
-#define SgFr_is_external(X)         ((SgFr_started(X) && SgFr_got_answer(X)) || (!SgFr_started(X)))
 #define SgFr_saved_max(X)           ((X)->saved_max)
 
 #define SgFr_is_most_general(X)     (SgFr_flags(X) & SG_FR_MOST_GENERAL)
