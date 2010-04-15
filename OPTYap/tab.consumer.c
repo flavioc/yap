@@ -66,18 +66,20 @@ is_internal_dep_fr(sg_fr_ptr specific_sg, dep_fr_ptr dep_fr, choiceptr limit)
 }
 
 static inline dep_fr_ptr
-find_external_consumer(choiceptr max, sg_fr_ptr gen, dep_fr_ptr *external_before)
+find_external_consumer(choiceptr min, sg_fr_ptr gen, dep_fr_ptr *external_before)
 {
   dep_fr_ptr top = LOCAL_top_dep_fr;
   dep_fr_ptr found = NULL;
   dep_fr_ptr before = NULL;
   
   /* find first running consumer starting from max */
-  while(top && YOUNGER_CP(DepFr_cons_cp(top), max)) {
+  while(top && YOUNGER_CP(DepFr_cons_cp(top), min)) {
     if(DepFr_sg_fr(top) == gen) {
-      dprintf("Found one external dep_fr %d\n", (int)top);
-      *external_before = before;
-      found = top;
+      if(!is_internal_dep_fr(gen, top, min)) {
+        dprintf("Found one external dep_fr %d\n", (int)top);
+        *external_before = before;
+        found = top;
+      }
     }
     /* XXX: subsumptive, ground */
     before = top;
@@ -174,7 +176,7 @@ abolish_generator_subgoals_between(sg_fr_ptr specific_sg, choiceptr min, choicep
       remove_subgoal_frame_from_stack(sg_fr);
     } else if(is_internal_subgoal_frame(specific_sg, sg_fr, min)) {
       dprintf("Trying to abolish %d\n", (int)sg_fr);
-      external = find_external_consumer(max, sg_fr, &external_before);
+      external = find_external_consumer(min, sg_fr, &external_before);
       if(external) {
         /* generator subgoal must be kept */
         dprintf("External dep_fr %d cp %d (REMOVED)\n", (int)external, (int)DepFr_cons_cp(external));
