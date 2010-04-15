@@ -48,8 +48,13 @@
 
 #ifdef TABLING_GROUNDED
 #define store_cons_args_local_stack(ARITY) store_args_local_stack(ARITY)
+#define update_generator_node(SG_FR)      \
+    if(SgFr_is_ground_producer(SG_FR)) {  \
+      SgFr_update_saved_max((grounded_sf_ptr)(SG_FR));       \
+    }
 #else
 #define store_cons_args_local_stack(ARITY) /* do nothing */
+#define update_generator_node(SG_FR) /* do nothing */
 #endif /* TABLING_GROUNDED */
 
 #define store_generator_node(TAB_ENT, SG_FR, ARITY, AP)               \
@@ -144,6 +149,7 @@
             *x_args = x;                                \
 	        }                                             \
           SET_TOP_GEN_SG(GEN_CP(gcp)->cp_sg_fr);        \
+          update_generator_node(GEN_CP(gcp)->cp_sg_fr); \
         }
 
 
@@ -151,6 +157,7 @@
         { register CELL *pt_args, *x_args;      \
           register choiceptr gcp = B;           \
           SET_TOP_GEN_SG(GEN_CP(gcp)->cp_sg_fr);\
+          update_generator_node(GEN_CP(gcp)->cp_sg_fr); \
           /* pop generator choice point */      \
           H = PROTECT_FROZEN_H(gcp);            \
           pop_yaam_reg_cpdepth(gcp);            \
@@ -508,8 +515,10 @@
     }
      
 #define precheck_ground_generator(SG_FR)                            \
-     if(SgFr_is_ground_producer(SG_FR))                             \
-       SgFr_saved_max((grounded_sf_ptr)SG_FR) = B_FZ;               \
+     if(SgFr_is_ground_producer(SG_FR)) {                           \
+       SgFr_saved_max((grounded_sf_ptr)(SG_FR)) = B;                \
+       SgFr_update_saved_max((grounded_sf_ptr)(SG_FR));             \
+     }                                                              \
      Bind_and_Trail(&SgFr_start(SG_FR), (Term)B_FZ)
 
 /* Consume subsuming answer ANS_NODE using ANS_TMPLT
@@ -756,7 +765,6 @@
          into a consumer */
       dprintf("Not completed!\n");
       add_dependency_frame(sg_fr, B);
-      B->cp_ap = ANSWER_RESOLUTION;
       B = B->cp_b;
       goto fail;
     }
@@ -1651,19 +1659,7 @@
       
       if(SgFr_is_ground_producer(sg_fr)) {
         grounded_sf_ptr ground = (grounded_sf_ptr)sg_fr;
-        choiceptr max;
-        
-        if(B_FZ < SgFr_saved_max(ground)) {
-          /* some branches were suspend */
-          max = B_FZ < B ? B_FZ : B;
-          dprintf("Suspended branches! %d\n", max);
-        } else {
-          dprintf("No branches suspended!\n");
-          max = B;
-        }
-        
-        if(max < SgFr_saved_max(ground))
-          SgFr_saved_max(ground) = max;
+        SgFr_update_saved_max(ground);
       }
       Bind_and_Trail(&SgFr_executing(sg_fr), (Term)B);
 #endif
@@ -2165,6 +2161,7 @@
         if (EQUAL_OR_YOUNGER_CP(B_FZ, B) && B != DepFr_leader_cp(LOCAL_top_dep_fr)) {
           /* not leader on that node */
           dprintf("not leader on that node\n");
+          update_generator_node(GEN_CP(B)->cp_sg_fr);
           B = B->cp_b;
           goto fail;
         }
@@ -2172,6 +2169,7 @@
         B->cp_ap = ANSWER_RESOLUTION;
         if (B != DepFr_leader_cp(LOCAL_top_dep_fr)) {
           /* not leader on that node */
+          update_generator_node(GEN_CP(B)->cp_sg_fr)
           B = B->cp_b;
           dprintf("not a leader on that node 2\n");
           goto fail;
@@ -2182,6 +2180,7 @@
 
 
   completion:
+  dprintf("on completion\n");
     INIT_PREFETCH()
     dep_fr_ptr dep_fr;
     ans_node_ptr ans_node;

@@ -351,24 +351,35 @@ producer_to_consumer(grounded_sf_ptr sg_fr, grounded_sf_ptr producer)
   /* use min to include internal subgoal frames that have external consumers */
   update_top_gen_sg_fields((sg_fr_ptr)sg_fr, min);
   
-  /* update generator choice point to point to RUN_COMPLETED */
-  gen_cp->cp_ap = (yamop *)RUN_COMPLETED;
-  /* use cp_dep_fr to put the subgoal frame */
-  CONS_CP(gen_cp)->cp_sg_fr = (sg_fr_ptr)sg_fr;
-  CONS_CP(gen_cp)->cp_dep_fr = NULL;
   adjust_generator_to_consumer_answer_template(gen_cp, (sg_fr_ptr)sg_fr);
+  
   /* set last answer consumed for load answers */
   SgFr_try_answer(sg_fr) = SgFr_last_answer(sg_fr);
   
-  if(SgFr_is_internal(sg_fr)) {
-    dprintf("set as local producer\n");
-    SgFr_set_local_producer(producer);
-    SgFr_set_local_consumer(sg_fr);
-    B->cp_b = gen_cp;
+  if(SgFr_is_internal(sg_fr) || SgFr_started(sg_fr)) {
+    /* update generator choice point to point to RUN_COMPLETED */
+    gen_cp->cp_ap = (yamop *)RUN_COMPLETED;
+    /* use cp_dep_fr to put the subgoal frame */
+    CONS_CP(gen_cp)->cp_sg_fr = (sg_fr_ptr)sg_fr;
+    CONS_CP(gen_cp)->cp_dep_fr = NULL;
+    if(SgFr_is_internal(sg_fr)) {
+      dprintf("set as local producer\n");
+      SgFr_set_local_producer(producer);
+      SgFr_set_local_consumer(sg_fr);
+      B->cp_b = gen_cp;
+    } else {
+      choiceptr cp = locate_after_answer(limit_cp, B);
+      cp->cp_b = gen_cp;
+    }
   } else {
-    choiceptr cp = locate_after_answer(limit_cp, B);
-    
-    cp->cp_b = gen_cp;
+    /* we are out of the execution path of the specific subgoal
+       that means that it already has reached the completion operation
+       and has attempted to complete, without much success
+       -> create a dependency frame and turn this node into a consumer
+    */
+    dprintf("Getting a new dependency frame!\n");
+    CONS_CP(gen_cp)->cp_sg_fr = (sg_fr_ptr)sg_fr;
+    add_dependency_frame((grounded_sf_ptr)sg_fr, gen_cp);
   }
 }
 
@@ -486,6 +497,8 @@ add_dependency_frame(grounded_sf_ptr sg_fr, choiceptr cp)
     DepFr_last_answer(dep_fr) = SgFr_try_answer(sg_fr);
   if(SgFr_is_ground_local_producer(producer))
     DepFr_set_top_consumer(dep_fr);
+  
+  cp->cp_ap = ANSWER_RESOLUTION;
 }
 
 #endif /* TABLING_GROUNDED */

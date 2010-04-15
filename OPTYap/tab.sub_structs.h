@@ -183,6 +183,13 @@ struct grounded_subgoal_frame {
 #define SgFr_is_producer(X)         (SgFr_flags(X) & SG_FR_PRODUCER)
 #define SgFr_set_producer(X)        (SgFr_flags(X) |= SG_FR_PRODUCER)
 
+#define SgFr_update_saved_max(X)    { \
+    if(B < SgFr_saved_max(X)) \
+      SgFr_saved_max(X) = B;  \
+    if(B_FZ < SgFr_saved_max(X)) \
+      SgFr_saved_max(X) = B_FZ; \
+  }
+
 #define TabEnt_ground_trie(X)       (TrNode_next(TabEnt_subgoal_trie(X)))
 #define TabEnt_has_ground_trie(X)   (TabEnt_ground_trie(X) != NULL)
 #define TabEnt_ground_time_stamp(X) (TabEnt_ground_trie(X) ? \
