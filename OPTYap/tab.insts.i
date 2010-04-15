@@ -1677,14 +1677,13 @@
 #endif /* TABLING_ERRORS */
       UNLOCK(SgFr_lock(sg_fr));
       
-#ifdef TABLING_CALL_SUBSUMPTION
+#ifdef TABLING_GROUNDED
       if(SgFr_is_ground_local_producer(sg_fr)) {
         dprintf("GROUND_LOCAL PRODUCER\n");
         grounded_sf_ptr ground = (grounded_sf_ptr)sg_fr;
         SgFr_num_ans(ground)++;
         dprintf("SgFr_num_ans(ground)=%d\n", SgFr_num_ans(ground));
         
-        /* activate ? */
         if(SgFr_num_ans(ground) > 1 && POWER_OF_TWO(SgFr_num_ans(ground))) {
           dprintf("Act as batched\n");
           choiceptr mycp = SgFr_choice_point(sg_fr);
@@ -1717,7 +1716,7 @@
           goto fail;
         }
       }
-#endif /* TABLING_CALL_SUBSUMPTION */
+#endif /* TABLING_GROUNDED */
 
       if (IS_BATCHED_GEN_CP(gcp)) {
 #ifdef TABLING_EARLY_COMPLETION
