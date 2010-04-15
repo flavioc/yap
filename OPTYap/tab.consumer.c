@@ -72,7 +72,7 @@ find_external_consumer(choiceptr min, sg_fr_ptr gen, dep_fr_ptr *external_before
   dep_fr_ptr found = NULL;
   dep_fr_ptr before = NULL;
   
-  /* find first running consumer starting from max */
+  /* find first running consumer starting from min */
   while(top && YOUNGER_CP(DepFr_cons_cp(top), min)) {
     if(DepFr_sg_fr(top) == gen) {
       if(!is_internal_dep_fr(gen, top, min)) {
@@ -293,7 +293,7 @@ locate_after_answer(choiceptr new_ans, choiceptr cp)
 static inline void
 update_top_gen_sg_fields(sg_fr_ptr specific_sg, choiceptr limit)
 {
-  sg_fr_ptr new_top = SgFr_get_top_gen_sg(specific_sg);
+  sg_fr_ptr new_top = SgFr_top_gen_sg(specific_sg);
  
   /* generator subgoal frames */
   sg_fr_ptr top_gen = LOCAL_top_sg_fr;
@@ -329,23 +329,18 @@ producer_to_consumer(grounded_sf_ptr sg_fr, grounded_sf_ptr producer)
   
   choiceptr gen_cp = SgFr_choice_point(sg_fr);
   choiceptr limit_cp;
-  
-  if(SgFr_is_internal(sg_fr))
-    limit_cp = B->cp_b;
-  else
-    limit_cp = SgFr_new_answer_cp(sg_fr);
-  
-  dprintf("gen_cp=%d limit_cp=%d\n", (int)gen_cp, (int)limit_cp);
-  
   choiceptr min = gen_cp;
   choiceptr max;
   
-  if(SgFr_is_internal(sg_fr))
+  if(SgFr_is_internal(sg_fr)) {
+    limit_cp = B->cp_b;
     max = B_FZ < limit_cp ? B_FZ : limit_cp;
-  else
+  } else {
+    limit_cp = SgFr_new_answer_cp(sg_fr);
     max = SgFr_saved_max(sg_fr);
-    
-  dprintf("min=%d max=%d\n", (int)min, (int)max);
+  }
+  
+  dprintf("min=%d max=%d limit_cp=%d\n", (int)min, (int)max, (int)limit_cp);
   
   abolish_generator_subgoals_between((sg_fr_ptr)sg_fr, min, max);
   abolish_dependency_frames_between((sg_fr_ptr)sg_fr, min, max);

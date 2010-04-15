@@ -1685,7 +1685,7 @@
         dprintf("SgFr_num_ans(ground)=%d\n", SgFr_num_ans(ground));
         
         /* activate ? */
-        if(FALSE && SgFr_num_ans(ground) > 1 && POWER_OF_TWO(SgFr_num_ans(ground))) {
+        if(SgFr_num_ans(ground) > 1 && POWER_OF_TWO(SgFr_num_ans(ground))) {
           dprintf("Act as batched\n");
           choiceptr mycp = SgFr_choice_point(sg_fr);
           choiceptr target = mycp->cp_b;
@@ -1695,9 +1695,8 @@
           unbind_variables(TR, target->cp_tr);
           
           /* protect stacks */
-          if(B->cp_tr > TR_FZ)
-            TR_FZ = B->cp_tr;
-          TR = TR_FZ;
+          TR_FZ = TR;
+          TRAIL_LINK(target->cp_tr);
           if(B_FZ > B)
             B_FZ = B;
             
