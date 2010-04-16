@@ -27,6 +27,8 @@
 #include "tab.utils.h"
 #include "tab.tries.h"
 
+STD_PROTO(static inline void update_top_gen_sg_fields, (sg_fr_ptr, choiceptr, sg_fr_ptr));
+
 static int
 is_internal_subgoal_frame(sg_fr_ptr specific_sg, sg_fr_ptr sf, choiceptr limit)
 {
@@ -81,7 +83,6 @@ find_external_consumer(choiceptr min, sg_fr_ptr gen, dep_fr_ptr *external_before
         found = top;
       }
     }
-    /* XXX: subsumptive, ground */
     before = top;
     top = DepFr_next(top);
   }
@@ -174,6 +175,13 @@ change_generator_subgoal_frame(sg_fr_ptr sg_fr, dep_fr_ptr external, dep_fr_ptr 
   /* update leader information to point to this choice point */
   update_leader_fields(SgFr_choice_point(sg_fr), cons_cp, max);
   
+  /* update top generator information for subgoals or dependencies that
+     point to the same top as this ex-consumer:
+     note: the new top is not be internal, as the new-generator was a consumer!
+     thus, no need to set the internal bit.
+   */
+  update_top_gen_sg_fields(DepFr_get_top_gen_sg(external), cons_cp, sg_fr);
+  
   /* change generator choice point */
   SgFr_choice_point(sg_fr) = cons_cp;
   
@@ -225,6 +233,19 @@ abolish_generator_subgoals_between(sg_fr_ptr specific_sg, choiceptr min, choicep
             remove_subgoal_frame_from_stack(sg_fr);
           }
           break;
+        case SUBSUMPTIVE_PRODUCER_SFT: {
+          external = find_external_consumer(min, sg_fr, &external_before);
+          if(external) {
+            dprintf("found external variant subsumptive consumer\n");
+            /* variant consumer can generate answers for proper subsumptive consumers */
+            change_generator_subgoal_frame(sg_fr, external, external_before, max);
+          } else {
+            dprintf("REALLY ABOLISHED %d\n", (int)sg_fr);
+            abolish_incomplete_producer_subgoal(sg_fr);
+            remove_subgoal_frame_from_stack(sg_fr);
+          }
+          break;
+        }
         default:
           dprintf("REALLY ABOLISHED %d\n", (int)sg_fr);
           abolish_incomplete_producer_subgoal(sg_fr);
@@ -306,15 +327,15 @@ locate_after_answer(choiceptr new_ans, choiceptr cp)
   return before;
 }
 
+/* for every generator that appears after 'limit' in the local stack
+   that has 'subgoal' as the top generator change the top to 'new_top' */
 static inline void
-update_top_gen_sg_fields(sg_fr_ptr specific_sg, choiceptr limit)
+update_top_gen_sg_fields(sg_fr_ptr subgoal, choiceptr limit, sg_fr_ptr new_top)
 {
-  sg_fr_ptr new_top = SgFr_top_gen_sg(specific_sg);
- 
   /* generator subgoal frames */
   sg_fr_ptr top_gen = LOCAL_top_sg_fr;
   while(top_gen && SgFr_choice_point(top_gen) <= limit) {
-    if(SgFr_get_top_gen_sg(top_gen) == specific_sg) {
+    if(SgFr_get_top_gen_sg(top_gen) == subgoal) {
       //printf("Updated one top gen sg\n");
       SgFr_top_gen_sg(top_gen) = new_top;
     }
@@ -324,8 +345,8 @@ update_top_gen_sg_fields(sg_fr_ptr specific_sg, choiceptr limit)
   /* dependency frames */
   dep_fr_ptr top_dep = LOCAL_top_dep_fr;
   while(top_dep && DepFr_cons_cp(top_dep) <= limit) {
-    if(DepFr_get_top_gen_sg(top_dep) == specific_sg) {
-      dprintf("Update one top dep fr sg\n");
+    if(DepFr_get_top_gen_sg(top_dep) == subgoal) {
+      dprintf("Update one top dep fr sg %d\n", (int)DepFr_cons_cp(top_dep));
       DepFr_top_gen_sg(top_dep) = new_top;
     }
     
@@ -378,7 +399,7 @@ external_producer_to_consumer(grounded_sf_ptr sg_fr, grounded_sf_ptr producer)
   abolish_dependency_frames_between((sg_fr_ptr)sg_fr, min, max);
   /* update top generator subgoal */
   /* use min to include internal subgoal frames that have external consumers */
-  update_top_gen_sg_fields((sg_fr_ptr)sg_fr, min);
+  update_top_gen_sg_fields((sg_fr_ptr)sg_fr, min, SgFr_top_gen_sg(sg_fr));
   
   adjust_generator_to_consumer_answer_template(gen_cp, (sg_fr_ptr)sg_fr);
   
