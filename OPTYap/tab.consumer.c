@@ -149,6 +149,43 @@ reorder_subgoal_frame(sg_fr_ptr sg_fr, choiceptr new_gen_cp)
   }
 }
 
+static inline void
+change_generator_subgoal_frame(sg_fr_ptr sg_fr, dep_fr_ptr external, dep_fr_ptr external_before, choiceptr max)
+{
+  /* generator subgoal must be kept */
+  dprintf("External dep_fr %d cp %d (REMOVED)\n", (int)external, (int)DepFr_cons_cp(external));
+  
+  choiceptr cons_cp = DepFr_cons_cp(external);
+  choiceptr gen_cp = SgFr_choice_point(sg_fr);
+  
+  /* delete dependency frame from dependency space */
+  if(external_before == NULL)
+    LOCAL_top_dep_fr = DepFr_next(external);
+  else
+    DepFr_next(external_before) = DepFr_next(external);
+  
+  /* execute RESTART_GENERATOR on backtracking */
+  cons_cp->cp_ap = RESTART_GENERATOR;
+  CONS_CP(cons_cp)->cp_sg_fr = sg_fr;
+  /* don't know if the subgoal frame uses local scheduling,
+     but this should work */
+  CONS_CP(cons_cp)->cp_dep_fr = GEN_CP(gen_cp)->cp_dep_fr;        
+  
+  /* update leader information to point to this choice point */
+  update_leader_fields(SgFr_choice_point(sg_fr), cons_cp, max);
+  
+  /* change generator choice point */
+  SgFr_choice_point(sg_fr) = cons_cp;
+  
+  /* reorder this generator on the generator stack
+     possibly moving it back, so it's pretty
+     safe for the next iteration of this loop */
+  reorder_subgoal_frame(sg_fr, cons_cp);
+  
+  SgFr_try_answer(sg_fr) = DepFr_last_answer(external);
+  abolish_dependency_frame(external);
+}
+
 /* note that the general subgoal is always on the top of the generator stack ;-) */
 static inline void
 abolish_generator_subgoals_between(sg_fr_ptr specific_sg, choiceptr min, choiceptr max)
@@ -179,38 +216,7 @@ abolish_generator_subgoals_between(sg_fr_ptr specific_sg, choiceptr min, choicep
       dprintf("Trying to abolish %d\n", (int)sg_fr);
       external = find_external_consumer(min, sg_fr, &external_before);
       if(external) {
-        /* generator subgoal must be kept */
-        dprintf("External dep_fr %d cp %d (REMOVED)\n", (int)external, (int)DepFr_cons_cp(external));
-        
-        choiceptr cons_cp = DepFr_cons_cp(external);
-        choiceptr gen_cp = SgFr_choice_point(sg_fr);
-        
-        /* delete dependency frame from dependency space */
-        if(external_before == NULL)
-          LOCAL_top_dep_fr = DepFr_next(external);
-        else
-          DepFr_next(external_before) = DepFr_next(external);
-        
-        /* execute RESTART_GENERATOR on backtracking */
-        cons_cp->cp_ap = RESTART_GENERATOR;
-        CONS_CP(cons_cp)->cp_sg_fr = sg_fr;
-        /* don't know if the subgoal frame uses local scheduling,
-           but this should work */
-        CONS_CP(cons_cp)->cp_dep_fr = GEN_CP(gen_cp)->cp_dep_fr;        
-        
-        /* update leader information to point to this choice point */
-        update_leader_fields(SgFr_choice_point(sg_fr), cons_cp, max);
-        
-        /* change generator choice point */
-        SgFr_choice_point(sg_fr) = cons_cp;
-        
-        /* reorder this generator on the generator stack
-           possibly moving it back, so it's pretty
-           safe for the next iteration of this loop */
-        reorder_subgoal_frame(sg_fr, cons_cp);
-        
-        SgFr_try_answer(sg_fr) = DepFr_last_answer(external);
-        abolish_dependency_frame(external);
+        change_generator_subgoal_frame(sg_fr, external, external_before, max);
       } else {
         dprintf("REALLY ABOLISHED %d\n", (int)sg_fr);
         abolish_incomplete_producer_subgoal(sg_fr);
