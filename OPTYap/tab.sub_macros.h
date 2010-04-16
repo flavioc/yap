@@ -425,7 +425,17 @@ void free_tst_hash_index(tst_ans_hash_ptr hash) {
   }
 }
 
-#define STANDARDIZE_AT_PTR(ANS_TMPLT, SIZE) ((ANS_TMPLT) + (SIZE) - 1) 
+#define STANDARDIZE_AT_PTR(ANS_TMPLT, SIZE) ((ANS_TMPLT) + (SIZE) - 1)
+
+#define check_ground_pending_subgoals(SG_FR, TAB_ENT, GROUND_SG)    \
+    { ALNptr list = NULL;                                           \
+      CELL *answer_template = SgFr_answer_template(GROUND_SG);      \
+      const int size = SgFr_at_size(GROUND_SG);                     \
+      list = collect_specific_generator_goals(TAB_ENT, size,        \
+          STANDARDIZE_AT_PTR(answer_template, size));               \
+      process_pending_subgoal_list(list, GROUND_SG);                \
+      increment_sugoal_path(SG_FR);                                 \
+    }
 
 static inline int
 build_next_subsumptive_consumer_return_list(subcons_fr_ptr consumer_sg) {
@@ -490,7 +500,5 @@ build_next_ground_producer_return_list(grounded_sf_ptr producer_sg) {
     STANDARDIZE_AT_PTR(answer_template, size),
     (sg_fr_ptr)producer_sg);
 }
-
-#undef STANDARDIZE_AT_PTR
 
 #endif /* TABLING_CALL_SUBSUMPTION */

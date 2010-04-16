@@ -168,6 +168,7 @@ sg_fr_ptr grounded_call_search(yamop *code, CELL *answer_template, CELL **new_lo
   Trail_ResetTOS;
   TermStack_PushLowToHighVector(CALL_ARGUMENTS(), arity);
   
+  dprintf("ground_call_search\n");
   btn = iter_sub_trie_lookup(CTXTc btRoot, &path_type);
   Trail_Unwind_All;
   
@@ -186,6 +187,7 @@ sg_fr_ptr grounded_call_search(yamop *code, CELL *answer_template, CELL **new_lo
     sg_fr = create_new_ground_producer_subgoal(leaf, tab_ent, code);
     
     Trail_Unwind_All;
+    dprintf("New producer\n");
     
     /* determine if is most general */
     if(is_most_general_call(leaf, arity))
@@ -207,6 +209,7 @@ sg_fr_ptr grounded_call_search(yamop *code, CELL *answer_template, CELL **new_lo
     switch(path_type) {
       case VARIANT_PATH:
         sg_fr = found;
+        dprintf("variant path\n");
         break;
       case SUBSUMPTIVE_PATH:
         if(SgFr_state(subsumer) < complete || TabEnt_is_load(tab_ent)) {
@@ -232,6 +235,7 @@ sg_fr_ptr grounded_call_search(yamop *code, CELL *answer_template, CELL **new_lo
         /* turn into producer */
         SgFr_set_type(sg_fr, GROUND_PRODUCER_SFT); 
         SgFr_producer(sg_fr) = NULL;
+        dprintf("Producer not evaluating\n");
       }
     }
   }

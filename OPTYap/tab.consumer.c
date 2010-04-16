@@ -174,6 +174,7 @@ abolish_generator_subgoals_between(sg_fr_ptr specific_sg, choiceptr min, choicep
     if(SgFr_choice_point(sg_fr) == min) {
       abolish_incomplete_producer_subgoal(sg_fr);
       remove_subgoal_frame_from_stack(sg_fr);
+      dprintf("ABOLISH SPECIFIC GENERATOR %d\n", (int)min);
     } else if(is_internal_subgoal_frame(specific_sg, sg_fr, min)) {
       dprintf("Trying to abolish %d\n", (int)sg_fr);
       external = find_external_consumer(min, sg_fr, &external_before);
@@ -318,29 +319,45 @@ update_top_gen_sg_fields(sg_fr_ptr specific_sg, choiceptr limit)
 }
 
 static inline void
-producer_to_consumer(grounded_sf_ptr sg_fr, grounded_sf_ptr producer)
+internal_producer_to_consumer(grounded_sf_ptr sg_fr, grounded_sf_ptr producer)
 {
-#ifdef FDEBUG
-  if(SgFr_is_internal(sg_fr))
-    printf("internal\n");
-  else
-    printf("external\n");
-#endif
+  dprintf("internal_producer_to_consumer\n");
   
   choiceptr gen_cp = SgFr_choice_point(sg_fr);
-  choiceptr limit_cp;
+  choiceptr limit_cp = B->cp_b;
   choiceptr min = gen_cp;
-  choiceptr max;
+  choiceptr max = B_FZ < limit_cp ? B_FZ : limit_cp;
   
-  if(SgFr_is_internal(sg_fr)) {
-    limit_cp = B->cp_b;
-    max = B_FZ < limit_cp ? B_FZ : limit_cp;
-  } else {
-    limit_cp = SgFr_new_answer_cp(sg_fr);
-    max = SgFr_saved_max(sg_fr);
-  }
+  abolish_generator_subgoals_between((sg_fr_ptr)sg_fr, min, max);
+  abolish_dependency_frames_between((sg_fr_ptr)sg_fr, min, max);
   
-  dprintf("min=%d max=%d limit_cp=%d\n", (int)min, (int)max, (int)limit_cp);
+  adjust_generator_to_consumer_answer_template(gen_cp, (sg_fr_ptr)sg_fr);
+  
+  /* set last answer consumed to load answers */
+  SgFr_try_answer(sg_fr) = SgFr_last_answer(sg_fr);
+  
+  /* update generator choice point to point to RUN_COMPLETED */
+  gen_cp->cp_ap = (yamop *)RUN_COMPLETED;
+  /* use cp_dep_fr to put the subgoal frame */
+  CONS_CP(gen_cp)->cp_sg_fr = (sg_fr_ptr)sg_fr;
+  CONS_CP(gen_cp)->cp_dep_fr = NULL;
+  
+  dprintf("set as local producer\n");
+  SgFr_set_local_producer(producer);
+  SgFr_set_local_consumer(sg_fr);
+  
+  B->cp_b = gen_cp;
+}
+
+static inline void
+external_producer_to_consumer(grounded_sf_ptr sg_fr, grounded_sf_ptr producer)
+{
+  dprintf("external_producer_to_consumer\n");
+  
+  choiceptr gen_cp = SgFr_choice_point(sg_fr);
+  choiceptr limit_cp = SgFr_new_answer_cp(sg_fr);
+  choiceptr min = gen_cp;
+  choiceptr max = SgFr_saved_max(sg_fr);
   
   abolish_generator_subgoals_between((sg_fr_ptr)sg_fr, min, max);
   abolish_dependency_frames_between((sg_fr_ptr)sg_fr, min, max);
@@ -353,21 +370,16 @@ producer_to_consumer(grounded_sf_ptr sg_fr, grounded_sf_ptr producer)
   /* set last answer consumed for load answers */
   SgFr_try_answer(sg_fr) = SgFr_last_answer(sg_fr);
   
-  if(SgFr_is_internal(sg_fr) || SgFr_started(sg_fr)) {
+  if(SgFr_started(sg_fr)) {
     /* update generator choice point to point to RUN_COMPLETED */
     gen_cp->cp_ap = (yamop *)RUN_COMPLETED;
     /* use cp_dep_fr to put the subgoal frame */
     CONS_CP(gen_cp)->cp_sg_fr = (sg_fr_ptr)sg_fr;
     CONS_CP(gen_cp)->cp_dep_fr = NULL;
-    if(SgFr_is_internal(sg_fr)) {
-      dprintf("set as local producer\n");
-      SgFr_set_local_producer(producer);
-      SgFr_set_local_consumer(sg_fr);
-      B->cp_b = gen_cp;
-    } else {
-      choiceptr cp = locate_after_answer(limit_cp, B);
-      cp->cp_b = gen_cp;
-    }
+    
+    choiceptr cp = locate_after_answer(limit_cp, B);
+    cp->cp_b = gen_cp;
+    dprintf("Started\n");
   } else {
     /* we are out of the execution path of the specific subgoal
        that means that it already has reached the completion operation
@@ -380,14 +392,48 @@ producer_to_consumer(grounded_sf_ptr sg_fr, grounded_sf_ptr producer)
   }
 }
 
+static inline int
+is_internal_to_set(sg_fr_ptr pending, node_list_ptr all)
+{
+  while(all) {
+    sg_fr_ptr sg_fr = (sg_fr_ptr)NodeList_node(all);
+    if(sg_fr != pending &&
+        is_internal_subgoal_frame(sg_fr, pending, SgFr_choice_point(pending)))
+    {
+      return TRUE;
+    }
+    all = NodeList_next(all);
+  }
+  
+  return FALSE;
+}
+
 void
 process_pending_subgoal_list(node_list_ptr list, grounded_sf_ptr sg_fr) {
   node_list_ptr orig = list;
   
+  if(list == NULL)
+    return;
+    
+#define REMOVE_PENDING_NODE() {                   \
+    node_list_ptr next = NodeList_next(list);     \
+    FREE_NODE_LIST(list);                         \
+    if(before == NULL)                            \
+      orig = next;                                \
+    else                                          \
+      NodeList_next(before) = next;               \
+    list = next;                                  \
+  }
+    
+  /* search specific subgoals that are running and the general is internal */
+  choiceptr min_internal = NULL;
+  node_list_ptr before = NULL;
+  grounded_sf_ptr min_sg = NULL;
+  
   while(list) {
     grounded_sf_ptr pending = (grounded_sf_ptr)NodeList_node(list);
     
-    if(pending != sg_fr) { /* ignore self! */
+    if(pending != sg_fr) {
       if(SgFr_state(pending) == ready) {
         /*
          * this subgoal is incomplete
@@ -404,29 +450,117 @@ process_pending_subgoal_list(node_list_ptr list, grounded_sf_ptr sg_fr) {
           SgFr_set_type(pending, GROUND_CONSUMER_SFT);
           dprintf("MARKED AS CONSUMER\n");
         }
+        
+        REMOVE_PENDING_NODE();
       } else if(SgFr_state(pending) == evaluating && SgFr_is_ground_producer(pending)) {
-        /*
-         * this is a consumer subgoal but is running
-         * as a generator node, we must
-         * change the WAM stacks and tabling data
-         * structures to change its status
-         */
-        SgFr_producer(pending) = sg_fr;
-        SgFr_set_type(pending, GROUND_CONSUMER_SFT);
-        /* ensure creation of TST indices */
-        ensure_has_proper_consumers(SgFr_tab_ent(sg_fr));
 #ifdef FDEBUG
-        printf("Found a specific subgoal already running\n");
+        printf("Found a specific subgoal already running: ");
         printSubgoalTriePath(stdout, SgFr_leaf(pending), SgFr_tab_ent(pending));
-        printf("\n");  
+        printf("\n");
 #endif
-        producer_to_consumer(pending, sg_fr);
+        SgFr_set_type(pending, GROUND_CONSUMER_SFT);
+        SgFr_producer(pending) = sg_fr;
+        ensure_has_proper_consumers(SgFr_tab_ent(sg_fr));
+        
+        if(SgFr_is_internal(pending)) {
+          choiceptr min = SgFr_choice_point(pending);
+          
+          if(min_internal == NULL || min > min_internal) {
+            min_internal = min;
+            min_sg = pending;
+            dprintf("found new min\n");
+          }
+          REMOVE_PENDING_NODE();
+        } else {
+          dprintf("skipping external node\n");
+          /* skip this subgoal */
+          before = list;
+          list = NodeList_next(list);
+        }
+      } else {
+        /* should not be here */
+        REMOVE_PENDING_NODE();
+      }
+    } else {
+      dprintf("removed self\n");
+      /* remove self */
+      REMOVE_PENDING_NODE();
+    }
+  }
+
+  if(!min_internal && !orig) {
+    /* no relevant nodes */
+    dprintf("No relevant nodes\n");
+    return;
+  }
+
+  if(min_internal && !orig) {
+    /* only internal nodes */
+    dprintf("Only internal nodes\n");
+    internal_producer_to_consumer(min_sg, sg_fr);
+    return;
+  }
+  
+  if(min_internal) {
+    /* filter external nodes that are internal to min_internal */
+    before = NULL;
+    list = orig;
+    dprintf("Filtering external nodes for internal cp %d\n", (int)min_internal);
+    
+    while(list) {
+      sg_fr_ptr pending = (sg_fr_ptr)NodeList_node(list);
+      
+      if(is_internal_subgoal_frame((sg_fr_ptr)min_sg, pending, min_internal)) {
+        /* this subgoal wil be cut by min_sg */
+        REMOVE_PENDING_NODE();
+      } else {
+        before = list;
+        list = NodeList_next(list);
+      }
+    }
+  }
+  
+  if(min_internal) {
+    dprintf("doing a min internal\n");
+    internal_producer_to_consumer(min_sg, sg_fr);
+  }
+  
+  if(orig) {
+    before = NULL;
+    list = orig;
+    node_list_ptr all = orig;
+    dprintf("removing external internal of externals\n");
+    
+    /* look for external subgoals */
+    while(list) {
+      sg_fr_ptr pending = (sg_fr_ptr)NodeList_node(list);
+      
+      if(is_internal_to_set(pending, all)) {
+        /* some specific subgoal already includes this subgoal */
+        REMOVE_PENDING_NODE();
+        dprintf("One internal to set deleted\n");
+      } else {
+        dprintf("not internal\n");
+        before = list;
+        list = NodeList_next(list);
       }
     }
     
-    list = NodeList_next(list);
+    dprintf("prune external computations\n");
+    list = orig;
+    /* prune external computations */
+    while(list) {
+      grounded_sf_ptr pending = (grounded_sf_ptr)NodeList_node(list);
+      
+      external_producer_to_consumer(pending, sg_fr);
+
+      list = NodeList_next(list);
+    }
+    
+    free_node_list(orig);
   }
-  free_node_list(orig);
+  
+#undef REMOVE_PENDING_NODE
   
   dprintf("ok\n");
 }

@@ -478,6 +478,7 @@
       
 #define check_ground_pre_stored_answers(SG_FR, TAB_ENT, GROUND_SG)  \
     if(TabEnt_ground_time_stamp(TAB_ENT) > 0) {                     \
+      dprintf("Pre stored answers\n");                              \
       grounded_sf_ptr ground_sg = (grounded_sf_ptr)(SG_FR);         \
                                                                     \
       /* retrieve more answers */                                   \
@@ -490,6 +491,7 @@
         CELL *answer_template = (CELL *)(GEN_CP(B) + 1) + SgFr_arity(SG_FR);  \
                                                                     \
         SgFr_try_answer(GROUND_SG) = cont;                          \
+        Bind_and_Trail(&SgFr_executing(GROUND_SG), (Term)B);        \
                                                                     \
         B->cp_ap = TRY_GROUND_ANSWER;                               \
         PREG = (yamop *)CPREG;                                      \
@@ -498,13 +500,6 @@
         YENV = ENV;                                                 \
         GONext();                                                   \
       }                                                             \
-    }
-    
-#define check_ground_pending_subgoals(SG_FR, TAB_ENT, GROUND_SG)    \
-    { ALNptr list = collect_specific_generator_goals(TAB_ENT,       \
-      TabEnt_arity(TAB_ENT), SgFr_answer_template(GROUND_SG));      \
-      process_pending_subgoal_list(list, GROUND_SG);                \
-      increment_sugoal_path(SG_FR);                                 \
     }
 
 #define check_ground_generator(SG_FR, TAB_ENT)                      \
@@ -910,12 +905,14 @@
     if(next_cont) {
       CELL *answer_template = (CELL *)(GEN_CP(B) + 1) + SgFr_arity(sg_fr);
       
+      SgFr_try_answer(sg_fr) = next_cont;
+      Bind_and_Trail(&SgFr_executing(sg_fr), (Term)B);
+      
       ans_node = continuation_answer(next_cont);
       H = HBREG = PROTECT_FROZEN_H(B);
       restore_yaam_reg_cpdepth(B);
       CPREG = B->cp_cp;
       ENV = B->cp_env;
-      SgFr_try_answer(sg_fr) = next_cont;
       
       PREG = (yamop *) CPREG;
       PREFETCH_OP(PREG);
