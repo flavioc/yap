@@ -214,13 +214,22 @@ abolish_generator_subgoals_between(sg_fr_ptr specific_sg, choiceptr min, choicep
       dprintf("ABOLISH SPECIFIC GENERATOR %d\n", (int)min);
     } else if(is_internal_subgoal_frame(specific_sg, sg_fr, min)) {
       dprintf("Trying to abolish %d\n", (int)sg_fr);
-      external = find_external_consumer(min, sg_fr, &external_before);
-      if(external) {
-        change_generator_subgoal_frame(sg_fr, external, external_before, max);
-      } else {
-        dprintf("REALLY ABOLISHED %d\n", (int)sg_fr);
-        abolish_incomplete_producer_subgoal(sg_fr);
-        remove_subgoal_frame_from_stack(sg_fr);
+      switch(SgFr_type(sg_fr)) {
+        case VARIANT_PRODUCER_SFT:
+          external = find_external_consumer(min, sg_fr, &external_before);
+          if(external) {
+            change_generator_subgoal_frame(sg_fr, external, external_before, max);
+          } else {
+            dprintf("REALLY ABOLISHED %d\n", (int)sg_fr);
+            abolish_incomplete_producer_subgoal(sg_fr);
+            remove_subgoal_frame_from_stack(sg_fr);
+          }
+          break;
+        default:
+          dprintf("REALLY ABOLISHED %d\n", (int)sg_fr);
+          abolish_incomplete_producer_subgoal(sg_fr);
+          remove_subgoal_frame_from_stack(sg_fr);
+          break;
       }
     }
   }
