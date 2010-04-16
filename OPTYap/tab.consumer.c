@@ -566,25 +566,8 @@ process_pending_subgoal_list(node_list_ptr list, grounded_sf_ptr sg_fr) {
 }
 
 static inline void
-size_dep_space(void)
-{
-  dep_fr_ptr top = LOCAL_top_dep_fr;
-  int i = 0;
-  
-  while(top) {
-    ++i;
-    dprintf("Top: %d\n", (int)top);
-    top = DepFr_next(top);
-  }
-  
-  dprintf("TOTAL: %d\n", i);
-}
-
-static inline void
 find_next_dep_frame(dep_fr_ptr dep_fr, choiceptr cp)
 {
-  size_dep_space();
-  
   if(LOCAL_top_dep_fr == NULL) {
     LOCAL_top_dep_fr = dep_fr;
   }
@@ -607,8 +590,6 @@ find_next_dep_frame(dep_fr_ptr dep_fr, choiceptr cp)
   }
   
   SgFr_next(dep_fr) = top;
-  dprintf("Now\n");
-  size_dep_space();
 }
 
 void
