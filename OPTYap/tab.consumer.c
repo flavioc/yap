@@ -28,6 +28,7 @@
 #include "tab.tries.h"
 
 STD_PROTO(static inline void update_top_gen_sg_fields, (sg_fr_ptr, choiceptr, sg_fr_ptr));
+STD_PROTO(static inline void to_run_completed_node, (sg_fr_ptr, choiceptr));
 
 static int
 is_internal_subgoal_frame(sg_fr_ptr specific_sg, sg_fr_ptr sf, choiceptr limit)
@@ -194,6 +195,96 @@ change_generator_subgoal_frame(sg_fr_ptr sg_fr, dep_fr_ptr external, dep_fr_ptr 
   abolish_dependency_frame(external);
 }
 
+static inline void
+update_subsumed_before_dependencies(sg_fr_ptr sg_fr, choiceptr min, sg_fr_ptr specific_sg)
+{
+  choiceptr limit = SgFr_choice_point(sg_fr);
+  dep_fr_ptr top = LOCAL_top_dep_fr;
+  dep_fr_ptr before = NULL;
+  
+  while(top && EQUAL_OR_YOUNGER_CP(DepFr_cons_cp(top), limit)) {
+    dprintf("Skipped one possible subsumptive consumer cp %d\n", (int)DepFr_cons_cp(top));
+    before = top;
+    top = DepFr_next(top);
+  }
+  
+  while(top && YOUNGER_CP(DepFr_cons_cp(top), min)) {
+    if(SgFr_is_sub_consumer(DepFr_sg_fr(top)) &&
+        (sg_fr_ptr)SgFr_producer((subcons_fr_ptr)DepFr_sg_fr(top)) == sg_fr &&
+        !is_internal_dep_fr(specific_sg, top, min))
+    {
+      sg_fr_ptr cons_sg_fr = DepFr_sg_fr(top);
+      choiceptr cp = DepFr_cons_cp(top);
+      dprintf("Found one subsumed dependency! cp %d\n", (int)DepFr_cons_cp(top));
+      
+      cp->cp_ap = (yamop *)RUN_COMPLETED;
+
+      CONS_CP(cp)->cp_sg_fr = cons_sg_fr;
+      CONS_CP(cp)->cp_dep_fr = top;
+      
+      /* remove dependency frame */
+      if(before == NULL)
+        LOCAL_top_dep_fr = DepFr_next(top);
+      else
+        DepFr_next(before) = DepFr_next(top);
+      
+      top = DepFr_next(top);
+    } else {
+      before = top;
+      top = DepFr_next(top);
+    }
+  }
+}
+
+static inline node_list_ptr
+find_external_subsumed_consumers(choiceptr min, sg_fr_ptr sg_fr, sg_fr_ptr specific_sg)
+{
+  dep_fr_ptr top = LOCAL_top_dep_fr;
+  node_list_ptr list = NULL;
+  
+  while(top && YOUNGER_CP(DepFr_cons_cp(top), min)) {
+    sg_fr_ptr dep = DepFr_sg_fr(top);
+    if(SgFr_is_sub_consumer(dep)) {
+      if((sg_fr_ptr)SgFr_producer((subcons_fr_ptr)dep) == sg_fr) {
+        if(!is_internal_dep_fr(specific_sg, top, min)) {
+          /* add to list */
+          node_list_ptr ptr = list;
+          int found = FALSE;
+          
+          /* try to update a repeated element */
+          while(ptr) {
+            
+            if(DepFr_sg_fr((dep_fr_ptr)NodeList_node(ptr)) == dep)
+            {
+              NodeList_node(ptr) = top;
+              found = TRUE;
+              break;
+            }
+            
+            ptr = NodeList_next(ptr);
+          }
+          
+          DepFr_sg_fr(top) = dep;
+          
+          if(!found) {
+            /* really insert it on the list */
+            dprintf("add to list\n");
+            node_list_ptr new_list;
+            ALLOC_NODE_LIST(new_list);
+            NodeList_node(new_list) = top;
+            NodeList_next(new_list) = list;
+            list = new_list;
+          }
+        }
+      }
+    }
+    
+    top = DepFr_next(top);
+  }
+  
+  return list;
+}
+
 /* note that the general subgoal is always on the top of the generator stack ;-) */
 static inline void
 abolish_generator_subgoals_between(sg_fr_ptr specific_sg, choiceptr min, choiceptr max)
@@ -239,10 +330,17 @@ abolish_generator_subgoals_between(sg_fr_ptr specific_sg, choiceptr min, choicep
             dprintf("found external variant subsumptive consumer\n");
             /* variant consumer can generate answers for proper subsumptive consumers */
             change_generator_subgoal_frame(sg_fr, external, external_before, max);
+            update_subsumed_before_dependencies(sg_fr, min, specific_sg);
           } else {
-            dprintf("REALLY ABOLISHED %d\n", (int)sg_fr);
-            abolish_incomplete_producer_subgoal(sg_fr);
-            remove_subgoal_frame_from_stack(sg_fr);
+            dprintf("no variant external subsumptive consumer\n");
+            node_list_ptr dep_list = find_external_subsumed_consumers(min, sg_fr, specific_sg);
+            if(dep_list) {
+              dprintf("standalone subsumed consumers\n");
+            } else {
+              dprintf("REALLY ABOLISHED %d\n", (int)sg_fr);
+              abolish_incomplete_producer_subgoal(sg_fr);
+              remove_subgoal_frame_from_stack(sg_fr);
+            }
           }
           break;
         }
@@ -254,21 +352,6 @@ abolish_generator_subgoals_between(sg_fr_ptr specific_sg, choiceptr min, choicep
       }
     }
   }
-}
-
-static inline choiceptr
-find_other_consumer(choiceptr min, sg_fr_ptr cons)
-{
-  dep_fr_ptr top = LOCAL_top_dep_fr;
-  
-  while(top && YOUNGER_CP(DepFr_cons_cp(top), min)) {
-    if(DepFr_sg_fr(top) == cons) {
-      return DepFr_cons_cp(top);
-    }
-    top = DepFr_next(top);
-  }
-  
-  return NULL;
 }
 
 static inline void
@@ -355,6 +438,15 @@ update_top_gen_sg_fields(sg_fr_ptr subgoal, choiceptr limit, sg_fr_ptr new_top)
 }
 
 static inline void
+to_run_completed_node(sg_fr_ptr sg_fr, choiceptr cp)
+{
+  cp->cp_ap = (yamop *)RUN_COMPLETED;
+  
+  CONS_CP(cp)->cp_sg_fr = sg_fr;
+  CONS_CP(cp)->cp_dep_fr = NULL;
+}
+
+static inline void
 internal_producer_to_consumer(grounded_sf_ptr sg_fr, grounded_sf_ptr producer)
 {
   dprintf("internal_producer_to_consumer\n");
@@ -373,10 +465,7 @@ internal_producer_to_consumer(grounded_sf_ptr sg_fr, grounded_sf_ptr producer)
   SgFr_try_answer(sg_fr) = SgFr_last_answer(sg_fr);
   
   /* update generator choice point to point to RUN_COMPLETED */
-  gen_cp->cp_ap = (yamop *)RUN_COMPLETED;
-  /* use cp_dep_fr to put the subgoal frame */
-  CONS_CP(gen_cp)->cp_sg_fr = (sg_fr_ptr)sg_fr;
-  CONS_CP(gen_cp)->cp_dep_fr = NULL;
+  to_run_completed_node((sg_fr_ptr)sg_fr, gen_cp);
   
   dprintf("set as local producer\n");
   SgFr_set_local_producer(producer);
@@ -647,6 +736,12 @@ add_dependency_frame(grounded_sf_ptr sg_fr, choiceptr cp)
     DepFr_set_top_consumer(dep_fr);
   
   cp->cp_ap = ANSWER_RESOLUTION;
+}
+
+void
+reinsert_dependency_frame(dep_fr_ptr dep_fr)
+{
+  find_next_dep_frame(dep_fr, DepFr_cons_cp(dep_fr));
 }
 
 #endif /* TABLING_GROUNDED */

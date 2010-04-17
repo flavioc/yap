@@ -214,7 +214,31 @@ sg_fr_ptr subsumptive_call_search(yamop *code, CELL *answer_template, CELL **new
         break;
     }
   }
-  
+
+#ifdef TABLING_GROUNDED
+  if(SgFr_is_sub_consumer(sg_fr) && SgFr_state(sg_fr) < complete)
+  {
+    int ans_size = (int)**new_local_stack;
+    sg_node_ptr leaf = SgFr_leaf(sg_fr);
+    int nvars = 0;
+    
+    while(!IsTrieRoot(leaf)) {
+      if(IsNewTrieVar(TrNode_entry(leaf)))
+        nvars++;
+      leaf = TrNode_parent(leaf);
+    }
+    
+    if(nvars > ans_size) {
+      int diff = nvars - ans_size;
+      /* must move answer template to give space for a possible generator */
+      dprintf("Moved answer template\n");
+      memmove(*new_local_stack - diff, *new_local_stack, sizeof(CELL)*(ans_size+1));
+      *new_local_stack = *new_local_stack - diff;
+    }
+    
+    dprintf("Num vars: %d Ans Size %d\n", nvars, ans_size);
+  }
+#endif /* TABLING_GROUNDED */
   return sg_fr;
 }
 

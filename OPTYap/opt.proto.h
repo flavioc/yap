@@ -69,6 +69,7 @@ void delete_subgoal_path(sg_fr_ptr sg_fr);
 #ifdef GLOBAL_TRIE
 CELL *load_substitution_variable(gt_node_ptr current_node, CELL *aux_stack_ptr);
 #endif /* GLOBAL_TRIE */
+void complete_dependency_frame(dep_fr_ptr dep_fr);
 void private_completion(sg_fr_ptr sg_fr);
 #ifdef GLOBAL_TRIE
 void free_subgoal_trie_branch(sg_node_ptr node, int nodes_left, int position);
@@ -142,6 +143,7 @@ void consume_subsumptive_answer(CTXTdeclc BTNptr pAnsLeaf, int sizeTmplt, CPtr p
 #ifdef TABLING_CALL_SUBSUMPTION
 void process_pending_subgoal_list(node_list_ptr list, grounded_sf_ptr sg_fr);
 void add_dependency_frame(grounded_sf_ptr sg_fr, choiceptr cp);
+void reinsert_dependency_frame(dep_fr_ptr dep_fr);
 #endif /* TABLING_CALL_SUBSUMPTION */
 
 /* --------------- **

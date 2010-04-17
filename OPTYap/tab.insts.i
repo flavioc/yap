@@ -543,7 +543,24 @@
   CPREG = B->cp_cp;                                             \
   ENV = B->cp_env;                                              \
                                                                 \
-  SgFr_try_answer(sg_fr) = CONT;                                \
+  SgFr_try_answer(SG_FR) = CONT;                                \
+                                                                \
+  PREG = (yamop *) CPREG;                                       \
+  PREFETCH_OP(PREG);                                            \
+  CONSUME_SUBSUMPTIVE_ANSWER(ans_node, answer_template);        \
+  YENV = ENV;                                                   \
+  GONext()
+
+#define consume_next_subsumptive_answer(CONT, SG_FR, DEP_FR)    \
+  CELL *answer_template = GENERATOR_ANSWER_TEMPLATE(B, SG_FR);  \
+  ans_node_ptr ans_node = continuation_answer(CONT);            \
+                                                                \
+  H = HBREG = PROTECT_FROZEN_H(B);                              \
+  restore_yaam_reg_cpdepth(B);                                  \
+  CPREG = B->cp_cp;                                             \
+  ENV = B->cp_env;                                              \
+                                                                \
+  DepFr_last_answer(DEP_FR) = CONT;                             \
                                                                 \
   PREG = (yamop *) CPREG;                                       \
   PREFETCH_OP(PREG);                                            \
@@ -717,111 +734,196 @@
 #ifdef TABLING_GROUNDED
     dprintf("===> TABLE_RUN_COMPLETED\n");
     
-    grounded_sf_ptr sg_fr = (grounded_sf_ptr)CONS_CP(B)->cp_sg_fr;
-    tab_ent_ptr tab_ent = SgFr_tab_ent(sg_fr);
+    sg_fr_ptr cons_sg_fr = (sg_fr_ptr)CONS_CP(B)->cp_sg_fr;
+    tab_ent_ptr tab_ent = SgFr_tab_ent(cons_sg_fr);
+    
+    switch(SgFr_type(cons_sg_fr)) {
+      case GROUND_CONSUMER_SFT: {
+        grounded_sf_ptr sg_fr = (grounded_sf_ptr)cons_sg_fr;
+        
+        if(SgFr_state(SgFr_producer(sg_fr)) < complete) {
+          dprintf("producer not completed!\n");
+          build_next_ground_consumer_return_list(sg_fr);
+          continuation_ptr cont;
 
-    if(SgFr_state(SgFr_producer(sg_fr)) < complete) {
-      dprintf("producer not completed!\n");
-      build_next_ground_consumer_return_list(sg_fr);
-      continuation_ptr cont;
-      
-      if(SgFr_try_answer(sg_fr))
-        cont = continuation_next(SgFr_try_answer(sg_fr));
-      else
-        cont = SgFr_first_answer(sg_fr);
-      
-      if(cont) {
-        dprintf("Consuming...\n");
-        /* as long we can consume answers we
-         * can avoid being a real consumer */
-        consume_next_ground_answer(cont, sg_fr);
-      } else if(SgFr_saved_cp(SgFr_producer(sg_fr))) {
-        grounded_sf_ptr prod = SgFr_producer(sg_fr);
-        choiceptr cp = SgFr_saved_cp(prod);
-        dprintf("saved_cp %d B %d\n", (int)cp, (int)B);
-        dprintf("rebind_variables\n");
-        //restore_bindings(B->cp_tr, cp->cp_tr);
-        dprintf("cp->cp_tr %d B->cp_tr %d\n", (int)cp->cp_tr, (int)B->cp_tr);
-        rebind_variables(cp->cp_tr, B->cp_tr);
-        B = cp;
-        SgFr_saved_cp(prod) = NULL;
-        H = HBREG = PROTECT_FROZEN_H(B);
-        restore_yaam_reg_cpdepth(B);
-        TR = TR_FZ;
-        ENV = B->cp_env;
-        PREG = (yamop *) B->cp_ap;
-        PREFETCH_OP(PREG);
-        YENV = ENV;
-        dprintf("Going to next!\n");
-        GONext();
-      }
-      
-      /* no more answers to consume, transform this node
-         into a consumer */
-      dprintf("Not completed!\n");
-      add_dependency_frame(sg_fr, B);
-      B = B->cp_b;
-      goto fail;
-    }
-    
-    dprintf("just completed!\n");
-    
-    /* producer subgoal just completed */
-    mark_ground_consumer_as_completed(sg_fr);
-    
-    if(TabEnt_is_load(tab_ent)) {
-      
-      build_next_ground_consumer_return_list(sg_fr);
-      continuation_ptr cont;
-      
-      if(SgFr_try_answer(sg_fr)) {
-        /* some answers were consumed before */
-        cont = continuation_next(SgFr_try_answer(sg_fr));
-        
-        if(!cont) {
-          /* fail sooner */
+          if(SgFr_try_answer(sg_fr))
+            cont = continuation_next(SgFr_try_answer(sg_fr));
+          else
+            cont = SgFr_first_answer(sg_fr);
+
+          if(cont) {
+            dprintf("Consuming...\n");
+            /* as long we can consume answers we
+             * can avoid being a real consumer */
+            consume_next_ground_answer(cont, sg_fr);
+          } else if(SgFr_saved_cp(SgFr_producer(sg_fr))) {
+            grounded_sf_ptr prod = SgFr_producer(sg_fr);
+            choiceptr cp = SgFr_saved_cp(prod);
+            dprintf("saved_cp %d B %d\n", (int)cp, (int)B);
+            dprintf("rebind_variables\n");
+            //restore_bindings(B->cp_tr, cp->cp_tr);
+            dprintf("cp->cp_tr %d B->cp_tr %d\n", (int)cp->cp_tr, (int)B->cp_tr);
+            rebind_variables(cp->cp_tr, B->cp_tr);
+            B = cp;
+            SgFr_saved_cp(prod) = NULL;
+            H = HBREG = PROTECT_FROZEN_H(B);
+            restore_yaam_reg_cpdepth(B);
+            TR = TR_FZ;
+            ENV = B->cp_env;
+            PREG = (yamop *) B->cp_ap;
+            PREFETCH_OP(PREG);
+            YENV = ENV;
+            dprintf("Going to next!\n");
+            GONext();
+          }
+
+          /* no more answers to consume, transform this node
+             into a consumer */
+          dprintf("Not completed!\n");
+          add_dependency_frame(sg_fr, B);
           B = B->cp_b;
-          SET_BB(PROTECT_FROZEN_B(B));
           goto fail;
         }
-      } else {
-        /* first answer to consume */
-        if(SgFr_has_no_answers(sg_fr)) {
-          /* goto fail */
+
+        dprintf("just completed!\n");
+
+        /* producer subgoal just completed */
+        mark_ground_consumer_as_completed(sg_fr);
+
+        if(TabEnt_is_load(tab_ent)) {
+
+          build_next_ground_consumer_return_list(sg_fr);
+          continuation_ptr cont;
+
+          if(SgFr_try_answer(sg_fr)) {
+            /* some answers were consumed before */
+            cont = continuation_next(SgFr_try_answer(sg_fr));
+
+            if(!cont) {
+              /* fail sooner */
+              B = B->cp_b;
+              SET_BB(PROTECT_FROZEN_B(B));
+              goto fail;
+            }
+          } else {
+            /* first answer to consume */
+            if(SgFr_has_no_answers(sg_fr)) {
+              /* goto fail */
+              B = B->cp_b;
+              SET_BB(PROTECT_FROZEN_B(B));
+              goto fail;
+            }
+
+            cont = SgFr_first_answer(sg_fr);
+          }
+
+          CELL *answer_template = GENERATOR_ANSWER_TEMPLATE(B, sg_fr);
+
+          /* pop consumer/generator node */  
+          H = PROTECT_FROZEN_H(B);
+          pop_yaam_reg_cpdepth(B);
+          CPREG = B->cp_cp;
+          ENV = B->cp_env;
+          TR = B->cp_tr;
           B = B->cp_b;
+          HBREG = PROTECT_FROZEN_H(B);
+          YENV = answer_template;
           SET_BB(PROTECT_FROZEN_B(B));
+
+          /* load first answer */
+          ans_node_ptr ans_node = continuation_answer(cont);
+
+          /* ... and store a loader! */
+          if(continuation_has_next(cont)) {
+            dprintf("stored loader\n");
+            store_loader_node(tab_ent, cont, LOAD_CONS_ANSWER);
+          }
+
+          consume_answer_leaf(ans_node, answer_template, CONSUME_SUBSUMPTIVE_ANSWER);
+
+        } else {
+          /* XXX: run compiled code */
+        }
+      }
+      break;
+      case SUBSUMED_CONSUMER_SFT: {
+        dprintf("RUN_COMPLETED SUBSUMED CONSUMER!\n");
+        subcons_fr_ptr sg_fr = (subcons_fr_ptr)cons_sg_fr;
+        dep_fr_ptr dep_fr = CONS_CP(B)->cp_dep_fr;
+        
+        if(SgFr_state(SgFr_producer(sg_fr)) < complete) {
+          continuation_ptr cont;
+          
+          dprintf("producer not completed!\n");
+          build_next_subsumptive_consumer_return_list(sg_fr);
+          
+          cont = continuation_next(DepFr_last_answer(dep_fr));
+
+          if(cont) {
+            dprintf("Consuming...\n");
+            /* as long we can consume answers we
+             * can avoid being a real consumer */
+            consume_next_subsumptive_answer(cont, sg_fr, dep_fr);
+          }
+
+          /* no more answers to consume, transform this node
+             into a consumer */
+          dprintf("Not completed sub!\n");
+          reinsert_dependency_frame(dep_fr);
+          B = B->cp_b;
           goto fail;
         }
-        
-        cont = SgFr_first_answer(sg_fr);
+
+        dprintf("just completed sub!\n");
+
+        /* producer subgoal just completed */
+        complete_dependency_frame(dep_fr);
+
+        if(TabEnt_is_load(tab_ent)) {
+          continuation_ptr cont;
+          
+          build_next_subsumptive_consumer_return_list(sg_fr);
+          
+          cont = continuation_next(DepFr_last_answer(dep_fr));
+          if(!cont) {
+            /* fail sooner */
+            B = B->cp_b;
+            SET_BB(PROTECT_FROZEN_B(B));
+            goto fail;
+          }
+
+          CELL *answer_template = GENERATOR_ANSWER_TEMPLATE(B, sg_fr);
+
+          /* pop consumer/generator node */  
+          H = PROTECT_FROZEN_H(B);
+          pop_yaam_reg_cpdepth(B);
+          CPREG = B->cp_cp;
+          ENV = B->cp_env;
+          TR = B->cp_tr;
+          B = B->cp_b;
+          HBREG = PROTECT_FROZEN_H(B);
+          YENV = answer_template;
+          SET_BB(PROTECT_FROZEN_B(B));
+
+          /* load answer */
+          ans_node_ptr ans_node = continuation_answer(cont);
+
+          /* ... and store a loader! */
+          if(continuation_has_next(cont)) {
+            dprintf("stored loader\n");
+            store_loader_node(tab_ent, cont, LOAD_CONS_ANSWER);
+          }
+
+          consume_answer_leaf(ans_node, answer_template, CONSUME_SUBSUMPTIVE_ANSWER);
+
+        } else {
+          /* XXX: run compiled code */
+        }
       }
-      
-      CELL *answer_template = GENERATOR_ANSWER_TEMPLATE(B, sg_fr);
-      
-      /* pop consumer/generator node */  
-      H = PROTECT_FROZEN_H(B);
-      pop_yaam_reg_cpdepth(B);
-      CPREG = B->cp_cp;
-      ENV = B->cp_env;
-      TR = B->cp_tr;
-      B = B->cp_b;
-      HBREG = PROTECT_FROZEN_H(B);
-      YENV = answer_template;
-      SET_BB(PROTECT_FROZEN_B(B));
-      
-      /* load first answer */
-      ans_node_ptr ans_node = continuation_answer(cont);
-        
-      /* ... and store a loader! */
-      if(continuation_has_next(cont)) {
-        dprintf("stored loader\n");
-        store_loader_node(tab_ent, cont, LOAD_CONS_ANSWER);
-      }
-      
-      consume_answer_leaf(ans_node, answer_template, CONSUME_SUBSUMPTIVE_ANSWER);
-      
-    } else {
-      /* XXX: run compiled code */
+      break;
+      default:
+      dprintf("default fail!\n");
+      break;
     }
     
     printf("CANT BE HERE!!!\n");
@@ -1651,7 +1753,7 @@
 
       push_new_answer_set(ans_node, SgFr_first_answer(sg_fr), SgFr_last_answer(sg_fr));
       
-#ifdef TABLING_CALL_SUBSUMPTION
+#ifdef TABLING_GROUNDED
       dprintf("NEW_ANSWER_CP=%d\n", (int)B);
       
       if(SgFr_is_ground_producer(sg_fr)) {
@@ -1659,7 +1761,7 @@
         SgFr_update_saved_max(ground);
       }
       Bind_and_Trail(&SgFr_executing(sg_fr), (Term)B);
-#endif
+#endif /* TABLING_GROUNDED */
 
 #ifdef TABLING_ERRORS
       if(SgFr_first_answer(sg_fr)) {

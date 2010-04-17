@@ -146,7 +146,7 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
       SgFr_set_top_internal(SG_FR); \
   } while(0)
 #else
-#define SET_TOP_SG(SG_FR) /* nothing */
+#define SET_TOP_GEN_SG(SG_FR) /* nothing */
 #define SAVE_TOP_GEN_SG(DEP_FR) /* nothing */
 #define RESTORE_TOP_GEN_SG(DEP_FR) /* nothing */
 #define SAVE_SG_TOP_GEN_SG(SG_FR) /* nothing */
@@ -395,16 +395,23 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
           SgFr_first_answer(SG_FR) = NULL;                         \
           SgFr_last_answer(SG_FR) = NULL;                          \
         }
-        
+
+#ifdef TABLING_GROUNDED
+#define producer_sg_fr_init(SG_FR) \
+  RESET_VARIABLE(&SgFr_executing(SG_FR));  \
+  RESET_VARIABLE(&SgFr_start(SG_FR))
+#else
+#define producer_sg_fr_init(SG_FR) /* do nothing */
+#endif /* TABLING_GROUNDED */
+
 #define new_variant_subgoal_frame(SG_FR, CODE, LEAF)  { \
         new_basic_subgoal_frame(SG_FR, CODE, LEAF,                \
           VARIANT_PRODUCER_SFT, ALLOC_VARIANT_SUBGOAL_FRAME);     \
         add_answer_trie_subgoal_frame(SG_FR);                     \
-        RESET_VARIABLE(&SgFr_executing(SG_FR));  \
-        RESET_VARIABLE(&SgFr_start(SG_FR)); \
+        producer_sg_fr_init(SG_FR);                               \
     }
-    
-#ifdef TABLING_CALL_SUBSUMPTION
+
+#ifdef TABLING_GROUNDED
 #define SgFr_init_prev_fields(SG_FR)  \
     SgFr_prev(SG_FR) = NULL;  \
     if(LOCAL_top_sg_fr != NULL) \
@@ -413,7 +420,7 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
 #define SgFr_is_top_stack(SG_FR) SgFr_prev(SG_FR) == NULL
 #else
 #define SgFr_init_prev_fields(SG_FR) /* nothing */
-#endif /* TABLING_CALL_SUBSUMPTION */
+#endif /* TABLING_GROUNDED */
 
 #define init_subgoal_frame(SG_FR)                                  \
         { SgFr_init_yapor_fields(SG_FR);                           \
@@ -1161,11 +1168,11 @@ void abolish_incomplete_subgoals(choiceptr prune_cp) {
 #endif /* LIMIT_TABLING */
   }
   
-#ifdef TABLING_CALL_SUBSUMPTION
+#ifdef TABLING_GROUNDED
   if(LOCAL_top_sg_fr != NULL)
     SgFr_prev(LOCAL_top_sg_fr) = NULL;
   SET_TOP_GEN_SG(LOCAL_top_sg_fr);
-#endif /* TABLING_CALL_SUBSUMPTION */
+#endif /* TABLING_GROUNDED */
 }
 
 static inline

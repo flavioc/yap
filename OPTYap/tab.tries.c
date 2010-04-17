@@ -328,7 +328,7 @@ CELL *load_substitution_variable(gt_node_ptr current_node, CELL *aux_stack_ptr) 
 }
 #endif /* GLOBAL_TRIE */
 
-static inline void
+void
 complete_dependency_frame(dep_fr_ptr dep_fr)
 {
 #ifdef TABLING_CALL_SUBSUMPTION
@@ -396,10 +396,10 @@ void private_completion(sg_fr_ptr sg_fr) {
   LOCAL_top_sg_fr = SgFr_next(LOCAL_top_sg_fr);
 #endif /* LIMIT_TABLING */
 
-#ifdef TABLING_CALL_SUBSUMPTION
+#ifdef TABLING_GROUNDED
   if(LOCAL_top_sg_fr != NULL)
     SgFr_prev(LOCAL_top_sg_fr) = NULL;
-#endif
+#endif /* TABLING_GROUNDED */
 
   SET_TOP_GEN_SG(LOCAL_top_sg_fr);
   
