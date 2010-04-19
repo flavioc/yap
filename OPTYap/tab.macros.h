@@ -130,20 +130,24 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
     LOCAL_top_gen_sg = SG_FR; \
   } while(0)
 #define SAVE_TOP_GEN_SG(DEP_FR) do { \
-    /*dprintf("LOCAL_top_gen_sg cp %d saved into dep_fr %d\n", (int)LOCAL_top_gen_sg, (int)DEP_FR);*/ \
+    dprintf("LOCAL_top_gen_sg cp %d saved into dep_fr %d\n", (int)LOCAL_top_gen_sg, (int)DEP_FR); \
     DepFr_top_gen_sg(DEP_FR) = LOCAL_top_gen_sg; \
-    if(LOCAL_top_gen_sg && SgFr_is_internal(LOCAL_top_gen_sg))  \
+    if(LOCAL_top_gen_sg && SgFr_is_internal(LOCAL_top_gen_sg)) { \
       DepFr_set_top_internal(DEP_FR); \
+      dprintf("set as internal\n"); \
+    } \
   } while (0)
 #define RESTORE_TOP_GEN_SG(DEP_FR) do { \
-    /*dprintf("Restored LOCAL_top_gen_sg %d from dep_fr %d\n", (int)DepFr_top_gen_sg(DEP_FR), (int)DEP_FR);*/ \
+    dprintf("Restored LOCAL_top_gen_sg %d from dep_fr %d\n", (int)DepFr_top_gen_sg(DEP_FR), (int)DEP_FR); \
     LOCAL_top_gen_sg = DepFr_get_top_gen_sg(DEP_FR); \
   } while(0)
 #define SAVE_SG_TOP_GEN_SG(SG_FR) do { \
-    /*dprintf("LOCAL_top_gen_sg %d saved into gen %d\n", (int)LOCAL_top_gen_sg, (int)SG_FR);*/ \
+    dprintf("LOCAL_top_gen_sg %d saved into gen %d\n", (int)LOCAL_top_gen_sg, (int)SG_FR); \
     SgFr_top_gen_sg(SG_FR) = LOCAL_top_gen_sg; \
-    if(LOCAL_top_gen_sg && SgFr_is_internal(LOCAL_top_gen_sg))  \
+    if(LOCAL_top_gen_sg && SgFr_is_internal(LOCAL_top_gen_sg)) { \
+      dprintf("Set as internal\n");  \
       SgFr_set_top_internal(SG_FR); \
+    } \
   } while(0)
 #else
 #define SET_TOP_GEN_SG(SG_FR) /* nothing */

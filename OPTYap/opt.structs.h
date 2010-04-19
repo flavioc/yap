@@ -401,6 +401,7 @@ struct local_data{
   struct subgoal_frame *top_subgoal_frame; /* MUST BE BASE XXXX */
 #ifdef TABLING_CALL_SUBSUMPTION
   struct subgoal_frame *top_gen_sg;
+  struct node_list *restarted_generators;
 #endif /* TABLING_CALL_SUBSUMPTION */
   struct dependency_frame *top_dependency_frame;
 #ifdef TABLING_INNER_CUTS
@@ -451,6 +452,7 @@ struct local_data{
 #define LOCAL_top_sg_fr                    (LOCAL->top_subgoal_frame)
 #define LOCAL_top_dep_fr                   (LOCAL->top_dependency_frame)
 #define LOCAL_top_gen_sg                   (LOCAL->top_gen_sg)
+#define LOCAL_restarted_gens               (LOCAL->restarted_generators)
 #define LOCAL_pruning_scope                (LOCAL->bottom_pruning_scope)
 #if THREADS
 #define Get_LOCAL_top_cp_on_stack() offset_to_cptr(LOCAL->top_choice_point_on_stack_offset)

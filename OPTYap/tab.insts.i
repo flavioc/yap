@@ -678,6 +678,8 @@
     ans_node_ptr ans_node = NULL;
     continuation_ptr next_cont;
 
+    remove_from_restarted_gens(B);
+
     sg_fr = GEN_CP(B)->cp_sg_fr;
     next_cont = continuation_next(SgFr_try_answer(sg_fr));
   
@@ -1918,7 +1920,7 @@
 
     UNLOCK(DepFr_lock(dep_fr));
     
-#ifdef TABLING_CALL_SUBSUMPTION
+#ifdef TABLING_GROUNDED
     if(DepFr_is_top_consumer(dep_fr)) {
       grounded_sf_ptr sg_fr = (grounded_sf_ptr)DepFr_sg_fr(dep_fr);
       grounded_sf_ptr prod = SgFr_producer(sg_fr);
@@ -1940,7 +1942,7 @@
         GONext();
       }
     }
-#endif /* TABLING_CALL_SUBSUMPTION */
+#endif /* TABLING_GROUNDED */
 
 #ifdef YAPOR
     if (B == DepFr_leader_cp(LOCAL_top_dep_fr)) {
@@ -2257,9 +2259,38 @@
         dprintf("LEADER_CP=%d\n", (int)DepFr_leader_cp(LOCAL_top_dep_fr));
         if (EQUAL_OR_YOUNGER_CP(B_FZ, B) && B != DepFr_leader_cp(LOCAL_top_dep_fr)) {
           /* not leader on that node */
-          dprintf("not leader on that node\n");
+          dprintf("not leader on that node (LEADER_CP=%d)\n", (int)DepFr_leader_cp(LOCAL_top_dep_fr));
           update_generator_node(GEN_CP(B)->cp_sg_fr);
+
+#ifdef TABLING_GROUNDED
+    node_list_ptr restart_gens = LOCAL_restarted_gens;
+
+    if (restart_gens && YOUNGER_CP(SgFr_choice_point((sg_fr_ptr)NodeList_node(restart_gens)), B)) {
+      dprintf("ONE RESTARTED GEN\n");
+      sg_fr_ptr sg_fr = (sg_fr_ptr)NodeList_node(restart_gens);
+      choiceptr target_cp = SgFr_choice_point(sg_fr);
+      rebind_variables(target_cp->cp_tr, B->cp_tr);
+      dprintf("B->cp_tr %d target_cp->cp_tr %d TR %d TR_FZ %d\n", (int)B->cp_tr, (int)target_cp->cp_tr, (int)TR, (int)TR_FZ);
+      B = target_cp;
+      TR = TR_FZ;
+      dprintf("TR %d TR_FZ %d\n", (int)TR, (int)TR_FZ);
+      if (TR != B->cp_tr)
+        TRAIL_LINK(B->cp_tr);
+      H = HBREG = PROTECT_FROZEN_H(B);
+      restore_yaam_reg_cpdepth(B);
+      ENV = B->cp_env;
+      PREG = (yamop *)B->cp_ap;
+      PREFETCH_OP(PREG);
+      YENV = ENV;
+      GONext();
+    }
+    dprintf("TR %d TR_FZ %d\n", (int)TR, (int)TR_FZ);
+    dprintf("No generators to restart\n");
+#endif /* TABLING_GROUNDED */
+
           B = B->cp_b;
+          dprintf("B->cp_tr %d\n", B->cp_tr);
+          dprintf("Going to cp %d\n", (int)B);
           goto fail;
         }
       } else {
