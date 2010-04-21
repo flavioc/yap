@@ -78,10 +78,13 @@ find_external_consumer(sg_fr_ptr specific_sg, choiceptr min, sg_fr_ptr gen, dep_
   /* find first running consumer starting from min */
   while(top && YOUNGER_CP(DepFr_cons_cp(top), min)) {
     if(DepFr_sg_fr(top) == gen) {
+      dprintf("found a dep fr for gencp %d\n", (int)SgFr_choice_point(gen));
       if(!is_internal_dep_fr(specific_sg, top, min)) {
         dprintf("Found one external dep_fr %d cp %d\n", (int)top, (int)DepFr_cons_cp(top));
         *external_before = before;
         found = top;
+      } else {
+        dprintf("But is internal!\n");
       }
     }
     before = top;
@@ -325,7 +328,7 @@ transform_sub_ans_tmplt_to_generator(CELL *at, CELL *stack_at)
   CELL *at_pt;
   int i;
 
-  printf("Answer template size: %d\n", size);
+  dprintf("Answer template size: %d\n", size);
 
 
   for(i = 0; i < size; ++i) {
@@ -375,8 +378,10 @@ abolish_generator_subgoals_between(sg_fr_ptr specific_sg, choiceptr min, choicep
         case VARIANT_PRODUCER_SFT:
           external = find_external_consumer(specific_sg, min, sg_fr, &external_before);
           if(external) {
+            dprintf("Could find external dep fr!\n");
             change_generator_subgoal_frame(sg_fr, external, external_before, min, max);
           } else {
+            dprintf("Could not find external dep fr!\n");
             dprintf("REALLY ABOLISHED %d\n", (int)sg_fr);
             abolish_incomplete_producer_subgoal(sg_fr);
             remove_subgoal_frame_from_stack(sg_fr);
