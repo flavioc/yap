@@ -552,6 +552,12 @@ external_producer_to_consumer(grounded_sf_ptr sg_fr, grounded_sf_ptr producer)
   choiceptr limit_cp = SgFr_new_answer_cp(sg_fr);
   choiceptr min = gen_cp;
   choiceptr max = SgFr_saved_max(sg_fr);
+
+  dprintf("gen_cp->cp_ap %d COMPLETION %d\n", (int)gen_cp->cp_ap, (int)COMPLETION);
+  if(gen_cp->cp_ap == COMPLETION)
+    dprintf("to run completion\n");
+  else
+    dprintf("to not run completion\n");
   
   abolish_generator_subgoals_between((sg_fr_ptr)sg_fr, min, max);
   abolish_dependency_frames_between((sg_fr_ptr)sg_fr, min, max);
@@ -563,7 +569,7 @@ external_producer_to_consumer(grounded_sf_ptr sg_fr, grounded_sf_ptr producer)
   
   /* set last answer consumed for load answers */
   SgFr_try_answer(sg_fr) = SgFr_last_answer(sg_fr);
-  
+
   if(SgFr_started(sg_fr)) {
     /* update generator choice point to point to RUN_COMPLETED */
     gen_cp->cp_ap = (yamop *)RUN_COMPLETED;
@@ -806,6 +812,8 @@ add_dependency_frame(grounded_sf_ptr sg_fr, choiceptr cp)
     DepFr_set_top_consumer(dep_fr);
   
   cp->cp_ap = ANSWER_RESOLUTION;
+
+  dprintf("add_dependency_frame finished\n");
 }
 
 void

@@ -784,6 +784,10 @@
           dprintf("Not completed!\n");
           add_dependency_frame(sg_fr, B);
           B = B->cp_b;
+          dprintf("going to fail instr %d\n", (int)B->cp_ap);
+          if(B->cp_ap == NULL)
+            B->cp_ap = COMPLETION;
+          dprintf("going to fail instr %d\n", (int)B->cp_ap);
           goto fail;
         }
 
@@ -2263,7 +2267,6 @@
           dprintf("not leader on that node (LEADER_CP=%d)\n", (int)DepFr_leader_cp(LOCAL_top_dep_fr));
           update_generator_node(GEN_CP(B)->cp_sg_fr);
 
-#if 0
 #ifdef TABLING_GROUNDED
     node_list_ptr restart_gens = LOCAL_restarted_gens;
 
@@ -2289,11 +2292,14 @@
     dprintf("TR %d TR_FZ %d\n", (int)TR, (int)TR_FZ);
     dprintf("No generators to restart\n");
 #endif /* TABLING_GROUNDED */
-#endif
 
           B = B->cp_b;
           dprintf("B->cp_tr %d\n", B->cp_tr);
-          dprintf("Going to cp %d\n", (int)B);
+          dprintf("Going to cp %d instr %d\n", (int)B, (int)B->cp_ap);
+          //B->cp_ap = COMPLETION;
+          if(B->cp_ap == NULL)
+            B->cp_ap = COMPLETION;
+          dprintf("Going to cp %d instr %d\n", (int)B, (int)B->cp_ap);
           goto fail;
         }
       } else {
