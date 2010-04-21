@@ -52,9 +52,14 @@
     if(SgFr_is_ground_producer(SG_FR)) {  \
       SgFr_update_saved_max((grounded_sf_ptr)(SG_FR));       \
     }
+#define DepFr_add_queue(DEP_FR) \
+        DepFr_prev(LOCAL_top_dep_fr) = DEP_FR;  \
+        LOCAL_top_dep_fr = DEP_FR
 #else
 #define store_cons_args_local_stack(ARITY) /* do nothing */
 #define update_generator_node(SG_FR) /* do nothing */
+#define DepFr_add_queue(DEP_FR) \
+        LOCAL_top_dep_fr = DEP_FR
 #endif /* TABLING_GROUNDED */
 
 #define store_generator_node(TAB_ENT, SG_FR, ARITY, AP)               \
@@ -84,7 +89,7 @@
             /* store dependency frame */                              \
             new_dependency_frame(new_dep_fr, TRUE, LOCAL_top_or_fr,   \
                                  gcp, gcp, SG_FR, LOCAL_top_dep_fr);  \
-            LOCAL_top_dep_fr = new_dep_fr;                            \
+            DepFr_add_queue(new_dep_fr);                              \
             GEN_CP(gcp)->cp_dep_fr = LOCAL_top_dep_fr;                \
           } else {                                                    \
             /* go batched */                                          \
@@ -194,8 +199,8 @@
           /* store dependency frame */                                     \
           new_dependency_frame(new_dep_fr, DEP_ON_STACK, LOCAL_top_or_fr,  \
                                LEADER_CP, ccp, SG_FR, LOCAL_top_dep_fr);   \
+          DepFr_add_queue(new_dep_fr);                                     \
           SAVE_TOP_GEN_SG(new_dep_fr);                                     \
-          LOCAL_top_dep_fr = new_dep_fr;                                   \
           /* store consumer choice point */                                \
           HBREG = H;                                                       \
           store_yaam_reg_cpdepth(ccp);                                     \

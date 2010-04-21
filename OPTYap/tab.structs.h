@@ -492,9 +492,10 @@ typedef struct dependency_frame {
   choiceptr leader_choice_point;
   choiceptr consumer_choice_point;
   continuation_ptr last_consumed_answer;
-#ifdef TABLING_CALL_SUBSUMPTION
+#ifdef TABLING_GROUNDED
   sg_fr_ptr top_gen_sg; /* NEW */
-#endif /* TABLING_CALL_SUBSUMPTION */
+  struct dependency_frame *prev;
+#endif /* TABLING_GROUNDED */
   sg_fr_ptr sg_fr; /* NEW */
   struct dependency_frame *next;
 } *dep_fr_ptr;
@@ -510,6 +511,7 @@ typedef struct dependency_frame {
 #define DepFr_last_answer(X)             ((X)->last_consumed_answer)
 #define DepFr_sg_fr(X)                   ((X)->sg_fr)
 #define DepFr_next(X)                    ((X)->next)
+#define DepFr_prev(X)                    ((X)->prev)
 #define DepFr_flags(X)                   ((X)->flags)
 #define DepFr_set_flag(X, FLAG)          ((X)->flags |= (FLAG))
 #define DepFr_is_top_consumer(X)         (DepFr_flags(X) & DEP_FR_TOP_CONSUMER)

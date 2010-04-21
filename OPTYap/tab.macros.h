@@ -562,6 +562,11 @@ join_answers_subgoal_frame(sg_fr_ptr sg_fr, continuation_ptr first, continuation
                  
 #endif /* TABLING_ANSWER_LIST */
 
+#ifdef TABLING_GROUNDED
+#define DepFr_init_prev_fields(DEP_FR) DepFr_prev(DEP_FR) = NULL
+#else
+#define DepFr_init_prev_fields(DEP_FR) /* do nothing */
+#endif /* TABLING_GROUNDED */
 
 #define new_dependency_frame(DEP_FR, DEP_ON_STACK, TOP_OR_FR, LEADER_CP, CONS_CP, SG_FR, NEXT)         \
         ALLOC_DEPENDENCY_FRAME(DEP_FR);                                                                \
@@ -571,6 +576,7 @@ join_answers_subgoal_frame(sg_fr_ptr sg_fr, continuation_ptr first, continuation
         DepFr_leader_cp(DEP_FR) = NORM_CP(LEADER_CP);                                                  \
         DepFr_cons_cp(DEP_FR) = NORM_CP(CONS_CP);                                                      \
         DepFr_next(DEP_FR) = NEXT;                                                                     \
+        DepFr_init_prev_fields(DEP_FR);                                                                \
         DepFr_sg_fr(DEP_FR) = SG_FR;                                                                   \
         DepFr_last_answer(DEP_FR) = (continuation_ptr)CONSUMER_DEFAULT_LAST_ANSWER(SG_FR, DEP_FR);     \
         DepFr_flags(DEP_FR) = 0
