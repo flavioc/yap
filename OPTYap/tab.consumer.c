@@ -230,16 +230,26 @@ change_generator_subgoal_frame(sg_fr_ptr sg_fr, dep_fr_ptr external, dep_fr_ptr 
   abolish_dependency_frame(external);
 }
 
+#define REMOVE_DEP_FR_FROM_STACK(DEP_FR)                      \
+  REMOVE_DEP_FR_FROM_STACK_NEXT(DEP_FR, DepFr_next(DEP_FR))
+
+#define REMOVE_DEP_FR_FROM_STACK_NEXT(DEP_FR, NEXT)         \
+  if(DEP_FR == LOCAL_top_dep_fr)                            \
+    LOCAL_top_dep_fr = NEXT;                                \
+  else                                                      \
+    DepFr_next(DepFr_prev(DEP_FR)) = NEXT;                  \
+  if(NEXT)                                                  \
+    DepFr_prev(NEXT) = DepFr_prev(DEP_FR)
+
+
 static inline void
 update_subsumed_before_dependencies(sg_fr_ptr sg_fr, choiceptr min, sg_fr_ptr specific_sg)
 {
   choiceptr limit = SgFr_choice_point(sg_fr);
   dep_fr_ptr top = LOCAL_top_dep_fr;
-  dep_fr_ptr before = NULL;
   
   while(top && EQUAL_OR_YOUNGER_CP(DepFr_cons_cp(top), limit)) {
     dprintf("Skipped one possible subsumptive consumer cp %d\n", (int)DepFr_cons_cp(top));
-    before = top;
     top = DepFr_next(top);
   }
   
@@ -257,17 +267,10 @@ update_subsumed_before_dependencies(sg_fr_ptr sg_fr, choiceptr min, sg_fr_ptr sp
       CONS_CP(cp)->cp_sg_fr = cons_sg_fr;
       CONS_CP(cp)->cp_dep_fr = top;
       
-      /* remove dependency frame */
-      if(before == NULL)
-        LOCAL_top_dep_fr = DepFr_next(top);
-      else
-        DepFr_next(before) = DepFr_next(top);
-      
-      top = DepFr_next(top);
-    } else {
-      before = top;
-      top = DepFr_next(top);
+      REMOVE_DEP_FR_FROM_STACK(top);
     }
+
+    top = DepFr_next(top);
   }
 }
 
@@ -427,10 +430,8 @@ static inline void
 abolish_dependency_frames_between(sg_fr_ptr specific_sg, choiceptr min, choiceptr max)
 {
   dep_fr_ptr top = LOCAL_top_dep_fr;
-  dep_fr_ptr before = NULL;
   
   while(top && YOUNGER_CP(DepFr_cons_cp(top), max)) {	 	
-    before = top;	 	
     dprintf("Skipped one consumer %d\n", (int)DepFr_cons_cp(top));	 	
     top = DepFr_next(top);
   }
@@ -442,14 +443,10 @@ abolish_dependency_frames_between(sg_fr_ptr specific_sg, choiceptr min, choicept
     top = DepFr_next(dep_fr);
     
     if(is_internal_dep_fr(specific_sg, dep_fr, min)) {
-      if(before == NULL)
-        LOCAL_top_dep_fr = top;
-      else
-        DepFr_next(before) = top;
+      REMOVE_DEP_FR_FROM_STACK_NEXT(dep_fr, top);
       dprintf("Removing consumer choice point %d\n", (int)DepFr_cons_cp(dep_fr));
       abolish_dependency_frame(dep_fr);
-    } else
-      before = dep_fr;
+    }
   }
 }
 
@@ -488,7 +485,7 @@ update_top_gen_sg_fields(sg_fr_ptr subgoal, choiceptr limit, sg_fr_ptr new_top)
   sg_fr_ptr top_gen = LOCAL_top_sg_fr;
   while(top_gen && SgFr_choice_point(top_gen) <= limit) {
     if(SgFr_get_top_gen_sg(top_gen) == subgoal) {
-      //printf("Updated one top gen sg\n");
+      dprintf("Updated one top gen sg\n");
       SgFr_top_gen_sg(top_gen) = new_top;
     }
     top_gen = SgFr_next(top_gen);
@@ -525,8 +522,8 @@ internal_producer_to_consumer(grounded_sf_ptr sg_fr, grounded_sf_ptr producer)
   choiceptr min = gen_cp;
   choiceptr max = B_FZ < limit_cp ? B_FZ : limit_cp;
   
-  abolish_generator_subgoals_between((sg_fr_ptr)sg_fr, min, max);
   abolish_dependency_frames_between((sg_fr_ptr)sg_fr, min, max);
+  abolish_generator_subgoals_between((sg_fr_ptr)sg_fr, min, max);
   
   adjust_generator_to_consumer_answer_template(gen_cp, (sg_fr_ptr)sg_fr);
   
@@ -559,8 +556,8 @@ external_producer_to_consumer(grounded_sf_ptr sg_fr, grounded_sf_ptr producer)
   else
     dprintf("to not run completion\n");
   
-  abolish_generator_subgoals_between((sg_fr_ptr)sg_fr, min, max);
   abolish_dependency_frames_between((sg_fr_ptr)sg_fr, min, max);
+  abolish_generator_subgoals_between((sg_fr_ptr)sg_fr, min, max);
   /* update top generator subgoal */
   /* use min to include internal subgoal frames that have external consumers */
   update_top_gen_sg_fields((sg_fr_ptr)sg_fr, min, SgFr_top_gen_sg(sg_fr));
