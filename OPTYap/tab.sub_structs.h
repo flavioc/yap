@@ -114,6 +114,24 @@ typedef subsumptive_consumer_sf *subcons_fr_ptr;
 #define SgFr_at_block(X)        ((X)->at_block)
 #define SgFr_num_deps(X)        ((X)->num_deps)
 
+/* --------------- **
+**   stack state   **
+** --------------- */
+
+struct tab_stack_state {
+  struct dependency_frame *dep_fr;
+  sg_fr_ptr sg_fr;
+};
+
+#define StackState_dep_fr(X) ((X).dep_fr)
+#define StackState_sg_fr(X)  ((X).sg_fr)
+
+/* --------------------------------------------------- */
+
+/* ---------------------- **
+**  ground subgoal frame  **
+** ---------------------- */
+
 typedef struct grounded_subgoal_frame *grounded_sf_ptr;
 
 #define SUBGOAL_FRAME_TYPE_OTHER_MASK 0xF0
@@ -160,9 +178,12 @@ struct grounded_subgoal_frame {
   CELL at_block[AT_BLOCK_SIZE];
   
   int num_ans;
+
+  struct tab_stack_state stack_state;
 };
 
 #define SgFr_num_ans(X)             ((X)->num_ans)
+#define SgFr_stack_state(X)         ((X)->stack_state)
 
 #define SgFr_start_cp(X)            ((choiceptr)SgFr_start(X))
 #define SgFr_new_answer_cp(X)       ((choiceptr)SgFr_executing(X))
@@ -183,12 +204,16 @@ struct grounded_subgoal_frame {
 #define SgFr_is_producer(X)         (SgFr_flags(X) & SG_FR_PRODUCER)
 #define SgFr_set_producer(X)        (SgFr_flags(X) |= SG_FR_PRODUCER)
 
+#define SgFr_set_saved_max(X, VAL) \
+      SgFr_saved_max(X) = VAL;  \
+      StackState_dep_fr(SgFr_stack_state(X)) = LOCAL_top_dep_fr;  \
+      StackState_sg_fr(SgFr_stack_state(X)) = LOCAL_top_sg_fr
+
 #define SgFr_update_saved_max(X)    { \
-    if(B < SgFr_saved_max(X)) \
-      SgFr_saved_max(X) = B;  \
-    if(B_FZ < SgFr_saved_max(X)) \
-      SgFr_saved_max(X) = B_FZ; \
-  }
+    if(B < SgFr_saved_max(X) || B_FZ < SgFr_saved_max(X)) { \
+      SgFr_set_saved_max(X, B_FZ < B ? B_FZ : B); \
+    } \
+}
 
 #define TabEnt_ground_trie(X)       (TrNode_next(TabEnt_subgoal_trie(X)))
 #define TabEnt_has_ground_trie(X)   (TabEnt_ground_trie(X) != NULL)
@@ -196,6 +221,8 @@ struct grounded_subgoal_frame {
                                       TSTN_time_stamp((tst_node_ptr)TabEnt_ground_trie(X))  \
                                       : 0)
                                       
+/* ------------------------------------------------------ */
+
 /* table entry flags */
 #define TABLE_ENTRY_COMPLETED 0x01
 #define TABLE_ENTRY_PROPER_CONSUMERS 0x02

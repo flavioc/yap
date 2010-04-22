@@ -516,8 +516,7 @@
      
 #define precheck_ground_generator(SG_FR)                            \
      if(SgFr_is_ground_producer(SG_FR)) {                           \
-       SgFr_saved_max((grounded_sf_ptr)(SG_FR)) = B;                \
-       SgFr_update_saved_max((grounded_sf_ptr)(SG_FR));             \
+       SgFr_set_saved_max((grounded_sf_ptr)(SG_FR), B);             \
      }                                                              \
      Bind_and_Trail(&SgFr_start(SG_FR), (Term)B_FZ)
 

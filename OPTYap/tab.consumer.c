@@ -353,14 +353,8 @@ transform_specific_consumer_into_generator(dep_fr_ptr dep_fr)
 static inline void
 abolish_generator_subgoals_between(sg_fr_ptr specific_sg, choiceptr min, choiceptr max)
 {
-  sg_fr_ptr top = SgFr_next(LOCAL_top_sg_fr);
+  sg_fr_ptr top = StackState_sg_fr(SgFr_stack_state((grounded_sf_ptr)specific_sg));
   dep_fr_ptr external, external_before = NULL;
-  
-  /* ignore younger generators */
-  while(top && YOUNGER_CP(SgFr_choice_point(top), max)) {
-    dprintf("Ignored one younger generator cp %d\n", (int)SgFr_choice_point(top));
-    top = SgFr_next(top);
-  }
   
   /* abolish generators */
   while(top && EQUAL_OR_YOUNGER_CP(SgFr_choice_point(top), min))
@@ -429,12 +423,7 @@ abolish_generator_subgoals_between(sg_fr_ptr specific_sg, choiceptr min, choicep
 static inline void
 abolish_dependency_frames_between(sg_fr_ptr specific_sg, choiceptr min, choiceptr max)
 {
-  dep_fr_ptr top = LOCAL_top_dep_fr;
-  
-  while(top && YOUNGER_CP(DepFr_cons_cp(top), max)) {	 	
-    dprintf("Skipped one consumer %d\n", (int)DepFr_cons_cp(top));	 	
-    top = DepFr_next(top);
-  }
+  dep_fr_ptr top = StackState_dep_fr(SgFr_stack_state((grounded_sf_ptr)specific_sg));
   
   dprintf("min=%d max=%d\n", (int)min, (int)max);
   
