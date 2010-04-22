@@ -767,26 +767,26 @@ find_next_dep_frame(dep_fr_ptr dep_fr, choiceptr cp)
 {
   if(LOCAL_top_dep_fr == NULL) {
     LOCAL_top_dep_fr = dep_fr;
+    DepFr_prev(dep_fr) = NULL;
+    DepFr_next(dep_fr) = NULL;
   }
     
   dep_fr_ptr top = LOCAL_top_dep_fr;
   dep_fr_ptr before = NULL;
   
   while(top && YOUNGER_CP(DepFr_cons_cp(top), cp)) {
-    before = top;
     dprintf("One dep_fr %d\n", (int)top);
+    before = top;
     top = DepFr_next(top);
   }
   
-  if(before == NULL) {
-    dprintf("set to top\n");
-    LOCAL_top_dep_fr = dep_fr;
-  } else {
-    dprintf("set to next\n");
-    SgFr_next(before) = dep_fr;
-  }
-  
-  SgFr_next(dep_fr) = top;
+  dprintf("set to next\n");
+  DepFr_prev(dep_fr) = before;
+  if(before)
+    DepFr_next(before) = dep_fr;
+  if(top)
+    DepFr_prev(top) = dep_fr;
+  DepFr_next(dep_fr) = top;
 }
 
 void
