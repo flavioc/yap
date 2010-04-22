@@ -540,7 +540,7 @@ external_producer_to_consumer(grounded_sf_ptr sg_fr, grounded_sf_ptr producer)
   choiceptr max = SgFr_saved_max(sg_fr);
 
   dprintf("gen_cp->cp_ap %d COMPLETION %d\n", (int)gen_cp->cp_ap, (int)COMPLETION);
-  if(gen_cp->cp_ap == COMPLETION)
+  if(gen_cp->cp_ap == COMPLETION || gen_cp->cp_ap == NULL)
     dprintf("to run completion\n");
   else
     dprintf("to not run completion\n");
@@ -557,15 +557,27 @@ external_producer_to_consumer(grounded_sf_ptr sg_fr, grounded_sf_ptr producer)
   SgFr_try_answer(sg_fr) = SgFr_last_answer(sg_fr);
 
   if(SgFr_started(sg_fr)) {
-    /* update generator choice point to point to RUN_COMPLETED */
-    gen_cp->cp_ap = (yamop *)RUN_COMPLETED;
-    /* use cp_dep_fr to put the subgoal frame */
-    CONS_CP(gen_cp)->cp_sg_fr = (sg_fr_ptr)sg_fr;
-    CONS_CP(gen_cp)->cp_dep_fr = NULL;
+      if(gen_cp->cp_ap == NULL) {
+        /* generator already exhausted its clauses
+           before reaching the general subgoal and tried to complete
+           but failed.
+           there is a change that this new-consumer could be
+           lost when the dependency frame is created lazily,
+         */
+        add_dependency_frame((grounded_sf_ptr)sg_fr, gen_cp);
+        dprintf("EAGER DEP FRAME\n");
+      } else {
+        /* update generator choice point to point to RUN_COMPLETED */
+        gen_cp->cp_ap = (yamop *)RUN_COMPLETED;
+
+        /* cp_dep_fr is only set when the generator was evaluating
+         * using local scheduling, to be sure set as NULL */
+        CONS_CP(gen_cp)->cp_dep_fr = NULL;
     
-    choiceptr cp = locate_after_answer(limit_cp, B);
-    cp->cp_b = gen_cp;
-    dprintf("Started\n");
+        choiceptr cp = locate_after_answer(limit_cp, B);
+        cp->cp_b = gen_cp;
+        dprintf("Started\n");
+      }
   } else {
     /* we are out of the execution path of the specific subgoal
        that means that it already has reached the completion operation
@@ -573,7 +585,6 @@ external_producer_to_consumer(grounded_sf_ptr sg_fr, grounded_sf_ptr producer)
        -> create a dependency frame and turn this node into a consumer
     */
     dprintf("Getting a new dependency frame!\n");
-    CONS_CP(gen_cp)->cp_sg_fr = (sg_fr_ptr)sg_fr;
     add_dependency_frame((grounded_sf_ptr)sg_fr, gen_cp);
   }
 }

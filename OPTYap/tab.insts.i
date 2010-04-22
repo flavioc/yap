@@ -1910,7 +1910,7 @@
 #endif /* OPTYAP_ERRORS */
     dep_fr = CONS_CP(B)->cp_dep_fr;
 #ifdef FDEBUG
-    dprintf("===> TABLE_ANSWER_RESOLUTION ");
+    dprintf("===> TABLE_ANSWER_RESOLUTION %d ", (int)B);
     printSubgoalTriePath(stdout, SgFr_leaf(DepFr_sg_fr(dep_fr)), SgFr_tab_ent(DepFr_sg_fr(dep_fr)));
     dprintf("\n");
 #endif
@@ -1920,6 +1920,7 @@
     continuation_ptr next = get_next_answer_continuation(dep_fr);
     
     if(next) {
+      dprintf("found unconsumed answer for this dep frame\n");
       /* unconsumed answer */
       ans_node = continuation_answer(next);
       DepFr_last_answer(dep_fr) = next;
@@ -1974,6 +1975,9 @@
       }
 #endif /* YAPOR */
       B = B->cp_b;
+      if(B->cp_ap == NULL)
+        B->cp_ap = COMPLETION;
+      dprintf("normal backtrack B %d cp_ap %d\n", (int)B, (int)B->cp_ap);
       goto fail;
     } else {
       /* chain backtrack */
