@@ -214,14 +214,7 @@ change_generator_subgoal_frame(sg_fr_ptr sg_fr, dep_fr_ptr external, choiceptr m
   /* update leader information to point to this choice point */
   update_leader_fields(SgFr_choice_point(sg_fr), cons_cp, min);
   
-  /* update top generator information for subgoals or dependencies that
-     point to the same top as this ex-consumer:
-     note: the new top is not be internal, as the new-generator was a consumer!
-     thus, no need to set the internal bit.
-   */
-  update_top_gen_sg_fields(DepFr_get_top_gen_sg(external), cons_cp, sg_fr);
-  
-  /* change generator choice point */
+  /* update generator choice point */
   SgFr_choice_point(sg_fr) = cons_cp;
   
   /* reorder this generator on the generator stack
