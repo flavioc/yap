@@ -69,11 +69,10 @@ is_internal_dep_fr(sg_fr_ptr specific_sg, dep_fr_ptr dep_fr, choiceptr limit)
 }
 
 static inline dep_fr_ptr
-find_external_consumer(sg_fr_ptr specific_sg, choiceptr min, sg_fr_ptr gen, dep_fr_ptr *external_before)
+find_external_consumer(sg_fr_ptr specific_sg, choiceptr min, sg_fr_ptr gen)
 {
   dep_fr_ptr top = LOCAL_top_dep_fr;
   dep_fr_ptr found = NULL;
-  dep_fr_ptr before = NULL;
   
   /* find first running consumer starting from min */
   while(top && YOUNGER_CP(DepFr_cons_cp(top), min)) {
@@ -81,13 +80,9 @@ find_external_consumer(sg_fr_ptr specific_sg, choiceptr min, sg_fr_ptr gen, dep_
       dprintf("found a dep fr for gencp %d\n", (int)SgFr_choice_point(gen));
       if(!is_internal_dep_fr(specific_sg, top, min)) {
         dprintf("Found one external dep_fr %d cp %d\n", (int)top, (int)DepFr_cons_cp(top));
-        *external_before = before;
         found = top;
-      } else {
-        dprintf("But is internal!\n");
       }
     }
-    before = top;
     top = DepFr_next(top);
   }
   
@@ -184,8 +179,19 @@ add_new_restarted_generator(choiceptr cp, sg_fr_ptr sf)
   dprintf("add_new_restarted_generator\n");
 }
 
+#define REMOVE_DEP_FR_FROM_STACK(DEP_FR)                      \
+  REMOVE_DEP_FR_FROM_STACK_NEXT(DEP_FR, DepFr_next(DEP_FR))
+
+#define REMOVE_DEP_FR_FROM_STACK_NEXT(DEP_FR, NEXT)         \
+  if(DEP_FR == LOCAL_top_dep_fr)                            \
+    LOCAL_top_dep_fr = NEXT;                                \
+  else                                                      \
+    DepFr_next(DepFr_prev(DEP_FR)) = NEXT;                  \
+  if(NEXT)                                                  \
+    DepFr_prev(NEXT) = DepFr_prev(DEP_FR)
+
 static inline void
-change_generator_subgoal_frame(sg_fr_ptr sg_fr, dep_fr_ptr external, dep_fr_ptr external_before, choiceptr min, choiceptr max)
+change_generator_subgoal_frame(sg_fr_ptr sg_fr, dep_fr_ptr external, choiceptr min, choiceptr max)
 {
   /* generator subgoal must be kept */
   dprintf("External dep_fr %d cp %d (REMOVED)\n", (int)external, (int)DepFr_cons_cp(external));
@@ -194,10 +200,7 @@ change_generator_subgoal_frame(sg_fr_ptr sg_fr, dep_fr_ptr external, dep_fr_ptr 
   choiceptr gen_cp = SgFr_choice_point(sg_fr);
   
   /* delete dependency frame from dependency space */
-  if(external_before == NULL)
-    LOCAL_top_dep_fr = DepFr_next(external);
-  else
-    DepFr_next(external_before) = DepFr_next(external);
+  REMOVE_DEP_FR_FROM_STACK(external);
   
   /* execute RESTART_GENERATOR on backtracking */
   cons_cp->cp_ap = RESTART_GENERATOR;
@@ -229,18 +232,6 @@ change_generator_subgoal_frame(sg_fr_ptr sg_fr, dep_fr_ptr external, dep_fr_ptr 
   SgFr_try_answer(sg_fr) = DepFr_last_answer(external);
   abolish_dependency_frame(external);
 }
-
-#define REMOVE_DEP_FR_FROM_STACK(DEP_FR)                      \
-  REMOVE_DEP_FR_FROM_STACK_NEXT(DEP_FR, DepFr_next(DEP_FR))
-
-#define REMOVE_DEP_FR_FROM_STACK_NEXT(DEP_FR, NEXT)         \
-  if(DEP_FR == LOCAL_top_dep_fr)                            \
-    LOCAL_top_dep_fr = NEXT;                                \
-  else                                                      \
-    DepFr_next(DepFr_prev(DEP_FR)) = NEXT;                  \
-  if(NEXT)                                                  \
-    DepFr_prev(NEXT) = DepFr_prev(DEP_FR)
-
 
 static inline void
 update_subsumed_before_dependencies(sg_fr_ptr sg_fr, choiceptr min, sg_fr_ptr specific_sg)
@@ -354,7 +345,7 @@ static inline void
 abolish_generator_subgoals_between(sg_fr_ptr specific_sg, choiceptr min, choiceptr max)
 {
   sg_fr_ptr top = StackState_sg_fr(SgFr_stack_state((grounded_sf_ptr)specific_sg));
-  dep_fr_ptr external, external_before = NULL;
+  dep_fr_ptr external;
   
   /* abolish generators */
   while(top && EQUAL_OR_YOUNGER_CP(SgFr_choice_point(top), min))
@@ -373,10 +364,10 @@ abolish_generator_subgoals_between(sg_fr_ptr specific_sg, choiceptr min, choicep
       dprintf("Trying to abolish %d cp %d\n", (int)sg_fr, (int)SgFr_choice_point(sg_fr));
       switch(SgFr_type(sg_fr)) {
         case VARIANT_PRODUCER_SFT:
-          external = find_external_consumer(specific_sg, min, sg_fr, &external_before);
+          external = find_external_consumer(specific_sg, min, sg_fr);
           if(external) {
             dprintf("Could find external dep fr!\n");
-            change_generator_subgoal_frame(sg_fr, external, external_before, min, max);
+            change_generator_subgoal_frame(sg_fr, external, min, max);
           } else {
             dprintf("Could not find external dep fr!\n");
             dprintf("REALLY ABOLISHED %d\n", (int)sg_fr);
@@ -385,11 +376,11 @@ abolish_generator_subgoals_between(sg_fr_ptr specific_sg, choiceptr min, choicep
           }
           break;
         case SUBSUMPTIVE_PRODUCER_SFT: {
-          external = find_external_consumer(specific_sg, min, sg_fr, &external_before);
+          external = find_external_consumer(specific_sg, min, sg_fr);
           if(external) {
             dprintf("found external variant subsumptive consumer\n");
             /* variant consumer can generate answers for proper subsumptive consumers */
-            change_generator_subgoal_frame(sg_fr, external, external_before, min, max);
+            change_generator_subgoal_frame(sg_fr, external, min, max);
             update_subsumed_before_dependencies(sg_fr, min, specific_sg);
           } else {
             dprintf("no variant external subsumptive consumer\n");
