@@ -138,11 +138,11 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
     } \
   } while (0)
 #define RESTORE_TOP_GEN_SG(DEP_FR) do { \
-    dprintf("Restored LOCAL_top_gen_sg %d from dep_fr %d\n", (int)DepFr_top_gen_sg(DEP_FR), (int)DEP_FR); \
+    /*dprintf("Restored LOCAL_top_gen_sg %d from dep_fr %d\n", (int)DepFr_top_gen_sg(DEP_FR), (int)DEP_FR);*/ \
     LOCAL_top_gen_sg = DepFr_get_top_gen_sg(DEP_FR); \
   } while(0)
 #define SAVE_SG_TOP_GEN_SG(SG_FR) do { \
-    dprintf("LOCAL_top_gen_sg %d saved into gen %d\n", (int)LOCAL_top_gen_sg, (int)SG_FR); \
+    /*dprintf("LOCAL_top_gen_sg %d saved into gen %d\n", (int)LOCAL_top_gen_sg, (int)SG_FR);*/ \
     SgFr_top_gen_sg(SG_FR) = LOCAL_top_gen_sg; \
     if(LOCAL_top_gen_sg && SgFr_is_internal(LOCAL_top_gen_sg)) { \
       dprintf("Set as internal\n");  \
@@ -772,6 +772,8 @@ join_answers_subgoal_frame(sg_fr_ptr sg_fr, continuation_ptr first, continuation
 
 #define CONSUMER_ANSWER_TEMPLATE(DEP_FR) CONSUMER_NODE_ANSWER_TEMPLATE(DepFr_cons_cp(DEP_FR))
 #define GENERATOR_ANSWER_TEMPLATE(GEN_CHOICEP, SG_FR) ((CELL *)(GEN_CP(GEN_CHOICEP) + 1) + SgFr_arity(SG_FR))
+
+#define LOADER_ANSWER_TEMPLATE(LOADCP) ((CELL *)(LOAD_CP(LOADCP) + 1))
 
 #define trail_unwind(TR0)                   \
   while(TR != TR0)  {                       \

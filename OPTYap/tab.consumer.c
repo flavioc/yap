@@ -183,6 +183,9 @@ add_new_restarted_generator(choiceptr cp, sg_fr_ptr sf)
   REMOVE_DEP_FR_FROM_STACK_NEXT(DEP_FR, DepFr_next(DEP_FR))
 
 #define REMOVE_DEP_FR_FROM_STACK_NEXT(DEP_FR, NEXT)         \
+  dprintf("REMOVE_DEP_FR %d\n", (int)(DEP_FR));             \
+  if(DEP_FR == LOCAL_top_dep_fr) dprintf("Remove from top\n");  \
+  if((NEXT) == NULL) dprintf("NEXT is NULL\n");             \
   if(DEP_FR == LOCAL_top_dep_fr)                            \
     LOCAL_top_dep_fr = NEXT;                                \
   else                                                      \
@@ -215,10 +218,12 @@ change_generator_subgoal_frame(sg_fr_ptr sg_fr, dep_fr_ptr external, choiceptr m
   add_new_restarted_generator(cons_cp, sg_fr);
   
   /* update leader information to point to this choice point */
+  // XXX
   update_leader_fields(SgFr_choice_point(sg_fr), cons_cp, min);
   
   /* update generator choice point */
   SgFr_choice_point(sg_fr) = cons_cp;
+  SgFr_state(sg_fr) = suspended;
   
   //reorder_subgoal_frame(sg_fr, cons_cp);
   remove_subgoal_frame_from_stack(sg_fr);
@@ -772,6 +777,7 @@ reinsert_subgoal_frame(sg_fr_ptr sg_fr, choiceptr new_cp)
 static inline void
 reinsert_dep_fr(dep_fr_ptr dep_fr, choiceptr cp)
 {
+  dprintf("reinsert dep fr %d\n", (int)dep_fr);
   if(LOCAL_top_dep_fr == NULL) {
     LOCAL_top_dep_fr = dep_fr;
     DepFr_prev(dep_fr) = NULL;
@@ -784,15 +790,17 @@ reinsert_dep_fr(dep_fr_ptr dep_fr, choiceptr cp)
   while(top && YOUNGER_CP(DepFr_cons_cp(top), cp)) {
     dprintf("One dep_fr %d\n", (int)top);
     before = top;
+    if(top == DepFr_next(top))
+      exit(1);
     top = DepFr_next(top);
   }
   
   dprintf("set to next\n");
-  DepFr_prev(dep_fr) = before;
   if(before)
     DepFr_next(before) = dep_fr;
   if(top)
     DepFr_prev(top) = dep_fr;
+  DepFr_prev(dep_fr) = before;
   DepFr_next(dep_fr) = top;
 }
 
@@ -823,6 +831,7 @@ add_dependency_frame(grounded_sf_ptr sg_fr, choiceptr cp)
 void
 reinsert_dependency_frame(dep_fr_ptr dep_fr)
 {
+  dprintf("reinsert_dependency_frame\n");
   reinsert_dep_fr(dep_fr, DepFr_cons_cp(dep_fr));
 }
 
@@ -863,5 +872,14 @@ remove_sg_fr_from_restarted_gens(sg_fr_ptr sg_fr)
   remove_from_restarted_gens(SgFr_choice_point(sg_fr));
 }
 
+void
+transform_node_into_loader(choiceptr cp, sg_fr_ptr sg_fr,
+    continuation_ptr last, yamop *load_instr)
+{
+  memmove(LOADER_ANSWER_TEMPLATE(cp), GENERATOR_ANSWER_TEMPLATE(cp, sg_fr),
+      (1 + SgFr_arity(sg_fr)) * sizeof(CELL));
+  LOAD_CP(cp)->cp_last_answer = last;
+  cp->cp_ap = load_instr;
+}
 
 #endif /* TABLING_GROUNDED */

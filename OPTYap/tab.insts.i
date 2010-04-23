@@ -237,7 +237,6 @@
 
 #define consume_answer_and_procceed(DEP_FR, ANSWER)       \
         { CELL *subs_ptr;                                 \
-          dprintf("Consume_answer_and_proceed\n");        \
           /* restore consumer choice point */             \
           H = HBREG = PROTECT_FROZEN_H(B);                \
           restore_yaam_reg_cpdepth(B);                    \
@@ -653,6 +652,7 @@
   ENDPBOp();
 
   PBOp(table_load_answer, Otapl)
+load_answer_jump: {
     CELL *ans_tmplt;
     ans_node_ptr ans_node;
     continuation_ptr next;
@@ -684,6 +684,7 @@
     }
     
     consume_answer_leaf(ans_node, ans_tmplt, CONSUME_VARIANT_ANSWER);
+}
   ENDPBOp();
   
   PBOp(table_restart_generator, Otapl)
@@ -694,43 +695,23 @@
 
     if(SgFr_state(sg_fr) >= complete) {
       dprintf("Restart generator completed!\n");
-      /* turn into loader node */
-      continuation_ptr cont = continuation_next(DepFr_last_answer(dep_fr));
+      /* act as a loader node */
+      transform_node_into_loader(B, sg_fr, DepFr_last_answer(dep_fr),
+          LOAD_ANSWER);
+      abolish_dependency_frame(dep_fr);
 
-      if(!cont) {
-        /* fail sooner */
-        B = B->cp_b;
-        SET_BB(PROTECT_FROZEN_B(B));
-        goto fail;
-      }
-
-      CELL *answer_template = GENERATOR_ANSWER_TEMPLATE(B, sg_fr);
-
-      /* pop consumer/generator node */  
-      pop_gencons_node(answer_template);
-
-      /* load answer */
-      ans_node_ptr ans_node = continuation_answer(cont);
-
-      /* ... and store a loader! */
-      if(continuation_has_next(cont)) {
-        dprintf("stored loader\n");
-        store_loader_node(tab_ent, cont, LOAD_ANSWER);
-      }
-
-      consume_answer_leaf(ans_node, answer_template, CONSUME_VARIANT_ANSWER);
-#if 0
+      goto load_answer_jump;
     } else if(SgFr_state(sg_fr) != suspended) {
       /* subgoal frame is already evaluating
          create a new consumer */
-      dprintf("FIX ME!!!\n");
+      printf("FIX ME!!!\n");
       exit(1);
-#endif
     }
+
+    /* generator was not resumed */
 
     /* remove local dep */
 
-    /* generator was not resumed */
     /*choiceptr old_gen_cp = SgFr_choice_point(sg_fr);
     dep_fr_ptr local_dep = GEN_CP(old_gen_cp)->cp_dep_fr;
     */
@@ -767,10 +748,14 @@
     
   PBOp(table_run_completed, Otapl)
 #ifdef TABLING_GROUNDED
-    dprintf("===> TABLE_RUN_COMPLETED\n");
-    
     sg_fr_ptr cons_sg_fr = (sg_fr_ptr)CONS_CP(B)->cp_sg_fr;
     tab_ent_ptr tab_ent = SgFr_tab_ent(cons_sg_fr);
+
+#ifdef FDEBUG
+    dprintf("===> TABLE_RUN_COMPLETED ");
+    printSubgoalTriePath(stdout, SgFr_leaf(cons_sg_fr), tab_ent);
+    dprintf("\n");
+#endif
     
     switch(SgFr_type(cons_sg_fr)) {
       case GROUND_CONSUMER_SFT: {
@@ -817,10 +802,8 @@
           dprintf("Not completed!\n");
           add_dependency_frame(sg_fr, B);
           B = B->cp_b;
-          dprintf("going to fail instr %d\n", (int)B->cp_ap);
           if(B->cp_ap == NULL)
             B->cp_ap = COMPLETION;
-          dprintf("going to fail instr %d\n", (int)B->cp_ap);
           goto fail;
         }
 
@@ -830,9 +813,9 @@
         mark_ground_consumer_as_completed(sg_fr);
 
         if(TabEnt_is_load(tab_ent)) {
+          continuation_ptr cont;
 
           build_next_ground_consumer_return_list(sg_fr);
-          continuation_ptr cont;
 
           if(SgFr_try_answer(sg_fr)) {
             /* some answers were consumed before */
@@ -840,6 +823,7 @@
 
             if(!cont) {
               /* fail sooner */
+              dprintf("fail sooner\n");
               B = B->cp_b;
               SET_BB(PROTECT_FROZEN_B(B));
               goto fail;
@@ -856,22 +840,40 @@
             cont = SgFr_first_answer(sg_fr);
           }
 
-          CELL *answer_template = GENERATOR_ANSWER_TEMPLATE(B, sg_fr);
+          CELL *answer_template;
 
-          /* pop consumer/generator node */  
-          pop_gencons_node(answer_template);
+          /* ... and store a loader! */
+          if(continuation_has_next(cont)) {
+            /* restore node */
+            H = HBREG = PROTECT_FROZEN_H(B);
+            restore_yaam_reg_cpdepth(B);
+            CPREG = B->cp_cp;
+            ENV = B->cp_env;
+            SET_BB(PROTECT_FROZEN_B(B));
+
+            dprintf("transform into loader\n");
+            transform_node_into_loader(B, sg_fr, cont, LOAD_CONS_ANSWER);
+            answer_template = LOADER_ANSWER_TEMPLATE(B);
+          } else {
+            dprintf("pop run completed node\n");
+            answer_template = GENERATOR_ANSWER_TEMPLATE(B, sg_fr);
+
+            /* pop node */
+            H = PROTECT_FROZEN_H(B);
+            pop_yaam_reg_cpdepth(B);
+            CPREG = B->cp_cp;
+            TABLING_close_alt(B);
+            ENV = B->cp_env;
+            B = B->cp_b;
+            HBREG = PROTECT_FROZEN_H(B);
+            SET_BB(PROTECT_FROZEN_B(B));
+          }
 
           /* load first answer */
           ans_node_ptr ans_node = continuation_answer(cont);
 
-          /* ... and store a loader! */
-          if(continuation_has_next(cont)) {
-            dprintf("stored loader\n");
-            store_loader_node(tab_ent, cont, LOAD_CONS_ANSWER);
-          }
-
-          consume_answer_leaf(ans_node, answer_template, CONSUME_SUBSUMPTIVE_ANSWER);
-
+          consume_answer_leaf(ans_node, answer_template,
+              CONSUME_SUBSUMPTIVE_ANSWER);
         } else {
           /* XXX: run compiled code */
         }
@@ -911,11 +913,10 @@
         complete_dependency_frame(dep_fr);
 
         if(TabEnt_is_load(tab_ent)) {
-          continuation_ptr cont;
           
           build_next_subsumptive_consumer_return_list(sg_fr);
           
-          cont = continuation_next(DepFr_last_answer(dep_fr));
+          continuation_ptr cont = continuation_next(DepFr_last_answer(dep_fr));
 
           if(!cont) {
             /* fail sooner */
@@ -924,21 +925,36 @@
             goto fail;
           }
 
-          CELL *answer_template = GENERATOR_ANSWER_TEMPLATE(B, sg_fr);
-
-          /* pop consumer/generator node */  
-          pop_gencons_node(answer_template);
-
-          /* load answer */
-          ans_node_ptr ans_node = continuation_answer(cont);
-
-          /* ... and store a loader! */
+          CELL *answer_template;
+         
+          /* transform into a loader! */
           if(continuation_has_next(cont)) {
-            dprintf("stored loader\n");
-            store_loader_node(tab_ent, cont, LOAD_CONS_ANSWER);
+            dprintf("transform into sub loader\n");
+            /* restore node */
+            H = HBREG = PROTECT_FROZEN_H(B);
+            restore_yaam_reg_cpdepth(B);
+            CPREG = B->cp_cp;
+            ENV = B->cp_env;
+            SET_BB(PROTECT_FROZEN_B(B));
+            transform_node_into_loader(B, sg_fr, cont, LOAD_CONS_ANSWER);
+            answer_template = LOADER_ANSWER_TEMPLATE(B);
+          } else {
+            answer_template = GENERATOR_ANSWER_TEMPLATE(B, sg_fr);
+
+            /* pop node */
+            H = PROTECT_FROZEN_H(B);
+            pop_yaam_reg_cpdepth(B);
+            CPREG = B->cp_cp;
+            TABLING_close_alt(B);
+            ENV = B->cp_env;
+            B = B->cp_b;
+            HBREG = PROTECT_FROZEN_H(B);
+            SET_BB(PROTECT_FROZEN_B(B));
           }
 
-          consume_answer_leaf(ans_node, answer_template, CONSUME_SUBSUMPTIVE_ANSWER);
+          /* load answer */
+          consume_answer_leaf(continuation_answer(cont), answer_template,
+              CONSUME_SUBSUMPTIVE_ANSWER);
 
         } else {
           /* XXX: run compiled code */
@@ -2007,7 +2023,6 @@ try_answer_jump: {
       B = B->cp_b;
       if(B->cp_ap == NULL)
         B->cp_ap = COMPLETION;
-      dprintf("normal backtrack B %d cp_ap %d\n", (int)B, (int)B->cp_ap);
       goto fail;
     } else {
       /* chain backtrack */

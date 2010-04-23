@@ -147,6 +147,8 @@ void reinsert_subgoal_frame(sg_fr_ptr sg_fr, choiceptr new_cp);
 void reinsert_dependency_frame(dep_fr_ptr dep_fr);
 void remove_from_restarted_gens(choiceptr cp);
 void remove_sg_fr_from_restarted_gens(sg_fr_ptr sg_fr);
+void transform_node_into_loader(choiceptr cp, sg_fr_ptr sg_fr,
+    continuation_ptr last, yamop *load_instr);
 #endif /* TABLING_CALL_SUBSUMPTION */
 
 /* --------------- **
