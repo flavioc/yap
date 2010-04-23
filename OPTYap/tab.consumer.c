@@ -30,6 +30,40 @@
 STD_PROTO(static inline void update_top_gen_sg_fields, (sg_fr_ptr, choiceptr, sg_fr_ptr));
 STD_PROTO(static inline void to_run_completed_node, (sg_fr_ptr, choiceptr));
 
+void
+check_dependency_frame(void)
+{
+  dprintf("going to check dependency space\n");
+#ifdef FDEBUG
+  dep_fr_ptr top = LOCAL_top_dep_fr;
+  
+  if(top) {
+    if(DepFr_prev(top)) {
+      dprintf("prev of LOCAL_top_dep_fr must be == NULL\n");
+      exit(1);
+    }
+  }
+  while(top) {
+    dep_fr_ptr before = top;
+    top = DepFr_next(top);
+    
+    dprintf("dep_fr_ptr check from %d to %d\n", (int)before, (int)top);
+    
+    if(top) {
+      if(DepFr_prev(top) != before) {
+        dprintf("prev(top) must be == before\n");
+        exit(1);
+      }
+    }
+    if(top == before)
+    {
+      dprintf("top can't be equal to before\n");
+      exit(1);
+    }
+  }
+#endif
+}
+
 static int
 is_internal_subgoal_frame(sg_fr_ptr specific_sg, sg_fr_ptr sf, choiceptr limit)
 {
@@ -184,6 +218,7 @@ add_new_restarted_generator(choiceptr cp, sg_fr_ptr sf)
 
 #define REMOVE_DEP_FR_FROM_STACK_NEXT(DEP_FR, NEXT)         \
   dprintf("REMOVE_DEP_FR %d\n", (int)(DEP_FR));             \
+  check_dependency_frame(); \
   if(DEP_FR == LOCAL_top_dep_fr) dprintf("Remove from top\n");  \
   if((NEXT) == NULL) dprintf("NEXT is NULL\n");             \
   if(DEP_FR == LOCAL_top_dep_fr)                            \
@@ -191,7 +226,8 @@ add_new_restarted_generator(choiceptr cp, sg_fr_ptr sf)
   else                                                      \
     DepFr_next(DepFr_prev(DEP_FR)) = NEXT;                  \
   if(NEXT)                                                  \
-    DepFr_prev(NEXT) = DepFr_prev(DEP_FR)
+    DepFr_prev(NEXT) = DepFr_prev(DEP_FR);                  \
+  check_dependency_frame()
 
 static inline void
 change_generator_subgoal_frame(sg_fr_ptr sg_fr, dep_fr_ptr external, choiceptr min, choiceptr max)
@@ -766,6 +802,7 @@ reinsert_subgoal_frame(sg_fr_ptr sg_fr, choiceptr new_cp)
 static inline void
 reinsert_dep_fr(dep_fr_ptr dep_fr, choiceptr cp)
 {
+  check_dependency_frame();
   dprintf("reinsert dep fr %d\n", (int)dep_fr);
   if(LOCAL_top_dep_fr == NULL) {
     LOCAL_top_dep_fr = dep_fr;
@@ -779,8 +816,6 @@ reinsert_dep_fr(dep_fr_ptr dep_fr, choiceptr cp)
   while(top && YOUNGER_CP(DepFr_cons_cp(top), cp)) {
     dprintf("One dep_fr %d\n", (int)top);
     before = top;
-    if(top == DepFr_next(top))
-      exit(1);
     top = DepFr_next(top);
   }
   
@@ -791,6 +826,8 @@ reinsert_dep_fr(dep_fr_ptr dep_fr, choiceptr cp)
     DepFr_prev(top) = dep_fr;
   DepFr_prev(dep_fr) = before;
   DepFr_next(dep_fr) = top;
+  
+  check_dependency_frame();
 }
 
 void

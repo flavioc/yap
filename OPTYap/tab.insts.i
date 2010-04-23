@@ -53,8 +53,10 @@
       SgFr_update_saved_max((grounded_sf_ptr)(SG_FR));       \
     }
 #define DepFr_add_queue(DEP_FR) \
+        check_dependency_frame(); \
         DepFr_prev(LOCAL_top_dep_fr) = DEP_FR;  \
-        LOCAL_top_dep_fr = DEP_FR
+        LOCAL_top_dep_fr = DEP_FR;  \
+        check_dependency_frame()
 #else
 #define store_cons_args_local_stack(ARITY) /* do nothing */
 #define update_generator_node(SG_FR) /* do nothing */
