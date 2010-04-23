@@ -520,6 +520,17 @@
      }                                                              \
      Bind_and_Trail(&SgFr_start(SG_FR), (Term)B_FZ)
 
+#define pop_gencons_node(ANS_TMPLT) \
+          H = PROTECT_FROZEN_H(B); \
+          pop_yaam_reg_cpdepth(B); \
+          CPREG = B->cp_cp; \
+          ENV = B->cp_env; \
+          TR = B->cp_tr; \
+          B = B->cp_b; \
+          HBREG = PROTECT_FROZEN_H(B); \
+          YENV = ANS_TMPLT; \
+          SET_BB(PROTECT_FROZEN_B(B))
+
 /* Consume subsuming answer ANS_NODE using ANS_TMPLT
  * as the pointer to the answer template.
  * the size of the answer template is calculated and
@@ -678,57 +689,75 @@
   PBOp(table_restart_generator, Otapl)
 #ifdef TABLING_GROUNDED
     dprintf("==> TABLE_RESTART_GENERATOR\n");
-    sg_fr_ptr sg_fr;
-    ans_node_ptr ans_node = NULL;
-    continuation_ptr next_cont;
+    sg_fr_ptr sg_fr = GEN_CP(B)->cp_sg_fr;
+    dep_fr_ptr dep_fr = GEN_CP(B)->cp_dep_fr;
+
+    if(SgFr_state(sg_fr) >= complete) {
+      dprintf("Restart generator completed!\n");
+      /* turn into loader node */
+      continuation_ptr cont = continuation_next(DepFr_last_answer(dep_fr));
+
+      if(!cont) {
+        /* fail sooner */
+        B = B->cp_b;
+        SET_BB(PROTECT_FROZEN_B(B));
+        goto fail;
+      }
+
+      CELL *answer_template = GENERATOR_ANSWER_TEMPLATE(B, sg_fr);
+
+      /* pop consumer/generator node */  
+      pop_gencons_node(answer_template);
+
+      /* load answer */
+      ans_node_ptr ans_node = continuation_answer(cont);
+
+      /* ... and store a loader! */
+      if(continuation_has_next(cont)) {
+        dprintf("stored loader\n");
+        store_loader_node(tab_ent, cont, LOAD_ANSWER);
+      }
+
+      consume_answer_leaf(ans_node, answer_template, CONSUME_VARIANT_ANSWER);
+#if 0
+    } else if(SgFr_state(sg_fr) != suspended) {
+      /* subgoal frame is already evaluating
+         create a new consumer */
+      dprintf("FIX ME!!!\n");
+      exit(1);
+#endif
+    }
+
+    /* remove local dep */
+
+    /* generator was not resumed */
+    /*choiceptr old_gen_cp = SgFr_choice_point(sg_fr);
+    dep_fr_ptr local_dep = GEN_CP(old_gen_cp)->cp_dep_fr;
+    */
 
     remove_from_restarted_gens(B);
+    //reorder_subgoal_frame(sg_fr, B);
+    SgFr_try_answer(sg_fr) = DepFr_last_answer(dep_fr);
+    abolish_dependency_frame(dep_fr);
+    SgFr_state(sg_fr) = evaluating;
+    GEN_CP(B)->cp_dep_fr = NULL; /* local_dep */
 
-    sg_fr = GEN_CP(B)->cp_sg_fr;
-    next_cont = continuation_next(SgFr_try_answer(sg_fr));
-  
-    if(next_cont) {
-      CELL *subs_ptr = GENERATOR_ANSWER_TEMPLATE(B, sg_fr);
-
-      ans_node = continuation_answer(next_cont);
-      H = HBREG = PROTECT_FROZEN_H(B);
-      restore_yaam_reg_cpdepth(B);
-      CPREG = B->cp_cp;
-      ENV = B->cp_env;
-      SgFr_try_answer(sg_fr) = next_cont;
-
-      SET_BB(PROTECT_FROZEN_B(B));
-
-      PREG = (yamop *) CPREG;
-      PREFETCH_OP(PREG);
-      CONSUME_VARIANT_ANSWER(ans_node, subs_ptr);
-      YENV = ENV;
-      GONext();
-    } else {
-      dprintf(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> EXECUTING CODE! <<<<<<<<<<<<<<<<<<<<<<<<<<<<\n");
-      yamop *code_ap;
-      PREG = SgFr_code(sg_fr);
-      if (PREG->opc == Yap_opcode(_table_try)) {
-        /* table_try */
-        code_ap = NEXTOP(PREG,Otapl);
-        PREG = PREG->u.Otapl.d;
-      } else if (PREG->opc == Yap_opcode(_table_try_single)) {
-        /* table_try_single */
-        code_ap = COMPLETION;
-        PREG = PREG->u.Otapl.d;
-      } else {
-        /* table_try_me */
-        code_ap = PREG->u.Otapl.d;
-        PREG = NEXTOP(PREG,Otapl);
-      }
-      PREFETCH_OP(PREG);
-      restore_generator_node(SgFr_arity(sg_fr), code_ap);
-      YENV = (CELL *) PROTECT_FROZEN_B(B);
-      set_cut(YENV, B->cp_b);
-      SET_BB(NORM_CP(YENV));
-      allocate_environment();
-      GONext();
+#if 0
+    /* for local scheduling */
+    if(local_dep) {
+      DepFr_cons_cp(local_dep) = B;
+      reinsert_dependency_frame(local_dep);
     }
+#endif
+
+    /* update choice point */
+    SgFr_choice_point(sg_fr) = B;
+    reinsert_subgoal_frame(sg_fr, B);
+
+    B->cp_ap = TRY_ANSWER;
+
+    dprintf("Going to try_answer_jump\n");
+    goto try_answer_jump;
 #else
     PREG = PREG->u.Otapl.d;
     PREFETCH_OP(PREG);
@@ -830,15 +859,7 @@
           CELL *answer_template = GENERATOR_ANSWER_TEMPLATE(B, sg_fr);
 
           /* pop consumer/generator node */  
-          H = PROTECT_FROZEN_H(B);
-          pop_yaam_reg_cpdepth(B);
-          CPREG = B->cp_cp;
-          ENV = B->cp_env;
-          TR = B->cp_tr;
-          B = B->cp_b;
-          HBREG = PROTECT_FROZEN_H(B);
-          YENV = answer_template;
-          SET_BB(PROTECT_FROZEN_B(B));
+          pop_gencons_node(answer_template);
 
           /* load first answer */
           ans_node_ptr ans_node = continuation_answer(cont);
@@ -895,6 +916,7 @@
           build_next_subsumptive_consumer_return_list(sg_fr);
           
           cont = continuation_next(DepFr_last_answer(dep_fr));
+
           if(!cont) {
             /* fail sooner */
             B = B->cp_b;
@@ -905,15 +927,7 @@
           CELL *answer_template = GENERATOR_ANSWER_TEMPLATE(B, sg_fr);
 
           /* pop consumer/generator node */  
-          H = PROTECT_FROZEN_H(B);
-          pop_yaam_reg_cpdepth(B);
-          CPREG = B->cp_cp;
-          ENV = B->cp_env;
-          TR = B->cp_tr;
-          B = B->cp_b;
-          HBREG = PROTECT_FROZEN_H(B);
-          YENV = answer_template;
-          SET_BB(PROTECT_FROZEN_B(B));
+          pop_gencons_node(answer_template);
 
           /* load answer */
           ans_node_ptr ans_node = continuation_answer(cont);
@@ -943,18 +957,15 @@
   
   PBOp(table_try_answer, Otapl)
     dprintf("===> TABLE_TRY_ANSWER\n");
-#ifdef INCOMPLETE_TABLING
-    sg_fr_ptr sg_fr;
-    ans_node_ptr ans_node = NULL;
-    continuation_ptr next_cont;
-
-    sg_fr = GEN_CP(B)->cp_sg_fr;
-    next_cont = continuation_next(SgFr_try_answer(sg_fr));
+#if defined(INCOMPLETE_TABLING) || defined(TABLING_GROUNDED)
+try_answer_jump: {
+    sg_fr_ptr sg_fr = GEN_CP(B)->cp_sg_fr;
+    continuation_ptr next_cont = continuation_next(SgFr_try_answer(sg_fr));
     
     if(next_cont) {
       CELL *subs_ptr = (CELL *) (GEN_CP(B) + 1) + SgFr_arity(sg_fr);
+      ans_node_ptr ans_node = continuation_answer(next_cont);
 
-      ans_node = continuation_answer(next_cont);
       H = HBREG = PROTECT_FROZEN_H(B);
       restore_yaam_reg_cpdepth(B);
       CPREG = B->cp_cp;
@@ -996,11 +1007,12 @@
       allocate_environment();
       GONext();
     }
+ }
 #else
     PREG = PREG->u.Otapl.d;
     PREFETCH_OP(PREG);
     GONext();    
-#endif /* INCOMPLETE_TABLING */
+#endif /* INCOMPLETE_TABLING || TABLING_GROUNDED */
   ENDPBOp();
 
   PBOp(table_try_ground_answer, Otapl)
@@ -1102,26 +1114,32 @@
       PREFETCH_OP(PREG);
       allocate_environment();
       GONext();
-#ifdef INCOMPLETE_TABLING
-    } else if (SgFr_state(sg_fr) == incomplete) {
+#if defined(INCOMPLETE_TABLING) || defined(TABLING_GROUNDED)
+    } else if (SgFr_state(sg_fr) == incomplete || SgFr_state(sg_fr) == suspended) {
+      dprintf("incomplete!!\n");
       /* subgoal incomplete --> start by loading the answers already found */
       
       continuation_ptr cont = SgFr_first_answer(sg_fr);
       ans_node_ptr ans_node = continuation_answer(cont);
-      
       CELL *subs_ptr = YENV;
+
+#ifdef TABLING_GROUNDED
+      if(SgFr_state(sg_fr) == suspended)
+        remove_sg_fr_from_restarted_gens(sg_fr);
+#endif /* TABLING_GROUNDED */
+      
       init_subgoal_frame(sg_fr);
       UNLOCK(SgFr_lock(sg_fr));
       
       SgFr_try_answer(sg_fr) = cont;
-      
+
       store_generator_node(tab_ent, sg_fr, PREG->u.Otapl.s, TRY_ANSWER);
       PREG = (yamop *) CPREG;
       PREFETCH_OP(PREG);
       CONSUME_VARIANT_ANSWER(ans_node, subs_ptr);
       YENV = ENV;
       GONext();
-#endif /* INCOMPLETE_TABLING */
+#endif /* INCOMPLETE_TABLING || TABLING_GROUNDED */
     } else if (is_new_consumer_call(sg_fr)) {
       dprintf("TABLE_TRY_SINGLE NEW_CONSUMER\n");
       /* new consumer */
@@ -1239,13 +1257,19 @@
       PREFETCH_OP(PREG);
       allocate_environment();
       GONext();
-#ifdef INCOMPLETE_TABLING
-    } else if (SgFr_state(sg_fr) == incomplete) {
+#if defined(INCOMPLETE_TABLING) || defined(TABLING_GROUNDED)
+    } else if (SgFr_state(sg_fr) == incomplete || SgFr_state(sg_fr) == suspended) {
+      dprintf("incomplete!!\n");
       /* subgoal incomplete --> start by loading the answers already found */
       continuation_ptr cont = SgFr_first_answer(sg_fr);
       ans_node_ptr ans_node = continuation_answer(cont);
-      
       CELL *subs_ptr = YENV;
+
+#ifdef TABLING_GROUNDED
+      if(SgFr_state(sg_fr) == suspended)
+        remove_sg_fr_from_restarted_gens(sg_fr);
+#endif /* TABLING_GROUNDED */
+
       init_subgoal_frame(sg_fr);
       UNLOCK(SgFr_lock(sg_fr));
       
@@ -1257,7 +1281,7 @@
       CONSUME_VARIANT_ANSWER(ans_node, subs_ptr);
       YENV = ENV;
       GONext();
-#endif /* INCOMPLETE_TABLING */
+#endif /* INCOMPLETE_TABLING || TABLING_GROUNDED */
     } else if (is_new_consumer_call(sg_fr)) {
       dprintf("TABLE_TRY_ME NEW_CONSUMER\n");
       /* new consumer */
@@ -1376,13 +1400,19 @@
       PREFETCH_OP(PREG);
       allocate_environment();
       GONext();
-#ifdef INCOMPLETE_TABLING
-    } else if (SgFr_state(sg_fr) == incomplete) {
+#if defined(INCOMPLETE_TABLING) || defined(TABLING_GROUNDED)
+    } else if (SgFr_state(sg_fr) == incomplete || SgFr_state(sg_fr) == suspended) {
+      dprintf("incomplete!!\n");
       /* subgoal incomplete --> start by loading the answers already found */
       continuation_ptr cont = SgFr_first_answer(sg_fr);
       ans_node_ptr ans_node = continuation_answer(cont);
-
       CELL *subs_ptr = YENV;
+
+#ifdef TABLING_GROUNDED
+      if(SgFr_state(sg_fr) == suspended)
+        remove_sg_fr_from_restarted_gens(sg_fr);
+#endif /* TABLING_GROUNDED */
+
       init_subgoal_frame(sg_fr);
       UNLOCK(SgFr_lock(sg_fr));
 
@@ -1393,7 +1423,7 @@
       CONSUME_VARIANT_ANSWER(ans_node, subs_ptr);
       YENV = ENV;
       GONext();
-#endif /* INCOMPLETE_TABLING */
+#endif /* INCOMPLETE_TABLING || TABLING_GROUNDED */
     } else if (is_new_consumer_call(sg_fr)) {
       dprintf("TABLE_TRY NEW_CONSUMER\n");
       /* new consumer */
@@ -2210,6 +2240,7 @@
         B = chain_cp;
         TR = TR_FZ;
         TRAIL_LINK(B->cp_tr);
+        dprintf("goto completion\n");
         goto completion;
       }
       /* backtrack to chain choice point */
@@ -2302,12 +2333,8 @@
 #endif /* TABLING_GROUNDED */
 
           B = B->cp_b;
-          dprintf("B->cp_tr %d\n", B->cp_tr);
-          dprintf("Going to cp %d instr %d\n", (int)B, (int)B->cp_ap);
-          //B->cp_ap = COMPLETION;
           if(B->cp_ap == NULL)
             B->cp_ap = COMPLETION;
-          dprintf("Going to cp %d instr %d\n", (int)B, (int)B->cp_ap);
           goto fail;
         }
       } else {

@@ -333,11 +333,12 @@ typedef unsigned char subgoal_frame_type;
 enum SubgoalState {
   incomplete      = 0,  /* INCOMPLETE_TABLING */
   ready           = 1,
-  evaluating      = 2,
-  complete        = 3,
-  complete_in_use = 4,  /* LIMIT_TABLING */
-  compiled        = 5,
-  compiled_in_use = 6   /* LIMIT_TABLING */
+  suspended       = 2,
+  evaluating      = 3,
+  complete        = 4,
+  complete_in_use = 5,  /* LIMIT_TABLING */
+  compiled        = 6,
+  compiled_in_use = 7   /* LIMIT_TABLING */
 }; /* do not change order !!! */
 
 typedef unsigned char subgoal_state;

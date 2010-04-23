@@ -111,7 +111,7 @@ update_leader_fields(choiceptr old_leader, choiceptr new_leader, choiceptr min)
   if(SgFr_next(SG_FR))                              \
     SgFr_prev(SgFr_next(SG_FR)) = SgFr_prev(SG_FR)
 
-static inline void
+void
 reorder_subgoal_frame(sg_fr_ptr sg_fr, choiceptr new_gen_cp)
 {
   sg_fr_ptr prev = SgFr_prev(sg_fr);
@@ -195,9 +195,15 @@ change_generator_subgoal_frame(sg_fr_ptr sg_fr, dep_fr_ptr external, choiceptr m
 {
   /* generator subgoal must be kept */
   dprintf("External dep_fr %d cp %d (REMOVED)\n", (int)external, (int)DepFr_cons_cp(external));
-  
+
   choiceptr cons_cp = DepFr_cons_cp(external);
   choiceptr gen_cp = SgFr_choice_point(sg_fr);
+
+  /* abolish local scheduling dependency frame */
+  dep_fr_ptr local_dep = GEN_CP(gen_cp)->cp_dep_fr;
+  if(local_dep) {
+    REMOVE_DEP_FR_FROM_STACK(local_dep);
+  }
   
   /* delete dependency frame from dependency space */
   REMOVE_DEP_FR_FROM_STACK(external);
@@ -205,9 +211,6 @@ change_generator_subgoal_frame(sg_fr_ptr sg_fr, dep_fr_ptr external, choiceptr m
   /* execute RESTART_GENERATOR on backtracking */
   cons_cp->cp_ap = RESTART_GENERATOR;
   CONS_CP(cons_cp)->cp_sg_fr = sg_fr;
-  /* don't know if the subgoal frame uses local scheduling,
-     but this should work */
-  CONS_CP(cons_cp)->cp_dep_fr = GEN_CP(gen_cp)->cp_dep_fr;        
 
   add_new_restarted_generator(cons_cp, sg_fr);
   
@@ -217,13 +220,8 @@ change_generator_subgoal_frame(sg_fr_ptr sg_fr, dep_fr_ptr external, choiceptr m
   /* update generator choice point */
   SgFr_choice_point(sg_fr) = cons_cp;
   
-  /* reorder this generator on the generator stack
-     possibly moving it back, so it's pretty
-     safe for the next iteration of this loop */
-  reorder_subgoal_frame(sg_fr, cons_cp);
-  
-  SgFr_try_answer(sg_fr) = DepFr_last_answer(external);
-  abolish_dependency_frame(external);
+  //reorder_subgoal_frame(sg_fr, cons_cp);
+  remove_subgoal_frame_from_stack(sg_fr);
 }
 
 static inline void
@@ -746,8 +744,33 @@ process_pending_subgoal_list(node_list_ptr list, grounded_sf_ptr sg_fr) {
   dprintf("ok\n");
 }
 
+void
+reinsert_subgoal_frame(sg_fr_ptr sg_fr, choiceptr new_cp)
+{
+  if(LOCAL_top_sg_fr == NULL) {
+    LOCAL_top_sg_fr = sg_fr;
+    SgFr_next(sg_fr) = NULL;
+    SgFr_prev(sg_fr) = NULL;
+  }
+
+  sg_fr_ptr top = LOCAL_top_sg_fr;
+  sg_fr_ptr before = NULL;
+
+  while(top && YOUNGER_CP(SgFr_choice_point(top), new_cp)) {
+    before = top;
+    top = SgFr_next(top);
+  }
+
+  SgFr_prev(sg_fr) = before;
+  if(before)
+    SgFr_next(before) = sg_fr;
+  if(top)
+    SgFr_prev(top) = sg_fr;
+  SgFr_next(sg_fr) = top;
+}
+
 static inline void
-find_next_dep_frame(dep_fr_ptr dep_fr, choiceptr cp)
+reinsert_dep_fr(dep_fr_ptr dep_fr, choiceptr cp)
 {
   if(LOCAL_top_dep_fr == NULL) {
     LOCAL_top_dep_fr = dep_fr;
@@ -781,7 +804,7 @@ add_dependency_frame(grounded_sf_ptr sg_fr, choiceptr cp)
   dprintf("add_dependency_frame leader=%d\n", (int)SgFr_choice_point(producer));
   
   new_dependency_frame(dep_fr, TRUE, LOCAL_top_or_fr, SgFr_choice_point(producer), cp, (sg_fr_ptr)sg_fr, NULL);
-  find_next_dep_frame(dep_fr, cp);
+  reinsert_dep_fr(dep_fr, cp);
   SgFr_num_deps(sg_fr)++;
   
   /* turn generator choice point as consumer */
@@ -800,7 +823,7 @@ add_dependency_frame(grounded_sf_ptr sg_fr, choiceptr cp)
 void
 reinsert_dependency_frame(dep_fr_ptr dep_fr)
 {
-  find_next_dep_frame(dep_fr, DepFr_cons_cp(dep_fr));
+  reinsert_dep_fr(dep_fr, DepFr_cons_cp(dep_fr));
 }
 
 void
@@ -832,5 +855,13 @@ remove_from_restarted_gens(choiceptr cp)
 
   dprintf("remove from restarted gens\n");
 }
+
+void
+remove_sg_fr_from_restarted_gens(sg_fr_ptr sg_fr)
+{
+  dprintf("remove_sg_fr_from_restarted_gens\n");
+  remove_from_restarted_gens(SgFr_choice_point(sg_fr));
+}
+
 
 #endif /* TABLING_GROUNDED */
