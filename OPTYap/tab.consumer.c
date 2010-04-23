@@ -438,20 +438,6 @@ adjust_generator_to_consumer_answer_template(choiceptr cp, sg_fr_ptr sg_fr)
 #endif
 }
 
-static inline choiceptr
-locate_after_answer(choiceptr new_ans, choiceptr cp)
-{
-  choiceptr before = cp;
-  cp = cp->cp_b;
-
-  while(cp != new_ans) {
-    before = cp;
-    cp = cp->cp_b;
-  }
-  
-  return before;
-}
-
 /* for every generator that appears after 'limit' in the local stack
    that has 'subgoal' as the top generator change the top to 'new_top' */
 static inline void
@@ -561,8 +547,11 @@ external_producer_to_consumer(grounded_sf_ptr sg_fr, grounded_sf_ptr producer)
          * using local scheduling, to be sure set as NULL */
         CONS_CP(gen_cp)->cp_dep_fr = NULL;
     
-        choiceptr cp = locate_after_answer(limit_cp, B);
-        cp->cp_b = gen_cp;
+        if(gen_cp != limit_cp) {
+          limit_cp->cp_b = gen_cp;
+          limit_cp->cp_ap = TRUSTFAILCODE;
+        }
+        
         dprintf("Started\n");
       }
   } else {
