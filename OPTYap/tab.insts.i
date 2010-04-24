@@ -772,8 +772,14 @@ load_answer_jump: {
         continuation_ptr cont;
         
         if(SgFr_state(SgFr_producer(sg_fr)) < complete) {
-          /* TENTAR CRIAR CONSUMIDOR O MAIS RAPIDO POSSIVEL XXX */
           dprintf("producer not completed!\n");
+          
+          if(!SgFr_is_local_consumer(sg_fr)) {
+            /* transform into consumer */
+            add_dependency_frame(sg_fr, B);
+            goto answer_resolution;
+          }
+          
           build_next_ground_consumer_return_list(sg_fr);
 
           if(SgFr_try_answer(sg_fr))

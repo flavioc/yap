@@ -127,8 +127,11 @@ find_external_consumer(sg_fr_ptr specific_sg, choiceptr min, choiceptr max, sg_f
           if(leader_sg == gen ||
             is_internal_subgoal_frame(specific_sg, leader_sg, realmin))
           {
+            dprintf("LEADER WAS %d. leader_sg %d gen %d\n", (int)DepFr_leader_cp(top),
+              (int)leader_sg, (int)gen);
             DepFr_leader_cp(top) = cp;
           } else { /* external leader */
+            dprintf("EXTERNAL LEADER!!!! LEADER UNMODIFIED\n");
             first_external_leader = TRUE;
             /* keep leader */
           }
