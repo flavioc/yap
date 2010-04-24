@@ -140,7 +140,7 @@ find_external_consumer(sg_fr_ptr specific_sg, choiceptr min, choiceptr max, sg_f
           
           if(!first_external_leader) {
             /* leader must be internal! */
-            DepFr_leader_cp(top) = found_cp;
+            DepFr_leader_cp(top) = cp;
           } else {
             /* try to locate external leader */
             choiceptr leader_cp = DepFr_leader_cp(top);
@@ -148,7 +148,7 @@ find_external_consumer(sg_fr_ptr specific_sg, choiceptr min, choiceptr max, sg_f
             if(leader_sg == gen ||
                 is_internal_subgoal_frame(specific_sg, leader_sg, realmin))
             {
-              DepFr_leader_cp(top) = found_cp;
+              DepFr_leader_cp(top) = cp;
             }
           }
         }
