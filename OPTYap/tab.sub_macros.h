@@ -252,6 +252,23 @@ STD_PROTO(static inline int build_next_ground_producer_return_list, (grounded_sf
   if(NEXT)                                                  \
     DepFr_prev(NEXT) = DepFr_prev(DEP_FR);                  \
   check_dependency_frame()
+  
+#define restore_general_node()  \
+  H = HBREG = PROTECT_FROZEN_H(B);  \
+  restore_yaam_reg_cpdepth(B);  \
+  CPREG = B->cp_cp; \
+  ENV = B->cp_env;  \
+  SET_BB(PROTECT_FROZEN_B(B))
+  
+#define pop_general_node()  \
+  H = PROTECT_FROZEN_H(B);  \
+  pop_yaam_reg_cpdepth(B);  \
+  CPREG = B->cp_cp; \
+  TABLING_close_alt(B); \
+  ENV = B->cp_env;  \
+  B = B->cp_b;  \
+  HBREG = PROTECT_FROZEN_H(B);  \
+  SET_BB(PROTECT_FROZEN_B(B))
         
 static inline
 void mark_subsumptive_consumer_as_completed(subcons_fr_ptr sg_fr) {

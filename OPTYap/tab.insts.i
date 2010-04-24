@@ -857,29 +857,12 @@ load_answer_jump: {
 
         /* ... and store a loader! */
         if(continuation_has_next(cont)) {
-          /* restore node */
-          H = HBREG = PROTECT_FROZEN_H(B);
-          restore_yaam_reg_cpdepth(B);
-          CPREG = B->cp_cp;
-          ENV = B->cp_env;
-          SET_BB(PROTECT_FROZEN_B(B));
-
-          dprintf("transform into loader\n");
-          transform_node_into_loader(B, sg_fr, cont, LOAD_CONS_ANSWER);
+          restore_general_node();
+          transform_node_into_loader(B, cons_sg_fr, cont, LOAD_CONS_ANSWER);
           answer_template = LOADER_ANSWER_TEMPLATE(B);
         } else {
-          dprintf("pop run completed node\n");
           answer_template = GENERATOR_ANSWER_TEMPLATE(B, sg_fr);
-
-          /* pop node */
-          H = PROTECT_FROZEN_H(B);
-          pop_yaam_reg_cpdepth(B);
-          CPREG = B->cp_cp;
-          TABLING_close_alt(B);
-          ENV = B->cp_env;
-          B = B->cp_b;
-          HBREG = PROTECT_FROZEN_H(B);
-          SET_BB(PROTECT_FROZEN_B(B));
+          pop_general_node();
         }
 
         /* load first answer */
@@ -921,31 +904,60 @@ load_answer_jump: {
         /* transform into a loader! */
         if(continuation_has_next(cont)) {
           dprintf("transform into sub loader\n");
-          /* restore node */
-          H = HBREG = PROTECT_FROZEN_H(B);
-          restore_yaam_reg_cpdepth(B);
-          CPREG = B->cp_cp;
-          ENV = B->cp_env;
-          SET_BB(PROTECT_FROZEN_B(B));
-          transform_node_into_loader(B, sg_fr, cont, LOAD_CONS_ANSWER);
+          restore_general_node();
+          transform_node_into_loader(B, cons_sg_fr, cont, LOAD_CONS_ANSWER);
           answer_template = LOADER_ANSWER_TEMPLATE(B);
         } else {
           answer_template = GENERATOR_ANSWER_TEMPLATE(B, sg_fr);
-
-          /* pop node */
-          H = PROTECT_FROZEN_H(B);
-          pop_yaam_reg_cpdepth(B);
-          CPREG = B->cp_cp;
-          TABLING_close_alt(B);
-          ENV = B->cp_env;
-          B = B->cp_b;
-          HBREG = PROTECT_FROZEN_H(B);
-          SET_BB(PROTECT_FROZEN_B(B));
+          pop_general_node();
         }
 
         /* load answer */
         consume_answer_leaf(continuation_answer(cont), answer_template,
             CONSUME_SUBSUMPTIVE_ANSWER);
+      }
+      break;
+      case VARIANT_PRODUCER_SFT: {
+        dprintf("RUN_COMPLETED VARIANT CONSUMER!\n");
+        sg_fr_ptr sg_fr = cons_sg_fr;
+        dep_fr_ptr dep_fr = CONS_CP(B)->cp_dep_fr;
+        
+        if(SgFr_state(sg_fr) < complete) {
+          B->cp_ap = ANSWER_RESOLUTION;
+          goto answer_resolution;
+        }
+        
+        dprintf("just completed variant node!\n");
+        
+        /* producer subgoal just completed */
+        REMOVE_DEP_FR_FROM_STACK(dep_fr);
+        complete_dependency_frame(dep_fr);
+        
+        continuation_ptr cont = continuation_next(DepFr_last_answer(dep_fr));
+
+        if(!cont) {
+          /* fail sooner */
+          B = B->cp_b;
+          SET_BB(PROTECT_FROZEN_B(B));
+          goto fail;
+        }
+
+        CELL *answer_template;
+         
+        /* transform into a loader! */
+        if(continuation_has_next(cont)) {
+          dprintf("transform into var loader\n");
+          restore_general_node();
+          transform_node_into_loader(B, sg_fr, cont, LOAD_ANSWER);
+          answer_template = LOADER_ANSWER_TEMPLATE(B);
+        } else {
+          answer_template = GENERATOR_ANSWER_TEMPLATE(B, sg_fr);
+          pop_general_node();
+        }
+
+        /* load answer */
+        consume_answer_leaf(continuation_answer(cont), answer_template,
+            CONSUME_VARIANT_ANSWER);
       }
       break;
       default:
