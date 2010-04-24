@@ -295,20 +295,14 @@ change_generator_subgoal_frame(sg_fr_ptr sg_fr, dep_fr_ptr external, choiceptr m
 }
 
 static inline void
-update_subsumed_before_dependencies(sg_fr_ptr sg_fr, choiceptr min, sg_fr_ptr specific_sg)
+update_subsumed_before_dependencies(sg_fr_ptr sg_fr, dep_fr_ptr external,
+    choiceptr min, sg_fr_ptr specific_sg)
 {
-  choiceptr limit = SgFr_choice_point(sg_fr);
-  dep_fr_ptr top = LOCAL_top_dep_fr;
-  
-  while(top && EQUAL_OR_YOUNGER_CP(DepFr_cons_cp(top), limit)) {
-    dprintf("Skipped one possible subsumptive consumer cp %d\n", (int)DepFr_cons_cp(top));
-    top = DepFr_next(top);
-  }
+  dep_fr_ptr top = DepFr_next(external);
   
   while(top && YOUNGER_CP(DepFr_cons_cp(top), min)) {
     if(SgFr_is_sub_consumer(DepFr_sg_fr(top)) &&
-        (sg_fr_ptr)SgFr_producer((subcons_fr_ptr)DepFr_sg_fr(top)) == sg_fr &&
-        !is_internal_dep_fr(specific_sg, top, min))
+        (sg_fr_ptr)SgFr_producer((subcons_fr_ptr)DepFr_sg_fr(top)) == sg_fr)
     {
       sg_fr_ptr cons_sg_fr = DepFr_sg_fr(top);
       choiceptr cp = DepFr_cons_cp(top);
@@ -317,9 +311,6 @@ update_subsumed_before_dependencies(sg_fr_ptr sg_fr, choiceptr min, sg_fr_ptr sp
       cp->cp_ap = (yamop *)RUN_COMPLETED;
 
       CONS_CP(cp)->cp_sg_fr = cons_sg_fr;
-      CONS_CP(cp)->cp_dep_fr = top;
-      
-      REMOVE_DEP_FR_FROM_STACK(top);
     }
 
     top = DepFr_next(top);
@@ -438,10 +429,12 @@ abolish_generator_subgoals_between(sg_fr_ptr specific_sg, choiceptr min, choicep
         case SUBSUMPTIVE_PRODUCER_SFT: {
           external = find_external_consumer(specific_sg, SgFr_choice_point(sg_fr), max, sg_fr);
           if(external) {
+            choiceptr gen_cp = SgFr_choice_point(sg_fr);
+            
             dprintf("found external variant subsumptive consumer\n");
             /* variant consumer can generate answers for proper subsumptive consumers */
             change_generator_subgoal_frame(sg_fr, external, min, max);
-            update_subsumed_before_dependencies(sg_fr, min, specific_sg);
+            update_subsumed_before_dependencies(sg_fr, external, gen_cp, specific_sg);
           } else {
             dprintf("no variant external subsumptive consumer\n");
             node_list_ptr dep_list = find_external_subsumed_consumers(min, sg_fr, specific_sg);

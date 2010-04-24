@@ -757,7 +757,7 @@ load_answer_jump: {
     
   PBOp(table_run_completed, Otapl)
 #ifdef TABLING_GROUNDED
-    sg_fr_ptr cons_sg_fr = (sg_fr_ptr)CONS_CP(B)->cp_sg_fr;
+    sg_fr_ptr cons_sg_fr = CONS_CP(B)->cp_sg_fr;
     tab_ent_ptr tab_ent = SgFr_tab_ent(cons_sg_fr);
 
 #ifdef FDEBUG
@@ -893,39 +893,21 @@ load_answer_jump: {
         dprintf("RUN_COMPLETED SUBSUMED CONSUMER!\n");
         subcons_fr_ptr sg_fr = (subcons_fr_ptr)cons_sg_fr;
         dep_fr_ptr dep_fr = CONS_CP(B)->cp_dep_fr;
-        continuation_ptr cont;
         
         if(SgFr_state(SgFr_producer(sg_fr)) < complete) {
-          continuation_ptr cont;
-          
-          dprintf("producer not completed!\n");
-          build_next_subsumptive_consumer_return_list(sg_fr);
-          
-          cont = continuation_next(DepFr_last_answer(dep_fr));
-
-          if(cont) {
-            dprintf("Consuming...\n");
-            /* as long we can consume answers we
-             * can avoid being a real consumer */
-            consume_next_subsumptive_answer(cont, sg_fr, dep_fr);
-          }
-
-          /* no more answers to consume, transform this node
-             into a consumer */
-          dprintf("Not completed sub!\n");
-          reinsert_dependency_frame(dep_fr);
-          B = B->cp_b;
-          goto fail;
+          B->cp_ap = ANSWER_RESOLUTION;
+          goto answer_resolution;
         }
-
+        
         dprintf("just completed sub!\n");
 
         /* producer subgoal just completed */
+        REMOVE_DEP_FR_FROM_STACK(dep_fr);
         complete_dependency_frame(dep_fr);
         
         build_next_subsumptive_consumer_return_list(sg_fr);
           
-        cont = continuation_next(DepFr_last_answer(dep_fr));
+        continuation_ptr cont = continuation_next(DepFr_last_answer(dep_fr));
 
         if(!cont) {
           /* fail sooner */
