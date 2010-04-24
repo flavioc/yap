@@ -556,6 +556,8 @@ internal_producer_to_consumer(grounded_sf_ptr sg_fr, grounded_sf_ptr producer)
   SgFr_set_local_producer(producer);
   SgFr_set_local_consumer(sg_fr);
   
+  SgFr_top_gen_sg(producer) = sg_fr;
+  SgFr_set_top_internal(producer);
   B->cp_b = gen_cp;
 }
 

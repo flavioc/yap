@@ -754,7 +754,7 @@ load_answer_jump: {
     GONext();    
 #endif /* TABLING_GROUNDED */
   ENDPBOp();
-    
+
   PBOp(table_run_completed, Otapl)
 #ifdef TABLING_GROUNDED
     sg_fr_ptr cons_sg_fr = CONS_CP(B)->cp_sg_fr;
@@ -917,6 +917,7 @@ load_answer_jump: {
             CONSUME_SUBSUMPTIVE_ANSWER);
       }
       break;
+      case SUBSUMPTIVE_PRODUCER_SFT:
       case VARIANT_PRODUCER_SFT: {
         dprintf("RUN_COMPLETED VARIANT CONSUMER!\n");
         sg_fr_ptr sg_fr = cons_sg_fr;
