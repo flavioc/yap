@@ -100,7 +100,7 @@ is_internal_dep_fr(sg_fr_ptr specific_sg, dep_fr_ptr dep_fr, choiceptr limit)
 }
 
 static inline dep_fr_ptr
-find_external_consumer(sg_fr_ptr specific_sg, choiceptr min, sg_fr_ptr gen)
+find_external_consumer(sg_fr_ptr specific_sg, choiceptr min, choiceptr max, sg_fr_ptr gen)
 {
   dep_fr_ptr top = LOCAL_top_dep_fr;
   dep_fr_ptr found = NULL;
@@ -109,7 +109,7 @@ find_external_consumer(sg_fr_ptr specific_sg, choiceptr min, sg_fr_ptr gen)
   while(top && YOUNGER_CP(DepFr_cons_cp(top), min)) {
     if(DepFr_sg_fr(top) == gen) {
       dprintf("found a dep fr for gencp %d\n", (int)SgFr_choice_point(gen));
-      if(!is_internal_dep_fr(specific_sg, top, min)) {
+      if(YOUNGER_CP(DepFr_cons_cp(top), max) || !is_internal_dep_fr(specific_sg, top, min)) {
         choiceptr cp = DepFr_cons_cp(top);
         
         dprintf("Found one external dep_fr %d cp %d\n", (int)top, (int)DepFr_cons_cp(top));
@@ -255,8 +255,8 @@ change_generator_subgoal_frame(sg_fr_ptr sg_fr, dep_fr_ptr external, choiceptr m
   add_new_restarted_generator(cons_cp, sg_fr);
   
   /* update leader information to point to this choice point */
-  // XXX
-  update_leader_fields(SgFr_choice_point(sg_fr), cons_cp, min);
+  /* XXX */
+  update_leader_fields(SgFr_choice_point(sg_fr), cons_cp, SgFr_choice_point(sg_fr));
   
   /* update generator choice point */
   SgFr_choice_point(sg_fr) = cons_cp;
@@ -395,7 +395,7 @@ abolish_generator_subgoals_between(sg_fr_ptr specific_sg, choiceptr min, choicep
       dprintf("Trying to abolish %d cp %d\n", (int)sg_fr, (int)SgFr_choice_point(sg_fr));
       switch(SgFr_type(sg_fr)) {
         case VARIANT_PRODUCER_SFT:
-          external = find_external_consumer(specific_sg, min, sg_fr);
+          external = find_external_consumer(specific_sg, SgFr_choice_point(sg_fr), max, sg_fr);
           if(external) {
             dprintf("Could find external dep fr!\n");
             change_generator_subgoal_frame(sg_fr, external, min, max);
@@ -407,7 +407,7 @@ abolish_generator_subgoals_between(sg_fr_ptr specific_sg, choiceptr min, choicep
           }
           break;
         case SUBSUMPTIVE_PRODUCER_SFT: {
-          external = find_external_consumer(specific_sg, min, sg_fr);
+          external = find_external_consumer(specific_sg, SgFr_choice_point(sg_fr), max, sg_fr);
           if(external) {
             dprintf("found external variant subsumptive consumer\n");
             /* variant consumer can generate answers for proper subsumptive consumers */
