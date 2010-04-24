@@ -238,6 +238,20 @@ STD_PROTO(static inline int build_next_ground_producer_return_list, (grounded_sf
         TabEnt_set_proper_consumers(TAB_ENT);                       \
         ground_trie_create_tsi(TAB_ENT);                            \
       }
+      
+#define REMOVE_DEP_FR_FROM_STACK(DEP_FR)                      \
+  REMOVE_DEP_FR_FROM_STACK_NEXT(DEP_FR, DepFr_next(DEP_FR))
+
+#define REMOVE_DEP_FR_FROM_STACK_NEXT(DEP_FR, NEXT)         \
+  dprintf("REMOVE_DEP_FR %d\n", (int)(DEP_FR));             \
+  check_dependency_frame(); \
+  if(DEP_FR == LOCAL_top_dep_fr)                            \
+    LOCAL_top_dep_fr = NEXT;                                \
+  else                                                      \
+    DepFr_next(DepFr_prev(DEP_FR)) = NEXT;                  \
+  if(NEXT)                                                  \
+    DepFr_prev(NEXT) = DepFr_prev(DEP_FR);                  \
+  check_dependency_frame()
         
 static inline
 void mark_subsumptive_consumer_as_completed(subcons_fr_ptr sg_fr) {

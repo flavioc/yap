@@ -697,12 +697,20 @@ load_answer_jump: {
 
     if(SgFr_state(sg_fr) >= complete) {
       dprintf("Restart generator completed!\n");
-      /* act as a loader node */
-      transform_node_into_loader(B, sg_fr, DepFr_last_answer(dep_fr),
-          LOAD_ANSWER);
+      continuation_ptr cont = DepFr_last_answer(dep_fr);
+      
+      REMOVE_DEP_FR_FROM_STACK(dep_fr);
       abolish_dependency_frame(dep_fr);
-
-      goto load_answer_jump;
+      
+      if(continuation_has_next(cont)) {
+        /* act as a loader node */
+        transform_node_into_loader(B, sg_fr, cont, LOAD_ANSWER);
+        goto load_answer_jump;
+      } else {
+        B = B->cp_b;
+        SET_BB(PROTECT_FROZEN_B(B));
+        goto fail;
+      }
     } else if(SgFr_state(sg_fr) != suspended) {
       /* subgoal frame is already evaluating
          create a new consumer */
@@ -721,6 +729,7 @@ load_answer_jump: {
     remove_from_restarted_gens(B);
     //reorder_subgoal_frame(sg_fr, B);
     SgFr_try_answer(sg_fr) = DepFr_last_answer(dep_fr);
+    REMOVE_DEP_FR_FROM_STACK(dep_fr);
     abolish_dependency_frame(dep_fr);
     SgFr_state(sg_fr) = evaluating;
     GEN_CP(B)->cp_dep_fr = NULL; /* local_dep */

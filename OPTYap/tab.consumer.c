@@ -213,22 +213,6 @@ add_new_restarted_generator(choiceptr cp, sg_fr_ptr sf)
   dprintf("add_new_restarted_generator\n");
 }
 
-#define REMOVE_DEP_FR_FROM_STACK(DEP_FR)                      \
-  REMOVE_DEP_FR_FROM_STACK_NEXT(DEP_FR, DepFr_next(DEP_FR))
-
-#define REMOVE_DEP_FR_FROM_STACK_NEXT(DEP_FR, NEXT)         \
-  dprintf("REMOVE_DEP_FR %d\n", (int)(DEP_FR));             \
-  check_dependency_frame(); \
-  if(DEP_FR == LOCAL_top_dep_fr) dprintf("Remove from top\n");  \
-  if((NEXT) == NULL) dprintf("NEXT is NULL\n");             \
-  if(DEP_FR == LOCAL_top_dep_fr)                            \
-    LOCAL_top_dep_fr = NEXT;                                \
-  else                                                      \
-    DepFr_next(DepFr_prev(DEP_FR)) = NEXT;                  \
-  if(NEXT)                                                  \
-    DepFr_prev(NEXT) = DepFr_prev(DEP_FR);                  \
-  check_dependency_frame()
-
 static inline void
 change_generator_subgoal_frame(sg_fr_ptr sg_fr, dep_fr_ptr external, choiceptr min, choiceptr max)
 {
@@ -243,9 +227,6 @@ change_generator_subgoal_frame(sg_fr_ptr sg_fr, dep_fr_ptr external, choiceptr m
   if(local_dep) {
     REMOVE_DEP_FR_FROM_STACK(local_dep);
   }
-  
-  /* delete dependency frame from dependency space */
-  REMOVE_DEP_FR_FROM_STACK(external);
   
   /* execute RESTART_GENERATOR on backtracking */
   cons_cp->cp_ap = RESTART_GENERATOR;
