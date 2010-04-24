@@ -280,12 +280,6 @@ change_generator_subgoal_frame(sg_fr_ptr sg_fr, dep_fr_ptr external, choiceptr m
   choiceptr cons_cp = DepFr_cons_cp(external);
   choiceptr gen_cp = SgFr_choice_point(sg_fr);
 
-  /* abolish local scheduling dependency frame */
-  dep_fr_ptr local_dep = GEN_CP(gen_cp)->cp_dep_fr;
-  if(local_dep) {
-    REMOVE_DEP_FR_FROM_STACK(local_dep);
-  }
-
   add_new_restarted_generator(cons_cp, sg_fr);
   
   /* update generator choice point */
@@ -317,45 +311,55 @@ update_subsumed_before_dependencies(sg_fr_ptr sg_fr, dep_fr_ptr external,
   }
 }
 
-static inline node_list_ptr
-find_external_subsumed_consumers(choiceptr min, sg_fr_ptr sg_fr, sg_fr_ptr specific_sg)
+static inline void
+transform_external_subsumed_consumers(choiceptr min, sg_fr_ptr sg_fr, sg_fr_ptr specific_sg)
 {
   dep_fr_ptr top = LOCAL_top_dep_fr;
   node_list_ptr list = NULL;
+  choiceptr realmin = SgFr_choice_point(specific_sg);
   
   while(top && YOUNGER_CP(DepFr_cons_cp(top), min)) {
     sg_fr_ptr dep = DepFr_sg_fr(top);
     if(SgFr_is_sub_consumer(dep)) {
       if((sg_fr_ptr)SgFr_producer((subcons_fr_ptr)dep) == sg_fr) {
-        if(!is_internal_dep_fr(specific_sg, top, min)) {
-          /* add to list */
-          node_list_ptr ptr = list;
-          int found = FALSE;
+        /* add to list */
+        node_list_ptr ptr = list;
+        choiceptr cp = DepFr_cons_cp(top);
+        choiceptr leader_cp = DepFr_leader_cp(top);
+        sg_fr_ptr leader_sg = GEN_CP(leader_cp)->cp_sg_fr;
+        int found = FALSE;
           
-          /* try to update a repeated element */
-          while(ptr) {
-            
-            if(DepFr_sg_fr((dep_fr_ptr)NodeList_node(ptr)) == dep)
-            {
-              NodeList_node(ptr) = top;
-              found = TRUE;
-              break;
-            }
-            
-            ptr = NodeList_next(ptr);
+        /* check if subgoal frame was already seen */
+        while(ptr) {
+          if(DepFr_sg_fr((dep_fr_ptr)NodeList_node(ptr)) == dep)
+          {
+            found = TRUE;
+            break;
           }
+            
+          ptr = NodeList_next(ptr);
+        }
           
-          DepFr_sg_fr(top) = dep;
+        DepFr_sg_fr(top) = dep;
+        
+        if(found) {
+          cp->cp_ap = RESTART_GENERATOR;
+        } else {
+          /* insert it on the list */
+          dprintf("add to list\n");
+          node_list_ptr new_list;
+          ALLOC_NODE_LIST(new_list);
+          NodeList_node(new_list) = top;
+          NodeList_next(new_list) = list;
+          list = new_list;
           
-          if(!found) {
-            /* really insert it on the list */
-            dprintf("add to list\n");
-            node_list_ptr new_list;
-            ALLOC_NODE_LIST(new_list);
-            NodeList_node(new_list) = top;
-            NodeList_next(new_list) = list;
-            list = new_list;
-          }
+          cp->cp_ap = RUN_COMPLETED;
+        }
+        
+        if(leader_sg == sg_fr ||
+          is_internal_subgoal_frame(specific_sg, leader_sg, realmin))
+        {
+          DepFr_leader_cp(top) = cp;
         }
       }
     }
@@ -363,33 +367,9 @@ find_external_subsumed_consumers(choiceptr min, sg_fr_ptr sg_fr, sg_fr_ptr speci
     top = DepFr_next(top);
   }
   
+  free_node_list(list);
+  
   return list;
-}
-
-static inline void
-transform_sub_ans_tmplt_to_generator(CELL *at, CELL *stack_at)
-{
-  int size = (int)*stack_at;
-  CELL *stack_pt = stack_at + size + 1;
-  CELL *at_pt;
-  int i;
-
-  dprintf("Answer template size: %d\n", size);
-
-
-  for(i = 0; i < size; ++i) {
-    
-  }
-}
-
-static inline void
-transform_specific_consumer_into_generator(dep_fr_ptr dep_fr)
-{
-  subcons_fr_ptr cons_sg = (subcons_fr_ptr)DepFr_sg_fr(dep_fr);
-  CELL *ans_tmplt = SgFr_answer_template(cons_sg);
-  CELL *stack_ans_tmplt = (CELL *)(CONS_CP(DepFr_cons_cp(dep_fr)) + 1) + SgFr_arity(cons_sg);
-
-  transform_sub_ans_tmplt_to_generator(ans_tmplt, stack_ans_tmplt);
 }
 
 /* note that the general subgoal is always on the top of the generator stack ;-) */
@@ -427,27 +407,17 @@ abolish_generator_subgoals_between(sg_fr_ptr specific_sg, choiceptr min, choicep
           }
           break;
         case SUBSUMPTIVE_PRODUCER_SFT: {
-          external = find_external_consumer(specific_sg, SgFr_choice_point(sg_fr), max, sg_fr);
+          choiceptr gen_cp = SgFr_choice_point(sg_fr);
+          
+          external = find_external_consumer(specific_sg, gen_cp, max, sg_fr);
           if(external) {
-            choiceptr gen_cp = SgFr_choice_point(sg_fr);
-            
             dprintf("found external variant subsumptive consumer\n");
             /* variant consumer can generate answers for proper subsumptive consumers */
             change_generator_subgoal_frame(sg_fr, external, min, max);
             update_subsumed_before_dependencies(sg_fr, external, gen_cp, specific_sg);
           } else {
             dprintf("no variant external subsumptive consumer\n");
-            node_list_ptr dep_list = find_external_subsumed_consumers(min, sg_fr, specific_sg);
-            if(dep_list) {
-              dprintf("standalone subsumed consumers\n");
-              node_list_ptr list = dep_list;
-              while(list) {
-                dep_fr_ptr tochange = (dep_fr_ptr)NodeList_node(list);
-                transform_specific_consumer_into_generator(tochange);
-                list = NodeList_next(list);
-              }
-              free_node_list(dep_list);
-            }
+            transform_external_subsumed_consumers(gen_cp, sg_fr, specific_sg);
             dprintf("REALLY ABOLISHED %d\n", (int)sg_fr);
             abolish_incomplete_producer_subgoal(sg_fr);
             remove_subgoal_frame_from_stack(sg_fr);
