@@ -62,11 +62,11 @@ check_dependency_frame(void)
 }
 
 static int
-is_internal_subgoal_frame(sg_fr_ptr specific_sg, sg_fr_ptr sf, choiceptr limit)
+is_internal_subgoal_frame(sg_fr_ptr specific_sg, sg_fr_ptr sf, choiceptr min)
 {
   sg_fr_ptr top_gen = SgFr_get_top_gen_sg(sf);
   
-  while(top_gen && SgFr_choice_point(top_gen) <= limit) {
+  while(top_gen && EQUAL_OR_YOUNGER_CP(SgFr_choice_point(top_gen), min)) {
     if(top_gen == specific_sg)
       return SgFr_is_top_internal(sf);
     
@@ -104,6 +104,7 @@ find_external_consumer(sg_fr_ptr specific_sg, choiceptr min, choiceptr max, sg_f
 {
   dep_fr_ptr top = LOCAL_top_dep_fr;
   dep_fr_ptr found = NULL;
+  int first = TRUE;
   
   /* find first running consumer starting from min */
   while(top && YOUNGER_CP(DepFr_cons_cp(top), min)) {
@@ -113,8 +114,12 @@ find_external_consumer(sg_fr_ptr specific_sg, choiceptr min, choiceptr max, sg_f
         choiceptr cp = DepFr_cons_cp(top);
         
         dprintf("Found one external dep_fr %d cp %d\n", (int)top, (int)DepFr_cons_cp(top));
-        found = top;
-        cp->cp_ap = RUN_COMPLETED;
+        if(first) {
+          found = top;
+          cp->cp_ap = RESTART_GENERATOR;
+          first = FALSE;
+        } else
+          cp->cp_ap = RUN_COMPLETED;
         CONS_CP(cp)->cp_sg_fr = gen;
       }
     }
@@ -376,18 +381,17 @@ static inline void
 abolish_generator_subgoals_between(sg_fr_ptr specific_sg, choiceptr min, choiceptr max)
 {
   sg_fr_ptr top = StackState_sg_fr(SgFr_stack_state((grounded_sf_ptr)specific_sg));
+  sg_fr_ptr bottom = SgFr_next(specific_sg);
+  sg_fr_ptr sg_fr;
   dep_fr_ptr external;
   
   /* abolish generators */
-  while(top && EQUAL_OR_YOUNGER_CP(SgFr_choice_point(top), min))
+  while(top != bottom)
   {
-    sg_fr_ptr sg_fr;
-    
-    sg_fr = top;
-    
+    sg_fr = top; 
     top = SgFr_next(sg_fr);
     
-    if(SgFr_choice_point(sg_fr) == min) {
+    if(sg_fr == specific_sg) {
       abolish_incomplete_producer_subgoal(sg_fr);
       remove_subgoal_frame_from_stack(sg_fr);
       dprintf("ABOLISH SPECIFIC GENERATOR %d\n", (int)min);
@@ -446,11 +450,11 @@ static inline void
 abolish_dependency_frames_between(sg_fr_ptr specific_sg, choiceptr min, choiceptr max)
 {
   dep_fr_ptr top = StackState_dep_fr(SgFr_stack_state((grounded_sf_ptr)specific_sg));
-  
+  dep_fr_ptr dep_fr;
   dprintf("min=%d max=%d\n", (int)min, (int)max);
   
   while(top && YOUNGER_CP(DepFr_cons_cp(top), min)) {
-    dep_fr_ptr dep_fr = top;
+    dep_fr = top;
     top = DepFr_next(dep_fr);
     
     if(is_internal_dep_fr(specific_sg, dep_fr, min)) {
