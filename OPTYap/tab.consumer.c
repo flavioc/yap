@@ -104,7 +104,9 @@ find_external_consumer(sg_fr_ptr specific_sg, choiceptr min, choiceptr max, sg_f
 {
   dep_fr_ptr top = LOCAL_top_dep_fr;
   dep_fr_ptr found = NULL;
-  int first = TRUE;
+  choiceptr found_cp = NULL;
+  choiceptr realmin = SgFr_choice_point(specific_sg);
+  int first_external_leader = FALSE;
   
   /* find first running consumer starting from min */
   while(top && YOUNGER_CP(DepFr_cons_cp(top), min)) {
@@ -114,12 +116,40 @@ find_external_consumer(sg_fr_ptr specific_sg, choiceptr min, choiceptr max, sg_f
         choiceptr cp = DepFr_cons_cp(top);
         
         dprintf("Found one external dep_fr %d cp %d\n", (int)top, (int)DepFr_cons_cp(top));
-        if(first) {
+        if(!found) {
+          choiceptr leader_cp = DepFr_leader_cp(top);
+          sg_fr_ptr leader_sg = GEN_CP(leader_cp)->cp_sg_fr;
+          
           found = top;
+          found_cp = cp;
           cp->cp_ap = RESTART_GENERATOR;
-          first = FALSE;
-        } else
+          
+          if(leader_sg == gen ||
+            is_internal_subgoal_frame(specific_sg, leader_sg, realmin))
+          {
+            DepFr_leader_cp(top) = cp;
+          } else { /* external leader */
+            first_external_leader = TRUE;
+            /* keep leader */
+          }
+        } else {
           cp->cp_ap = RUN_COMPLETED;
+          
+          if(!first_external_leader) {
+            /* leader must be internal! */
+            DepFr_leader_cp(top) = found_cp;
+          } else {
+            /* try to locate external leader */
+            choiceptr leader_cp = DepFr_leader_cp(top);
+            sg_fr_ptr leader_sg = GEN_CP(leader_cp)->cp_sg_fr;
+            if(leader_sg == gen ||
+                is_internal_subgoal_frame(specific_sg, leader_sg, realmin))
+            {
+              DepFr_leader_cp(top) = found_cp;
+            }
+          }
+        }
+        
         CONS_CP(cp)->cp_sg_fr = gen;
       }
     }
@@ -252,16 +282,8 @@ change_generator_subgoal_frame(sg_fr_ptr sg_fr, dep_fr_ptr external, choiceptr m
   if(local_dep) {
     REMOVE_DEP_FR_FROM_STACK(local_dep);
   }
-  
-  /* execute RESTART_GENERATOR on backtracking */
-  cons_cp->cp_ap = RESTART_GENERATOR;
-  CONS_CP(cons_cp)->cp_sg_fr = sg_fr;
 
   add_new_restarted_generator(cons_cp, sg_fr);
-  
-  /* update leader information to point to this choice point */
-  /* XXX */
-  update_leader_fields(SgFr_choice_point(sg_fr), cons_cp, SgFr_choice_point(sg_fr));
   
   /* update generator choice point */
   SgFr_choice_point(sg_fr) = cons_cp;
