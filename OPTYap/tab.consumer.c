@@ -33,8 +33,6 @@ STD_PROTO(static inline void to_run_completed_node, (sg_fr_ptr, choiceptr));
 void
 check_dependency_frame(void)
 {
-#if 0
-  dprintf("going to check dependency space\n");
 #ifdef FDEBUG
   dep_fr_ptr top = LOCAL_top_dep_fr;
   
@@ -48,8 +46,6 @@ check_dependency_frame(void)
     dep_fr_ptr before = top;
     top = DepFr_next(top);
     
-    dprintf("dep_fr_ptr check from %d to %d\n", (int)before, (int)top);
-    
     if(top) {
       if(DepFr_prev(top) != before) {
         dprintf("prev(top) must be == before\n");
@@ -62,7 +58,6 @@ check_dependency_frame(void)
       exit(1);
     }
   }
-#endif
 #endif
 }
 
@@ -188,6 +183,25 @@ reorder_subgoal_frame(sg_fr_ptr sg_fr, choiceptr new_gen_cp)
     }
     SgFr_prev(sg_fr) = prev; /* prev can be NULL */
   }
+}
+
+/* for a subgoal 'sg_fr' on the generator stack, push it unto the top of the stack */
+void
+move_subgoal_top(sg_fr_ptr sg_fr)
+{
+  if(LOCAL_top_sg_fr == sg_fr)
+    return;
+  
+  /* remove from its current position ... */
+  remove_subgoal_frame_from_stack(sg_fr);
+  
+  /* ... and add to top */
+  SgFr_next(sg_fr) = LOCAL_top_sg_fr;
+  SgFr_prev(sg_fr) = NULL;
+  if(LOCAL_top_sg_fr) {
+    SgFr_prev(LOCAL_top_sg_fr) = sg_fr;
+  }
+  LOCAL_top_sg_fr = sg_fr;
 }
 
 static inline void

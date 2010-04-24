@@ -1158,7 +1158,7 @@ try_answer_jump: {
         remove_sg_fr_from_restarted_gens(sg_fr);
         SgFr_state(sg_fr) = evaluating;
         SgFr_choice_point(sg_fr) = B;
-        reorder_subgoal_frame(sg_fr, B);
+        move_subgoal_top(sg_fr);
       } else
 #endif /* TABLING_GROUNDED */
       {
@@ -1307,7 +1307,7 @@ try_answer_jump: {
         remove_sg_fr_from_restarted_gens(sg_fr);
         SgFr_state(sg_fr) = evaluating;
         SgFr_choice_point(sg_fr) = B;
-        reorder_subgoal_frame(sg_fr, B);
+        move_subgoal_top(sg_fr);
       } else
 #endif /* TABLING_GROUNDED */
       {
@@ -1457,7 +1457,7 @@ try_answer_jump: {
         remove_sg_fr_from_restarted_gens(sg_fr);
         SgFr_state(sg_fr) = evaluating;
         SgFr_choice_point(sg_fr) = B;
-        reorder_subgoal_frame(sg_fr, B);
+        move_subgoal_top(sg_fr);
       } else
 #endif /* TABLING_GROUNDED */
       {
