@@ -714,9 +714,12 @@ load_answer_jump: {
     } else if(SgFr_state(sg_fr) != suspended) {
       /* subgoal frame is already evaluating
          create a new consumer */
-      printf("FIX ME!!!\n");
-      exit(1);
+      dprintf("TRANSFORM INTO REAL CONSUMER\n");
+      B->cp_ap = ANSWER_RESOLUTION;
+      goto answer_resolution;
     }
+    
+    dprintf("Generator not resumed\n");
 
     /* generator was not resumed */
 
@@ -768,6 +771,7 @@ load_answer_jump: {
         grounded_sf_ptr sg_fr = (grounded_sf_ptr)cons_sg_fr;
         
         if(SgFr_state(SgFr_producer(sg_fr)) < complete) {
+          /* TENTAR CRIAR CONSUMIDOR O MAIS RAPIDO POSSIVEL XXX */
           dprintf("producer not completed!\n");
           build_next_ground_consumer_return_list(sg_fr);
           continuation_ptr cont;

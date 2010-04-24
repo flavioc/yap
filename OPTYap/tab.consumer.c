@@ -33,6 +33,7 @@ STD_PROTO(static inline void to_run_completed_node, (sg_fr_ptr, choiceptr));
 void
 check_dependency_frame(void)
 {
+#if 0
   dprintf("going to check dependency space\n");
 #ifdef FDEBUG
   dep_fr_ptr top = LOCAL_top_dep_fr;
@@ -61,6 +62,7 @@ check_dependency_frame(void)
       exit(1);
     }
   }
+#endif
 #endif
 }
 
@@ -113,8 +115,12 @@ find_external_consumer(sg_fr_ptr specific_sg, choiceptr min, sg_fr_ptr gen)
     if(DepFr_sg_fr(top) == gen) {
       dprintf("found a dep fr for gencp %d\n", (int)SgFr_choice_point(gen));
       if(!is_internal_dep_fr(specific_sg, top, min)) {
+        choiceptr cp = DepFr_cons_cp(top);
+        
         dprintf("Found one external dep_fr %d cp %d\n", (int)top, (int)DepFr_cons_cp(top));
         found = top;
+        cp->cp_ap = RUN_COMPLETED;
+        CONS_CP(cp)->cp_sg_fr = gen;
       }
     }
     top = DepFr_next(top);
