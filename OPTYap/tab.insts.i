@@ -727,7 +727,6 @@ load_answer_jump: {
     */
 
     remove_from_restarted_gens(B);
-    //reorder_subgoal_frame(sg_fr, B);
     SgFr_try_answer(sg_fr) = DepFr_last_answer(dep_fr);
     REMOVE_DEP_FR_FROM_STACK(dep_fr);
     abolish_dependency_frame(dep_fr);
@@ -741,10 +740,6 @@ load_answer_jump: {
       reinsert_dependency_frame(local_dep);
     }
 #endif
-
-    /* update choice point */
-    SgFr_choice_point(sg_fr) = B;
-    reinsert_subgoal_frame(sg_fr, B);
 
     B->cp_ap = TRY_ANSWER;
 
@@ -1149,18 +1144,25 @@ try_answer_jump: {
       continuation_ptr cont = SgFr_first_answer(sg_fr);
       ans_node_ptr ans_node = continuation_answer(cont);
       CELL *subs_ptr = YENV;
-
-#ifdef TABLING_GROUNDED
-      if(SgFr_state(sg_fr) == suspended)
-        remove_sg_fr_from_restarted_gens(sg_fr);
-#endif /* TABLING_GROUNDED */
-      
-      init_subgoal_frame(sg_fr);
-      UNLOCK(SgFr_lock(sg_fr));
       
       SgFr_try_answer(sg_fr) = cont;
 
       store_generator_node(tab_ent, sg_fr, PREG->u.Otapl.s, TRY_ANSWER);
+      
+#ifdef TABLING_GROUNDED
+      if(SgFr_state(sg_fr) == suspended) {
+        remove_sg_fr_from_restarted_gens(sg_fr);
+        SgFr_state(sg_fr) = evaluating;
+        SgFr_choice_point(sg_fr) = B;
+        reorder_subgoal_frame(sg_fr, B);
+      } else
+#endif /* TABLING_GROUNDED */
+      {
+        init_subgoal_frame(sg_fr);
+      }
+      
+      UNLOCK(SgFr_lock(sg_fr));
+      
       PREG = (yamop *) CPREG;
       PREFETCH_OP(PREG);
       CONSUME_VARIANT_ANSWER(ans_node, subs_ptr);
@@ -1292,17 +1294,24 @@ try_answer_jump: {
       ans_node_ptr ans_node = continuation_answer(cont);
       CELL *subs_ptr = YENV;
 
-#ifdef TABLING_GROUNDED
-      if(SgFr_state(sg_fr) == suspended)
-        remove_sg_fr_from_restarted_gens(sg_fr);
-#endif /* TABLING_GROUNDED */
+      SgFr_try_answer(sg_fr) = cont;
 
-      init_subgoal_frame(sg_fr);
+      store_generator_node(tab_ent, sg_fr, PREG->u.Otapl.s, TRY_ANSWER);
+
+#ifdef TABLING_GROUNDED
+      if(SgFr_state(sg_fr) == suspended) {
+        remove_sg_fr_from_restarted_gens(sg_fr);
+        SgFr_state(sg_fr) = evaluating;
+        SgFr_choice_point(sg_fr) = B;
+        reorder_subgoal_frame(sg_fr, B);
+      } else
+#endif /* TABLING_GROUNDED */
+      {
+        init_subgoal_frame(sg_fr);
+      }
+
       UNLOCK(SgFr_lock(sg_fr));
       
-      SgFr_try_answer(sg_fr) = cont;
-      
-      store_generator_node(tab_ent, sg_fr, PREG->u.Otapl.s, TRY_ANSWER);
       PREG = (yamop *) CPREG;
       PREFETCH_OP(PREG);
       CONSUME_VARIANT_ANSWER(ans_node, subs_ptr);
@@ -1435,16 +1444,24 @@ try_answer_jump: {
       ans_node_ptr ans_node = continuation_answer(cont);
       CELL *subs_ptr = YENV;
 
-#ifdef TABLING_GROUNDED
-      if(SgFr_state(sg_fr) == suspended)
-        remove_sg_fr_from_restarted_gens(sg_fr);
-#endif /* TABLING_GROUNDED */
-
-      init_subgoal_frame(sg_fr);
-      UNLOCK(SgFr_lock(sg_fr));
-
       SgFr_try_answer(sg_fr) = cont;
+
       store_generator_node(tab_ent, sg_fr, PREG->u.Otapl.s, TRY_ANSWER);
+
+#ifdef TABLING_GROUNDED
+      if(SgFr_state(sg_fr) == suspended) {
+        remove_sg_fr_from_restarted_gens(sg_fr);
+        SgFr_state(sg_fr) = evaluating;
+        SgFr_choice_point(sg_fr) = B;
+        reorder_subgoal_frame(sg_fr, B);
+      } else
+#endif /* TABLING_GROUNDED */
+      {
+        init_subgoal_frame(sg_fr);
+      }
+
+      UNLOCK(SgFr_lock(sg_fr));
+      
       PREG = (yamop *) CPREG;
       PREFETCH_OP(PREG);
       CONSUME_VARIANT_ANSWER(ans_node, subs_ptr);

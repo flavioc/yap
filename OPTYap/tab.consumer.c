@@ -241,9 +241,7 @@ change_generator_subgoal_frame(sg_fr_ptr sg_fr, dep_fr_ptr external, choiceptr m
   /* update generator choice point */
   SgFr_choice_point(sg_fr) = cons_cp;
   SgFr_state(sg_fr) = suspended;
-  
-  //reorder_subgoal_frame(sg_fr, cons_cp);
-  remove_subgoal_frame_from_stack(sg_fr);
+  reorder_subgoal_frame(sg_fr, cons_cp);
 }
 
 static inline void
