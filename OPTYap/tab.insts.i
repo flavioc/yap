@@ -718,37 +718,41 @@ load_answer_jump: {
     dprintf("==> TABLE_RESTART_GENERATOR\n");
     sg_fr_ptr sg_fr = GEN_CP(B)->cp_sg_fr;
     dep_fr_ptr dep_fr = GEN_CP(B)->cp_dep_fr;
+    int is_sub_transform = DepFr_is_subtransform(dep_fr);
+    
+    if(is_sub_transform) {
+      transform_consumer_answer_template(sg_fr, B);
+    }
 
     if(SgFr_state(sg_fr) >= complete)
     {
-      /* sub transform */
       dprintf("Restart generator completed!\n");
       continuation_ptr cont = DepFr_last_answer(dep_fr);
       
       REMOVE_DEP_FR_FROM_STACK(dep_fr);
       abolish_dependency_frame(dep_fr);
       
-      if(continuation_has_next(cont)) {
-        /* act as a loader node */
-        yamop *code;
-        
-        switch(SgFr_type(sg_fr)) {
-          case VARIANT_PRODUCER_SFT:
-          case SUBSUMPTIVE_PRODUCER_SFT:
-            code = LOAD_ANSWER;
-            break;
-          default:
-            code = LOAD_ANSWER;
-            break;
-        }
-        
-        transform_node_into_loader(B, sg_fr, cont, code);
-        goto load_answer_jump;
-      } else {
+      if(!continuation_has_next(cont)) {
         B = B->cp_b;
         SET_BB(PROTECT_FROZEN_B(B));
         goto fail;
       }
+      
+      /* act as a loader node */
+      yamop *code;
+        
+      switch(SgFr_type(sg_fr)) {
+        case VARIANT_PRODUCER_SFT:
+        case SUBSUMPTIVE_PRODUCER_SFT:
+          code = LOAD_ANSWER;
+          break;
+        default:
+          code = LOAD_ANSWER;
+          break;
+      }
+        
+      transform_node_into_loader(B, sg_fr, cont, code);
+      goto load_answer_jump;
     } else if(SgFr_state(sg_fr) != suspended) {
       /* subgoal frame is already evaluating
          create a new consumer */
@@ -766,14 +770,14 @@ load_answer_jump: {
     SgFr_state(sg_fr) = evaluating;
     GEN_CP(B)->cp_dep_fr = NULL; /* local_dep */
     
-    if(DepFr_is_subtransform(dep_fr)) {
+    if(is_sub_transform) {
       dprintf("Is subtransform!\n");
 #ifdef FDEBUG
       printSubgoalTriePath(stdout, SgFr_leaf(sg_fr), SgFr_tab_ent(sg_fr));
       dprintf("\n");
 #endif
       abolish_dependency_frame(dep_fr);
-      transform_consumer_answer_template(sg_fr);
+      transform_consumer_answer_template(sg_fr, B);
       reinsert_subgoal_frame(sg_fr, B);
       restart_code_execution(sg_fr);
     } else {

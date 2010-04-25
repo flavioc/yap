@@ -388,6 +388,7 @@ transform_external_subsumed_consumers(choiceptr min, sg_fr_ptr sg_fr, sg_fr_ptr 
           dprintf("new sub generator\n");
         }
         
+        DepFr_last_answer(top) = (continuation_ptr)CONSUMER_DEFAULT_LAST_ANSWER(new_sg, top);
         DepFr_sg_fr(top) = (sg_fr_ptr)new_sg;
         CONS_CP(cp)->cp_sg_fr = (sg_fr_ptr)new_sg;
         
@@ -962,9 +963,9 @@ transform_node_into_loader(choiceptr cp, sg_fr_ptr sg_fr,
 }
 
 void
-transform_consumer_answer_template(sg_fr_ptr sg_fr)
+transform_consumer_answer_template(sg_fr_ptr sg_fr, choiceptr cp)
 {
-  CELL *answer_template = GENERATOR_ANSWER_TEMPLATE(SgFr_choice_point(sg_fr), sg_fr);
+  CELL *answer_template = GENERATOR_ANSWER_TEMPLATE(cp, sg_fr);
   int old_size = (int)*answer_template;
   CELL *top_start = answer_template + old_size;
   int nvars = 0;

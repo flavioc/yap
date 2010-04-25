@@ -1326,6 +1326,11 @@ get_next_answer_continuation(dep_fr_ptr dep_fr) {
  */
 static inline int
 is_new_generator_call(sg_fr_ptr sg_fr) {
+#ifdef TABLING_GROUNDED
+  if(SgFr_state(sg_fr) == suspended && SgFr_first_answer(sg_fr) == NULL)
+    return TRUE; /* not an incomplete subgoal */
+#endif /* TABLING_GROUNDED */
+
   switch(SgFr_type(sg_fr)) {
     case VARIANT_PRODUCER_SFT:
     case SUBSUMPTIVE_PRODUCER_SFT:
