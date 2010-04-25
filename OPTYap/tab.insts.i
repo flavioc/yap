@@ -961,6 +961,11 @@ load_answer_jump: {
         dprintf("RUN_COMPLETED VARIANT CONSUMER!\n");
         sg_fr_ptr sg_fr = cons_sg_fr;
         dep_fr_ptr dep_fr = CONS_CP(B)->cp_dep_fr;
+        int is_sub_transform = DepFr_is_subtransform(dep_fr);
+        
+        if(is_sub_transform) {
+          transform_consumer_answer_template(sg_fr, B);
+        }
         
         if(SgFr_state(sg_fr) < complete) {
           B->cp_ap = ANSWER_RESOLUTION;
