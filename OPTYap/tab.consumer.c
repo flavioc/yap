@@ -655,6 +655,29 @@ is_internal_to_set(sg_fr_ptr pending, node_list_ptr all)
   return FALSE;
 }
 
+static inline void
+update_specific_consumers(grounded_sf_ptr pending)
+{
+  grounded_sf_ptr producer = SgFr_producer(pending);
+  choiceptr min = SgFr_choice_point(producer);
+  dep_fr_ptr top = LOCAL_top_dep_fr;
+  
+  dprintf("MIN: %d\n", (int)min);
+  
+  while(top && YOUNGER_CP(DepFr_cons_cp(top), min)) {
+    if(DepFr_sg_fr(top) == (sg_fr_ptr)pending) {
+      /* update this consumer node */
+      choiceptr cp = DepFr_cons_cp(top);
+      dprintf("Updated instr to RUN_COMPLETED on cp %d\n", (int)cp);
+      
+      CONS_CP(cp)->cp_sg_fr = (sg_fr_ptr)pending;
+      cp->cp_ap = RUN_COMPLETED;
+    }
+    dprintf("ONEEEE\n");
+    top = DepFr_next(top);
+  }
+}
+
 void
 process_pending_subgoal_list(node_list_ptr list, grounded_sf_ptr sg_fr) {
   node_list_ptr orig = list;
@@ -698,6 +721,12 @@ process_pending_subgoal_list(node_list_ptr list, grounded_sf_ptr sg_fr) {
           dprintf("MARKED AS CONSUMER\n");
         }
         
+        REMOVE_PENDING_NODE();
+      } else if(SgFr_state(pending) == evaluating && SgFr_is_ground_consumer(pending)) {
+        /* change producer, execute RUN_COMPLETED */
+        dprintf("found an evaluating subgoal that is consumer\n");
+        update_specific_consumers(pending);
+        SgFr_producer(pending) = sg_fr;
         REMOVE_PENDING_NODE();
       } else if(SgFr_state(pending) == evaluating && SgFr_is_ground_producer(pending)) {
 #ifdef FDEBUG

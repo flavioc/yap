@@ -811,6 +811,7 @@ load_answer_jump: {
     switch(SgFr_type(cons_sg_fr)) {
       case GROUND_CONSUMER_SFT: {
         grounded_sf_ptr sg_fr = (grounded_sf_ptr)cons_sg_fr;
+        dep_fr_ptr dep_fr = CONS_CP(B)->cp_dep_fr;
         continuation_ptr cont;
         
         if(SgFr_state(SgFr_producer(sg_fr)) < complete) {
@@ -818,7 +819,11 @@ load_answer_jump: {
           
           if(!SgFr_is_local_consumer(sg_fr)) {
             /* transform into consumer */
-            add_dependency_frame(sg_fr, B);
+            if(dep_fr) {
+              B->cp_ap = ANSWER_RESOLUTION;
+            } else {
+              add_dependency_frame(sg_fr, B);
+            }
             goto answer_resolution;
           }
           
@@ -864,21 +869,70 @@ load_answer_jump: {
             B->cp_ap = COMPLETION;
           goto fail;
         }
+        
+        if(!dep_fr) { /* master consumer */
+          /* locate lost consumers of this subgoal */
+          dep_fr_ptr top = LOCAL_top_dep_fr;
+          
+          while(top && YOUNGER_CP(DepFr_cons_cp(top), B)) {
+            sg_fr_ptr lost_sg = DepFr_sg_fr(top);
+            choiceptr cp = DepFr_cons_cp(top);
+            
+            if(SgFr_is_ground_consumer(lost_sg) &&
+                SgFr_producer((grounded_sf_ptr)lost_sg) == SgFr_producer(sg_fr) &&
+                cp->cp_ap == RUN_COMPLETED)
+            {
+              /* launch consumer */
+              dprintf("Lost consumer found!\n");
+              
+              restore_bindings(B->cp_tr, cp->cp_tr);
+              B = cp;
+              TR = TR_FZ;
+              if (TR != B->cp_tr)
+                TRAIL_LINK(B->cp_tr);
+                
+              H = HBREG = PROTECT_FROZEN_H(B);
+              restore_yaam_reg_cpdepth(B);
+              CPREG = B->cp_cp;
+              ENV = B->cp_env;
+              RESTORE_TOP_GEN_SG(top);
+              PREG = RUN_COMPLETED;
+              PREFETCH_OP(PREG);
+              YENV = ENV;
+              GONext();
+            }
+            
+            top = DepFr_next(top);
+          }
+        }
 
-        dprintf("just completed!\n");
-
-        /* producer subgoal just completed */
-        mark_ground_consumer_as_completed(sg_fr);
-
-        build_next_ground_consumer_return_list(sg_fr);
-
-        if(SgFr_try_answer(sg_fr)) {
+        if(SgFr_state(sg_fr) < complete) {
+          dprintf("just completed!\n");
+          /* producer subgoal just completed */
+          build_next_ground_consumer_return_list(sg_fr);
+          mark_ground_consumer_as_completed(sg_fr);
+        }
+        
+        if(dep_fr) {
+          dprintf("ABOLISH DEP_FR\n");
+          
+          cont = continuation_next(DepFr_last_answer(dep_fr));
+          REMOVE_DEP_FR_FROM_STACK(dep_fr);
+          FREE_DEPENDENCY_FRAME(dep_fr);
+          
+          if(!cont) {
+            TABLING_close_alt(B);
+            B = B->cp_b;
+            SET_BB(PROTECT_FROZEN_B(B));
+            goto fail;
+          }
+        } else if(SgFr_try_answer(sg_fr)) {
           /* some answers were consumed before */
           cont = continuation_next(SgFr_try_answer(sg_fr));
 
           if(!cont) {
             /* fail sooner */
-            dprintf("fail sooner\n");
+            TABLING_close_alt(B);
             B = B->cp_b;
             SET_BB(PROTECT_FROZEN_B(B));
             goto fail;
@@ -903,6 +957,7 @@ load_answer_jump: {
           transform_node_into_loader(B, cons_sg_fr, cont, LOAD_CONS_ANSWER);
           answer_template = LOADER_ANSWER_TEMPLATE(B);
         } else {
+          dprintf("loader not stored\n");
           answer_template = GENERATOR_ANSWER_TEMPLATE(B, sg_fr);
           pop_general_node();
         }
@@ -2021,6 +2076,7 @@ try_answer_jump: {
       /* unconsumed answer */
       ans_node = continuation_answer(next);
       DepFr_last_answer(dep_fr) = next;
+      dprintf("LAST ANSWER SET TO %d\n", (int)next);
       UNLOCK(DepFr_lock(dep_fr));
       consume_answer_and_procceed(dep_fr, ans_node);
     }

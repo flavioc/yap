@@ -417,7 +417,6 @@ abolish_incomplete_subsumptive_producer_subgoal(sg_fr_ptr sg_fr) {
 static inline void
 abolish_incomplete_ground_producer_subgoal(sg_fr_ptr sg_fr) {
   SgFr_state(sg_fr) = ready;
-  dprintf("Abolish incomplete\n");
 }
 
 static inline
