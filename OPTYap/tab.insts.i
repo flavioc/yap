@@ -239,6 +239,8 @@
 
 #define consume_answer_and_procceed(DEP_FR, ANSWER)       \
         { CELL *subs_ptr;                                 \
+          if(DepFr_is_subtransform(DEP_FR)) \
+          dprintf("============WARNING============\n"); \
           /* restore consumer choice point */             \
           H = HBREG = PROTECT_FROZEN_H(B);                \
           restore_yaam_reg_cpdepth(B);                    \
@@ -720,6 +722,8 @@ load_answer_jump: {
     dep_fr_ptr dep_fr = GEN_CP(B)->cp_dep_fr;
     int is_sub_transform = DepFr_is_subtransform(dep_fr);
     
+    DepFr_clear_subtransform(dep_fr);
+    
     if(is_sub_transform) {
       transform_consumer_answer_template(sg_fr, B);
     }
@@ -777,7 +781,6 @@ load_answer_jump: {
       dprintf("\n");
 #endif
       abolish_dependency_frame(dep_fr);
-      transform_consumer_answer_template(sg_fr, B);
       reinsert_subgoal_frame(sg_fr, B);
       restart_code_execution(sg_fr);
     } else {
@@ -962,9 +965,13 @@ load_answer_jump: {
         sg_fr_ptr sg_fr = cons_sg_fr;
         dep_fr_ptr dep_fr = CONS_CP(B)->cp_dep_fr;
         int is_sub_transform = DepFr_is_subtransform(dep_fr);
+        DepFr_clear_subtransform(dep_fr);
         
         if(is_sub_transform) {
+          dprintf("transform answer_template\n");
           transform_consumer_answer_template(sg_fr, B);
+        } else {
+          dprintf("not sub transform\n");
         }
         
         if(SgFr_state(sg_fr) < complete) {
@@ -1677,7 +1684,7 @@ try_answer_jump: {
       subs_ptr = (CELL *)(GEN_CP(gcp) + 1) + PREG->u.s.s;
     }
 #ifdef FDEBUG
-    dprintf("===> TABLE_NEW_ANSWER ");
+    dprintf("===> TABLE_NEW_ANSWER %d ", (int)B);
     printSubgoalTriePath(stdout, SgFr_leaf(sg_fr), SgFr_tab_ent(sg_fr));
     dprintf("\n");
 #endif
@@ -2000,7 +2007,7 @@ try_answer_jump: {
 #endif /* OPTYAP_ERRORS */
     dep_fr = CONS_CP(B)->cp_dep_fr;
 #ifdef FDEBUG
-    dprintf("===> TABLE_ANSWER_RESOLUTION %d ", (int)B);
+    dprintf("===> TABLE_ANSWER_RESOLUTION %d sg_fr %d ", (int)B, (int)DepFr_sg_fr(dep_fr));
     printSubgoalTriePath(stdout, SgFr_leaf(DepFr_sg_fr(dep_fr)), SgFr_tab_ent(DepFr_sg_fr(dep_fr)));
     dprintf("\n");
 #endif
@@ -2078,6 +2085,7 @@ try_answer_jump: {
       /* find chain choice point to backtrack */
       top_chain_cp = DepFr_backchain_cp(dep_fr);
       chain_cp = DepFr_leader_cp(LOCAL_top_dep_fr);
+      
       if (YOUNGER_CP(top_chain_cp, chain_cp))
         chain_cp = top_chain_cp;
       

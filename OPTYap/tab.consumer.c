@@ -155,6 +155,7 @@ find_external_consumer(sg_fr_ptr specific_sg, choiceptr min, choiceptr max, sg_f
           }
         }
         
+        DepFr_backchain_cp(top) = NULL;
         CONS_CP(cp)->cp_sg_fr = gen;
       }
     }
@@ -323,10 +324,12 @@ transform_external_subsumed_consumers(choiceptr min, sg_fr_ptr sg_fr, sg_fr_ptr 
   
   while(top && YOUNGER_CP(DepFr_cons_cp(top), min)) {
     sg_fr_ptr dep = DepFr_sg_fr(top);
+    dprintf("CONSIDERING EXTERNAL SUB %d\n", (int)DepFr_cons_cp(top));
     if(SgFr_is_sub_consumer(dep)) {
       if((sg_fr_ptr)SgFr_producer((subcons_fr_ptr)dep) == sg_fr) {
         /* add to list */
         choiceptr cp = DepFr_cons_cp(top);
+        
         choiceptr leader_cp = DepFr_leader_cp(top);
         sg_fr_ptr leader_sg = GEN_CP(leader_cp)->cp_sg_fr;
         subprod_fr_ptr new_sg = NULL;
@@ -358,12 +361,9 @@ transform_external_subsumed_consumers(choiceptr min, sg_fr_ptr sg_fr, sg_fr_ptr 
           printSubgoalTriePath(stdout, SgFr_leaf(dep), SgFr_tab_ent(dep));
           dprintf("\n");
 #endif
-          debug_subgoal_frame_stack();
           new_subsumptive_producer_subgoal_frame(new_sg, SgFr_code(dep), SgFr_leaf(dep));
           free_consumer_subgoal_data((subcons_fr_ptr)dep);
-          FREE_SUBCONS_SUBGOAL_FRAME(dep);
-          debug_subgoal_frame_stack();
-          DepFr_set_subtransform(top);
+          //FREE_SUBCONS_SUBGOAL_FRAME(dep);
           SgFr_choice_point(new_sg) = cp;
           
 #ifdef FDEBUG
@@ -389,8 +389,11 @@ transform_external_subsumed_consumers(choiceptr min, sg_fr_ptr sg_fr, sg_fr_ptr 
         }
         
         DepFr_last_answer(top) = (continuation_ptr)CONSUMER_DEFAULT_LAST_ANSWER(new_sg, top);
+        dprintf("SUB EXTERNAL CP %d NEW SG %d\n", (int)cp, (int)new_sg);
         DepFr_sg_fr(top) = (sg_fr_ptr)new_sg;
+        DepFr_set_subtransform(top);
         CONS_CP(cp)->cp_sg_fr = (sg_fr_ptr)new_sg;
+        DepFr_backchain_cp(top) = NULL;
         
         if(leader_sg == sg_fr ||
           is_internal_subgoal_frame(specific_sg, leader_sg, realmin))
@@ -403,7 +406,14 @@ transform_external_subsumed_consumers(choiceptr min, sg_fr_ptr sg_fr, sg_fr_ptr 
     top = DepFr_next(top);
   }
   
-  free_node_list(old_sg_list);
+  while(old_sg_list) {
+    node_list_ptr next = NodeList_next(old_sg_list);
+    subcons_fr_ptr sg_fr = (subcons_fr_ptr)NodeList_node(old_sg_list);
+    FREE_SUBCONS_SUBGOAL_FRAME(sg_fr);
+    FREE_NODE_LIST(old_sg_list);
+    
+    old_sg_list = next;
+  }
   free_node_list(new_sg_list);
 }
 
@@ -411,7 +421,6 @@ transform_external_subsumed_consumers(choiceptr min, sg_fr_ptr sg_fr, sg_fr_ptr 
 static inline void
 abolish_generator_subgoals_between(sg_fr_ptr specific_sg, choiceptr min, choiceptr max)
 {
-  debug_subgoal_frame_stack();
   sg_fr_ptr top = StackState_sg_fr(SgFr_stack_state((grounded_sf_ptr)specific_sg));
   sg_fr_ptr bottom = SgFr_next(specific_sg);
   sg_fr_ptr sg_fr;
