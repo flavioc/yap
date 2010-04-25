@@ -27,6 +27,8 @@
 #include "tab.utils.h"
 #include "tab.tries.h"
 
+void debug_subgoal_frame_stack(void);
+
 STD_PROTO(static inline void update_top_gen_sg_fields, (sg_fr_ptr, choiceptr, sg_fr_ptr));
 STD_PROTO(static inline void to_run_completed_node, (sg_fr_ptr, choiceptr));
 
@@ -315,7 +317,8 @@ static inline void
 transform_external_subsumed_consumers(choiceptr min, sg_fr_ptr sg_fr, sg_fr_ptr specific_sg)
 {
   dep_fr_ptr top = LOCAL_top_dep_fr;
-  node_list_ptr list = NULL;
+  node_list_ptr old_sg_list = NULL;
+  node_list_ptr new_sg_list = NULL;
   choiceptr realmin = SgFr_choice_point(specific_sg);
   
   while(top && YOUNGER_CP(DepFr_cons_cp(top), min)) {
@@ -323,38 +326,70 @@ transform_external_subsumed_consumers(choiceptr min, sg_fr_ptr sg_fr, sg_fr_ptr 
     if(SgFr_is_sub_consumer(dep)) {
       if((sg_fr_ptr)SgFr_producer((subcons_fr_ptr)dep) == sg_fr) {
         /* add to list */
-        node_list_ptr ptr = list;
         choiceptr cp = DepFr_cons_cp(top);
         choiceptr leader_cp = DepFr_leader_cp(top);
         sg_fr_ptr leader_sg = GEN_CP(leader_cp)->cp_sg_fr;
-        int found = FALSE;
-          
+        subprod_fr_ptr new_sg = NULL;
+
+        node_list_ptr ptr_old = old_sg_list;
+        node_list_ptr ptr_new = new_sg_list;
+
         /* check if subgoal frame was already seen */
-        while(ptr) {
-          if(DepFr_sg_fr((dep_fr_ptr)NodeList_node(ptr)) == dep)
+        while(ptr_old) {
+          if((sg_fr_ptr)NodeList_node(ptr_old) == dep)
           {
-            found = TRUE;
+            new_sg = (sg_fr_ptr)NodeList_node(ptr_new);
             break;
           }
-            
-          ptr = NodeList_next(ptr);
+
+          ptr_old = NodeList_next(ptr_old);
+          ptr_new = NodeList_next(ptr_new);
         }
-          
-        DepFr_sg_fr(top) = dep;
         
-        if(found) {
-          cp->cp_ap = RESTART_GENERATOR;
+        if(new_sg) { /* FOUND */
+          cp->cp_ap = RUN_COMPLETED;
         } else {
           /* insert it on the list */
           dprintf("add to list\n");
-          node_list_ptr new_list;
-          ALLOC_NODE_LIST(new_list);
-          NodeList_node(new_list) = top;
-          NodeList_next(new_list) = list;
-          list = new_list;
+          node_list_ptr new_old_list;
+          node_list_ptr new_new_list;
+
+#ifdef FDEBUG
+          printSubgoalTriePath(stdout, SgFr_leaf(dep), SgFr_tab_ent(dep));
+          dprintf("\n");
+#endif
+          debug_subgoal_frame_stack();
+          new_subsumptive_producer_subgoal_frame(new_sg, SgFr_code(dep), SgFr_leaf(dep));
+          free_consumer_subgoal_data((subcons_fr_ptr)dep);
+          FREE_SUBCONS_SUBGOAL_FRAME(dep);
+          debug_subgoal_frame_stack();
+          DepFr_set_subtransform(top);
+          SgFr_choice_point(new_sg) = cp;
           
-          cp->cp_ap = RUN_COMPLETED;
+#ifdef FDEBUG
+          printSubgoalTriePath(stdout, SgFr_leaf(new_sg), SgFr_tab_ent(new_sg));
+          dprintf("\n");
+#endif
+          
+          ALLOC_NODE_LIST(new_old_list);
+          NodeList_node(new_old_list) = DepFr_sg_fr(top);
+          NodeList_next(new_old_list) = old_sg_list;
+          old_sg_list = new_old_list;
+          
+          SgFr_state(new_sg) = suspended;
+
+          ALLOC_NODE_LIST(new_new_list);
+          NodeList_node(new_new_list) = new_sg;
+          NodeList_next(new_new_list) = new_sg_list;
+          new_sg_list = new_new_list;
+
+          cp->cp_ap = RESTART_GENERATOR;
+          
+          dprintf("new sub generator\n");
         }
+        
+        DepFr_sg_fr(top) = (sg_fr_ptr)new_sg;
+        CONS_CP(cp)->cp_sg_fr = (sg_fr_ptr)new_sg;
         
         if(leader_sg == sg_fr ||
           is_internal_subgoal_frame(specific_sg, leader_sg, realmin))
@@ -367,15 +402,15 @@ transform_external_subsumed_consumers(choiceptr min, sg_fr_ptr sg_fr, sg_fr_ptr 
     top = DepFr_next(top);
   }
   
-  free_node_list(list);
-  
-  return list;
+  free_node_list(old_sg_list);
+  free_node_list(new_sg_list);
 }
 
 /* note that the general subgoal is always on the top of the generator stack ;-) */
 static inline void
 abolish_generator_subgoals_between(sg_fr_ptr specific_sg, choiceptr min, choiceptr max)
 {
+  debug_subgoal_frame_stack();
   sg_fr_ptr top = StackState_sg_fr(SgFr_stack_state((grounded_sf_ptr)specific_sg));
   sg_fr_ptr bottom = SgFr_next(specific_sg);
   sg_fr_ptr sg_fr;
@@ -768,12 +803,30 @@ process_pending_subgoal_list(node_list_ptr list, grounded_sf_ptr sg_fr) {
 }
 
 void
+debug_subgoal_frame_stack(void)
+{
+  sg_fr_ptr top = LOCAL_top_sg_fr;
+  
+  dprintf("SUBGOAL FRAME STACK\n");
+  
+  while(top) {
+#ifdef FDEBUG
+    printSubgoalTriePath(stdout, SgFr_leaf(top), SgFr_tab_ent(top));
+    dprintf("\n");
+#endif 
+    top = SgFr_next(top);
+  }
+  dprintf("END OF SUBGOAL FRAME STACK\n");
+}
+
+void
 reinsert_subgoal_frame(sg_fr_ptr sg_fr, choiceptr new_cp)
 {
   if(LOCAL_top_sg_fr == NULL) {
     LOCAL_top_sg_fr = sg_fr;
     SgFr_next(sg_fr) = NULL;
     SgFr_prev(sg_fr) = NULL;
+    return;
   }
 
   sg_fr_ptr top = LOCAL_top_sg_fr;
@@ -783,13 +836,20 @@ reinsert_subgoal_frame(sg_fr_ptr sg_fr, choiceptr new_cp)
     before = top;
     top = SgFr_next(top);
   }
-
-  SgFr_prev(sg_fr) = before;
-  if(before)
+  
+  if(before == NULL) {
+    SgFr_prev(sg_fr) = NULL;
+    SgFr_next(sg_fr) = top;
+    if(top)
+      SgFr_prev(top) = sg_fr;
+    LOCAL_top_sg_fr = sg_fr;
+  } else {
+    SgFr_prev(sg_fr) = before;
     SgFr_next(before) = sg_fr;
-  if(top)
-    SgFr_prev(top) = sg_fr;
-  SgFr_next(sg_fr) = top;
+    if(top)
+      SgFr_prev(top) = sg_fr;
+    SgFr_next(sg_fr) = top;
+  }
 }
 
 static inline void
@@ -899,6 +959,73 @@ transform_node_into_loader(choiceptr cp, sg_fr_ptr sg_fr,
       (1 + SgFr_arity(sg_fr)) * sizeof(CELL));
   LOAD_CP(cp)->cp_last_answer = last;
   cp->cp_ap = load_instr;
+}
+
+void
+transform_consumer_answer_template(sg_fr_ptr sg_fr)
+{
+  CELL *answer_template = GENERATOR_ANSWER_TEMPLATE(SgFr_choice_point(sg_fr), sg_fr);
+  int old_size = (int)*answer_template;
+  CELL *top_start = answer_template + old_size;
+  int nvars = 0;
+  Cell term;
+  
+  TermStack_ResetTOS;
+  TermStack_PushHighToLowVector(top_start, old_size);
+  Trail_ResetTOS;
+  
+  while(!TermStack_IsEmpty) {
+    TermStack_Pop(term);
+    term = Deref(term);
+    dprintf("pop term %d\n", (int)term);
+    
+    if(IsVarTerm(term)) {
+      if(IsStandardizedVariable(term)) {
+        /* skip */
+        dprintf("ALREADY SEEN VARIABLE\n");
+      } else {
+        dprintf("NEW VARIABLE\n");
+        StandardizeVariable(term, nvars);
+        Trail_Push((CPtr)term);
+        ++nvars;
+      }
+    } else if(IsAtomOrIntTerm(term)) {
+      /* skip */
+      dprintf("ATOM OR INT\n");
+    } else if(IsPairTerm(term)) {
+      TermStack_PushListArgs(term);
+    } else if(IsApplTerm(term)) {
+      Functor f = FunctorOfTerm(term);
+      if(f == FunctorDouble) {
+        /* skip */
+      } else if(f == FunctorLongInt) {
+        /* skip */
+      } else if(f == FunctorDBRef) {
+        Yap_Error(INTERNAL_ERROR, TermNil, "unsupported type tag (FunctorDBRef in transform_consumer_answer_template)");
+      } else if(f == FunctorBigInt) {
+        Yap_Error(INTERNAL_ERROR, TermNil, "unsupported type tag (FunctorBigInt in transform_consumer_answer_template)");
+      } else {
+        TermStack_PushFunctorArgs(term);
+      }
+    }
+  }
+  
+  
+  /* write variables */
+  CELL **binding, *termptr;
+  
+  /* write size */
+  
+  dprintf("NEW ANSWER TEMPLATE SIZE: %d (%d)\n", nvars, (int)answer_template);
+  *answer_template++ = (CELL)nvars;
+  
+  for ( binding = Trail_Top-1;  binding >= Trail_Base;  binding-- ) {
+    termptr = *binding;
+    dprintf("WROTE NEW VARIABLE %d at %d\n", (int)termptr, (int)answer_template);
+    *answer_template++ = (CELL)termptr;
+  }
+  
+  Trail_Unwind_All;
 }
 
 #endif /* TABLING_GROUNDED */

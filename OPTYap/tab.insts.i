@@ -309,6 +309,30 @@
           SET_BB(PROTECT_FROZEN_B(B))   \
         }
 
+#define restart_code_execution(SG_FR) {                           \
+        yamop *code_ap;                                           \
+        PREG = SgFr_code(SG_FR);                                  \
+        if (PREG->opc == Yap_opcode(_table_try)) {                \
+  	      /* table_try */                                         \
+  	      code_ap = NEXTOP(PREG,Otapl);                           \
+  	      PREG = PREG->u.Otapl.d;                                 \
+        } else if (PREG->opc == Yap_opcode(_table_try_single)) {  \
+  	      /* table_try_single */                                  \
+  	      code_ap = COMPLETION;                                   \
+  	      PREG = PREG->u.Otapl.d;                                 \
+        } else {                                                  \
+  	      /* table_try_me */                                      \
+  	      code_ap = PREG->u.Otapl.d;                              \
+  	      PREG = NEXTOP(PREG,Otapl);                              \
+        }                                                         \
+        PREFETCH_OP(PREG);                                        \
+        restore_generator_node(SgFr_arity(SG_FR), code_ap);       \
+        YENV = (CELL *) PROTECT_FROZEN_B(B);                      \
+        set_cut(YENV, B->cp_b);                                   \
+        SET_BB(NORM_CP(YENV));                                    \
+        allocate_environment();                                   \
+        GONext();                                                 \
+    }
 
 #ifdef DEPTH_LIMIT
 #define allocate_environment()        \
@@ -695,7 +719,9 @@ load_answer_jump: {
     sg_fr_ptr sg_fr = GEN_CP(B)->cp_sg_fr;
     dep_fr_ptr dep_fr = GEN_CP(B)->cp_dep_fr;
 
-    if(SgFr_state(sg_fr) >= complete) {
+    if(SgFr_state(sg_fr) >= complete)
+    {
+      /* sub transform */
       dprintf("Restart generator completed!\n");
       continuation_ptr cont = DepFr_last_answer(dep_fr);
       
@@ -704,7 +730,19 @@ load_answer_jump: {
       
       if(continuation_has_next(cont)) {
         /* act as a loader node */
-        transform_node_into_loader(B, sg_fr, cont, LOAD_ANSWER);
+        yamop *code;
+        
+        switch(SgFr_type(sg_fr)) {
+          case VARIANT_PRODUCER_SFT:
+          case SUBSUMPTIVE_PRODUCER_SFT:
+            code = LOAD_ANSWER;
+            break;
+          default:
+            code = LOAD_ANSWER;
+            break;
+        }
+        
+        transform_node_into_loader(B, sg_fr, cont, code);
         goto load_answer_jump;
       } else {
         B = B->cp_b;
@@ -723,31 +761,28 @@ load_answer_jump: {
 
     /* generator was not resumed */
 
-    /* remove local dep */
-
-    /*choiceptr old_gen_cp = SgFr_choice_point(sg_fr);
-    dep_fr_ptr local_dep = GEN_CP(old_gen_cp)->cp_dep_fr;
-    */
-
     remove_from_restarted_gens(B);
-    SgFr_try_answer(sg_fr) = DepFr_last_answer(dep_fr);
     REMOVE_DEP_FR_FROM_STACK(dep_fr);
-    abolish_dependency_frame(dep_fr);
     SgFr_state(sg_fr) = evaluating;
     GEN_CP(B)->cp_dep_fr = NULL; /* local_dep */
-
-#if 0
-    /* for local scheduling */
-    if(local_dep) {
-      DepFr_cons_cp(local_dep) = B;
-      reinsert_dependency_frame(local_dep);
-    }
+    
+    if(DepFr_is_subtransform(dep_fr)) {
+      dprintf("Is subtransform!\n");
+#ifdef FDEBUG
+      printSubgoalTriePath(stdout, SgFr_leaf(sg_fr), SgFr_tab_ent(sg_fr));
+      dprintf("\n");
 #endif
-
-    B->cp_ap = TRY_ANSWER;
-
-    dprintf("Going to try_answer_jump\n");
-    goto try_answer_jump;
+      abolish_dependency_frame(dep_fr);
+      transform_consumer_answer_template(sg_fr);
+      reinsert_subgoal_frame(sg_fr, B);
+      restart_code_execution(sg_fr);
+    } else {
+      abolish_dependency_frame(dep_fr);
+      B->cp_ap = TRY_ANSWER;
+      SgFr_try_answer(sg_fr) = DepFr_last_answer(dep_fr);
+      dprintf("Going to try_answer_jump\n");
+      goto try_answer_jump;
+    }
 #else
     PREG = PREG->u.Otapl.d;
     PREFETCH_OP(PREG);
@@ -999,30 +1034,8 @@ try_answer_jump: {
       CONSUME_VARIANT_ANSWER(ans_node, subs_ptr);
       YENV = ENV;
       GONext();
-    } else {
-      yamop *code_ap;
-      PREG = SgFr_code(sg_fr);
-      if (PREG->opc == Yap_opcode(_table_try)) {
-	      /* table_try */
-	      code_ap = NEXTOP(PREG,Otapl);
-	      PREG = PREG->u.Otapl.d;
-      } else if (PREG->opc == Yap_opcode(_table_try_single)) {
-	      /* table_try_single */
-	      code_ap = COMPLETION;
-	      PREG = PREG->u.Otapl.d;
-      } else {
-	      /* table_try_me */
-	      code_ap = PREG->u.Otapl.d;
-	      PREG = NEXTOP(PREG,Otapl);
-      }
-      PREFETCH_OP(PREG);
-      restore_generator_node(SgFr_arity(sg_fr), code_ap);
-      YENV = (CELL *) PROTECT_FROZEN_B(B);
-      set_cut(YENV, B->cp_b);
-      SET_BB(NORM_CP(YENV));
-      allocate_environment();
-      GONext();
-    }
+    } else
+      restart_code_execution(sg_fr)
  }
 #else
     PREG = PREG->u.Otapl.d;

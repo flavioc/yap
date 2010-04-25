@@ -326,5 +326,4 @@ void consume_variant_answer(ans_node_ptr current_ans_node, int subs_arity, CELL 
 #endif /* GLOBAL_TRIE */
 }
 
-
 #endif /* TABLING */

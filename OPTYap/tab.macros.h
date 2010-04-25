@@ -1164,6 +1164,7 @@ void abolish_incomplete_subgoals(choiceptr prune_cp) {
 
   while (LOCAL_top_sg_fr && EQUAL_OR_YOUNGER_CP(SgFr_choice_point(LOCAL_top_sg_fr), prune_cp)) {
     sg_fr_ptr sg_fr;
+    dprintf("ABOLISH ONE\n");
 #ifdef YAPOR
     if (PARALLEL_EXECUTION_MODE)
       pruning_over_tabling_data_structures();
@@ -1172,6 +1173,10 @@ void abolish_incomplete_subgoals(choiceptr prune_cp) {
     LOCAL_top_sg_fr = SgFr_next(sg_fr);
     
     LOCK(SgFr_lock(sg_fr));
+    #ifdef FDEBUG
+              printSubgoalTriePath(stdout, SgFr_leaf(sg_fr), SgFr_tab_ent(sg_fr));
+              dprintf("\n");
+    #endif
     abolish_incomplete_producer_subgoal(sg_fr);
     
     UNLOCK(SgFr_lock(sg_fr));

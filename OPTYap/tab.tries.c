@@ -130,7 +130,7 @@ void delete_subgoal_path(sg_fr_ptr sg_fr) {
   sg_node_ptr parent, first_child, old_node, *bucket;
   sg_hash_ptr hash = NULL;
   int update_generators = TrNode_is_sub_call(node) && TrNode_num_gen((subg_node_ptr)node) > 0;
-
+  
   TrNode_child(node) = NULL;
   
   while(!TrNode_is_root(node) && TrNode_child(node) == NULL) {
@@ -161,7 +161,7 @@ void delete_subgoal_path(sg_fr_ptr sg_fr) {
     while(TrNode_next(first_child) != node)
       first_child = TrNode_next(first_child);
     TrNode_next(first_child) = TrNode_next(node);
-  
+    
 process_next:
     
     if(hash) {
