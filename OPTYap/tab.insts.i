@@ -2448,7 +2448,7 @@ try_answer_jump: {
       if (IS_BATCHED_GEN_CP(B)) {
         B->cp_ap = NULL;
         dprintf("LEADER_CP=%d\n", (int)DepFr_leader_cp(LOCAL_top_dep_fr));
-        if (EQUAL_OR_YOUNGER_CP(B_FZ, B) && B != DepFr_leader_cp(LOCAL_top_dep_fr)) {
+        if (EQUAL_OR_YOUNGER_CP(B_FZ, B) && B != DepFr_leader_cp(LOCAL_top_dep_fr) && DepFr_leader_cp(LOCAL_top_dep_fr) != NULL) {
           /* not leader on that node */
           dprintf("not leader on that node (LEADER_CP=%d)\n", (int)DepFr_leader_cp(LOCAL_top_dep_fr));
           update_generator_node(GEN_CP(B)->cp_sg_fr);
