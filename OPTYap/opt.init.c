@@ -230,10 +230,9 @@ void Yap_init_local(void) {
   /* local data related to tabling */
   LOCAL_next_free_ans_node = NULL;
   LOCAL_top_sg_fr = NULL; 
-#ifdef TABLING_CALL_SUBSUMPTION
+#ifdef TABLING_GROUNDED
   LOCAL_top_gen_sg = NULL;
-  LOCAL_restarted_gens = NULL;
-#endif /* TABLING_CALL_SUBSUMPTION */
+#endif /* TABLING_GROUNDED */
   LOCAL_top_dep_fr = GLOBAL_root_dep_fr; 
 #ifdef YAPOR
   Set_LOCAL_top_cp_on_stack((choiceptr) Yap_LocalBase); /* ??? */

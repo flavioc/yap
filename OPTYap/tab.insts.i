@@ -266,6 +266,21 @@
           GONext();                                       \
         }
 
+#define restart_generator(DEP_FR) {                       \
+        choiceptr cp = DepFr_cons_cp(DEP_FR);             \
+        rebind_variables(cp->cp_tr, B->cp_tr);            \
+        B = cp;                                           \
+        TR = TR_FZ;                                       \
+        if(TR != B->cp_tr)                                \
+          TRAIL_LINK(B->cp_tr);                           \
+        H = HBREG = PROTECT_FROZEN_H(B);                  \
+        restore_yaam_reg_cpdepth(B);                      \
+        ENV = B->cp_env;                                  \
+        PREG = (yamop *)B->cp_ap;                         \
+        PREFETCH_OP(PREG);                                \
+        YENV = ENV;                                       \
+        GONext();                                         \
+      }
 
 #define store_loader_node(TAB_ENT, ANSWER, LOAD_INSTR)        \
         { register choiceptr lcp;                             \
@@ -769,7 +784,6 @@ load_answer_jump: {
 
     /* generator was not resumed */
 
-    remove_from_restarted_gens(B);
     REMOVE_DEP_FR_FROM_STACK(dep_fr);
     SgFr_state(sg_fr) = evaluating;
     GEN_CP(B)->cp_dep_fr = NULL; /* local_dep */
@@ -801,7 +815,7 @@ load_answer_jump: {
 #ifdef TABLING_GROUNDED
     sg_fr_ptr cons_sg_fr = CONS_CP(B)->cp_sg_fr;
     tab_ent_ptr tab_ent = SgFr_tab_ent(cons_sg_fr);
-
+    
 #ifdef FDEBUG
     dprintf("===> TABLE_RUN_COMPLETED ");
     printSubgoalTriePath(stdout, SgFr_leaf(cons_sg_fr), tab_ent);
@@ -1021,6 +1035,7 @@ load_answer_jump: {
         dep_fr_ptr dep_fr = CONS_CP(B)->cp_dep_fr;
         int is_sub_transform = DepFr_is_subtransform(dep_fr);
         DepFr_clear_subtransform(dep_fr);
+        DepFr_clear_restarter(dep_fr);
         
         if(is_sub_transform) {
           dprintf("transform answer_template\n");
@@ -1029,7 +1044,19 @@ load_answer_jump: {
           dprintf("not sub transform\n");
         }
         
-        if(SgFr_state(sg_fr) < complete) {
+        if(SgFr_state(sg_fr) == suspended) {
+          /* restart subgoal */
+          REMOVE_DEP_FR_FROM_STACK(dep_fr);
+          SgFr_state(sg_fr) = evaluating;
+          GEN_CP(B)->cp_dep_fr = NULL; /* local_dep */
+          abolish_dependency_frame(dep_fr);
+          B->cp_ap = TRY_ANSWER;
+          SgFr_choice_point(sg_fr) = B;
+          reorder_subgoal_frame(sg_fr, B);
+          SgFr_try_answer(sg_fr) = DepFr_last_answer(dep_fr);
+          dprintf("Going to try_answer_jump\n");
+          goto try_answer_jump;
+        } else if(SgFr_state(sg_fr) < complete) {
           B->cp_ap = ANSWER_RESOLUTION;
           goto answer_resolution;
         }
@@ -1229,7 +1256,6 @@ try_answer_jump: {
       
 #ifdef TABLING_GROUNDED
       if(SgFr_state(sg_fr) == suspended) {
-        remove_sg_fr_from_restarted_gens(sg_fr);
         SgFr_state(sg_fr) = evaluating;
         SgFr_choice_point(sg_fr) = B;
         move_subgoal_top(sg_fr);
@@ -1378,7 +1404,6 @@ try_answer_jump: {
 
 #ifdef TABLING_GROUNDED
       if(SgFr_state(sg_fr) == suspended) {
-        remove_sg_fr_from_restarted_gens(sg_fr);
         SgFr_state(sg_fr) = evaluating;
         SgFr_choice_point(sg_fr) = B;
         move_subgoal_top(sg_fr);
@@ -1528,7 +1553,6 @@ try_answer_jump: {
 
 #ifdef TABLING_GROUNDED
       if(SgFr_state(sg_fr) == suspended) {
-        remove_sg_fr_from_restarted_gens(sg_fr);
         SgFr_state(sg_fr) = evaluating;
         SgFr_choice_point(sg_fr) = B;
         move_subgoal_top(sg_fr);
@@ -2161,7 +2185,7 @@ try_answer_jump: {
         printSubgoalTriePath(stdout, SgFr_leaf(DepFr_sg_fr(dep_fr)), SgFr_tab_ent(DepFr_sg_fr(dep_fr)));
         dprintf("\n");
 #endif
-
+        
         ans_node = NULL;
         next = get_next_answer_continuation(dep_fr);
         
@@ -2409,7 +2433,7 @@ try_answer_jump: {
     } else
 #endif /* YAPOR */
     {
-#ifdef TABLING_CALL_SUBSUMPTION
+#ifdef TABLING_GROUNDED
       sg_fr_ptr sg_fr = GEN_CP(B)->cp_sg_fr;
       if(SgFr_is_ground_local_producer(sg_fr)) {
         B->cp_ap = ANSWER_RESOLUTION;
@@ -2420,7 +2444,7 @@ try_answer_jump: {
           goto fail;
         }
       } else
-#endif /* TABLING_CALL_SUBSUMPTION */
+#endif /* TABLING_GROUNDED */
       if (IS_BATCHED_GEN_CP(B)) {
         B->cp_ap = NULL;
         dprintf("LEADER_CP=%d\n", (int)DepFr_leader_cp(LOCAL_top_dep_fr));
@@ -2428,32 +2452,6 @@ try_answer_jump: {
           /* not leader on that node */
           dprintf("not leader on that node (LEADER_CP=%d)\n", (int)DepFr_leader_cp(LOCAL_top_dep_fr));
           update_generator_node(GEN_CP(B)->cp_sg_fr);
-
-#ifdef TABLING_GROUNDED
-    node_list_ptr restart_gens = LOCAL_restarted_gens;
-
-    if (restart_gens && YOUNGER_CP(SgFr_choice_point((sg_fr_ptr)NodeList_node(restart_gens)), B)) {
-      dprintf("ONE RESTARTED GEN\n");
-      sg_fr_ptr sg_fr = (sg_fr_ptr)NodeList_node(restart_gens);
-      choiceptr target_cp = SgFr_choice_point(sg_fr);
-      rebind_variables(target_cp->cp_tr, B->cp_tr);
-      dprintf("B->cp_tr %d target_cp->cp_tr %d TR %d TR_FZ %d\n", (int)B->cp_tr, (int)target_cp->cp_tr, (int)TR, (int)TR_FZ);
-      B = target_cp;
-      TR = TR_FZ;
-      dprintf("TR %d TR_FZ %d\n", (int)TR, (int)TR_FZ);
-      if (TR != B->cp_tr)
-        TRAIL_LINK(B->cp_tr);
-      H = HBREG = PROTECT_FROZEN_H(B);
-      restore_yaam_reg_cpdepth(B);
-      ENV = B->cp_env;
-      PREG = (yamop *)B->cp_ap;
-      PREFETCH_OP(PREG);
-      YENV = ENV;
-      GONext();
-    }
-    dprintf("TR %d TR_FZ %d\n", (int)TR, (int)TR_FZ);
-    dprintf("No generators to restart\n");
-#endif /* TABLING_GROUNDED */
 
           B = B->cp_b;
           if(B->cp_ap == NULL)
@@ -2505,6 +2503,13 @@ try_answer_jump: {
       printSubgoalTriePath(stdout, SgFr_leaf(DepFr_sg_fr(dep_fr)), SgFr_tab_ent(DepFr_sg_fr(dep_fr)));
       dprintf("\n");
 #endif
+
+#ifdef TABLING_GROUNDED
+      if(DepFr_is_restarter(dep_fr) && SgFr_state(DepFr_sg_fr(dep_fr)) == suspended) {
+        dprintf("Restart generator\n");
+        restart_generator(dep_fr);
+      }
+#endif /* TABLING_GROUNDED */
       
       ans_node = NULL;
       next = get_next_answer_continuation(dep_fr);

@@ -102,7 +102,7 @@ is_internal_dep_fr(sg_fr_ptr specific_sg, dep_fr_ptr dep_fr, choiceptr limit)
 }
 
 static inline dep_fr_ptr
-find_external_consumer(sg_fr_ptr specific_sg, choiceptr min, choiceptr max, sg_fr_ptr gen)
+update_external_consumers(sg_fr_ptr specific_sg, choiceptr min, choiceptr max, sg_fr_ptr gen)
 {
   dep_fr_ptr top = LOCAL_top_dep_fr;
   dep_fr_ptr found = NULL;
@@ -110,7 +110,6 @@ find_external_consumer(sg_fr_ptr specific_sg, choiceptr min, choiceptr max, sg_f
   choiceptr realmin = SgFr_choice_point(specific_sg);
   int first_external_leader = FALSE;
   
-  /* find first running consumer starting from min */
   while(top && YOUNGER_CP(DepFr_cons_cp(top), min)) {
     if(DepFr_sg_fr(top) == gen) {
       dprintf("found a dep fr for gencp %d\n", (int)SgFr_choice_point(gen));
@@ -124,22 +123,16 @@ find_external_consumer(sg_fr_ptr specific_sg, choiceptr min, choiceptr max, sg_f
           
           found = top;
           found_cp = cp;
-          cp->cp_ap = RESTART_GENERATOR;
           
           if(leader_sg == gen ||
             is_internal_subgoal_frame(specific_sg, leader_sg, realmin))
           {
-            dprintf("LEADER WAS %d. leader_sg %d gen %d\n", (int)DepFr_leader_cp(top),
-              (int)leader_sg, (int)gen);
             DepFr_leader_cp(top) = cp;
           } else { /* external leader */
-            dprintf("EXTERNAL LEADER!!!! LEADER UNMODIFIED\n");
             first_external_leader = TRUE;
             /* keep leader */
           }
         } else {
-          cp->cp_ap = RUN_COMPLETED;
-          
           if(!first_external_leader) {
             /* leader must be internal! */
             DepFr_leader_cp(top) = cp;
@@ -155,7 +148,9 @@ find_external_consumer(sg_fr_ptr specific_sg, choiceptr min, choiceptr max, sg_f
           }
         }
         
+        cp->cp_ap = RUN_COMPLETED;
         DepFr_backchain_cp(top) = NULL;
+        DepFr_set_restarter(top);
         CONS_CP(cp)->cp_sg_fr = gen;
       }
     }
@@ -181,48 +176,63 @@ update_leader_fields(choiceptr old_leader, choiceptr new_leader, choiceptr min)
   }
 }
 
-/* assumes there's something up in the stack (prev != NULL) */
-#define remove_subgoal_frame_from_stack(SG_FR)      \
-  SgFr_next(SgFr_prev(SG_FR)) = SgFr_next(SG_FR);   \
-  if(SgFr_next(SG_FR))                              \
+#define remove_subgoal_frame_from_stack(SG_FR)        \
+  if(SgFr_prev(SG_FR))                                \
+    SgFr_next(SgFr_prev(SG_FR)) = SgFr_next(SG_FR);   \
+  if(SgFr_next(SG_FR))                                \
     SgFr_prev(SgFr_next(SG_FR)) = SgFr_prev(SG_FR)
 
 void
 reorder_subgoal_frame(sg_fr_ptr sg_fr, choiceptr new_gen_cp)
 {
   sg_fr_ptr prev = SgFr_prev(sg_fr);
+  sg_fr_ptr next = SgFr_next(sg_fr);
+  sg_fr_ptr before;
   
   dprintf("Reordering subgoal frame on the stack\n");
   
-  if(prev) {
-    if(new_gen_cp > SgFr_choice_point(prev))
-      return; /* new_gen_cp is still older! */
-    
+  if(prev && !YOUNGER_CP(SgFr_choice_point(prev), new_gen_cp)) {
     /* prepare to move the subgoal frame up in the stack */
     remove_subgoal_frame_from_stack(sg_fr);
     
+    before = prev;
     prev = SgFr_prev(prev);
     
-    while(prev && SgFr_choice_point(prev) > new_gen_cp)
+    while(prev && YOUNGER_CP(new_gen_cp, SgFr_choice_point(prev)))
+    {
       /* while new_gen_cp is newer than the current sg frame ... */
+      before = prev;
       prev = SgFr_prev(prev); /* .. move up */
+    }
     
     /* now put the subgoal frame here, with SgFr_prev(sg_fr) = prev */
-    if(prev == NULL) {
-      /* prev goes to the top! */
-      if(LOCAL_top_sg_fr)
-        SgFr_prev(LOCAL_top_sg_fr) = sg_fr;
-      SgFr_next(sg_fr) = LOCAL_top_sg_fr;
+    if(before == LOCAL_top_sg_fr)
       LOCAL_top_sg_fr = sg_fr;
-    } else {
-      sg_fr_ptr before = SgFr_next(prev);
-      
-      if(before)
-        SgFr_prev(before) = sg_fr;
+    else
       SgFr_next(prev) = sg_fr;
-      SgFr_next(sg_fr) = before;
+    SgFr_next(sg_fr) = before;
+    SgFr_prev(sg_fr) = prev;
+    
+    SgFr_prev(before) = sg_fr;
+  } else if(next && YOUNGER_CP(SgFr_choice_point(next), new_gen_cp)) {
+    /* subgoal frame must go down on the stack */
+    remove_subgoal_frame_from_stack(sg_fr);
+    
+    before = next;
+    next = SgFr_next(next);
+    
+    while(next && EQUAL_OR_YOUNGER_CP(SgFr_choice_point(next), new_gen_cp))
+    {
+      /* while new_gen_cp is older than the current sg frame ... */
+      before = next;
+      next = SgFr_next(next); /* .. move down */
     }
-    SgFr_prev(sg_fr) = prev; /* prev can be NULL */
+    
+    SgFr_prev(sg_fr) = before;
+    SgFr_next(sg_fr) = next;
+    SgFr_next(before) = sg_fr;
+    if(next)
+      SgFr_prev(next) = sg_fr;
   }
 }
 
@@ -243,52 +253,6 @@ move_subgoal_top(sg_fr_ptr sg_fr)
     SgFr_prev(LOCAL_top_sg_fr) = sg_fr;
   }
   LOCAL_top_sg_fr = sg_fr;
-}
-
-static inline void
-add_new_restarted_generator(choiceptr cp, sg_fr_ptr sf)
-{
-  node_list_ptr top = LOCAL_restarted_gens;
-  node_list_ptr before = NULL;
-
-  while(top && YOUNGER_CP(SgFr_choice_point((sg_fr_ptr)NodeList_node(top)), cp)) {
-    before = top;
-    top = NodeList_next(top);
-  }
-
-  node_list_ptr new_node;
-
-  ALLOC_NODE_LIST(new_node);
-  NodeList_node(new_node) = sf;
-
-  if(before) {
-    dprintf("not top\n");
-    NodeList_next(before) = new_node;
-  } else {
-    LOCAL_restarted_gens = new_node;
-    dprintf("to top\n");
-  }
-
-  NodeList_next(new_node) = top;
-
-  dprintf("add_new_restarted_generator\n");
-}
-
-static inline void
-change_generator_subgoal_frame(sg_fr_ptr sg_fr, dep_fr_ptr external, choiceptr min, choiceptr max)
-{
-  /* generator subgoal must be kept */
-  dprintf("External dep_fr %d cp %d (REMOVED)\n", (int)external, (int)DepFr_cons_cp(external));
-
-  choiceptr cons_cp = DepFr_cons_cp(external);
-  choiceptr gen_cp = SgFr_choice_point(sg_fr);
-
-  add_new_restarted_generator(cons_cp, sg_fr);
-  
-  /* update generator choice point */
-  SgFr_choice_point(sg_fr) = cons_cp;
-  SgFr_state(sg_fr) = suspended;
-  reorder_subgoal_frame(sg_fr, cons_cp);
 }
 
 static inline void
@@ -440,10 +404,9 @@ abolish_generator_subgoals_between(sg_fr_ptr specific_sg, choiceptr min, choicep
       dprintf("Trying to abolish %d cp %d\n", (int)sg_fr, (int)SgFr_choice_point(sg_fr));
       switch(SgFr_type(sg_fr)) {
         case VARIANT_PRODUCER_SFT:
-          external = find_external_consumer(specific_sg, SgFr_choice_point(sg_fr), max, sg_fr);
+          external = update_external_consumers(specific_sg, SgFr_choice_point(sg_fr), max, sg_fr);
           if(external) {
-            dprintf("Could find external dep fr!\n");
-            change_generator_subgoal_frame(sg_fr, external, min, max);
+            SgFr_state(sg_fr) = suspended;
           } else {
             dprintf("Could not find external dep fr!\n");
             dprintf("REALLY ABOLISHED %d\n", (int)sg_fr);
@@ -454,11 +417,11 @@ abolish_generator_subgoals_between(sg_fr_ptr specific_sg, choiceptr min, choicep
         case SUBSUMPTIVE_PRODUCER_SFT: {
           choiceptr gen_cp = SgFr_choice_point(sg_fr);
           
-          external = find_external_consumer(specific_sg, gen_cp, max, sg_fr);
+          external = update_external_consumers(specific_sg, gen_cp, max, sg_fr);
           if(external) {
             dprintf("found external variant subsumptive consumer\n");
             /* variant consumer can generate answers for proper subsumptive consumers */
-            change_generator_subgoal_frame(sg_fr, external, min, max);
+            SgFr_state(sg_fr) = suspended;
             update_subsumed_before_dependencies(sg_fr, external, gen_cp, specific_sg);
           } else {
             dprintf("no variant external subsumptive consumer\n");
@@ -951,43 +914,6 @@ reinsert_dependency_frame(dep_fr_ptr dep_fr)
 {
   dprintf("reinsert_dependency_frame\n");
   reinsert_dep_fr(dep_fr, DepFr_cons_cp(dep_fr));
-}
-
-void
-remove_from_restarted_gens(choiceptr cp)
-{
-  node_list_ptr top = LOCAL_restarted_gens;
-  node_list_ptr before = NULL;
-
-  if(!top)
-    return;
-
-  while(top && EQUAL_OR_YOUNGER_CP(SgFr_choice_point((sg_fr_ptr)NodeList_node(top)), cp))
-  {
-    sg_fr_ptr sg_fr = (sg_fr_ptr)NodeList_node(top);
-
-    if(SgFr_choice_point(sg_fr) == cp) {
-      dprintf("Removing restarted gen: %d\n", (int)cp);
-      if(before)
-        NodeList_next(before) = NodeList_next(top);
-      else
-        LOCAL_restarted_gens = NodeList_next(top);
-      FREE_NODE_LIST(top);
-      return;
-    }
-
-    before = top;
-    top = NodeList_next(top);
-  }
-
-  dprintf("remove from restarted gens\n");
-}
-
-void
-remove_sg_fr_from_restarted_gens(sg_fr_ptr sg_fr)
-{
-  dprintf("remove_sg_fr_from_restarted_gens\n");
-  remove_from_restarted_gens(SgFr_choice_point(sg_fr));
 }
 
 void

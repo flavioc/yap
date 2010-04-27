@@ -475,6 +475,7 @@ typedef sg_fr_ptr variant_sf_ptr;
 
 #define DEP_FR_TOP_CONSUMER 0x01
 #define DEP_FR_SUBTRANSFORM 0x02
+#define DEP_FR_RESTARTER 0x04
 
 typedef unsigned char dependency_type;
   
@@ -522,6 +523,9 @@ typedef struct dependency_frame {
 #define DepFr_is_subtransform(X)         (DepFr_flags(X) & DEP_FR_SUBTRANSFORM)
 #define DepFr_set_subtransform(X)        (DepFr_set_flag(X, DEP_FR_SUBTRANSFORM))
 #define DepFr_clear_subtransform(X)      (DepFr_clear_flag(X, DEP_FR_SUBTRANSFORM))
+#define DepFr_is_restarter(X)            (DepFr_flags(X) & DEP_FR_RESTARTER)
+#define DepFr_set_restarter(X)           (DepFr_set_flag(X, DEP_FR_RESTARTER))
+#define DepFr_clear_restarter(X)         (DepFr_clear_flag(X, DEP_FR_RESTARTER))
 #define DepFr_top_gen_sg(X)              ((X)->top_gen_sg)
 #define DepFr_get_top_gen_sg(X)          ((sg_fr_ptr)((unsigned int)DepFr_top_gen_sg(X) & ~INTERNAL_TOP_MASK))
 #define DepFr_set_top_internal(X)        (DepFr_top_gen_sg(X) = (sg_fr_ptr)((unsigned int)DepFr_top_gen_sg(X) | INTERNAL_TOP_MASK))
