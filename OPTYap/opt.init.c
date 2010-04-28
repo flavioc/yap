@@ -110,7 +110,7 @@ void Yap_init_global(int max_table_size, int n_workers, int sch_loop, int delay_
   
   INIT_PAGES(GLOBAL_PAGES_variant_sg_fr, struct variant_subgoal_frame);
 #ifdef TABLING_CALL_SUBSUMPTION
-  INIT_PAGES(GLOBAL_PAGES_subprod_sg_fr, struct subsumed_consumer_subgoal_frame);
+  INIT_PAGES(GLOBAL_PAGES_subprod_sg_fr, struct subsumptive_producer_subgoal_frame);
   INIT_PAGES(GLOBAL_PAGES_subcons_sg_fr, struct subsumed_consumer_subgoal_frame);
   INIT_PAGES(GLOBAL_PAGES_grounded_sg_fr, struct grounded_subgoal_frame);
 #endif /* TABLING_CALL_SUBSUMPTION */
