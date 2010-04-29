@@ -61,6 +61,9 @@ typedef struct subsumed_consumer_subgoal_frame subsumptive_consumer_sf;
 typedef struct subsumptive_producer_subgoal_frame {
   variant_sf var_sf;
   subsumptive_consumer_sf *consumers; /* List of properly subsumed subgoals */
+#ifdef TABLING_GROUNDED
+  int num_proper_deps;
+#endif /* TABLING_GROUNDED */
 } subsumptive_producer_sf;
 
 typedef subsumptive_producer_sf *subprod_fr_ptr;
@@ -69,6 +72,8 @@ typedef subsumptive_producer_sf *subprod_fr_ptr;
 #define SgFr_prod_timestamp(X) TSTN_time_stamp((tst_node_ptr)SgFr_answer_trie(X))
 #define SgFr_subsumes_subgoals(X) \
   (SgFr_is_sub_producer(X) && SgFr_prod_consumers(X) != NULL)
+#define SgFr_num_proper_deps(X) ((X)->num_proper_deps)
+
 
 struct subsumed_consumer_subgoal_frame {
   subgoal_frame_type flags;

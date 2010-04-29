@@ -39,11 +39,18 @@ STD_PROTO(static inline int build_next_ground_producer_return_list, (grounded_sf
 
 #define ground_trie_create_tsi(TAB_ENT) tstCreateTSIs((tst_node_ptr)TabEnt_ground_trie(TAB_ENT))
 
+#ifdef TABLING_GROUNDED
+#define init_num_deps(SG_FR) SgFr_num_deps((sg_fr_ptr)SG_FR) = 0;
+#else
+#define init_num_deps(SG_FR) /* do nothing */
+#endif /* TABLING_GROUNDED */
+
 #define new_subsumptive_producer_subgoal_frame(SG_FR, CODE, LEAF) { \
         new_basic_subgoal_frame(SG_FR, CODE, LEAF,                  \
           SUBSUMPTIVE_PRODUCER_SFT, ALLOC_SUBPROD_SUBGOAL_FRAME);   \
         SgFr_prod_consumers(SG_FR) = NULL;                          \
         SgFr_answer_trie(SG_FR) = newTSTAnswerSet();                \
+        init_num_deps(SG_FR);                                       \
         producer_sg_fr_init((sg_fr_ptr)SG_FR);                      \
     }
     
@@ -80,7 +87,7 @@ STD_PROTO(static inline int build_next_ground_producer_return_list, (grounded_sf
         SgFr_answer_template(SG_FR) = NULL;                                 \
         SgFr_producer(SG_FR) = PRODUCER;                                    \
         SgFr_consumers(SG_FR) = SgFr_prod_consumers(PRODUCER);              \
-        SgFr_num_deps(SG_FR) = 0;                                           \
+        init_num_deps(SG_FR);                                               \
         if (!SgFr_prod_consumers(PRODUCER))                                 \
           tstCreateTSIs((tst_node_ptr)SgFr_answer_trie(PRODUCER));          \
         SgFr_prod_consumers(PRODUCER) = (subcons_fr_ptr)(SG_FR);            \
@@ -269,6 +276,8 @@ STD_PROTO(static inline int build_next_ground_producer_return_list, (grounded_sf
   B = B->cp_b;  \
   HBREG = PROTECT_FROZEN_H(B);  \
   SET_BB(PROTECT_FROZEN_B(B))
+  
+#define ON_SG_FR_STACK(SG_FR) (SG_FR == LOCAL_top_dep_fr || SgFr_prev(SG_FR) != NULL || SgFr_next(SG_FR) != NULL)
         
 static inline
 void mark_subsumptive_consumer_as_completed(subcons_fr_ptr sg_fr) {
@@ -409,8 +418,13 @@ abolish_incomplete_ground_consumer_subgoal(grounded_sf_ptr sg_fr) {
 
 static inline void
 abolish_incomplete_subsumptive_producer_subgoal(sg_fr_ptr sg_fr) {
-  free_producer_subgoal_data(sg_fr, TRUE);
-  delete_subgoal_path(sg_fr);
+#ifdef TABLING_GROUNDED
+  if(SgFr_state(sg_fr) != dead)
+#endif
+  {
+    free_producer_subgoal_data(sg_fr, TRUE);
+    delete_subgoal_path(sg_fr);
+  }
   FREE_SUBPROD_SUBGOAL_FRAME(sg_fr);
 }
 

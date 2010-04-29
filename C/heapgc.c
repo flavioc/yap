@@ -2088,7 +2088,6 @@ mark_choicepoints(register choiceptr gc_B, tr_fr_ptr saved_TR, int very_verbose)
 	}
 	nargs = 0;
 	break;
-      case _table_restart_generator:
       case _table_answer_resolution:
 	{
 	  CELL *vars_ptr, vars;
@@ -3011,7 +3010,6 @@ sweep_choicepoints(choiceptr gc_B)
       }
       break;
     case _table_answer_resolution:
-    case _table_restart_generator:
       {
 	CELL *vars_ptr, vars;
 	sweep_environments(gc_B->cp_env, EnvSize(gc_B->cp_cp), EnvBMap(gc_B->cp_cp));

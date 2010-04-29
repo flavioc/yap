@@ -412,6 +412,7 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
         new_basic_subgoal_frame(SG_FR, CODE, LEAF,                \
           VARIANT_PRODUCER_SFT, ALLOC_VARIANT_SUBGOAL_FRAME);     \
         add_answer_trie_subgoal_frame(SG_FR);                     \
+        init_num_deps(SG_FR);                                     \
         producer_sg_fr_init(SG_FR);                               \
     }
 
@@ -1119,12 +1120,37 @@ abolish_dependency_frame(dep_fr_ptr dep_fr)
   
   switch(SgFr_type(sg_fr)) {
     case VARIANT_PRODUCER_SFT:
-    case SUBSUMPTIVE_PRODUCER_SFT:
+#ifdef TABLING_GROUNDED
+        SgFr_num_deps(sg_fr)--;
+#endif /* TABLING_GROUNDED */
+      break;
     case GROUND_PRODUCER_SFT:
       /* do nothing */
       break;
+    case SUBSUMPTIVE_PRODUCER_SFT:
+#ifdef TABLING_GROUNDED
+      {
+        subprod_fr_ptr prod_sg = (subprod_fr_ptr)sg_fr;
+        SgFr_num_deps((sg_fr_ptr)prod_sg)--;
+        SgFr_num_proper_deps(prod_sg)--;
+        
+        if(SgFr_num_proper_deps(prod_sg) == 0 &&
+            SgFr_num_deps((sg_fr_ptr)prod_sg) > 0)
+        {
+          dprintf("DELETED!!!!\n");
+          free_producer_subgoal_data(sg_fr, TRUE);
+          delete_subgoal_path(sg_fr);
+          SgFr_state(sg_fr) = dead;
+          SgFr_leaf(sg_fr) = NULL;
+        }
+      }
+#endif
+      break;
     case SUBSUMED_CONSUMER_SFT:
       SgFr_num_deps((subcons_fr_ptr)sg_fr)--;
+#ifdef TABLING_GROUNDED
+      SgFr_num_deps((sg_fr_ptr)SgFr_producer((subcons_fr_ptr)sg_fr))--;
+#endif
       if(SgFr_num_deps((subcons_fr_ptr)sg_fr) == 0) {
         dprintf("incomplete subsumptive goal abolished\n");
         abolish_incomplete_subsumptive_consumer_subgoal((subcons_fr_ptr)sg_fr);

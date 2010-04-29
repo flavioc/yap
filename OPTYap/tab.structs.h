@@ -332,13 +332,15 @@ typedef unsigned char subgoal_frame_type;
 
 enum SubgoalState {
   incomplete      = 0,  /* INCOMPLETE_TABLING */
-  ready           = 1,
-  suspended       = 2,
-  evaluating      = 3,
-  complete        = 4,
-  complete_in_use = 5,  /* LIMIT_TABLING */
-  compiled        = 6,
-  compiled_in_use = 7   /* LIMIT_TABLING */
+  dead            = 1,
+  changed         = 2,
+  ready           = 3,
+  suspended       = 4,
+  evaluating      = 5,
+  complete        = 6,
+  complete_in_use = 7,  /* LIMIT_TABLING */
+  compiled        = 8,
+  compiled_in_use = 9   /* LIMIT_TABLING */
 }; /* do not change order !!! */
 
 typedef unsigned char subgoal_state;
@@ -381,6 +383,7 @@ typedef struct subgoal_frame {
 #ifdef TABLING_GROUNDED
   CELL executing;
   CELL start;
+  int num_deps;
 #endif
   
   struct answer_trie_node *answer_trie;

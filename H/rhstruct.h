@@ -192,7 +192,6 @@
 #ifdef TABLING
   RestoreOtaplInst(LOAD_ANSWER,_table_load_answer,PredFail);
   RestoreOtaplInst(LOAD_CONS_ANSWER,_table_load_cons_answer,PredFail);
-  RestoreOtaplInst(RESTART_GENERATOR,_table_restart_generator,PredFail);
   RestoreOtaplInst(RUN_COMPLETED,_table_run_completed,PredFail);
   RestoreOtaplInst(TRY_ANSWER,_table_try_answer,PredFail);
   RestoreOtaplInst(TRY_GROUND_ANSWER,_table_try_ground_answer,PredFail);

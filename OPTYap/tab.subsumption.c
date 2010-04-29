@@ -63,6 +63,7 @@ create_new_consumer_subgoal(sg_node_ptr leaf_node, subprod_fr_ptr subsumer, tab_
   LOCK_TABLE(leaf_node);
 #endif /* TABLE_LOCK_LEVEL */
 
+  dprintf("CODE: %d\n", (int)code);
   new_subsumed_consumer_subgoal_frame(sg_fr, code, leaf_node, subsumer);
   
     /* unlock table entry */
@@ -88,6 +89,7 @@ create_new_producer_subgoal(sg_node_ptr leaf_node, tab_ent_ptr tab_ent, yamop *c
   LOCK_TABLE(leaf_node);
 #endif /* TABLE_LOCK_LEVEL */
   
+  dprintf("CODE: %d\n", (int)code);
   new_subsumptive_producer_subgoal_frame(sg_fr, code, leaf_node);
 
   /* unlock table entry */

@@ -335,13 +335,25 @@ complete_dependency_frame(dep_fr_ptr dep_fr)
   sg_fr_ptr sg_fr = DepFr_sg_fr(dep_fr);
   switch(SgFr_type(sg_fr)) {
     case VARIANT_PRODUCER_SFT:
-    case SUBSUMPTIVE_PRODUCER_SFT:
+#ifdef TABLING_GROUNDED
+    SgFr_num_deps(sg_fr)--;
+#endif /* TABLING_GROUNDED */
+      break;
     case GROUND_PRODUCER_SFT:
       dprintf("IS GEN\n");
       /* do nothing */
       break;
+    case SUBSUMPTIVE_PRODUCER_SFT:
+#ifdef TABLING_GROUNDED
+      SgFr_num_proper_deps((subprod_fr_ptr)sg_fr)--;
+      SgFr_num_deps(sg_fr)--;
+#endif
+      break;
     case SUBSUMED_CONSUMER_SFT:
       SgFr_num_deps((subcons_fr_ptr)sg_fr)--;
+#ifdef TABLING_GROUNDED
+      SgFr_num_deps((sg_fr_ptr)SgFr_producer((subcons_fr_ptr)sg_fr))--;
+#endif /* TABLING_GROUNDED */
       dprintf("dep sub %d\n", SgFr_num_deps((subcons_fr_ptr)sg_fr));
       if(SgFr_num_deps((subcons_fr_ptr)sg_fr) == 0) {
         mark_subsumptive_consumer_as_completed((subcons_fr_ptr)sg_fr);

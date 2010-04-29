@@ -366,15 +366,33 @@
         ENV = YENV
 #endif /* DEPTH_LIMIT */
 
+#ifdef TABLING_GROUNDED
+#define increase_num_deps(SG_FR) SgFr_num_deps((sg_fr_ptr)SG_FR)++
+#define increase_producer_deps(SG_FR) SgFr_num_deps((sg_fr_ptr)SgFr_producer((subcons_fr_ptr)(SG_FR)))++
+#define increase_num_proper_deps(SG_FR) SgFr_num_proper_deps((subprod_fr_ptr)SG_FR)++
+#else
+#define increase_num_deps(SG_FR) /* do nothing */
+#define increase_producer_deps(CONSUMER_SG) /* do nothing */
+#define increase_num_proper_deps(SG_FR) /* do nothing */
+#endif /* TABLING_GROUNDED */
+
 #ifdef TABLING_CALL_SUBSUMPTION
-#define init_consumer_subgoal_frame(SG_FR)  \
+#define init_consumer_subgoal_frame(SG_FR)          \
         switch(SgFr_type(sg_fr)) {  \
           case SUBSUMED_CONSUMER_SFT: \
             SgFr_num_deps((subcons_fr_ptr)sg_fr)++; \
+            increase_producer_deps(SG_FR);  \
             break;  \
           case GROUND_CONSUMER_SFT: \
-            SgFr_num_deps((grounded_sf_ptr)sg_fr)++; \
+            SgFr_num_deps((sg_fr_ptr)sg_fr)++; \
             break;  \
+          case SUBSUMPTIVE_PRODUCER_SFT:  \
+            increase_num_deps(SG_FR);   \
+            increase_num_proper_deps(SG_FR);  \
+            break;                                    \
+          case VARIANT_PRODUCER_SFT:      \
+            increase_num_deps(SG_FR);     \
+            break;          \
         } \
         if(SgFr_state(sg_fr) < evaluating) {  \
           switch(SgFr_type(sg_fr)) {  \
@@ -729,89 +747,12 @@ load_answer_jump: {
     consume_answer_leaf(ans_node, ans_tmplt, CONSUME_VARIANT_ANSWER);
 }
   ENDPBOp();
-  
-  PBOp(table_restart_generator, Otapl)
-#ifdef TABLING_GROUNDED
-    dprintf("==> TABLE_RESTART_GENERATOR\n");
-    sg_fr_ptr sg_fr = GEN_CP(B)->cp_sg_fr;
-    dep_fr_ptr dep_fr = GEN_CP(B)->cp_dep_fr;
-    int is_sub_transform = DepFr_is_subtransform(dep_fr);
-    
-    DepFr_clear_subtransform(dep_fr);
-    
-    if(is_sub_transform) {
-      transform_consumer_answer_template(sg_fr, B);
-    }
-
-    if(SgFr_state(sg_fr) >= complete)
-    {
-      dprintf("Restart generator completed!\n");
-      continuation_ptr cont = DepFr_last_answer(dep_fr);
-      
-      REMOVE_DEP_FR_FROM_STACK(dep_fr);
-      abolish_dependency_frame(dep_fr);
-      
-      if(!continuation_has_next(cont)) {
-        B = B->cp_b;
-        SET_BB(PROTECT_FROZEN_B(B));
-        goto fail;
-      }
-      
-      /* act as a loader node */
-      yamop *code;
-        
-      switch(SgFr_type(sg_fr)) {
-        case VARIANT_PRODUCER_SFT:
-        case SUBSUMPTIVE_PRODUCER_SFT:
-          code = LOAD_ANSWER;
-          break;
-        default:
-          code = LOAD_ANSWER;
-          break;
-      }
-        
-      transform_node_into_loader(B, sg_fr, cont, code);
-      goto load_answer_jump;
-    } else if(SgFr_state(sg_fr) != suspended) {
-      /* subgoal frame is already evaluating
-         create a new consumer */
-      dprintf("TRANSFORM INTO REAL CONSUMER\n");
-      B->cp_ap = ANSWER_RESOLUTION;
-      goto answer_resolution;
-    }
-    
-    dprintf("Generator not resumed\n");
-
-    /* generator was not resumed */
-
-    REMOVE_DEP_FR_FROM_STACK(dep_fr);
-    SgFr_state(sg_fr) = evaluating;
-    GEN_CP(B)->cp_dep_fr = NULL; /* local_dep */
-    
-    if(is_sub_transform) {
-      dprintf("Is subtransform!\n");
-#ifdef FDEBUG
-      printSubgoalTriePath(stdout, SgFr_leaf(sg_fr), SgFr_tab_ent(sg_fr));
-      dprintf("\n");
-#endif
-      abolish_dependency_frame(dep_fr);
-      reinsert_subgoal_frame(sg_fr, B);
-      restart_code_execution(sg_fr);
-    } else {
-      abolish_dependency_frame(dep_fr);
-      B->cp_ap = TRY_ANSWER;
-      SgFr_try_answer(sg_fr) = DepFr_last_answer(dep_fr);
-      dprintf("Going to try_answer_jump\n");
-      goto try_answer_jump;
-    }
-#else
-    PREG = PREG->u.Otapl.d;
-    PREFETCH_OP(PREG);
-    GONext();    
-#endif /* TABLING_GROUNDED */
-  ENDPBOp();
 
   PBOp(table_run_completed, Otapl)
+run_completed:
+
+    INIT_PREFETCH()
+    
 #ifdef TABLING_GROUNDED
     sg_fr_ptr cons_sg_fr = CONS_CP(B)->cp_sg_fr;
     tab_ent_ptr tab_ent = SgFr_tab_ent(cons_sg_fr);
@@ -889,12 +830,9 @@ load_answer_jump: {
           dep_fr_ptr top = LOCAL_top_dep_fr;
           
           while(top && YOUNGER_CP(DepFr_cons_cp(top), B)) {
-            sg_fr_ptr lost_sg = DepFr_sg_fr(top);
             choiceptr cp = DepFr_cons_cp(top);
             
-            if(SgFr_is_ground_consumer(lost_sg) &&
-                SgFr_producer((grounded_sf_ptr)lost_sg) == SgFr_producer(sg_fr) &&
-                cp->cp_ap == RUN_COMPLETED)
+            if(cp->cp_ap == RUN_COMPLETED)
             {
               /* launch consumer */
               dprintf("Lost consumer found!\n");
@@ -987,8 +925,59 @@ load_answer_jump: {
         dprintf("RUN_COMPLETED SUBSUMED CONSUMER!\n");
         subcons_fr_ptr sg_fr = (subcons_fr_ptr)cons_sg_fr;
         dep_fr_ptr dep_fr = CONS_CP(B)->cp_dep_fr;
+        subprod_fr_ptr prod_sg = SgFr_producer(sg_fr);
         
-        if(SgFr_state(SgFr_producer(sg_fr)) < complete) {
+        if(SgFr_state(sg_fr) == changed) {
+          sg_node_ptr leaf = SgFr_leaf(sg_fr);
+          
+          dprintf("CONSUMER SUBGOAL HAS CHANGED\n");
+          SgFr_num_deps(sg_fr)--;
+          if(SgFr_num_deps(sg_fr) == 0) {
+            dprintf("DELETING CONSUMER AT LEAST\n");
+            free_consumer_subgoal_data(sg_fr);
+            FREE_SUBCONS_SUBGOAL_FRAME(sg_fr);
+          }
+          
+          /* set to new */
+          sg_fr_ptr new_sg = TrNode_sg_fr(leaf);
+          
+          CONS_CP(B)->cp_sg_fr = new_sg;
+          DepFr_sg_fr(dep_fr) = new_sg;
+          DepFr_last_answer(dep_fr) = (continuation_ptr)CONSUMER_DEFAULT_LAST_ANSWER(new_sg, dep_fr);
+          transform_consumer_answer_template(sg_fr, B);
+          goto run_completed;
+        }
+        
+        if(SgFr_state(prod_sg) == dead) {
+          dprintf("DEAD\n");
+          REMOVE_DEP_FR_FROM_STACK(dep_fr);
+          
+          /* decrement reference counting and delete it */
+          SgFr_num_deps((sg_fr_ptr)prod_sg)--;
+          if(SgFr_num_deps((sg_fr_ptr)prod_sg) == 0)
+            abolish_incomplete_subsumptive_producer_subgoal((sg_fr_ptr)prod_sg);
+          
+          /* create a new producer subgoal frame */
+          new_subsumptive_producer_subgoal_frame(prod_sg, SgFr_code(sg_fr), SgFr_leaf(sg_fr));
+          SgFr_choice_point(prod_sg) = B;
+          reinsert_subgoal_frame((sg_fr_ptr)prod_sg, B);
+          
+          /* delete the dependency frame and the old consumer subgoal frame */
+          SgFr_num_deps(sg_fr)--;
+          FREE_DEPENDENCY_FRAME(dep_fr);
+          if(SgFr_num_deps(sg_fr) == 0) {
+            free_consumer_subgoal_data(sg_fr);
+            FREE_SUBCONS_SUBGOAL_FRAME(sg_fr);
+          } else {
+            SgFr_state(sg_fr) = changed;
+          }
+          
+          cons_sg_fr = (sg_fr_ptr)prod_sg;
+          GEN_CP(B)->cp_sg_fr = cons_sg_fr;
+          GEN_CP(B)->cp_dep_fr = NULL;
+          transform_consumer_answer_template(cons_sg_fr, B);
+          restart_code_execution(cons_sg_fr);
+        } else if(SgFr_state(prod_sg) < complete) {
           B->cp_ap = ANSWER_RESOLUTION;
           goto answer_resolution;
         }
@@ -1040,8 +1029,6 @@ load_answer_jump: {
         if(is_sub_transform) {
           dprintf("transform answer_template\n");
           transform_consumer_answer_template(sg_fr, B);
-        } else {
-          dprintf("not sub transform\n");
         }
         
         if(SgFr_state(sg_fr) == suspended) {
@@ -1049,13 +1036,29 @@ load_answer_jump: {
           REMOVE_DEP_FR_FROM_STACK(dep_fr);
           SgFr_state(sg_fr) = evaluating;
           GEN_CP(B)->cp_dep_fr = NULL; /* local_dep */
+          SET_TOP_GEN_SG(sg_fr);
           abolish_dependency_frame(dep_fr);
-          B->cp_ap = TRY_ANSWER;
           SgFr_choice_point(sg_fr) = B;
-          reorder_subgoal_frame(sg_fr, B);
-          SgFr_try_answer(sg_fr) = DepFr_last_answer(dep_fr);
-          dprintf("Going to try_answer_jump\n");
-          goto try_answer_jump;
+          
+          if(is_sub_transform) {
+            dprintf("Is subtransform!\n");
+#ifdef FDEBUG
+            printSubgoalTriePath(stdout, SgFr_leaf(sg_fr), SgFr_tab_ent(sg_fr));
+            dprintf("\n");
+#endif
+            if(ON_SG_FR_STACK(sg_fr))
+              reorder_subgoal_frame(sg_fr, B);
+            else
+              reinsert_subgoal_frame(sg_fr, B);
+            restart_code_execution(sg_fr);
+          } else {
+            B->cp_ap = TRY_ANSWER;
+            
+            reorder_subgoal_frame(sg_fr, B);
+            SgFr_try_answer(sg_fr) = DepFr_last_answer(dep_fr);
+            dprintf("Going to try_answer_jump\n");
+            goto try_answer_jump;
+          }
         } else if(SgFr_state(sg_fr) < complete) {
           B->cp_ap = ANSWER_RESOLUTION;
           goto answer_resolution;
@@ -1101,6 +1104,7 @@ load_answer_jump: {
     
     printf("CANT BE HERE!!!\n");
     exit(1);
+    END_PREFETCH()
 #endif /* TABLING_GROUNDED */
   ENDPBOp();
   
