@@ -60,7 +60,7 @@ check_dependency_frame(void)
 #endif
 }
 
-static int
+static inline int
 is_internal_subgoal_frame(sg_fr_ptr specific_sg, sg_fr_ptr sf, choiceptr min)
 {
   sg_fr_ptr top_gen = SgFr_top_gen_sg(sf);
@@ -69,7 +69,6 @@ is_internal_subgoal_frame(sg_fr_ptr specific_sg, sg_fr_ptr sf, choiceptr min)
     if(top_gen == specific_sg)
       return TRUE;
     
-    sf = top_gen;
     top_gen = SgFr_top_gen_sg(top_gen);
   }
   
