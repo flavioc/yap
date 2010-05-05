@@ -371,20 +371,20 @@ typedef struct subgoal_frame {
   struct subgoal_frame *previous;
 #endif /* LIMIT_TABLING */
 
-#ifdef TABLING_CALL_SUBSUMPTION
+#ifdef TABLING_RETROACTIVE
   struct subgoal_frame *prev;
   struct subgoal_frame *top_gen_sg;
-#endif /* TABLING_CALL_SUBSUMPTION */
+#endif /* TABLING_RETROACTIVE */
 
-#if defined(INCOMPLETE_TABLING) || defined(TABLING_GROUNDED)
+#if defined(INCOMPLETE_TABLING) || defined(TABLING_RETROACTIVE)
   continuation_ptr try_answer;
-#endif /* INCOMPLETE_TABLING || TABLING_GROUNDED */
+#endif /* INCOMPLETE_TABLING || TABLING_RETROACTIVE */
 
-#ifdef TABLING_GROUNDED
+#ifdef TABLING_RETROACTIVE
   CELL executing;
   CELL start;
   int num_deps;
-#endif
+#endif /* TABLING_RETROACTIVE */
   
   struct answer_trie_node *answer_trie;
   

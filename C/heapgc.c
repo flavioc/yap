@@ -2092,7 +2092,7 @@ mark_choicepoints(register choiceptr gc_B, tr_fr_ptr saved_TR, int very_verbose)
 	{
 	  CELL *vars_ptr, vars;
 
-#ifdef TABLING_GROUNDED
+#ifdef TABLING_RETROACTIVE
 	  vars_ptr = (CELL *)(CONS_CP(gc_B) + 1);
 	  nargs = rtp->u.Otapl.s;
 	  while (nargs--) {	
@@ -2101,7 +2101,7 @@ mark_choicepoints(register choiceptr gc_B, tr_fr_ptr saved_TR, int very_verbose)
 	  }
 #else
 	  init_substitution_pointer(gc_B, vars_ptr, CONS_CP(gc_B)->cp_dep_fr);
-#endif /* TABLING_GROUNDED */
+#endif /* TABLING_RETROACTIVE */
 	  vars = *vars_ptr++;
 	  while (vars--) {	
 	    mark_external_reference(vars_ptr);
@@ -3013,7 +3013,7 @@ sweep_choicepoints(choiceptr gc_B)
       {
 	CELL *vars_ptr, vars;
 	sweep_environments(gc_B->cp_env, EnvSize(gc_B->cp_cp), EnvBMap(gc_B->cp_cp));
-#ifdef TABLING_GROUNDED
+#ifdef TABLING_RETROACTIVE
   int nargs;
 	vars_ptr = (CELL *)(CONS_CP(gc_B) + 1);
 	nargs = rtp->u.Otapl.s;
@@ -3029,7 +3029,7 @@ sweep_choicepoints(choiceptr gc_B)
 	}
 #else
 	  init_substitution_pointer(gc_B, vars_ptr, CONS_CP(gc_B)->cp_dep_fr);
-#endif /* TABLING_GROUNDED */
+#endif /* TABLING_RETROACTIVE */
 	vars = *vars_ptr++;
 	while (vars--) {	
 	  CELL cp_cell = *vars_ptr;

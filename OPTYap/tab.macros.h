@@ -124,7 +124,7 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
 #define CALL_ARGUMENTS() (XREGS + 1)
 
 /* LOCAL_top_gen_sg macros */
-#ifdef TABLING_GROUNDED
+#ifdef TABLING_RETROACTIVE
 #define SET_TOP_GEN_SG(SG_FR) do { \
     /*dprintf("LOCAL_top_gen_sg now %d\n", (int)SG_FR);*/ \
     LOCAL_top_gen_sg = SG_FR; \
@@ -154,7 +154,7 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
 #define SAVE_TOP_GEN_SG(DEP_FR) /* nothing */
 #define RESTORE_TOP_GEN_SG(DEP_FR) /* nothing */
 #define SAVE_SG_TOP_GEN_SG(SG_FR) /* nothing */
-#endif /* TABLING_GROUNDED */
+#endif /* TABLING_RETROACTIVE */
 
 
 #define STACK_NOT_EMPTY(STACK, STACK_BASE)  STACK != STACK_BASE
@@ -400,23 +400,23 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
           SgFr_last_answer(SG_FR) = NULL;                          \
         }
 
-#ifdef TABLING_GROUNDED
+#ifdef TABLING_RETROACTIVE
 #define producer_sg_fr_init(SG_FR) \
   RESET_VARIABLE(&SgFr_executing(SG_FR));  \
-  RESET_VARIABLE(&SgFr_start(SG_FR))
+  RESET_VARIABLE(&SgFr_start(SG_FR)); \
+  init_num_deps(SG_FR)
 #else
 #define producer_sg_fr_init(SG_FR) /* do nothing */
-#endif /* TABLING_GROUNDED */
+#endif /* TABLING_RETROACTIVE */
 
 #define new_variant_subgoal_frame(SG_FR, CODE, LEAF)  { \
         new_basic_subgoal_frame(SG_FR, CODE, LEAF,                \
           VARIANT_PRODUCER_SFT, ALLOC_VARIANT_SUBGOAL_FRAME);     \
         add_answer_trie_subgoal_frame(SG_FR);                     \
-        init_num_deps(SG_FR);                                     \
         producer_sg_fr_init(SG_FR);                               \
     }
 
-#ifdef TABLING_GROUNDED
+#ifdef TABLING_RETROACTIVE
 #define SgFr_init_prev_fields(SG_FR)  \
     SgFr_prev(SG_FR) = NULL;  \
     if(LOCAL_top_sg_fr != NULL) \
@@ -425,7 +425,7 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
 #define SgFr_is_top_stack(SG_FR) SgFr_prev(SG_FR) == NULL
 #else
 #define SgFr_init_prev_fields(SG_FR) /* nothing */
-#endif /* TABLING_GROUNDED */
+#endif /* TABLING_RETROACTIVE */
 
 #define init_subgoal_frame(SG_FR)                                  \
         { SgFr_init_yapor_fields(SG_FR);                           \
@@ -764,12 +764,12 @@ join_answers_subgoal_frame(sg_fr_ptr sg_fr, continuation_ptr first, continuation
 #define remove_from_global_sg_fr_list(SG_FR)
 #endif /* LIMIT_TABLING */
 
-#ifdef TABLING_GROUNDED
+#ifdef TABLING_RETROACTIVE
 #define CONSUMER_NODE_ANSWER_TEMPLATE(CONSUMER_CP) ((CELL *) (CONS_CP(CONSUMER_CP) + 1) + \
       SgFr_arity(DepFr_sg_fr(CONS_CP(CONSUMER_CP)->cp_dep_fr)))
 #else
 #define CONSUMER_NODE_ANSWER_TEMPLATE(CONSUMER_CP) ((CELL *)(CONS_CP(CONSUMER_CP) + 1))
-#endif /* TABLING_GROUNDED */
+#endif /* TABLING_RETROACTIVE */
 
 #define CONSUMER_ANSWER_TEMPLATE(DEP_FR) CONSUMER_NODE_ANSWER_TEMPLATE(DepFr_cons_cp(DEP_FR))
 #define GENERATOR_ANSWER_TEMPLATE(GEN_CHOICEP, SG_FR) ((CELL *)(GEN_CP(GEN_CHOICEP) + 1) + SgFr_arity(SG_FR))
@@ -1120,15 +1120,15 @@ abolish_dependency_frame(dep_fr_ptr dep_fr)
   
   switch(SgFr_type(sg_fr)) {
     case VARIANT_PRODUCER_SFT:
-#ifdef TABLING_GROUNDED
+#ifdef TABLING_RETROACTIVE
         SgFr_num_deps(sg_fr)--;
-#endif /* TABLING_GROUNDED */
+#endif /* TABLING_RETROACTIVE */
       break;
     case GROUND_PRODUCER_SFT:
       /* do nothing */
       break;
     case SUBSUMPTIVE_PRODUCER_SFT:
-#ifdef TABLING_GROUNDED
+#ifdef TABLING_RETROACTIVE
       {
         subprod_fr_ptr prod_sg = (subprod_fr_ptr)sg_fr;
         SgFr_num_deps((sg_fr_ptr)prod_sg)--;
@@ -1137,20 +1137,19 @@ abolish_dependency_frame(dep_fr_ptr dep_fr)
         if(SgFr_num_proper_deps(prod_sg) == 0 &&
             SgFr_num_deps((sg_fr_ptr)prod_sg) > 0)
         {
-          dprintf("DELETED!!!!\n");
           free_producer_subgoal_data(sg_fr, TRUE);
           delete_subgoal_path(sg_fr);
           SgFr_state(sg_fr) = dead;
           SgFr_leaf(sg_fr) = NULL;
         }
       }
-#endif
+#endif /* TABLING_RETROACTIVE */
       break;
     case SUBSUMED_CONSUMER_SFT:
       SgFr_num_deps((subcons_fr_ptr)sg_fr)--;
-#ifdef TABLING_GROUNDED
+#ifdef TABLING_RETROACTIVE
       SgFr_num_deps((sg_fr_ptr)SgFr_producer((subcons_fr_ptr)sg_fr))--;
-#endif
+#endif /* TABLING_RETROACTIVE */
       if(SgFr_num_deps((subcons_fr_ptr)sg_fr) == 0) {
         dprintf("incomplete subsumptive goal abolished\n");
         abolish_incomplete_subsumptive_consumer_subgoal((subcons_fr_ptr)sg_fr);
@@ -1211,11 +1210,11 @@ void abolish_incomplete_subgoals(choiceptr prune_cp) {
 #endif /* LIMIT_TABLING */
   }
   
-#ifdef TABLING_GROUNDED
+#ifdef TABLING_RETROACTIVE
   if(LOCAL_top_sg_fr != NULL)
     SgFr_prev(LOCAL_top_sg_fr) = NULL;
   SET_TOP_GEN_SG(LOCAL_top_sg_fr);
-#endif /* TABLING_GROUNDED */
+#endif /* TABLING_RETROACTIVE */
 }
 
 static inline

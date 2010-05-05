@@ -13,7 +13,7 @@
 ** ------------------ */
 
 #include "Yap.h"
-#ifdef TABLING_GROUNDED
+#ifdef TABLING_RETROACTIVE
  
 #include <stdio.h>
 #ifdef HAVE_STRING_H
@@ -412,7 +412,6 @@ abolish_generator_subgoals_between(sg_fr_ptr specific_sg, choiceptr min, choicep
           int subsumed_consumers = SgFr_num_deps((sg_fr_ptr)prod_sg) - SgFr_num_proper_deps(prod_sg);
           
           if(subsumed_consumers > 0) {
-            dprintf("Num deps %d\n", SgFr_num_deps(prod_sg));
             transform_external_subsumed_consumers(gen_cp, sg_fr, specific_sg,
                 SgFr_num_proper_deps(prod_sg) > 0, subsumed_consumers);
           }
@@ -636,6 +635,8 @@ process_pending_subgoal_list(node_list_ptr list, grounded_sf_ptr sg_fr) {
   
   if(list == NULL)
     return;
+    
+  dprintf("PENDING!\n");
     
 #define REMOVE_PENDING_NODE() {                   \
     node_list_ptr next = NodeList_next(list);     \
@@ -982,4 +983,4 @@ transform_consumer_answer_template(sg_fr_ptr sg_fr, choiceptr cp)
   Trail_Unwind_All;
 }
 
-#endif /* TABLING_GROUNDED */
+#endif /* TABLING_RETROACTIVE */

@@ -258,7 +258,8 @@ TSTNptr new_tstn(CTXTdeclc int trie_t, int node_t, Cell symbol, TSTNptr parent,
 
 static inline TSTHTptr New_BTHT(int TrieType) {
   TSTHTptr btht;
-  
+
+  dprintf("NEW TST HASH TABLE ANSWERS\n");
   ALLOC_TST_ANSWER_TRIE_HASH(btht);
   ALLOC_HASH_BUCKETS(TSTHT_BucketArray(btht), TrieHT_INIT_SIZE);
   TSTHT_Instr(btht) = Yap_opcode(hash_opcode);

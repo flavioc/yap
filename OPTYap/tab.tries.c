@@ -335,25 +335,25 @@ complete_dependency_frame(dep_fr_ptr dep_fr)
   sg_fr_ptr sg_fr = DepFr_sg_fr(dep_fr);
   switch(SgFr_type(sg_fr)) {
     case VARIANT_PRODUCER_SFT:
-#ifdef TABLING_GROUNDED
+#ifdef TABLING_RETROACTIVE
     SgFr_num_deps(sg_fr)--;
-#endif /* TABLING_GROUNDED */
+#endif /* TABLING_RETROACTIVE */
       break;
     case GROUND_PRODUCER_SFT:
       dprintf("IS GEN\n");
       /* do nothing */
       break;
     case SUBSUMPTIVE_PRODUCER_SFT:
-#ifdef TABLING_GROUNDED
+#ifdef TABLING_RETROACTIVE
       SgFr_num_proper_deps((subprod_fr_ptr)sg_fr)--;
       SgFr_num_deps(sg_fr)--;
-#endif
+#endif /* TABLING_RETROACTIVE */
       break;
     case SUBSUMED_CONSUMER_SFT:
       SgFr_num_deps((subcons_fr_ptr)sg_fr)--;
-#ifdef TABLING_GROUNDED
+#ifdef TABLING_RETROACTIVE
       SgFr_num_deps((sg_fr_ptr)SgFr_producer((subcons_fr_ptr)sg_fr))--;
-#endif /* TABLING_GROUNDED */
+#endif /* TABLING_RETROACTIVE */
       dprintf("dep sub %d\n", SgFr_num_deps((subcons_fr_ptr)sg_fr));
       if(SgFr_num_deps((subcons_fr_ptr)sg_fr) == 0) {
         mark_subsumptive_consumer_as_completed((subcons_fr_ptr)sg_fr);
@@ -361,11 +361,13 @@ complete_dependency_frame(dep_fr_ptr dep_fr)
       }
       break;
     case GROUND_CONSUMER_SFT:
-      if(SgFr_state(sg_fr) < complete) {
-        mark_ground_consumer_as_completed((grounded_sf_ptr)sg_fr);
-        dprintf("One ground consumer completed\n");
-      }
-      break;
+    SgFr_num_deps((grounded_sf_ptr)sg_fr)--;
+    
+    if(SgFr_num_deps((grounded_sf_ptr)sg_fr) == 0) {
+      mark_ground_consumer_as_completed((grounded_sf_ptr)sg_fr);
+      dprintf("One ground consumer completed\n");
+    }
+    break;
     default:
     printf("FAIL\n");
       break;
@@ -412,10 +414,10 @@ void private_completion(sg_fr_ptr sg_fr) {
   LOCAL_top_sg_fr = SgFr_next(LOCAL_top_sg_fr);
 #endif /* LIMIT_TABLING */
 
-#ifdef TABLING_GROUNDED
+#ifdef TABLING_RETROACTIVE
   if(LOCAL_top_sg_fr != NULL)
     SgFr_prev(LOCAL_top_sg_fr) = NULL;
-#endif /* TABLING_GROUNDED */
+#endif /* TABLING_RETROACTIVE */
 
   SET_TOP_GEN_SG(LOCAL_top_sg_fr);
   

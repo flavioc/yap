@@ -399,9 +399,9 @@ struct local_data{
   /* local data related to tabling */
   struct answer_trie_node *next_free_answer_trie_node;
   struct subgoal_frame *top_subgoal_frame; /* MUST BE BASE XXXX */
-#ifdef TABLING_GROUNDED
+#ifdef TABLING_RETROACTIVE
   struct subgoal_frame *top_gen_sg;
-#endif /* TABLING_GROUNDED */
+#endif /* TABLING_RETROACTIVE */
   struct dependency_frame *top_dependency_frame;
 #ifdef TABLING_INNER_CUTS
   choiceptr bottom_pruning_scope;
