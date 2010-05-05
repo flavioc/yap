@@ -268,6 +268,14 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
 #else
 
 #ifdef TABLING_CALL_SUBSUMPTION
+#ifdef TABLING_RETROACTIVE
+#define ground_consumer_dep_case() \
+case GROUND_CONSUMER_SFT: \
+  LEADER_CP = SgFr_choice_point(SgFr_producer((grounded_sf_ptr)(SG_FR))); \
+  break;
+#else
+#define ground_consumer_dep_case() /* nothing */
+#endif /* TABLING_RETROACTIVE */
 #define find_dependency_node(SG_FR, LEADER_CP, DEP_ON_STACK)                      \
         DEP_ON_STACK = TRUE;                                                      \
         switch(SgFr_type(SG_FR)) {                                                \
@@ -279,9 +287,7 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
           case SUBSUMED_CONSUMER_SFT:                                             \
             LEADER_CP = SgFr_choice_point(SgFr_producer((subcons_fr_ptr)(SG_FR)));  \
             break;                                                                  \
-          case GROUND_CONSUMER_SFT:                                               \
-            LEADER_CP = SgFr_choice_point(SgFr_producer((grounded_sf_ptr)(SG_FR))); \
-            break;                                                                  \
+          ground_consumer_dep_case() \
           default:                                                                \
             LEADER_CP = NULL;                                                     \
         }
@@ -396,10 +402,11 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
         new_basic_subgoal_frame(SG_FR, CODE, LEAF,                \
           VARIANT_PRODUCER_SFT, ALLOC_VARIANT_SUBGOAL_FRAME);     \
         add_answer_trie_subgoal_frame(SG_FR);                     \
-        init_num_deps(SG_FR);                                     \
+        init_retro_num_deps(SG_FR);                             \
     }
 
 #ifdef TABLING_RETROACTIVE
+#define init_retro_num_deps(SG_FR) init_num_deps(SG_FR)
 #define SgFr_init_prev_fields(SG_FR)  \
     SgFr_prev(SG_FR) = NULL;  \
     if(LOCAL_top_sg_fr != NULL) \
@@ -407,6 +414,7 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
 
 #define SgFr_is_top_stack(SG_FR) SgFr_prev(SG_FR) == NULL
 #else
+#define init_retro_num_deps(SG_FR) /* nothing */
 #define SgFr_init_prev_fields(SG_FR) /* nothing */
 #endif /* TABLING_RETROACTIVE */
 
@@ -807,10 +815,12 @@ void mark_as_completed(sg_fr_ptr sg_fr) {
     case SUBSUMPTIVE_PRODUCER_SFT:
       mark_subsumptive_producer_as_completed((subprod_fr_ptr)sg_fr);
       break;
+#ifdef TABLING_RETROACTIVE
     case GROUND_PRODUCER_SFT:
       dprintf("One ground producer completed\n");
       mark_ground_producer_as_completed((grounded_sf_ptr)sg_fr);
       break;
+#endif /* TABLING_RETROACTIVE */
 #endif /* TABLING_CALL_SUBSUMPTION */
     default: break;
   }
@@ -1087,9 +1097,11 @@ abolish_incomplete_producer_subgoal(sg_fr_ptr sg_fr) {
     case SUBSUMPTIVE_PRODUCER_SFT:
       abolish_incomplete_subsumptive_producer_subgoal(sg_fr);
       break;
+#ifdef TABLING_RETROACTIVE
     case GROUND_PRODUCER_SFT:
       abolish_incomplete_ground_producer_subgoal(sg_fr);
       break;
+#endif /* TABLING_RETROACTIVE */
 #endif /* TABLING_CALL_SUBSUMPTION */
     default: break;
   }
@@ -1138,6 +1150,7 @@ abolish_dependency_frame(dep_fr_ptr dep_fr)
         abolish_incomplete_subsumptive_consumer_subgoal((subcons_fr_ptr)sg_fr);
       }
       break;
+#ifdef TABLING_RETROACTIVE
     case GROUND_CONSUMER_SFT:
       SgFr_num_deps((grounded_sf_ptr)sg_fr)--;
       if(SgFr_num_deps((grounded_sf_ptr)sg_fr) == 0) {
@@ -1145,6 +1158,7 @@ abolish_dependency_frame(dep_fr_ptr dep_fr)
         abolish_incomplete_ground_consumer_subgoal((grounded_sf_ptr)sg_fr);
       }
       break;
+#endif /* TABLING_RETROACTIVE */
   }
 #endif /* TABLING_CALL_SUBSUMPTION */
   FREE_DEPENDENCY_FRAME(dep_fr);
@@ -1304,6 +1318,7 @@ get_next_answer_continuation(dep_fr_ptr dep_fr) {
         }
       }
       break;
+#ifdef TABLING_RETROACTIVE
     case GROUND_CONSUMER_SFT:
       {
         continuation_ptr last_cont = DepFr_last_answer(dep_fr);
@@ -1320,6 +1335,7 @@ get_next_answer_continuation(dep_fr_ptr dep_fr) {
           return NULL;
       }
       break;
+#endif /* TABLING_RETROACTIVE */
     default:
       /* NOT REACHABLE */
       return NULL;
@@ -1367,8 +1383,10 @@ is_new_consumer_call(sg_fr_ptr sg_fr) {
 #ifdef TABLING_CALL_SUBSUMPTION
     case SUBSUMED_CONSUMER_SFT:
       return SgFr_state(SgFr_producer((subcons_fr_ptr)sg_fr)) == evaluating;
+#ifdef TABLING_RETROACTIVE
     case GROUND_CONSUMER_SFT:
       return SgFr_state(SgFr_producer((grounded_sf_ptr)sg_fr)) == evaluating;
+#endif /* TABLING_RETROACTIVE */
 #endif /* TABLING_CALL_SUBSUMPTION */
     default:
       /* NOT REACHABLE */

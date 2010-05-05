@@ -221,7 +221,7 @@
           TABLING_ERRORS_check_stack;                                      \
           dprintf("New consumer cp %d\n", (int)B);                         \
         }
-        
+
 #define CONSUME_ANSWER(ANS_NODE, ANSWER_TMPLT, SG_FR)                       \
         switch(SgFr_type(SG_FR)) {                                          \
           case VARIANT_PRODUCER_SFT:                                        \
@@ -363,48 +363,6 @@
         YENV[E_B] = (CELL) B;         \
         ENV = YENV
 #endif /* DEPTH_LIMIT */
-
-#ifdef TABLING_RETROACTIVE
-#define increase_num_deps(SG_FR) SgFr_num_deps((sg_fr_ptr)SG_FR)++
-#define increase_producer_deps(SG_FR) SgFr_num_deps((sg_fr_ptr)SgFr_producer((subcons_fr_ptr)(SG_FR)))++
-#define increase_num_proper_deps(SG_FR) SgFr_num_proper_deps((subprod_fr_ptr)SG_FR)++
-#else
-#define increase_num_deps(SG_FR) /* do nothing */
-#define increase_producer_deps(CONSUMER_SG) /* do nothing */
-#define increase_num_proper_deps(SG_FR) /* do nothing */
-#endif /* TABLING_RETROACTIVE */
-
-#ifdef TABLING_CALL_SUBSUMPTION
-#define init_consumer_subgoal_frame(SG_FR)          \
-        switch(SgFr_type(sg_fr)) {  \
-          case SUBSUMED_CONSUMER_SFT: \
-            SgFr_num_deps((subcons_fr_ptr)sg_fr)++; \
-            increase_producer_deps(SG_FR);  \
-            break;  \
-          case GROUND_CONSUMER_SFT: \
-            SgFr_num_deps((grounded_sf_ptr)sg_fr)++; \
-            break;  \
-          case SUBSUMPTIVE_PRODUCER_SFT:  \
-            increase_num_deps(SG_FR);   \
-            increase_num_proper_deps(SG_FR);  \
-            break;                                    \
-          case VARIANT_PRODUCER_SFT:      \
-            increase_num_deps(SG_FR);     \
-            break;          \
-        } \
-        if(SgFr_state(sg_fr) < evaluating) {  \
-          switch(SgFr_type(sg_fr)) {  \
-            case SUBSUMED_CONSUMER_SFT: \
-              init_sub_consumer_subgoal_frame((subcons_fr_ptr)sg_fr); \
-              break;  \
-            case GROUND_CONSUMER_SFT: \
-              init_ground_consumer_subgoal_frame((grounded_sf_ptr)sg_fr); \
-              break;  \
-          } \
-        }
-#else
-#define init_consumer_subgoal_frame(SG_FR) /* do nothing */
-#endif /* TABLING_CALL_SUBSUMPTION */
 
 #define ensure_subgoal_is_compiled(SG_FR) \
         if (SgFr_state(SG_FR) < compiled) \
@@ -590,17 +548,6 @@
 #define precheck_ground_generator(SG_FR) /* do nothing */
 #endif /* TABLING_RETROACTIVE */
 
-#define pop_gencons_node(ANS_TMPLT) \
-          H = PROTECT_FROZEN_H(B); \
-          pop_yaam_reg_cpdepth(B); \
-          CPREG = B->cp_cp; \
-          ENV = B->cp_env; \
-          TR = B->cp_tr; \
-          B = B->cp_b; \
-          HBREG = PROTECT_FROZEN_H(B); \
-          YENV = ANS_TMPLT; \
-          SET_BB(PROTECT_FROZEN_B(B))
-
 /* Consume subsuming answer ANS_NODE using ANS_TMPLT
  * as the pointer to the answer template.
  * the size of the answer template is calculated and
@@ -612,12 +559,16 @@
   consume_subsumptive_answer((BTNptr)(ANS_NODE), arity, sub_answer_template); \
 }
 
+#ifdef TABLING_RETROACTIVE
 #define CONSUME_GROUND_ANSWER(ANS_NODE, ANS_TMPLT, SG_FR) \
   if(SgFr_is_most_general((grounded_sf_ptr)(SG_FR))) {    \
     CONSUME_VARIANT_ANSWER(ANS_NODE, ANS_TMPLT);          \
   } else {                                                \
     CONSUME_SUBSUMPTIVE_ANSWER(ANS_NODE, ANS_TMPLT);      \
   }
+#else
+#define CONSUME_GROUND_ANSWER(ANS_NODE, ANS_TMPLT, SG_FR) /* do nothing */
+#endif /* TABLING_RETROACTIVE */
   
 #define consume_next_ground_answer(CONT, SG_FR)                 \
   CELL *answer_template = GENERATOR_ANSWER_TEMPLATE(B, SG_FR);  \
@@ -723,7 +674,10 @@
   ENDPBOp();
 
   PBOp(table_load_answer, Otapl)
-load_answer_jump: {
+load_answer_jump:
+  
+    INIT_PREFETCH()
+    
     CELL *ans_tmplt;
     ans_node_ptr ans_node;
     continuation_ptr next;
@@ -755,7 +709,8 @@ load_answer_jump: {
     }
     
     consume_answer_leaf(ans_node, ans_tmplt, CONSUME_VARIANT_ANSWER);
-}
+    
+    END_PREFETCH()
   ENDPBOp();
 
   PBOp(table_run_completed, Otapl)
@@ -1351,6 +1306,7 @@ try_answer_jump: {
             exec_subgoal_compiled_trie(sg_fr);
     	    }
           break;
+#ifdef TABLING_RETROACTIVE
         case GROUND_PRODUCER_SFT:
           if(TabEnt_is_load(tab_ent)) {
             check_no_answers(sg_fr);
@@ -1368,6 +1324,7 @@ try_answer_jump: {
             exec_ground_trie(tab_ent);
           }
           break;
+#endif /* TABLING_RETROACTIVE */
 #endif /* TABLING_CALL_SUBSUMPTION */
           default: break;
       }
@@ -1499,6 +1456,7 @@ try_answer_jump: {
             exec_subgoal_compiled_trie(sg_fr);
     	    }
           break;
+#ifdef TABLING_RETROACTIVE
         case GROUND_PRODUCER_SFT:
           if(TabEnt_is_load(tab_ent)) {
             check_no_answers(sg_fr);
@@ -1516,6 +1474,7 @@ try_answer_jump: {
             exec_ground_trie(tab_ent);
           }
           break;
+#endif /* TABLING_RETROACTIVE */
 #endif /* TABLING_CALL_SUBSUMPTION */
           default: break;
       }
@@ -1648,6 +1607,7 @@ try_answer_jump: {
             exec_subgoal_compiled_trie(sg_fr);
     	    }
           break;
+#ifdef TABLING_RETROACTIVE
         case GROUND_PRODUCER_SFT:
           if(TabEnt_is_load(tab_ent)) {
             check_no_answers(sg_fr);
@@ -1665,6 +1625,7 @@ try_answer_jump: {
             exec_ground_trie(tab_ent);
           }
           break;
+#endif /* TABLING_RETROACTIVE */
 #endif /* TABLING_CALL_SUBSUMPTION */
           default: break;
       }
@@ -2856,7 +2817,7 @@ try_answer_jump: {
               }
             }
             break;
-#ifdef TABLING_CALL_SUBSUMPTION
+#ifdef TABLING_RETROACTIVE
           case GROUND_PRODUCER_SFT:
             {
               check_yes_answer_no_unlock(sg_fr);
@@ -2870,7 +2831,7 @@ try_answer_jump: {
               }
             }
             break;
-#endif /* TABLING_CALL_SUBSUMPTION */
+#endif /* TABLING_RETROACTIVE */
           default: break;
 	      }
       }

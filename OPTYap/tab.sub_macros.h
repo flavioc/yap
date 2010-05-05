@@ -15,8 +15,10 @@
 
 STD_PROTO(static inline void mark_subsumptive_consumer_as_completed, (subcons_fr_ptr));
 STD_PROTO(static inline void mark_subsumptive_producer_as_completed, (subprod_fr_ptr));
+#ifdef TABLING_RETROACTIVE
 STD_PROTO(static inline void mark_ground_consumer_as_completed, (grounded_sf_ptr));
 STD_PROTO(static inline void mark_ground_producer_as_completed, (grounded_sf_ptr));
+#endif /* TABLING_RETROACTIVE */
 
 STD_PROTO(static inline void gen_index_remove, (subg_node_ptr, subg_hash_ptr));
 STD_PROTO(static inline void gen_index_add, (subg_node_ptr, subg_hash_ptr, int));
@@ -25,20 +27,27 @@ STD_PROTO(static inline void free_tst_hash_index, (tst_ans_hash_ptr));
 
 STD_PROTO(static inline void free_producer_subgoal_data, (sg_fr_ptr, int));
 STD_PROTO(static inline void free_consumer_subgoal_data, (subcons_fr_ptr));
+#ifdef TABLING_RETROACTIVE
 STD_PROTO(static inline void free_ground_subgoal_data, (grounded_sf_ptr));
 STD_PROTO(static inline void free_ground_trie, (tab_ent_ptr));
+#endif /* TABLING_RETROACTIVE */
 
 STD_PROTO(static inline void abolish_incomplete_subsumptive_producer_subgoal, (sg_fr_ptr));
 STD_PROTO(static inline void abolish_incomplete_subsumptive_consumer_subgoal, (subcons_fr_ptr));
+#ifdef TABLING_RETROACTIVE
 STD_PROTO(static inline void abolish_incomplete_ground_producer_subgoal, (sg_fr_ptr));
 STD_PROTO(static inline void abolish_incomplete_ground_consumer_subgoal, (grounded_sf_ptr));
+#endif /* TABLING_RETROACTIVE */
 
 STD_PROTO(static inline int build_next_subsumptive_consumer_return_list, (subcons_fr_ptr));
+#ifdef TABLING_RETROACTIVE
 STD_PROTO(static inline int build_next_ground_consumer_return_list, (grounded_sf_ptr));
 STD_PROTO(static inline int build_next_ground_producer_return_list, (grounded_sf_ptr));
+#endif /* TABLING_RETROACTIVE */
 
+#ifdef TABLING_RETROACTIVE
 #define ground_trie_create_tsi(TAB_ENT) tstCreateTSIs((tst_node_ptr)TabEnt_ground_trie(TAB_ENT))
-
+#endif /* TABLING_RETROACTIVE */
 #define init_num_deps(SG_FR) SgFr_num_deps(SG_FR) = 0
 
 #define new_subsumptive_producer_subgoal_frame(SG_FR, CODE, LEAF) { \
@@ -46,7 +55,7 @@ STD_PROTO(static inline int build_next_ground_producer_return_list, (grounded_sf
           SUBSUMPTIVE_PRODUCER_SFT, ALLOC_SUBPROD_SUBGOAL_FRAME);   \
         SgFr_prod_consumers(SG_FR) = NULL;                          \
         SgFr_answer_trie(SG_FR) = newTSTAnswerSet();                \
-        init_num_deps((sg_fr_ptr)SG_FR);                            \
+        init_retro_num_deps((sg_fr_ptr)SG_FR);                            \
     }
     
 #define new_grounded_producer_subgoal_frame(SG_FR, CODE, LEAF) {  \
@@ -281,6 +290,52 @@ STD_PROTO(static inline int build_next_ground_producer_return_list, (grounded_sf
   SET_BB(PROTECT_FROZEN_B(B))
   
 #define ON_SG_FR_STACK(SG_FR) (SG_FR == LOCAL_top_dep_fr || SgFr_prev(SG_FR) != NULL || SgFr_next(SG_FR) != NULL)
+
+#ifdef TABLING_CALL_SUBSUMPTION
+static inline void
+init_consumer_subgoal_frame(sg_fr_ptr sg_fr)
+{
+  switch(SgFr_type(sg_fr)) {
+    case SUBSUMED_CONSUMER_SFT:
+      SgFr_num_deps((subcons_fr_ptr)sg_fr)++;
+#ifdef TABLING_RETROACTIVE
+      SgFr_num_deps((sg_fr_ptr)SgFr_producer((subcons_fr_ptr)(sg_fr)))++;
+#endif /* TABLING_RETROACTIVE */
+      break;
+#ifdef TABLING_RETROACTIVE
+    case GROUND_CONSUMER_SFT:
+      SgFr_num_deps((grounded_sf_ptr)sg_fr)++;
+      break;
+#endif /* TABLING_RETROACTIVE */
+    case SUBSUMPTIVE_PRODUCER_SFT:
+#ifdef TABLING_RETROACTIVE
+      SgFr_num_deps((sg_fr_ptr)sg_fr)++;
+      SgFr_num_proper_deps((subprod_fr_ptr)sg_fr)++;
+#endif /* TABLING_RETROACTIVE */
+      break;
+    case VARIANT_PRODUCER_SFT:
+#ifdef TABLING_RETROACTIVE
+      SgFr_num_deps((sg_fr_ptr)sg_fr)++;
+#endif /* TABLING_RETROACTIVE */
+      break;
+  }
+
+  if(SgFr_state(sg_fr) < evaluating) {
+    switch(SgFr_type(sg_fr)) {
+      case SUBSUMED_CONSUMER_SFT:
+        init_sub_consumer_subgoal_frame((subcons_fr_ptr)sg_fr);
+        break;
+#ifdef TABLING_RETROACTIVE
+      case GROUND_CONSUMER_SFT:
+        init_ground_consumer_subgoal_frame((grounded_sf_ptr)sg_fr);
+        break;
+#endif /* TABLING_RETROACTIVE */
+    }
+  }
+}
+#else
+#define init_consumer_subgoal_frame(SG_FR) /* do nothing */
+#endif /* TABLING_CALL_SUBSUMPTION */
         
 static inline
 void mark_subsumptive_consumer_as_completed(subcons_fr_ptr sg_fr) {
@@ -310,14 +365,13 @@ void mark_subsumptive_producer_as_completed(subprod_fr_ptr sg_fr) {
   }
 }
 
+#ifdef TABLING_RETROACTIVE
 static inline
 void mark_ground_consumer_as_completed(grounded_sf_ptr sg_fr) {
   LOCK(SgFr_lock(sg_fr));
   SgFr_state(sg_fr) = complete;
-#ifdef TABLING_RETROACTIVE
   SgFr_num_deps(sg_fr) = 0;
   decrement_subgoal_path(sg_fr);
-#endif /* TABLING_RETROACTIVE */
   UNLOCK(SgFr_lock(sg_fr));
 }
 
@@ -334,6 +388,7 @@ void mark_ground_producer_as_completed(grounded_sf_ptr sg_fr) {
   }
 #endif /* TABLING_COMPLETE_TABLE */
 }
+#endif /* TABLING_RETROACTIVE */
 
 static inline void
 gen_index_remove(subg_node_ptr sub_node, subg_hash_ptr hash) {
@@ -396,6 +451,7 @@ free_consumer_subgoal_data(subcons_fr_ptr sg_fr) {
   free_answer_continuation(SgFr_first_answer(sg_fr));
 }
 
+#ifdef TABLING_RETROACTIVE
 static inline void
 free_ground_subgoal_data(grounded_sf_ptr sg_fr) {
   free_answer_continuation(SgFr_first_answer(sg_fr));
@@ -410,17 +466,13 @@ free_ground_trie(tab_ent_ptr tab_ent) {
     FREE_TST_ANSWER_TRIE_NODE(answer_trie);
   }
 }
+#endif /* TABLING_RETROACTIVE */
 
 static inline void
 abolish_incomplete_subsumptive_consumer_subgoal(subcons_fr_ptr sg_fr) {
   free_consumer_subgoal_data(sg_fr);
   delete_subgoal_path((sg_fr_ptr)sg_fr);
   FREE_SUBCONS_SUBGOAL_FRAME(sg_fr);
-}
-
-static inline void
-abolish_incomplete_ground_consumer_subgoal(grounded_sf_ptr sg_fr) {
-  SgFr_state(sg_fr) = ready;
 }
 
 static inline void
@@ -435,10 +487,17 @@ abolish_incomplete_subsumptive_producer_subgoal(sg_fr_ptr sg_fr) {
   FREE_SUBPROD_SUBGOAL_FRAME(sg_fr);
 }
 
+#ifdef TABLING_RETROACTIVE
+static inline void
+abolish_incomplete_ground_consumer_subgoal(grounded_sf_ptr sg_fr) {
+  SgFr_state(sg_fr) = ready;
+}
+
 static inline void
 abolish_incomplete_ground_producer_subgoal(sg_fr_ptr sg_fr) {
   SgFr_state(sg_fr) = ready;
 }
+#endif /* TABLING_RETROACTIVE */
 
 static inline
 void free_tst_hash_chain(tst_ans_hash_ptr hash) {
@@ -512,6 +571,7 @@ build_next_subsumptive_consumer_return_list(subcons_fr_ptr consumer_sg) {
           STANDARDIZE_AT_PTR(answer_template, size), (sg_fr_ptr)consumer_sg);
 }
 
+#ifdef TABLING_RETROACTIVE
 static inline int
 build_next_ground_consumer_return_list(grounded_sf_ptr consumer_sg) {
   grounded_sf_ptr producer_sg = SgFr_producer(consumer_sg);
@@ -558,5 +618,6 @@ build_next_ground_producer_return_list(grounded_sf_ptr producer_sg) {
     STANDARDIZE_AT_PTR(answer_template, size),
     (sg_fr_ptr)producer_sg);
 }
+#endif /* TABLING_RETROACTIVE */
 
 #endif /* TABLING_CALL_SUBSUMPTION */

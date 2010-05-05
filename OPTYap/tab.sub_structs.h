@@ -132,7 +132,6 @@ struct tab_stack_state {
 
 #define StackState_dep_fr(X) ((X).dep_fr)
 #define StackState_sg_fr(X)  ((X).sg_fr)
-#endif /* TABLING_RETROACTIVE */
 
 /* --------------------------------------------------- */
 
@@ -166,10 +165,8 @@ struct grounded_subgoal_frame {
   
   struct grounded_subgoal_frame *next;
   
-#ifdef TABLING_RETROACTIVE
   sg_fr_ptr prev;
   sg_fr_ptr top_gen_sg;
-#endif /* TABLING_RETROACTIVE */
   
   continuation_ptr try_answer;
 
@@ -257,5 +254,6 @@ struct grounded_subgoal_frame {
 #define SgFr_is_ground_consumer(X)        (SgFr_type(X) == GROUND_CONSUMER_SFT)
 #define SgFr_is_ground_local_producer(X)  (SgFr_is_ground_producer(X) && SgFr_is_local_producer((grounded_sf_ptr)(X)))
 #define SgFr_is_ground_local_consumer(X)  (SgFr_is_ground_consumer(X) && SgFr_is_local_consumer((grounded_sf_ptr)(X)))
+#endif /* TABLING_RETROACTIVE */
 
 #endif /* TABLING_CALL_SUBSUMPTION */
