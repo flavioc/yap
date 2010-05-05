@@ -583,8 +583,9 @@
 #define precheck_ground_generator(SG_FR)                            \
      if(SgFr_is_ground_producer(SG_FR)) {                           \
        SgFr_set_saved_max((grounded_sf_ptr)(SG_FR), B);             \
-     }                                                              \
-     Bind_and_Trail(&SgFr_start(SG_FR), (Term)B_FZ)
+       Bind_and_Trail(&SgFr_start((grounded_sf_ptr)SG_FR), (Term)B_FZ);              \
+     }
+     
 #else
 #define precheck_ground_generator(SG_FR) /* do nothing */
 #endif /* TABLING_RETROACTIVE */
@@ -1964,8 +1965,6 @@ try_answer_jump: {
         grounded_sf_ptr ground = (grounded_sf_ptr)sg_fr;
         SgFr_update_saved_max(ground);
       }
-      Bind_and_Trail(&SgFr_executing(sg_fr), (Term)B);
-      SET_TOP_GEN_SG(sg_fr);
 #endif /* TABLING_RETROACTIVE */
 
 #ifdef TABLING_ERRORS
@@ -2023,6 +2022,14 @@ try_answer_jump: {
 #endif /* TABLING_RETROACTIVE */
 
       if (IS_BATCHED_GEN_CP(gcp)) {
+
+#ifdef TABLING_RETROACTIVE
+        if(SgFr_is_ground_producer(sg_fr)) {
+          Bind_and_Trail(&SgFr_executing((grounded_sf_ptr)sg_fr), (Term)B);
+        }
+        SET_TOP_GEN_SG(SgFr_top_gen_sg(sg_fr));
+#endif
+
 #ifdef TABLING_EARLY_COMPLETION
 	if (gcp == PROTECT_FROZEN_B(B) && (*subs_ptr == 0 || gcp->cp_ap == COMPLETION)) {
 	  /* if the current generator choice point is the topmost choice point and the current */
@@ -2124,7 +2131,7 @@ try_answer_jump: {
     }
 
     UNLOCK(DepFr_lock(dep_fr));
-    
+
 #ifdef TABLING_RETROACTIVE
     if(DepFr_is_top_consumer(dep_fr)) {
       grounded_sf_ptr sg_fr = (grounded_sf_ptr)DepFr_sg_fr(dep_fr);
@@ -2458,6 +2465,7 @@ try_answer_jump: {
         if(B != DepFr_leader_cp(LOCAL_top_dep_fr)) {
           /* not leader on that node */
           B = B->cp_b;
+          SET_TOP_GEN_SG(SgFr_top_gen_sg(sg_fr));
           dprintf("not leader on that node 3\n");
           goto fail;
         }
@@ -2474,15 +2482,17 @@ try_answer_jump: {
           B = B->cp_b;
           if(B->cp_ap == NULL)
             B->cp_ap = COMPLETION;
+          SET_TOP_GEN_SG(SgFr_top_gen_sg(sg_fr));
           goto fail;
         }
       } else {
         B->cp_ap = ANSWER_RESOLUTION;
         if (B != DepFr_leader_cp(LOCAL_top_dep_fr)) {
           /* not leader on that node */
-          update_generator_node(GEN_CP(B)->cp_sg_fr)
+          update_generator_node(sg_fr)
           B = B->cp_b;
           dprintf("not a leader on that node 2\n");
+          SET_TOP_GEN_SG(SgFr_top_gen_sg(sg_fr));
           goto fail;
         }
       }
@@ -2528,7 +2538,7 @@ try_answer_jump: {
         restart_generator(dep_fr);
       }
 #endif /* TABLING_GROUNDED */
-      
+
       ans_node = NULL;
       next = get_next_answer_continuation(dep_fr);
       
@@ -2804,6 +2814,7 @@ try_answer_jump: {
         B = B->cp_b;
         dprintf("Backtrack\n");
         SET_BB(PROTECT_FROZEN_B(B));
+        SET_TOP_GEN_SG(SgFr_top_gen_sg(sg_fr));
         goto fail;
       } else {
         /* this is local scheduling, we can now complete and return answers */

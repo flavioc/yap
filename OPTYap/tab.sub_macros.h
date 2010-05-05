@@ -46,7 +46,7 @@ STD_PROTO(static inline int build_next_ground_producer_return_list, (grounded_sf
           SUBSUMPTIVE_PRODUCER_SFT, ALLOC_SUBPROD_SUBGOAL_FRAME);   \
         SgFr_prod_consumers(SG_FR) = NULL;                          \
         SgFr_answer_trie(SG_FR) = newTSTAnswerSet();                \
-        producer_sg_fr_init((sg_fr_ptr)SG_FR);                      \
+        init_num_deps((sg_fr_ptr)SG_FR);                            \
     }
     
 #define new_grounded_producer_subgoal_frame(SG_FR, CODE, LEAF) {  \
@@ -528,7 +528,7 @@ build_next_ground_consumer_return_list(grounded_sf_ptr consumer_sg) {
   tab_ent_ptr tab_ent = SgFr_tab_ent(producer_sg);
   tst_node_ptr trie = (tst_node_ptr)TabEnt_ground_trie(tab_ent);
   
-  SgFr_timestamp(consumer_sg) = producer_ts;
+  SgFr_timestamp(consumer_sg) = TabEnt_ground_time_stamp(SgFr_tab_ent(consumer_sg));
   
   AT = SgFr_at_block(consumer_sg);
   

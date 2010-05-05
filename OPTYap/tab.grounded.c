@@ -219,6 +219,8 @@ sg_fr_ptr grounded_call_search(yamop *code, CELL *answer_template, CELL **new_lo
             sg_fr = create_new_ground_consumer_subgoal(btn, tab_ent, code, subsumer);
             
             create_ground_answer_template(sg_fr, *new_local_stack);
+            
+            ensure_has_proper_consumers(tab_ent);
         } else
           sg_fr = subsumer;
         break;

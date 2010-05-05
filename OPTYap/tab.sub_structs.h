@@ -96,7 +96,6 @@ struct subsumed_consumer_subgoal_frame {
   struct subsumed_consumer_subgoal_frame *next;
 #ifdef TABLING_RETROACTIVE
   sg_fr_ptr top_gen_sg;
-  
 #endif /* TABLING_RETROACTIVE */
   
   int num_deps;
@@ -174,7 +173,8 @@ struct grounded_subgoal_frame {
   
   continuation_ptr try_answer;
 
-#ifdef TABLING_RETROACTIVE
+  int num_deps;
+  
   CELL executing;
   CELL start;
   choiceptr saved_cp;
@@ -183,9 +183,6 @@ struct grounded_subgoal_frame {
   int num_ans;
 
   struct tab_stack_state stack_state;
-#endif /* TABLING_RETROACTIVE */
-  
-  int num_deps;
   
   time_stamp ts;
   grounded_sf_ptr producer;
