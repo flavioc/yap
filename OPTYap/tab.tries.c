@@ -1301,7 +1301,7 @@ void traverse_trie_node(void* node, char *str, int *str_index_ptr, int *arity, i
   if (mode == TRAVERSE_MODE_FLOAT || IS_FLOAT_FLAG(flags)) {
     volatile Float dbl;
     if(IS_FLOAT_FLAG(flags))
-      flt = node_get_float((sg_node_ptr)node);
+      dbl = node_get_float((sg_node_ptr)node);
     else {
       volatile Term *t_dbl = (Term *)((void *) &dbl);
       *t_dbl = t;
