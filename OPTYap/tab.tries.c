@@ -746,9 +746,8 @@ void show_table(tab_ent_ptr tab_ent, int show_mode) {
         bytes += TrStat_subgoals * sizeof(struct grounded_subgoal_frame);
         ground_trie_statistics(tab_ent);
       } else
-#else
-      {
 #endif /* TABLING_RETROACTIVE */
+      {
         bytes += TrStat_subcons_subgoals * sizeof(struct subsumed_consumer_subgoal_frame);
         bytes += TrStat_subgoals * sizeof(struct subsumptive_producer_subgoal_frame);
 #ifdef TABLING_COMPLETE_TABLE

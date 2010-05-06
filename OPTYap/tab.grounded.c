@@ -253,6 +253,8 @@ TSTNptr grounded_answer_search(grounded_sf_ptr sf, CPtr answerVector) {
   AnsVarCtr = 0;
   root = (TSTNptr)TabEnt_ground_trie(tab_ent);
   
+  /* ver TS pois podem ser inseridas respostas por outros geradores... XXX */
+  
   if ( IsNULL(root) ) {
     TabEnt_ground_trie(tab_ent) = (sg_node_ptr)newTSTAnswerSet();
     root = (TSTNptr)TabEnt_ground_trie(tab_ent);

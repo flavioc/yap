@@ -269,12 +269,12 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
 
 #ifdef TABLING_CALL_SUBSUMPTION
 #ifdef TABLING_RETROACTIVE
-#define ground_consumer_dep_case() \
+#define ground_consumer_dep_case(LEADER_CP, SG_FR) \
 case GROUND_CONSUMER_SFT: \
   LEADER_CP = SgFr_choice_point(SgFr_producer((grounded_sf_ptr)(SG_FR))); \
   break;
 #else
-#define ground_consumer_dep_case() /* nothing */
+#define ground_consumer_dep_case(LEADER_CP, SG_FR) /* nothing */
 #endif /* TABLING_RETROACTIVE */
 #define find_dependency_node(SG_FR, LEADER_CP, DEP_ON_STACK)                      \
         DEP_ON_STACK = TRUE;                                                      \
@@ -287,7 +287,7 @@ case GROUND_CONSUMER_SFT: \
           case SUBSUMED_CONSUMER_SFT:                                             \
             LEADER_CP = SgFr_choice_point(SgFr_producer((subcons_fr_ptr)(SG_FR)));  \
             break;                                                                  \
-          ground_consumer_dep_case() \
+          ground_consumer_dep_case(LEADER_CP, SG_FR) \
           default:                                                                \
             LEADER_CP = NULL;                                                     \
         }
