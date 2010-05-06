@@ -371,20 +371,18 @@ typedef struct subgoal_frame {
   struct subgoal_frame *previous;
 #endif /* LIMIT_TABLING */
 
-#ifdef TABLING_CALL_SUBSUMPTION
+#ifdef TABLING_RETROACTIVE
   struct subgoal_frame *prev;
   struct subgoal_frame *top_gen_sg;
-#endif /* TABLING_CALL_SUBSUMPTION */
+#endif /* TABLING_RETROACTIVE */
 
-#if defined(INCOMPLETE_TABLING) || defined(TABLING_GROUNDED)
+#if defined(INCOMPLETE_TABLING) || defined(TABLING_RETROACTIVE)
   continuation_ptr try_answer;
-#endif /* INCOMPLETE_TABLING || TABLING_GROUNDED */
+#endif /* INCOMPLETE_TABLING || TABLING_RETROACTIVE */
 
-#ifdef TABLING_GROUNDED
-  CELL executing;
-  CELL start;
+#ifdef TABLING_RETROACTIVE
   int num_deps;
-#endif
+#endif /* TABLING_RETROACTIVE */
   
   struct answer_trie_node *answer_trie;
   
@@ -419,13 +417,10 @@ typedef sg_fr_ptr variant_sf_ptr;
 #define SgFr_try_answer(X)     ((X)->try_answer)
 #define SgFr_previous(X)       (CAST_SF(X)->previous)
 #define SgFr_next(X)           ((X)->next)
+
 #ifdef TABLING_GROUNDED
-#define INTERNAL_TOP_MASK         0x01
 #define SgFr_prev(X)              ((X)->prev)
 #define SgFr_top_gen_sg(X)        (CAST_SF(X)->top_gen_sg)
-#define SgFr_set_top_internal(X)  (SgFr_top_gen_sg(X) = (sg_fr_ptr)((unsigned int)SgFr_top_gen_sg(X) | INTERNAL_TOP_MASK))
-#define SgFr_get_top_gen_sg(X)    ((sg_fr_ptr)((unsigned int)CAST_SF(X)->top_gen_sg & ~INTERNAL_TOP_MASK))
-#define SgFr_is_top_internal(X)   ((unsigned int)SgFr_top_gen_sg(X) & INTERNAL_TOP_MASK)
 #endif
 
 /* ------------------------------------------------------------------------------------------- **
@@ -530,9 +525,6 @@ typedef struct dependency_frame {
 #define DepFr_set_restarter(X)           (DepFr_set_flag(X, DEP_FR_RESTARTER))
 #define DepFr_clear_restarter(X)         (DepFr_clear_flag(X, DEP_FR_RESTARTER))
 #define DepFr_top_gen_sg(X)              ((X)->top_gen_sg)
-#define DepFr_get_top_gen_sg(X)          ((sg_fr_ptr)((unsigned int)DepFr_top_gen_sg(X) & ~INTERNAL_TOP_MASK))
-#define DepFr_set_top_internal(X)        (DepFr_top_gen_sg(X) = (sg_fr_ptr)((unsigned int)DepFr_top_gen_sg(X) | INTERNAL_TOP_MASK))
-#define DepFr_is_top_internal(X)         ((unsigned int)DepFr_top_gen_sg(X) & INTERNAL_TOP_MASK)
 
 /* ---------------------------------------------------------------------------------------------------- **
    DepFr_lock:                   lock variable to modify the frame fields.

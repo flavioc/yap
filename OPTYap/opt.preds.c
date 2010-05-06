@@ -861,12 +861,16 @@ abolish_table(tab_ent_ptr tab_ent) {
   free_subgoal_trie_hash_chain(hash);
   
   if(TabEnt_subgoal_trie(tab_ent)) {
-#ifdef TABLING_CALL_SUBSUMPTION
-    if(TabEnt_is_grounded(tab_ent) || TabEnt_completed(tab_ent)) {
-      /* if this is a grounded subgoal the answer trie is in the root subgoal trie node */
+#ifdef TABLING_RETROACTIVE
+    if(TabEnt_is_grounded(tab_ent)) {
       free_ground_trie(tab_ent);
     }
-#endif
+#endif /* TABLING_RETROACTIVE */
+#ifdef TABLING_COMPLETE_TABLE
+    if(TabEnt_completed(tab_ent)) {
+      free_ground_trie(tab_ent);
+    }
+#endif /* TABLING_COMPLETE_TABLE */
     
     sg_node = TrNode_child(TabEnt_subgoal_trie(tab_ent));
     

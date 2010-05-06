@@ -46,7 +46,7 @@
       }                                                           \
     }
 
-#ifdef TABLING_GROUNDED
+#ifdef TABLING_RETROACTIVE
 #define store_cons_args_local_stack(ARITY) store_args_local_stack(ARITY)
 #define update_generator_node(SG_FR)      \
     if(SgFr_is_ground_producer(SG_FR)) {  \
@@ -62,7 +62,7 @@
 #define update_generator_node(SG_FR) /* do nothing */
 #define DepFr_add_queue(DEP_FR) \
         LOCAL_top_dep_fr = DEP_FR
-#endif /* TABLING_GROUNDED */
+#endif /* TABLING_RETROACTIVE */
 
 #define store_generator_node(TAB_ENT, SG_FR, ARITY, AP)               \
         { register choiceptr gcp;                                     \
@@ -221,7 +221,7 @@
           TABLING_ERRORS_check_stack;                                      \
           dprintf("New consumer cp %d\n", (int)B);                         \
         }
-        
+
 #define CONSUME_ANSWER(ANS_NODE, ANSWER_TMPLT, SG_FR)                       \
         switch(SgFr_type(SG_FR)) {                                          \
           case VARIANT_PRODUCER_SFT:                                        \
@@ -239,8 +239,6 @@
 
 #define consume_answer_and_procceed(DEP_FR, ANSWER)       \
         { CELL *subs_ptr;                                 \
-          if(DepFr_is_subtransform(DEP_FR)) \
-          dprintf("============WARNING============\n"); \
           /* restore consumer choice point */             \
           H = HBREG = PROTECT_FROZEN_H(B);                \
           restore_yaam_reg_cpdepth(B);                    \
@@ -365,48 +363,6 @@
         YENV[E_B] = (CELL) B;         \
         ENV = YENV
 #endif /* DEPTH_LIMIT */
-
-#ifdef TABLING_GROUNDED
-#define increase_num_deps(SG_FR) SgFr_num_deps((sg_fr_ptr)SG_FR)++
-#define increase_producer_deps(SG_FR) SgFr_num_deps((sg_fr_ptr)SgFr_producer((subcons_fr_ptr)(SG_FR)))++
-#define increase_num_proper_deps(SG_FR) SgFr_num_proper_deps((subprod_fr_ptr)SG_FR)++
-#else
-#define increase_num_deps(SG_FR) /* do nothing */
-#define increase_producer_deps(CONSUMER_SG) /* do nothing */
-#define increase_num_proper_deps(SG_FR) /* do nothing */
-#endif /* TABLING_GROUNDED */
-
-#ifdef TABLING_CALL_SUBSUMPTION
-#define init_consumer_subgoal_frame(SG_FR)          \
-        switch(SgFr_type(sg_fr)) {  \
-          case SUBSUMED_CONSUMER_SFT: \
-            SgFr_num_deps((subcons_fr_ptr)sg_fr)++; \
-            increase_producer_deps(SG_FR);  \
-            break;  \
-          case GROUND_CONSUMER_SFT: \
-            SgFr_num_deps((sg_fr_ptr)sg_fr)++; \
-            break;  \
-          case SUBSUMPTIVE_PRODUCER_SFT:  \
-            increase_num_deps(SG_FR);   \
-            increase_num_proper_deps(SG_FR);  \
-            break;                                    \
-          case VARIANT_PRODUCER_SFT:      \
-            increase_num_deps(SG_FR);     \
-            break;          \
-        } \
-        if(SgFr_state(sg_fr) < evaluating) {  \
-          switch(SgFr_type(sg_fr)) {  \
-            case SUBSUMED_CONSUMER_SFT: \
-              init_sub_consumer_subgoal_frame((subcons_fr_ptr)sg_fr); \
-              break;  \
-            case GROUND_CONSUMER_SFT: \
-              init_ground_consumer_subgoal_frame((grounded_sf_ptr)sg_fr); \
-              break;  \
-          } \
-        }
-#else
-#define init_consumer_subgoal_frame(SG_FR) /* do nothing */
-#endif /* TABLING_CALL_SUBSUMPTION */
 
 #define ensure_subgoal_is_compiled(SG_FR) \
         if (SgFr_state(SG_FR) < compiled) \
@@ -541,6 +497,13 @@
         exec_compiled_trie(trie);                                       \
       }
       
+#ifdef TABLING_RETROACTIVE
+#define start_executing_field(SG_FR)  \
+      Bind_and_Trail(&SgFr_executing(SG_FR), (Term)B)
+#else
+#define start_executing_field(SG_FR) /* do nothing */
+#endif /* TABLING_RETROACTIVE */
+      
 #define check_ground_pre_stored_answers(SG_FR, TAB_ENT, GROUND_SG)  \
     if(TabEnt_ground_time_stamp(TAB_ENT) > 0) {                     \
       dprintf("Pre stored answers\n");                              \
@@ -556,7 +519,7 @@
         CELL *answer_template = (CELL *)(GEN_CP(B) + 1) + SgFr_arity(SG_FR);  \
                                                                     \
         SgFr_try_answer(GROUND_SG) = cont;                          \
-        Bind_and_Trail(&SgFr_executing(GROUND_SG), (Term)B);        \
+        start_executing_field(GROUND_SG);                           \
                                                                     \
         B->cp_ap = TRY_GROUND_ANSWER;                               \
         PREG = (yamop *)CPREG;                                      \
@@ -573,23 +536,17 @@
       check_ground_pending_subgoals(SG_FR, TAB_ENT, ground_sg);     \
       check_ground_pre_stored_answers(SG_FR, TAB_ENT, ground_sg);   \
     }
-     
+
+#ifdef TABLING_RETROACTIVE
 #define precheck_ground_generator(SG_FR)                            \
      if(SgFr_is_ground_producer(SG_FR)) {                           \
        SgFr_set_saved_max((grounded_sf_ptr)(SG_FR), B);             \
-     }                                                              \
-     Bind_and_Trail(&SgFr_start(SG_FR), (Term)B_FZ)
-
-#define pop_gencons_node(ANS_TMPLT) \
-          H = PROTECT_FROZEN_H(B); \
-          pop_yaam_reg_cpdepth(B); \
-          CPREG = B->cp_cp; \
-          ENV = B->cp_env; \
-          TR = B->cp_tr; \
-          B = B->cp_b; \
-          HBREG = PROTECT_FROZEN_H(B); \
-          YENV = ANS_TMPLT; \
-          SET_BB(PROTECT_FROZEN_B(B))
+       Bind_and_Trail(&SgFr_start((grounded_sf_ptr)SG_FR), (Term)B_FZ);              \
+     }
+     
+#else
+#define precheck_ground_generator(SG_FR) /* do nothing */
+#endif /* TABLING_RETROACTIVE */
 
 /* Consume subsuming answer ANS_NODE using ANS_TMPLT
  * as the pointer to the answer template.
@@ -602,12 +559,16 @@
   consume_subsumptive_answer((BTNptr)(ANS_NODE), arity, sub_answer_template); \
 }
 
+#ifdef TABLING_RETROACTIVE
 #define CONSUME_GROUND_ANSWER(ANS_NODE, ANS_TMPLT, SG_FR) \
   if(SgFr_is_most_general((grounded_sf_ptr)(SG_FR))) {    \
     CONSUME_VARIANT_ANSWER(ANS_NODE, ANS_TMPLT);          \
   } else {                                                \
     CONSUME_SUBSUMPTIVE_ANSWER(ANS_NODE, ANS_TMPLT);      \
   }
+#else
+#define CONSUME_GROUND_ANSWER(ANS_NODE, ANS_TMPLT, SG_FR) /* do nothing */
+#endif /* TABLING_RETROACTIVE */
   
 #define consume_next_ground_answer(CONT, SG_FR)                 \
   CELL *answer_template = GENERATOR_ANSWER_TEMPLATE(B, SG_FR);  \
@@ -713,7 +674,10 @@
   ENDPBOp();
 
   PBOp(table_load_answer, Otapl)
-load_answer_jump: {
+load_answer_jump:
+  
+    INIT_PREFETCH()
+    
     CELL *ans_tmplt;
     ans_node_ptr ans_node;
     continuation_ptr next;
@@ -745,15 +709,17 @@ load_answer_jump: {
     }
     
     consume_answer_leaf(ans_node, ans_tmplt, CONSUME_VARIANT_ANSWER);
-}
+    
+    END_PREFETCH()
   ENDPBOp();
 
   PBOp(table_run_completed, Otapl)
-run_completed:
+
+#ifdef TABLING_RETROACTIVE
+    run_completed:
 
     INIT_PREFETCH()
     
-#ifdef TABLING_GROUNDED
     sg_fr_ptr cons_sg_fr = CONS_CP(B)->cp_sg_fr;
     tab_ent_ptr tab_ent = SgFr_tab_ent(cons_sg_fr);
     
@@ -1105,12 +1071,12 @@ run_completed:
     printf("CANT BE HERE!!!\n");
     exit(1);
     END_PREFETCH()
-#endif /* TABLING_GROUNDED */
+#endif /* TABLING_RETROACTIVE */
   ENDPBOp();
   
   PBOp(table_try_answer, Otapl)
     dprintf("===> TABLE_TRY_ANSWER\n");
-#if defined(INCOMPLETE_TABLING) || defined(TABLING_GROUNDED)
+#if defined(INCOMPLETE_TABLING) || defined(TABLING_RETROACTIVE)
 try_answer_jump: {
     sg_fr_ptr sg_fr = GEN_CP(B)->cp_sg_fr;
     continuation_ptr next_cont = continuation_next(SgFr_try_answer(sg_fr));
@@ -1143,7 +1109,7 @@ try_answer_jump: {
     PREG = PREG->u.Otapl.d;
     PREFETCH_OP(PREG);
     GONext();    
-#endif /* INCOMPLETE_TABLING || TABLING_GROUNDED */
+#endif /* INCOMPLETE_TABLING || TABLING_RETROACTIVE */
   ENDPBOp();
 
   PBOp(table_try_ground_answer, Otapl)
@@ -1161,8 +1127,10 @@ try_answer_jump: {
       CELL *answer_template = (CELL *)(GEN_CP(B) + 1) + SgFr_arity(sg_fr);
       
       SgFr_try_answer(sg_fr) = next_cont;
+#ifdef TABLING_RETROACTIVE
       Bind_and_Trail(&SgFr_executing(sg_fr), (Term)B);
-      
+#endif /* TABLING_RETROACTIVE */
+
       ans_node = continuation_answer(next_cont);
       H = HBREG = PROTECT_FROZEN_H(B);
       restore_yaam_reg_cpdepth(B);
@@ -1245,7 +1213,7 @@ try_answer_jump: {
       PREFETCH_OP(PREG);
       allocate_environment();
       GONext();
-#if defined(INCOMPLETE_TABLING) || defined(TABLING_GROUNDED)
+#if defined(INCOMPLETE_TABLING) || defined(TABLING_RETROACTIVE)
     } else if (SgFr_state(sg_fr) == incomplete || SgFr_state(sg_fr) == suspended) {
       dprintf("incomplete!!\n");
       /* subgoal incomplete --> start by loading the answers already found */
@@ -1276,7 +1244,7 @@ try_answer_jump: {
       CONSUME_VARIANT_ANSWER(ans_node, subs_ptr);
       YENV = ENV;
       GONext();
-#endif /* INCOMPLETE_TABLING || TABLING_GROUNDED */
+#endif /* INCOMPLETE_TABLING || TABLING_RETROACTIVE */
     } else if (is_new_consumer_call(sg_fr)) {
       dprintf("TABLE_TRY_SINGLE NEW_CONSUMER\n");
       /* new consumer */
@@ -1338,6 +1306,7 @@ try_answer_jump: {
             exec_subgoal_compiled_trie(sg_fr);
     	    }
           break;
+#ifdef TABLING_RETROACTIVE
         case GROUND_PRODUCER_SFT:
           if(TabEnt_is_load(tab_ent)) {
             check_no_answers(sg_fr);
@@ -1355,6 +1324,7 @@ try_answer_jump: {
             exec_ground_trie(tab_ent);
           }
           break;
+#endif /* TABLING_RETROACTIVE */
 #endif /* TABLING_CALL_SUBSUMPTION */
           default: break;
       }
@@ -1394,7 +1364,7 @@ try_answer_jump: {
       PREFETCH_OP(PREG);
       allocate_environment();
       GONext();
-#if defined(INCOMPLETE_TABLING) || defined(TABLING_GROUNDED)
+#if defined(INCOMPLETE_TABLING) || defined(TABLING_RETROACTIVE)
     } else if (SgFr_state(sg_fr) == incomplete || SgFr_state(sg_fr) == suspended) {
       dprintf("incomplete!!\n");
       /* subgoal incomplete --> start by loading the answers already found */
@@ -1424,7 +1394,7 @@ try_answer_jump: {
       CONSUME_VARIANT_ANSWER(ans_node, subs_ptr);
       YENV = ENV;
       GONext();
-#endif /* INCOMPLETE_TABLING || TABLING_GROUNDED */
+#endif /* INCOMPLETE_TABLING || TABLING_RETROACTIVE */
     } else if (is_new_consumer_call(sg_fr)) {
       dprintf("TABLE_TRY_ME NEW_CONSUMER\n");
       /* new consumer */
@@ -1486,6 +1456,7 @@ try_answer_jump: {
             exec_subgoal_compiled_trie(sg_fr);
     	    }
           break;
+#ifdef TABLING_RETROACTIVE
         case GROUND_PRODUCER_SFT:
           if(TabEnt_is_load(tab_ent)) {
             check_no_answers(sg_fr);
@@ -1503,6 +1474,7 @@ try_answer_jump: {
             exec_ground_trie(tab_ent);
           }
           break;
+#endif /* TABLING_RETROACTIVE */
 #endif /* TABLING_CALL_SUBSUMPTION */
           default: break;
       }
@@ -1543,7 +1515,7 @@ try_answer_jump: {
       PREFETCH_OP(PREG);
       allocate_environment();
       GONext();
-#if defined(INCOMPLETE_TABLING) || defined(TABLING_GROUNDED)
+#if defined(INCOMPLETE_TABLING) || defined(TABLING_RETROACTIVE)
     } else if (SgFr_state(sg_fr) == incomplete || SgFr_state(sg_fr) == suspended) {
       dprintf("incomplete!!\n");
       /* subgoal incomplete --> start by loading the answers already found */
@@ -1573,7 +1545,7 @@ try_answer_jump: {
       CONSUME_VARIANT_ANSWER(ans_node, subs_ptr);
       YENV = ENV;
       GONext();
-#endif /* INCOMPLETE_TABLING || TABLING_GROUNDED */
+#endif /* INCOMPLETE_TABLING || TABLING_RETROACTIVE */
     } else if (is_new_consumer_call(sg_fr)) {
       dprintf("TABLE_TRY NEW_CONSUMER\n");
       /* new consumer */
@@ -1635,6 +1607,7 @@ try_answer_jump: {
             exec_subgoal_compiled_trie(sg_fr);
     	    }
           break;
+#ifdef TABLING_RETROACTIVE
         case GROUND_PRODUCER_SFT:
           if(TabEnt_is_load(tab_ent)) {
             check_no_answers(sg_fr);
@@ -1652,6 +1625,7 @@ try_answer_jump: {
             exec_ground_trie(tab_ent);
           }
           break;
+#endif /* TABLING_RETROACTIVE */
 #endif /* TABLING_CALL_SUBSUMPTION */
           default: break;
       }
@@ -1802,7 +1776,9 @@ try_answer_jump: {
 #elif defined(TABLE_LOCK_AT_WRITE_LEVEL)
     LOCK_TABLE(ans_node);
 #endif /* TABLE_LOCK_LEVEL */
-    if (! IS_ANSWER_LEAF_NODE(ans_node)) {
+    int is_new_answer = !IS_ANSWER_LEAF_NODE(ans_node);
+    
+    if (is_new_answer) {
       /* new answer */
 #ifdef TABLING_INNER_CUTS
       /* check for potencial prunings */
@@ -1943,16 +1919,14 @@ try_answer_jump: {
 
       push_new_answer_set(ans_node, SgFr_first_answer(sg_fr), SgFr_last_answer(sg_fr));
       
-#ifdef TABLING_GROUNDED
+#ifdef TABLING_RETROACTIVE
       dprintf("NEW_ANSWER_CP=%d\n", (int)B);
       
       if(SgFr_is_ground_producer(sg_fr)) {
         grounded_sf_ptr ground = (grounded_sf_ptr)sg_fr;
         SgFr_update_saved_max(ground);
       }
-      Bind_and_Trail(&SgFr_executing(sg_fr), (Term)B);
-      SET_TOP_GEN_SG(sg_fr);
-#endif /* TABLING_GROUNDED */
+#endif /* TABLING_RETROACTIVE */
 
 #ifdef TABLING_ERRORS
       if(SgFr_first_answer(sg_fr)) {
@@ -1967,7 +1941,7 @@ try_answer_jump: {
 #endif /* TABLING_ERRORS */
       UNLOCK(SgFr_lock(sg_fr));
       
-#ifdef TABLING_GROUNDED
+#ifdef TABLING_RETROACTIVE
       if(SgFr_is_ground_local_producer(sg_fr)) {
         dprintf("GROUND_LOCAL PRODUCER\n");
         grounded_sf_ptr ground = (grounded_sf_ptr)sg_fr;
@@ -2006,9 +1980,17 @@ try_answer_jump: {
           goto fail;
         }
       }
-#endif /* TABLING_GROUNDED */
+#endif /* TABLING_RETROACTIVE */
 
       if (IS_BATCHED_GEN_CP(gcp)) {
+
+#ifdef TABLING_RETROACTIVE
+        if(SgFr_is_ground_producer(sg_fr)) {
+          Bind_and_Trail(&SgFr_executing((grounded_sf_ptr)sg_fr), (Term)B);
+        }
+        SET_TOP_GEN_SG(SgFr_top_gen_sg(sg_fr));
+#endif
+
 #ifdef TABLING_EARLY_COMPLETION
 	if (gcp == PROTECT_FROZEN_B(B) && (*subs_ptr == 0 || gcp->cp_ap == COMPLETION)) {
 	  /* if the current generator choice point is the topmost choice point and the current */
@@ -2110,8 +2092,8 @@ try_answer_jump: {
     }
 
     UNLOCK(DepFr_lock(dep_fr));
-    
-#ifdef TABLING_GROUNDED
+
+#ifdef TABLING_RETROACTIVE
     if(DepFr_is_top_consumer(dep_fr)) {
       grounded_sf_ptr sg_fr = (grounded_sf_ptr)DepFr_sg_fr(dep_fr);
       grounded_sf_ptr prod = SgFr_producer(sg_fr);
@@ -2133,7 +2115,7 @@ try_answer_jump: {
         GONext();
       }
     }
-#endif /* TABLING_GROUNDED */
+#endif /* TABLING_RETROACTIVE */
 
 #ifdef YAPOR
     if (B == DepFr_leader_cp(LOCAL_top_dep_fr)) {
@@ -2437,18 +2419,19 @@ try_answer_jump: {
     } else
 #endif /* YAPOR */
     {
-#ifdef TABLING_GROUNDED
+#ifdef TABLING_RETROACTIVE
       sg_fr_ptr sg_fr = GEN_CP(B)->cp_sg_fr;
       if(SgFr_is_ground_local_producer(sg_fr)) {
         B->cp_ap = ANSWER_RESOLUTION;
         if(B != DepFr_leader_cp(LOCAL_top_dep_fr)) {
           /* not leader on that node */
           B = B->cp_b;
+          SET_TOP_GEN_SG(SgFr_top_gen_sg(sg_fr));
           dprintf("not leader on that node 3\n");
           goto fail;
         }
       } else
-#endif /* TABLING_GROUNDED */
+#endif /* TABLING_RETROACTIVE */
       if (IS_BATCHED_GEN_CP(B)) {
         B->cp_ap = NULL;
         dprintf("LEADER_CP=%d\n", (int)DepFr_leader_cp(LOCAL_top_dep_fr));
@@ -2460,15 +2443,17 @@ try_answer_jump: {
           B = B->cp_b;
           if(B->cp_ap == NULL)
             B->cp_ap = COMPLETION;
+          SET_TOP_GEN_SG(SgFr_top_gen_sg(sg_fr));
           goto fail;
         }
       } else {
         B->cp_ap = ANSWER_RESOLUTION;
         if (B != DepFr_leader_cp(LOCAL_top_dep_fr)) {
           /* not leader on that node */
-          update_generator_node(GEN_CP(B)->cp_sg_fr)
+          update_generator_node(sg_fr)
           B = B->cp_b;
           dprintf("not a leader on that node 2\n");
+          SET_TOP_GEN_SG(SgFr_top_gen_sg(sg_fr));
           goto fail;
         }
       }
@@ -2514,7 +2499,7 @@ try_answer_jump: {
         restart_generator(dep_fr);
       }
 #endif /* TABLING_GROUNDED */
-      
+
       ans_node = NULL;
       next = get_next_answer_continuation(dep_fr);
       
@@ -2774,7 +2759,7 @@ try_answer_jump: {
       
       private_completion(sg_fr);
       
-#ifdef TABLING_CALL_SUBSUMPTION
+#ifdef TABLING_RETROACTIVE
       if(SgFr_is_ground_local_producer(sg_fr)) {
         /* more general subgoal has just completed,
            get into the consumer! */
@@ -2783,13 +2768,14 @@ try_answer_jump: {
         SET_BB(PROTECT_FROZEN_B(B));
         goto fail;     
       }
-#endif
+#endif /* TABLING_RETROACTIVE */
 
       if (IS_BATCHED_GEN_CP(B)) {
         /* batched scheduling -> backtrack */
         B = B->cp_b;
         dprintf("Backtrack\n");
         SET_BB(PROTECT_FROZEN_B(B));
+        SET_TOP_GEN_SG(SgFr_top_gen_sg(sg_fr));
         goto fail;
       } else {
         /* this is local scheduling, we can now complete and return answers */
@@ -2831,7 +2817,7 @@ try_answer_jump: {
               }
             }
             break;
-#ifdef TABLING_CALL_SUBSUMPTION
+#ifdef TABLING_RETROACTIVE
           case GROUND_PRODUCER_SFT:
             {
               check_yes_answer_no_unlock(sg_fr);
@@ -2845,7 +2831,7 @@ try_answer_jump: {
               }
             }
             break;
-#endif /* TABLING_CALL_SUBSUMPTION */
+#endif /* TABLING_RETROACTIVE */
           default: break;
 	      }
       }

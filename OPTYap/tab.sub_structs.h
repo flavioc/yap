@@ -61,9 +61,9 @@ typedef struct subsumed_consumer_subgoal_frame subsumptive_consumer_sf;
 typedef struct subsumptive_producer_subgoal_frame {
   variant_sf var_sf;
   subsumptive_consumer_sf *consumers; /* List of properly subsumed subgoals */
-#ifdef TABLING_GROUNDED
+#ifdef TABLING_RETROACTIVE
   int num_proper_deps;
-#endif /* TABLING_GROUNDED */
+#endif /* TABLING_RETROACTIVE */
 } subsumptive_producer_sf;
 
 typedef subsumptive_producer_sf *subprod_fr_ptr;
@@ -94,8 +94,9 @@ struct subsumed_consumer_subgoal_frame {
   continuation_ptr last_answer;
   
   struct subsumed_consumer_subgoal_frame *next;
-  
+#ifdef TABLING_RETROACTIVE
   sg_fr_ptr top_gen_sg;
+#endif /* TABLING_RETROACTIVE */
   
   int num_deps;
   
@@ -123,6 +124,7 @@ typedef subsumptive_consumer_sf *subcons_fr_ptr;
 **   stack state   **
 ** --------------- */
 
+#ifdef TABLING_RETROACTIVE
 struct tab_stack_state {
   struct dependency_frame *dep_fr;
   sg_fr_ptr sg_fr;
@@ -164,27 +166,26 @@ struct grounded_subgoal_frame {
   struct grounded_subgoal_frame *next;
   
   sg_fr_ptr prev;
-  
   sg_fr_ptr top_gen_sg;
   
   continuation_ptr try_answer;
+
+  int num_deps;
   
   CELL executing;
   CELL start;
   choiceptr saved_cp;
   choiceptr saved_max;
   
-  int num_deps;
+  int num_ans;
+
+  struct tab_stack_state stack_state;
   
   time_stamp ts;
   grounded_sf_ptr producer;
   CELL* answer_template;
   int at_size;
   CELL at_block[AT_BLOCK_SIZE];
-  
-  int num_ans;
-
-  struct tab_stack_state stack_state;
 };
 
 #define SgFr_num_ans(X)             ((X)->num_ans)
@@ -202,6 +203,8 @@ struct grounded_subgoal_frame {
 
 #define SgFr_is_most_general(X)     (SgFr_flags(X) & SG_FR_MOST_GENERAL)
 #define SgFr_set_most_general(X)    (SgFr_flags(X) |= SG_FR_MOST_GENERAL)
+
+#ifdef TABLING_RETROACTIVE
 #define SgFr_set_local_producer(X)  (SgFr_flags(X) |= SG_FR_LOCAL_PRODUCER)
 #define SgFr_is_local_producer(X)   (SgFr_flags(X) & SG_FR_LOCAL_PRODUCER)
 #define SgFr_set_local_consumer(X)  (SgFr_flags(X) |= SG_FR_LOCAL_CONSUMER)
@@ -219,6 +222,7 @@ struct grounded_subgoal_frame {
       SgFr_set_saved_max(X, B_FZ < B ? B_FZ : B); \
     } \
 }
+#endif /* TABLING_RETROACTIVE */
 
 #define TabEnt_ground_trie(X)       (TrNode_next(TabEnt_subgoal_trie(X)))
 #define TabEnt_has_ground_trie(X)   (TabEnt_ground_trie(X) != NULL)
@@ -250,5 +254,6 @@ struct grounded_subgoal_frame {
 #define SgFr_is_ground_consumer(X)        (SgFr_type(X) == GROUND_CONSUMER_SFT)
 #define SgFr_is_ground_local_producer(X)  (SgFr_is_ground_producer(X) && SgFr_is_local_producer((grounded_sf_ptr)(X)))
 #define SgFr_is_ground_local_consumer(X)  (SgFr_is_ground_consumer(X) && SgFr_is_local_consumer((grounded_sf_ptr)(X)))
+#endif /* TABLING_RETROACTIVE */
 
 #endif /* TABLING_CALL_SUBSUMPTION */

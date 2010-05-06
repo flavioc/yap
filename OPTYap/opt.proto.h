@@ -121,11 +121,13 @@ void *newTSTAnswerSet(void);
 #ifdef TABLING_CALL_SUBSUMPTION
 #ifdef TABLING_COMPLETE_TABLE
 void free_subgoal_trie_from_ground_table(tab_ent_ptr tab_ent);
-#endif /* TABLING_COMPLETE_TABLE */
 int is_most_general_call(sg_node_ptr leaf, int arity);
+#endif /* TABLING_COMPLETE_TABLE */
+#ifdef TABLING_RETROACTIVE
 CELL* copy_arguments_as_the_answer_template(CELL *answer_template, int arity);
 sg_fr_ptr grounded_call_search(yamop *code, CELL *answer_template, CELL **new_local_stack);
 inline TSTNptr grounded_answer_search(grounded_sf_ptr sf, CPtr answerVector);
+#endif /* TABLING_RETROACTIVE */
 #endif /* TABLING_CALL_SUBSUMPTION */
 
 /* --------------- **
@@ -140,7 +142,7 @@ void consume_subsumptive_answer(CTXTdeclc BTNptr pAnsLeaf, int sizeTmplt, CPtr p
 **   tab.consumer.c **
 ** ---------------- */
 
-#ifdef TABLING_CALL_SUBSUMPTION
+#ifdef TABLING_RETROACTIVE
 void check_dependency_frame(void);
 void move_subgoal_top(sg_fr_ptr sg_fr);
 void process_pending_subgoal_list(node_list_ptr list, grounded_sf_ptr sg_fr);
@@ -152,7 +154,7 @@ void remove_sg_fr_from_restarted_gens(sg_fr_ptr sg_fr);
 void transform_node_into_loader(choiceptr cp, sg_fr_ptr sg_fr,
     continuation_ptr last, yamop *load_instr);
 void transform_consumer_answer_template(sg_fr_ptr sg_fr, choiceptr cp);
-#endif /* TABLING_CALL_SUBSUMPTION */
+#endif /* TABLING_RETROACTIVE */
 
 /* --------------- **
 **  tab.suspend.c  **

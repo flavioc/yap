@@ -13,7 +13,7 @@
 ** ------------------ */
 
 #include "Yap.h"
-#ifdef TABLING_CALL_SUBSUMPTION
+#ifdef TABLING_RETROACTIVE
  
 #include <stdio.h>
 #ifdef HAVE_STRING_H
@@ -269,4 +269,4 @@ TSTNptr grounded_answer_search(grounded_sf_ptr sf, CPtr answerVector) {
   return tstn;
 }
 
-#endif /* TABLING_CALL_SUBSUMPTION */
+#endif /* TABLING_RETROACTIVE */

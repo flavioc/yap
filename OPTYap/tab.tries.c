@@ -91,8 +91,10 @@ sg_fr_ptr subgoal_search(yamop *preg, CELL **local_stack_ptr)
     sg_fr = variant_call_search(preg, local_stack, local_stack_ptr);
   } else if(TabEnt_is_subsumptive(tab_ent)) {
     sg_fr = subsumptive_call_search(preg, local_stack, local_stack_ptr);
+#ifdef TABLING_RETROACTIVE
   } else if(TabEnt_is_grounded(tab_ent)) {
     sg_fr = grounded_call_search(preg, local_stack, local_stack_ptr);
+#endif /* TABLING_RETROACTIVE */
   }
 #else
   sg_fr = variant_call_search(preg, local_stack, local_stack_ptr);
@@ -115,10 +117,12 @@ ans_node_ptr answer_search(sg_fr_ptr sg_fr, CELL *subs_ptr) {
     int nTerms = *subs_ptr;
     CELL* answerVector = subs_ptr + nTerms;
     return (ans_node_ptr)subsumptive_answer_search((subprod_fr_ptr)sg_fr, nTerms, answerVector);
+#ifdef TABLING_RETROACTIVE
   } else if(SgFr_is_ground_producer(sg_fr)) {
     int nTerms = *subs_ptr;
     CELL* answerVector = subs_ptr + nTerms;
     return (ans_node_ptr)grounded_answer_search((grounded_sf_ptr)sg_fr, answerVector);
+#endif /* TABLING_RETROACTIVE */
   }
 #endif /* TABLING_CALL_SUBSUMPTION */
   return NULL;
@@ -335,37 +339,41 @@ complete_dependency_frame(dep_fr_ptr dep_fr)
   sg_fr_ptr sg_fr = DepFr_sg_fr(dep_fr);
   switch(SgFr_type(sg_fr)) {
     case VARIANT_PRODUCER_SFT:
-#ifdef TABLING_GROUNDED
+#ifdef TABLING_RETROACTIVE
     SgFr_num_deps(sg_fr)--;
-#endif /* TABLING_GROUNDED */
+#endif /* TABLING_RETROACTIVE */
       break;
     case GROUND_PRODUCER_SFT:
       dprintf("IS GEN\n");
       /* do nothing */
       break;
     case SUBSUMPTIVE_PRODUCER_SFT:
-#ifdef TABLING_GROUNDED
+#ifdef TABLING_RETROACTIVE
       SgFr_num_proper_deps((subprod_fr_ptr)sg_fr)--;
       SgFr_num_deps(sg_fr)--;
-#endif
+#endif /* TABLING_RETROACTIVE */
       break;
     case SUBSUMED_CONSUMER_SFT:
       SgFr_num_deps((subcons_fr_ptr)sg_fr)--;
-#ifdef TABLING_GROUNDED
+#ifdef TABLING_RETROACTIVE
       SgFr_num_deps((sg_fr_ptr)SgFr_producer((subcons_fr_ptr)sg_fr))--;
-#endif /* TABLING_GROUNDED */
+#endif /* TABLING_RETROACTIVE */
       dprintf("dep sub %d\n", SgFr_num_deps((subcons_fr_ptr)sg_fr));
       if(SgFr_num_deps((subcons_fr_ptr)sg_fr) == 0) {
         mark_subsumptive_consumer_as_completed((subcons_fr_ptr)sg_fr);
         dprintf("One subsumptive consumer completed\n");
       }
       break;
+#ifdef TABLING_RETROACTIVE
     case GROUND_CONSUMER_SFT:
-      if(SgFr_state(sg_fr) < complete) {
+      SgFr_num_deps((grounded_sf_ptr)sg_fr)--;
+    
+      if(SgFr_num_deps((grounded_sf_ptr)sg_fr) == 0) {
         mark_ground_consumer_as_completed((grounded_sf_ptr)sg_fr);
         dprintf("One ground consumer completed\n");
       }
       break;
+#endif /* TABLING_RETROACTIVE */
     default:
     printf("FAIL\n");
       break;
@@ -412,10 +420,10 @@ void private_completion(sg_fr_ptr sg_fr) {
   LOCAL_top_sg_fr = SgFr_next(LOCAL_top_sg_fr);
 #endif /* LIMIT_TABLING */
 
-#ifdef TABLING_GROUNDED
+#ifdef TABLING_RETROACTIVE
   if(LOCAL_top_sg_fr != NULL)
     SgFr_prev(LOCAL_top_sg_fr) = NULL;
-#endif /* TABLING_GROUNDED */
+#endif /* TABLING_RETROACTIVE */
 
   SET_TOP_GEN_SG(LOCAL_top_sg_fr);
   
@@ -499,11 +507,13 @@ void free_subgoal_trie_branch(sg_node_ptr current_node, int nodes_left, int node
         free_consumer_subgoal_data((subcons_fr_ptr)sg_fr);
         FREE_SUBCONS_SUBGOAL_FRAME(sg_fr);
         break;
+#ifdef TABLING_RETROACTIVE
       case GROUND_PRODUCER_SFT:
       case GROUND_CONSUMER_SFT:
         free_ground_subgoal_data((grounded_sf_ptr)sg_fr);
         FREE_GROUNDED_SUBGOAL_FRAME(sg_fr);
         break;
+#endif /* TABLING_RETROACTIVE */
 #endif /* TABLING_CALL_SUBSUMPTION */
       default:
 #ifdef TABLING_ERRORS
@@ -731,10 +741,14 @@ void show_table(tab_ent_ptr tab_ent, int show_mode) {
       bytes += TrStat_ans_hash * sizeof(struct answer_trie_hash);
 #ifdef TABLING_CALL_SUBSUMPTION
     } else {
+#ifdef TABLING_RETROACTIVE
       if(TabEnt_is_grounded(tab_ent)) {
         bytes += TrStat_subgoals * sizeof(struct grounded_subgoal_frame);
         ground_trie_statistics(tab_ent);
-      } else {
+      } else
+#else
+      {
+#endif /* TABLING_RETROACTIVE */
         bytes += TrStat_subcons_subgoals * sizeof(struct subsumed_consumer_subgoal_frame);
         bytes += TrStat_subgoals * sizeof(struct subsumptive_producer_subgoal_frame);
 #ifdef TABLING_COMPLETE_TABLE
@@ -1057,6 +1071,7 @@ void traverse_subgoal_trie(sg_node_ptr current_node, char *str, int str_index, i
           }
         }
         break;
+#ifdef TABLING_RETROACTIVE
       case GROUND_PRODUCER_SFT:
       case GROUND_CONSUMER_SFT:
         {
@@ -1085,6 +1100,7 @@ void traverse_subgoal_trie(sg_node_ptr current_node, char *str, int str_index, i
           }
         }
         break;
+#endif /* TABLING_RETROACTIVE */
 #endif /* TABLING_CALL_SUBSUMPTION */
       default: break;
     }
@@ -1152,6 +1168,7 @@ traverse_ground_trie(ans_node_ptr node)
   }
 }
 
+#ifdef TABLING_RETROACTIVE
 static void
 ground_trie_statistics(tab_ent_ptr tab_ent)
 {
@@ -1162,6 +1179,7 @@ ground_trie_statistics(tab_ent_ptr tab_ent)
   
   traverse_ground_trie(root);
 }
+#endif /* TABLING_RETROACTIVE */
 #endif /* TABLING_CALL_SUBSUMPTION */
 
 static

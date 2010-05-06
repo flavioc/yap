@@ -921,8 +921,6 @@ Macros to check the limits of stacks
                  ENDD(d0);
 
 #define pop_at_least_one_arg(NArgs)                               \
-                 /*printf("PREG: %d Nargs " #NArgs " %d\n", (int)PREG, NArgs);*/ \
-                 if(NArgs > 1000) NArgs = 0;                      \
                  BEGD(d0);                                        \
                  d0 = (NArgs);                                    \
                  BEGP(pt0);                                       \

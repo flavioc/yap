@@ -122,7 +122,6 @@
         
 #define store_trie_node(AP)                           \
         { register choiceptr cp;                      \
-          dprintf("store_trie_node\n");               \
           YENV = (CELL *) (NORM_CP(YENV) - 1);        \
           cp = NORM_CP(YENV);                         \
           HBREG = H;                                  \
@@ -141,7 +140,6 @@
         copy_arity_stack()
 
 #define restore_trie_node(AP)                         \
-        dprintf("restore_trie_node\n");               \
         H = HBREG = PROTECT_FROZEN_H(B);              \
         restore_yaam_reg_cpdepth(B);                  \
         CPREG = B->cp_cp;                             \
@@ -153,7 +151,6 @@
         copy_arity_stack()
         
 #define really_pop_trie_node()                        \
-        dprintf("really_pop_trie_node\n");            \
         YENV = (CELL *) PROTECT_FROZEN_B((B + 1));    \
         H = PROTECT_FROZEN_H(B);                      \
         pop_yaam_reg_cpdepth(B);                      \
@@ -169,7 +166,6 @@
 
 #ifdef YAPOR
 #define pop_trie_node()                               \
-        dprintf("pop_trie_node\n");                   \
         if (SCH_top_shared_cp(B)) {                   \
           restore_trie_node(NULL);                    \
         } else {                                      \
@@ -177,7 +173,6 @@
         }
 #else
 #define pop_trie_node()  {          \
-      dprintf("pop_trie_node\n");   \
       really_pop_trie_node()        \
     }
 #endif /* YAPOR */
@@ -508,7 +503,6 @@
 #endif /* TABLING_CALL_SUBSUMPTION */
 
 #define stack_trie_atom_instr()                                      \
-        dprintf("stack_trie_atom_instr\n");                          \
         if (heap_arity) {                                            \
           YENV = ++aux_stack_ptr;                                    \
           unify_atom(Bind_Global);                                   \
@@ -785,7 +779,6 @@
 #endif /* TABLING_CALL_SUBSUMPTION */
 
 #define stack_trie_struct_instr()                                 \
-        dprintf("stack_trie_struct_instr\n");                     \
         if (heap_arity) {                                         \
           aux_stack_ptr++;                                        \
           CELL term = Deref(*aux_stack_ptr);                      \
@@ -1348,6 +1341,7 @@
     dprintf("trie_retry_atom\n");
     register ans_node_ptr node = (ans_node_ptr) PREG;
     register CELL *aux_stack_ptr = (CELL *) (B + 1);
+    
 #ifdef GLOBAL_TRIE
     int vars_arity = *(aux_stack_ptr);
     int subs_arity = *(aux_stack_ptr + vars_arity + 1);
