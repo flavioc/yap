@@ -242,6 +242,7 @@ typedef struct answer_trie_node {
 #define TrNode_is_tst(X)       (TrNode_trie_type(X) == TST_TRIE_NT)
 #define TrNode_is_answer(X)    (TrNode_trie_type(X) == ANSWER_TRIE_NT)
 #define TrNode_is_root(X)      (TrNode_node_type(X) & TRIE_ROOT_NT)
+#define TrNode_remove_is_leaf(X) (TrNode_node_type(X) = TrNode_node_type(X) & ~LEAF_NT)
 #define TrNode_is_leaf(X)      (TrNode_node_type(X) & LEAF_NT)
 
 /* -------------------------------------------------------------------------- **

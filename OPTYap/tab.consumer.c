@@ -566,6 +566,19 @@ update_specific_consumers(grounded_sf_ptr pending)
   }
 }
 
+static inline void
+reset_answers(grounded_sf_ptr sg_fr) {
+  continuation_ptr ptr = SgFr_first_answer(sg_fr);
+  continuation_ptr last = SgFr_last_answer(sg_fr);
+  
+  while(ptr) {
+    TrNode_remove_is_leaf(continuation_answer(ptr));
+    if(ptr == last)
+      break;
+    ptr = continuation_next(ptr);
+  }
+}
+
 void
 process_pending_subgoal_list(node_list_ptr list, grounded_sf_ptr sg_fr) {
   node_list_ptr orig = list;
@@ -630,6 +643,8 @@ process_pending_subgoal_list(node_list_ptr list, grounded_sf_ptr sg_fr) {
         
         if(SgFr_is_internal(pending)) {
           choiceptr min = SgFr_choice_point(pending);
+          
+          reset_answers(pending);
           
           if(min_internal == NULL || min > min_internal) {
             min_internal = min;
