@@ -795,7 +795,7 @@ reinsert_dep_fr(dep_fr_ptr dep_fr, choiceptr cp)
   dep_fr_ptr before = NULL;
   
   while(top && YOUNGER_CP(DepFr_cons_cp(top), cp)) {
-    dprintf("One dep_fr %d\n", (int)top);
+    //dprintf("One dep_fr %d\n", (int)top);
     before = top;
     top = DepFr_next(top);
   }
@@ -803,6 +803,8 @@ reinsert_dep_fr(dep_fr_ptr dep_fr, choiceptr cp)
   dprintf("set to next\n");
   if(before)
     DepFr_next(before) = dep_fr;
+  else
+    LOCAL_top_dep_fr = dep_fr;
   if(top)
     DepFr_prev(top) = dep_fr;
   DepFr_prev(dep_fr) = before;
