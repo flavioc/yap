@@ -13,7 +13,7 @@
 
 #ifdef TABLING_CALL_SUBSUMPTION
 
-#define AT_BLOCK_SIZE 8
+#define AT_BLOCK_SIZE 50
 
 typedef struct sub_subgoal_trie_node {
   struct subgoal_trie_node base;
