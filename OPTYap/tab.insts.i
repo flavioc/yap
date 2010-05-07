@@ -788,37 +788,35 @@ load_answer_jump:
           goto fail;
         }
         
-        if(!dep_fr) { /* master consumer */
-          /* locate lost consumers of this subgoal */
-          dep_fr_ptr top = LOCAL_top_dep_fr;
+        /* locate lost consumers of this subgoal */
+        dep_fr_ptr top = LOCAL_top_dep_fr;
+        
+        while(top && YOUNGER_CP(DepFr_cons_cp(top), B)) {
+          choiceptr cp = DepFr_cons_cp(top);
           
-          while(top && YOUNGER_CP(DepFr_cons_cp(top), B)) {
-            choiceptr cp = DepFr_cons_cp(top);
+          if(cp->cp_ap == RUN_COMPLETED)
+          {
+            /* launch consumer */
+            dprintf("Lost consumer found!\n");
             
-            if(cp->cp_ap == RUN_COMPLETED)
-            {
-              /* launch consumer */
-              dprintf("Lost consumer found!\n");
+            restore_bindings(B->cp_tr, cp->cp_tr);
+            B = cp;
+            TR = TR_FZ;
+            if (TR != B->cp_tr)
+              TRAIL_LINK(B->cp_tr);
               
-              restore_bindings(B->cp_tr, cp->cp_tr);
-              B = cp;
-              TR = TR_FZ;
-              if (TR != B->cp_tr)
-                TRAIL_LINK(B->cp_tr);
-                
-              H = HBREG = PROTECT_FROZEN_H(B);
-              restore_yaam_reg_cpdepth(B);
-              CPREG = B->cp_cp;
-              ENV = B->cp_env;
-              RESTORE_TOP_GEN_SG(top);
-              PREG = RUN_COMPLETED;
-              PREFETCH_OP(PREG);
-              YENV = ENV;
-              GONext();
-            }
-            
-            top = DepFr_next(top);
+            H = HBREG = PROTECT_FROZEN_H(B);
+            restore_yaam_reg_cpdepth(B);
+            CPREG = B->cp_cp;
+            ENV = B->cp_env;
+            RESTORE_TOP_GEN_SG(top);
+            PREG = RUN_COMPLETED;
+            PREFETCH_OP(PREG);
+            YENV = ENV;
+            GONext();
           }
+          
+          top = DepFr_next(top);
         }
 
         if(SgFr_state(sg_fr) < complete) {
