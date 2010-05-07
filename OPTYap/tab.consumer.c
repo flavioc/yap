@@ -624,6 +624,7 @@ process_pending_subgoal_list(node_list_ptr list, grounded_sf_ptr sg_fr) {
         printSubgoalTriePath(stdout, SgFr_leaf(pending), SgFr_tab_ent(pending));
         printf("\n");
 #endif
+        ensure_has_proper_consumers(SgFr_tab_ent(sg_fr));
         SgFr_set_type(pending, GROUND_CONSUMER_SFT);
         SgFr_producer(pending) = sg_fr;
         
