@@ -534,7 +534,9 @@
     if(SgFr_is_ground_producer(SG_FR)) {                            \
       grounded_sf_ptr ground_sg = (grounded_sf_ptr)(SG_FR);         \
       check_ground_pending_subgoals(SG_FR, TAB_ENT, ground_sg);     \
-      check_ground_pre_stored_answers(SG_FR, TAB_ENT, ground_sg);   \
+      if(!SgFr_is_ground_local_producer(SG_FR)) {                   \
+        check_ground_pre_stored_answers(SG_FR, TAB_ENT, ground_sg); \
+      }                                                             \
     }
 
 #ifdef TABLING_RETROACTIVE
