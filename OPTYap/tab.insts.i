@@ -763,10 +763,7 @@ load_answer_jump:
           } else if(SgFr_saved_cp(SgFr_producer(sg_fr))) {
             grounded_sf_ptr prod = SgFr_producer(sg_fr);
             choiceptr cp = SgFr_saved_cp(prod);
-            dprintf("saved_cp %d B %d\n", (int)cp, (int)B);
-            dprintf("rebind_variables\n");
-            //restore_bindings(B->cp_tr, cp->cp_tr);
-            dprintf("cp->cp_tr %d B->cp_tr %d\n", (int)cp->cp_tr, (int)B->cp_tr);
+            
             rebind_variables(cp->cp_tr, B->cp_tr);
             B = cp;
             SgFr_saved_cp(prod) = NULL;
@@ -2422,7 +2419,6 @@ try_answer_jump: {
 #ifdef TABLING_RETROACTIVE
       sg_fr_ptr sg_fr = GEN_CP(B)->cp_sg_fr;
       if(SgFr_is_ground_local_producer(sg_fr)) {
-        B->cp_ap = ANSWER_RESOLUTION;
         if(B != DepFr_leader_cp(LOCAL_top_dep_fr)) {
           /* not leader on that node */
           B = B->cp_b;
