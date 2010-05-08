@@ -74,7 +74,9 @@ static Int p_table(void);
 #ifdef TABLING_CALL_SUBSUMPTION
 static Int p_use_variant_tabling(void);
 static Int p_use_subsumptive_tabling(void);
-static Int p_use_grounded_tabling(void);
+#ifdef TABLING_RETROACTIVE
+static Int p_use_retroactive_tabling(void);
+#endif /* TABLING_RETROACTIVE */
 #endif /* TABLING_CALL_SUBSUMPTION */
 
 static Int p_tabling_mode(void);
@@ -162,7 +164,9 @@ void Yap_init_optyap_preds(void) {
 #ifdef TABLING_CALL_SUBSUMPTION
   Yap_InitCPred("$c_use_variant_tabling", 2, p_use_variant_tabling, SafePredFlag|SyncPredFlag|HiddenPredFlag);
   Yap_InitCPred("$c_use_subsumptive_tabling", 2, p_use_subsumptive_tabling, SafePredFlag|SyncPredFlag|HiddenPredFlag);
-  Yap_InitCPred("$c_use_grounded_tabling", 2, p_use_grounded_tabling, SafePredFlag|SyncPredFlag|HiddenPredFlag);
+#ifdef TABLING_RETROACTIVE
+  Yap_InitCPred("$c_use_retroactive_tabling", 2, p_use_retroactive_tabling, SafePredFlag|SyncPredFlag|HiddenPredFlag);
+#endif /* TABLING_RETROACTIVE */
 #endif /* TABLING_CALL_SUBSUMPTION */
   Yap_InitCPred("$c_abolish_table", 2, p_abolish_table, SafePredFlag|SyncPredFlag|HiddenPredFlag);
   Yap_InitCPred("abolish_all_tables", 0, p_abolish_all_tables, SafePredFlag|SyncPredFlag);
@@ -710,8 +714,9 @@ Int p_use_subsumptive_tabling(void) {
     return TabEnt_is_subsumptive(tab_ent);
 }
 
+#ifdef TABLING_RETROACTIVE
 static
-Int p_use_grounded_tabling(void) {
+Int p_use_retroactive_tabling(void) {
   tab_ent_ptr tab_ent = get_pred_table_entry(Deref(ARG1), Deref(ARG2));
   
   if(!tab_ent)
@@ -723,6 +728,7 @@ Int p_use_grounded_tabling(void) {
   } else
     return TabEnt_is_retroactive(tab_ent);
 }
+#endif /* TABLING_RETROACTIVE */
 #endif /* TABLING_CALL_SUBSUMPTION */
 
 static
@@ -757,11 +763,13 @@ Int p_tabling_mode(void) {
     t = MkPairTerm(mode, t);
     
 #ifdef TABLING_CALL_SUBSUMPTION
-    /* subsumptive / variant */
+    /* subsumptive / variant / retroactive */
     if (IsDefaultMode_Subsumptive(TabEnt_mode(tab_ent)))
       mode = MkAtomTerm(Yap_LookupAtom("subsumptive"));
+#ifdef TABLING_RETROACTIVE
     else if(IsDefaultMode_Retroactive(TabEnt_mode(tab_ent)))
-      mode = MkAtomTerm(Yap_LookupAtom("grounded"));
+      mode = MkAtomTerm(Yap_LookupAtom("retroactive"));
+#endif /* TABLING_RETROACTIVE */
     else
       mode = MkAtomTerm(Yap_LookupAtom("variant"));
     t = MkPairTerm(mode, t);
@@ -786,11 +794,13 @@ Int p_tabling_mode(void) {
     t = MkPairTerm(mode, t);
     
 #ifdef TABLING_CALL_SUBSUMPTION
-    /* subsumptive / variant */
+    /* subsumptive / variant / retroactive */
     if(IsMode_Subsumptive(TabEnt_mode(tab_ent)))
       mode = MkAtomTerm(Yap_LookupAtom("subsumptive"));
+#ifdef TABLING_RETROACTIVE
     else if(IsMode_Retroactive(TabEnt_mode(tab_ent)))
-      mode = MkAtomTerm(Yap_LookupAtom("grounded"));
+      mode = MkAtomTerm(Yap_LookupAtom("retroactive"));
+#endif /* TABLING_RETROACTIVE */
     else
       mode = MkAtomTerm(Yap_LookupAtom("variant"));
     t = MkPairTerm(mode, t);
@@ -843,7 +853,7 @@ Int p_tabling_mode(void) {
       return(TRUE);
     }
     
-    if(strcmp(str_val, "grounded") == 0) {
+    if(strcmp(str_val, "retroactive") == 0) {
       tab_entry_set_retroactive_mode(tab_ent);
       return TRUE;
     }

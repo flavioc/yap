@@ -3793,8 +3793,10 @@ p_set_yap_flags(void)
 	      /* subsumptive / variant */
 	      if (IsDefaultMode_Subsumptive(TabEnt_mode(tab_ent)))
           TabEnt_set_subsumptive(tab_ent)
+#ifdef TABLING_RETROACTIVE
         else if(IsDefaultMode_Retroactive(TabEnt_mode(tab_ent)))
           TabEnt_set_retroactive(tab_ent)
+#endif /* TABLING_RETROACTIVE */
         else
           TabEnt_set_variant(tab_ent)
 #endif /* TABLING_CALL_SUBSUMPTION */
@@ -3850,7 +3852,8 @@ p_set_yap_flags(void)
       }
       SetMode_Subsumptive(yap_flags[TABLING_MODE_FLAG]);
       SetMode_ChecksOn(yap_flags[TABLING_MODE_FLAG]);
-    } else if(value == 7) { /* grounded */
+#ifdef TABLING_RETROACTIVE
+    } else if(value == 7) { /* retroactive */
       tab_ent_ptr tab_ent = GLOBAL_root_tab_ent;
       while(tab_ent) {
         TabEnt_set_retroactive(tab_ent);
@@ -3858,6 +3861,7 @@ p_set_yap_flags(void)
       }
       SetMode_Retroactive(yap_flags[TABLING_MODE_FLAG]);
       SetMode_ChecksOn(yap_flags[TABLING_MODE_FLAG]);
+#endif /* TABLING_RETROACTIVE */
 #endif /* TABLING_CALL_SUBSUMPTION */
     }
     break;

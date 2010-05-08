@@ -207,7 +207,7 @@ yap_flag(tabling_mode,Options) :-
 '$transl_to_tabling_mode'(4,load_answers).
 '$transl_to_tabling_mode'(5,variant).
 '$transl_to_tabling_mode'(6,subsumptive).
-'$transl_to_tabling_mode'(7,grounded).
+'$transl_to_tabling_mode'(7,retroactive).
 
 yap_flag(informational_messages,X) :- var(X), !,
 	 get_value('$verbose',X).
