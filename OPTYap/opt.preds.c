@@ -1104,8 +1104,8 @@ Int p_tabling_statistics(void) {
 #endif /* TABLING_CALL_SUBSUMPTION */
 
 #ifdef TABLING_RETROACTIVE
-  fprintf(Yap_stdout, "  Retroactive subgoal frames:            %10ld structs in use\n", Pg_str_in_use(GLOBAL_PAGES_grounded_sg_fr));
-  bytes_in_use += Pg_str_in_use(GLOBAL_PAGES_grounded_sg_fr) * sizeof(struct retroactive_subgoal_frame);
+  fprintf(Yap_stdout, "  Retroactive subgoal frames:            %10ld structs in use\n", Pg_str_in_use(GLOBAL_PAGES_retroactive_sg_fr));
+  bytes_in_use += Pg_str_in_use(GLOBAL_PAGES_retroactive_sg_fr) * sizeof(struct retroactive_subgoal_frame);
 #endif /* TABLING_RETROACTIVE */
   
   fprintf(Yap_stdout, "  Subgoal trie nodes:                    %10ld structs in use\n", subgoal_node_structs_in_use());
@@ -1232,8 +1232,8 @@ Int p_opt_statistics(void) {
 #endif
 
 #ifdef TABLING_RETROACTIVE
-  fprintf(Yap_stdout, "  Retroactive subgoal frames:            %10ld structs in use\n", Pg_str_in_use(GLOBAL_PAGES_grounded_sg_fr));
-  bytes_in_use += Pg_str_in_use(GLOBAL_PAGES_grounded_sg_fr) * sizeof(struct retroactive_subgoal_frame);
+  fprintf(Yap_stdout, "  Retroactive subgoal frames:            %10ld structs in use\n", Pg_str_in_use(GLOBAL_PAGES_retroactive_sg_fr));
+  bytes_in_use += Pg_str_in_use(GLOBAL_PAGES_retroactive_sg_fr) * sizeof(struct retroactive_subgoal_frame);
 #endif
   
   fprintf(Yap_stdout, "  Subgoal trie nodes:                    %10ld structs in use\n", subgoal_node_structs_in_use());
@@ -1585,7 +1585,7 @@ void shm_retroactive_subgoal_frames(long *pages_in_use, long *bytes_in_use) {
   pg_hd_ptr pg_hd;
   retroactive_fr_ptr aux_ptr;
   
-  pg_hd = Pg_free_pg(GLOBAL_PAGES_grounded_sg_fr);
+  pg_hd = Pg_free_pg(GLOBAL_PAGES_retroactive_sg_fr);
   while (pg_hd) {
     aux_ptr = PgHd_free_str(pg_hd);
     while (aux_ptr) {
@@ -1596,10 +1596,10 @@ void shm_retroactive_subgoal_frames(long *pages_in_use, long *bytes_in_use) {
   }
   
   fprintf(Yap_stdout, "%s Retroactive subgoal frames:     %8ld pages %10ld structs in use\n",
-        Pg_str_free(GLOBAL_PAGES_grounded_sg_fr) == cont ? " " : "*",
-        Pg_pg_alloc(GLOBAL_PAGES_grounded_sg_fr), Pg_str_in_use(GLOBAL_PAGES_grounded_sg_fr));
-  *pages_in_use += Pg_pg_alloc(GLOBAL_PAGES_grounded_sg_fr);
-  *bytes_in_use += Pg_str_in_use(GLOBAL_PAGES_grounded_sg_fr) * sizeof(struct retroactive_subgoal_frame);   
+        Pg_str_free(GLOBAL_PAGES_retroactive_sg_fr) == cont ? " " : "*",
+        Pg_pg_alloc(GLOBAL_PAGES_retroactive_sg_fr), Pg_str_in_use(GLOBAL_PAGES_retroactive_sg_fr));
+  *pages_in_use += Pg_pg_alloc(GLOBAL_PAGES_retroactive_sg_fr);
+  *bytes_in_use += Pg_str_in_use(GLOBAL_PAGES_retroactive_sg_fr) * sizeof(struct retroactive_subgoal_frame);
   return;
 }
 
