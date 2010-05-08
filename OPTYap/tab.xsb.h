@@ -101,6 +101,7 @@ typedef sg_hash_ptr BTHTptr;
 #define IsNewTrieVar(SYMBOL)    (IsNewTableVarTerm(SYMBOL))
 
 #define IsLeafNode(NODE)   TrNode_is_leaf(NODE)
+#define MakeLeafNode(NODE) TrNode_set_leaf(NODE)
 #define IsEscapeNode(NODE)  FALSE
 #define ESCAPE_NODE_SYMBOL    (long)0xFFFFFFF
 #define IsTrieFunctor(SYMBOL) (cell_tag(SYMBOL) == TAG_STRUCT)

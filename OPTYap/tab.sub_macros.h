@@ -106,9 +106,10 @@ STD_PROTO(static inline int build_next_retroactive_producer_return_list, (retroa
           increment_sugoal_path(SG_FR);                             \
         }
         
-#define create_retroactive_answer_template(SG_FR, FROM)                         \
-        SgFr_answer_template(SG_FR) = SgFr_at_block(SG_FR);                     \
-        SgFr_at_size(SG_FR) = copy_answer_template(FROM, SgFr_at_block(SG_FR))
+#define create_retroactive_answer_template(SG_FR, FROM)                                     \
+        SgFr_at_full_size(SG_FR) = answer_template_size(FROM);                              \
+        ALLOC_BLOCK(SgFr_answer_template(SG_FR), SgFr_at_full_size(SG_FR) * sizeof(CELL));  \
+        SgFr_at_size(SG_FR) = copy_answer_template(FROM, SgFr_answer_template(SG_FR))
         
 #define ensure_retroactive_answer_template(SG_FR, FROM)       \
         if(SgFr_answer_template(SG_FR) == NULL) {             \
@@ -361,6 +362,10 @@ void mark_subsumptive_producer_as_completed(subprod_fr_ptr sg_fr) {
 static inline
 void mark_retroactive_consumer_as_completed(retroactive_fr_ptr sg_fr) {
   LOCK(SgFr_lock(sg_fr));
+  if(SgFr_answer_template(sg_fr)) {
+    FREE_BLOCK(SgFr_answer_template(sg_fr));
+    SgFr_answer_template(sg_fr) = NULL;
+  }
   SgFr_state(sg_fr) = complete;
   SgFr_num_deps(sg_fr) = 0;
   decrement_subgoal_path(sg_fr);
@@ -370,6 +375,10 @@ void mark_retroactive_consumer_as_completed(retroactive_fr_ptr sg_fr) {
 static inline
 void mark_retroactive_producer_as_completed(retroactive_fr_ptr sg_fr) {
   decrement_subgoal_path(sg_fr);
+  if(SgFr_answer_template(sg_fr)) {
+    FREE_BLOCK(SgFr_answer_template(sg_fr));
+    SgFr_answer_template(sg_fr) = NULL;
+  }
 #ifdef TABLING_COMPLETE_TABLE
   if(SgFr_is_most_general(sg_fr)) {
     tab_ent_ptr tab_ent = SgFr_tab_ent(sg_fr);
@@ -450,6 +459,10 @@ free_consumer_subgoal_data(subcons_fr_ptr sg_fr) {
 #ifdef TABLING_RETROACTIVE
 static inline void
 free_retroactive_subgoal_data(retroactive_fr_ptr sg_fr) {
+  if(SgFr_answer_template(sg_fr)) {
+    FREE_BLOCK(SgFr_answer_template(sg_fr));
+    SgFr_answer_template(sg_fr) = NULL;
+  }
   free_answer_continuation(SgFr_first_answer(sg_fr));
 }
 
@@ -587,8 +600,8 @@ build_next_retroactive_consumer_return_list(retroactive_fr_ptr consumer_sg) {
   
   SgFr_timestamp(consumer_sg) = TabEnt_retroactive_time_stamp(SgFr_tab_ent(consumer_sg));
   
-  AT = SgFr_at_block(consumer_sg);
-  AT_SIZE = AT_BLOCK_SIZE;
+  AT = SgFr_answer_template(consumer_sg);
+  AT_SIZE = SgFr_at_full_size(consumer_sg);
   
   return tst_collect_relevant_answers(trie, consumer_ts, size,
     STANDARDIZE_AT_PTR(answer_template, size), (sg_fr_ptr)consumer_sg);
@@ -610,8 +623,8 @@ build_next_retroactive_producer_return_list(retroactive_fr_ptr producer_sg) {
   tst_node_ptr trie = (tst_node_ptr)TabEnt_retroactive_trie(tab_ent);
   
   SgFr_timestamp(producer_sg) = retro_ts;
-  AT = SgFr_at_block(producer_sg);
-  AT_SIZE = AT_BLOCK_SIZE;
+  AT = SgFr_answer_template(producer_sg);
+  AT_SIZE = SgFr_at_full_size(producer_sg);
   
   return tst_collect_relevant_answers(trie, producer_ts, size,
     STANDARDIZE_AT_PTR(answer_template, size),

@@ -430,8 +430,8 @@ TSTNptr tst_insert(CTXTdeclc TSTNptr tstRoot, TSTNptr lastMatch, Cell firstSymbo
     lastMatch = tstnAddSymbol(CTXTc lastMatch,symbol,trieType,nodeType);
   }
   update_timestamps(lastMatch,tstRoot,maintainTSI);
-#ifdef SUBSUMPTION_XSB
   MakeLeafNode(lastMatch);
+#ifdef SUBSUMPTION_XSB
   TN_UpgradeInstrTypeToSUCCESS(lastMatch,TrieSymbolType(symbol));
 #endif
   AnsVarCtr = AnsVarCtr + std_var_num;

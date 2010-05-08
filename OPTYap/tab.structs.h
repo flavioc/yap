@@ -134,6 +134,7 @@ enum Trie_Node_Flags {
   HASHED_LEAF_NT = 0x03,
   INTERIOR_NT = 0x00,
   HASHED_INTERIOR_NT = 0x01,
+  ANSWER_NT = 0x100,
   LONG_INT_NT = 0x10,
   FLOAT_NT = 0x20,
   CALL_TRIE_NT = 0x00,
@@ -154,7 +155,7 @@ typedef unsigned long time_stamp;
 struct basic_trie_info {
   OPCODE instr;
   OPCODE compiled;
-  unsigned char node_type;
+  unsigned short node_type;
 } __attribute__((__packed__));
 
 /* -------------------------------------------------------------------------- **
@@ -242,8 +243,11 @@ typedef struct answer_trie_node {
 #define TrNode_is_tst(X)       (TrNode_trie_type(X) == TST_TRIE_NT)
 #define TrNode_is_answer(X)    (TrNode_trie_type(X) == ANSWER_TRIE_NT)
 #define TrNode_is_root(X)      (TrNode_node_type(X) & TRIE_ROOT_NT)
-#define TrNode_remove_is_leaf(X) (TrNode_node_type(X) = TrNode_node_type(X) & ~LEAF_NT)
-#define TrNode_is_leaf(X)      (TrNode_node_type(X) & LEAF_NT)
+#define TrNode_unset_is_ans(X) (TrNode_node_type(X) = TrNode_node_type(X) & ~ANSWER_NT)
+#define TrNode_is_leaf(X)          (TrNode_node_type(X) & LEAF_NT)
+#define TrNode_set_leaf(X)         (TrNode_node_type(X) |= LEAF_NT)
+#define TrNode_is_ans(X)        (TrNode_node_type(X) & ANSWER_NT)
+#define TrNode_set_ans(X)       (TrNode_node_type(X) |= ANSWER_NT)
 
 /* -------------------------------------------------------------------------- **
 **      Structs global_trie_hash, subgoal_trie_hash and answer_trie_hash      **

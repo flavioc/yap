@@ -213,7 +213,6 @@ sg_fr_ptr subsumptive_call_search(yamop *code, CELL *answer_template, CELL **new
             SgFr_at_full_size(subcons) = at_size;
             ALLOC_BLOCK(SgFr_answer_template(subcons), at_size * sizeof(CELL));
             
-            dprintf("ANSWER TEMPLATE SIZE: %d\n", at_size);
             SgFr_at_size(subcons) = copy_answer_template(*new_local_stack, SgFr_answer_template(subcons));
         } else
           sg_fr = (sg_fr_ptr)subsumer;

@@ -502,28 +502,29 @@
 #define start_executing_field(SG_FR) /* do nothing */
 #endif /* TABLING_RETROACTIVE */
       
-#define check_retroactive_pre_stored_answers(SG_FR, TAB_ENT, RETROACTIVE_SG)       \
+#define check_retroactive_pre_stored_answers(SG_FR, TAB_ENT, RETROACTIVE_SG)  \
     if(TabEnt_retroactive_time_stamp(TAB_ENT) > 0) {                          \
       dprintf("Pre stored answers\n");                                        \
       retroactive_fr_ptr retro_sg = (retroactive_fr_ptr)(SG_FR);              \
                                                                               \
       /* retrieve more answers */                                             \
-      build_next_retroactive_producer_return_list(RETROACTIVE_SG);                 \
+      build_next_retroactive_producer_return_list(RETROACTIVE_SG);            \
                                                                               \
-      continuation_ptr cont = SgFr_first_answer(RETROACTIVE_SG);                   \
+      continuation_ptr cont = SgFr_first_answer(RETROACTIVE_SG);              \
                                                                               \
       if(cont) {                                                              \
         ans_node_ptr ans_node = continuation_answer(cont);                    \
         /* XXX */                                                             \
         CELL *answer_template = (CELL *)(GEN_CP(B) + 1) + SgFr_arity(SG_FR);  \
                                                                               \
-        SgFr_try_answer(RETROACTIVE_SG) = cont;                                    \
-        start_executing_field(RETROACTIVE_SG);                                     \
+        SgFr_try_answer(RETROACTIVE_SG) = cont;                               \
+        TrNode_set_ans(ans_node);                                             \
+        start_executing_field(RETROACTIVE_SG);                                \
                                                                               \
-        B->cp_ap = TRY_RETROACTIVE_ANSWER;                                         \
+        B->cp_ap = TRY_RETROACTIVE_ANSWER;                                    \
         PREG = (yamop *)CPREG;                                                \
         PREFETCH_OP(PREG);                                                    \
-        CONSUME_RETROACTIVE_ANSWER(ans_node, answer_template, RETROACTIVE_SG);     \
+        CONSUME_RETROACTIVE_ANSWER(ans_node, answer_template, RETROACTIVE_SG);\
         YENV = ENV;                                                           \
         GONext();                                                             \
       }                                                                       \
@@ -1120,6 +1121,7 @@ try_answer_jump: {
 #endif /* TABLING_RETROACTIVE */
 
       ans_node = continuation_answer(next_cont);
+      TrNode_set_ans(ans_node);
       H = HBREG = PROTECT_FROZEN_H(B);
       restore_yaam_reg_cpdepth(B);
       CPREG = B->cp_cp;

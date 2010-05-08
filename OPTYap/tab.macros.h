@@ -200,8 +200,9 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
 #define INCREMENT_GLOBAL_TRIE_REFS(NODE)
 #define DECREMENT_GLOBAL_TRIE_REFS(NODE)
 #endif /* GLOBAL_TRIE */
-#define TAG_AS_ANSWER_LEAF_NODE(NODE)     TrNode_node_type(NODE) |= LEAF_NT
-#define IS_ANSWER_LEAF_NODE(NODE)         (TrNode_node_type(NODE) & LEAF_NT)
+
+#define TAG_AS_ANSWER_LEAF_NODE(NODE)     TrNode_set_ans(NODE)
+#define IS_ANSWER_LEAF_NODE(NODE)         TrNode_is_ans(NODE)
 
 
 /* LowTagBits is 3 for 32 bit-machines and 7 for 64 bit-machines */

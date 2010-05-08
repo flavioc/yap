@@ -13,8 +13,6 @@
 
 #ifdef TABLING_CALL_SUBSUMPTION
 
-#define AT_BLOCK_SIZE 50
-
 typedef struct sub_subgoal_trie_node {
   struct subgoal_trie_node base;
   unsigned num_generators;
@@ -118,7 +116,6 @@ typedef subsumptive_consumer_sf *subcons_fr_ptr;
 #define SgFr_answer_template(X) ((X)->answer_template)
 #define SgFr_at_size(X)         ((X)->at_size)
 #define SgFr_at_full_size(X)    ((X)->at_full_size)
-#define SgFr_at_block(X)        ((X)->at_block)
 #define SgFr_num_deps(X)        ((X)->num_deps)
 
 /* --------------- **
@@ -186,7 +183,7 @@ struct retroactive_subgoal_frame {
   retroactive_fr_ptr producer;
   CELL* answer_template;
   int at_size;
-  CELL at_block[AT_BLOCK_SIZE];
+  int at_full_size;
 };
 
 #define SgFr_num_ans(X)             ((X)->num_ans)

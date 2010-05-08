@@ -575,7 +575,7 @@ reset_answers(retroactive_fr_ptr sg_fr) {
   continuation_ptr last = SgFr_last_answer(sg_fr);
   
   while(ptr) {
-    TrNode_remove_is_leaf(continuation_answer(ptr));
+    TrNode_unset_is_ans(continuation_answer(ptr));
     if(ptr == last)
       break;
     ptr = continuation_next(ptr);
@@ -643,11 +643,11 @@ process_pending_subgoal_list(node_list_ptr list, retroactive_fr_ptr sg_fr) {
         ensure_has_proper_consumers(SgFr_tab_ent(sg_fr));
         SgFr_set_type(pending, RETROACTIVE_CONSUMER_SFT);
         SgFr_producer(pending) = sg_fr;
+
+        reset_answers(pending);
         
         if(SgFr_is_internal(pending)) {
           choiceptr min = SgFr_choice_point(pending);
-          
-          reset_answers(pending);
           
           if(min_internal == NULL || min > min_internal) {
             min_internal = min;
