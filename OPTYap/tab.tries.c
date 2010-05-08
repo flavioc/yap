@@ -1128,9 +1128,9 @@ void traverse_subgoal_trie(sg_node_ptr current_node, char *str, int str_index, i
   return;
 }
 
-#ifdef TABLING_CALL_SUBSUMPTION
+#ifdef TABLING_RETROACTIVE
 static void
-traverse_ground_trie(ans_node_ptr node)
+traverse_retroactive_trie(ans_node_ptr node)
 {
   if(IS_ANSWER_TRIE_HASH(node)) {
     ans_node_ptr *bucket, *last_bucket;
@@ -1147,7 +1147,7 @@ traverse_ground_trie(ans_node_ptr node)
     
     do {
       if (*bucket)
-        traverse_ground_trie(*bucket);
+        traverse_retroactive_trie(*bucket);
     } while (++bucket != last_bucket);
     return;
   }
@@ -1162,10 +1162,11 @@ traverse_ground_trie(ans_node_ptr node)
     
   if(!IS_ANSWER_LEAF_NODE(node)) {
     if(TrNode_next(node))
-      traverse_ground_trie(TrNode_next(node));
-    traverse_ground_trie(TrNode_child(node));
+      traverse_retroactive_trie(TrNode_next(node));
+    traverse_retroactive_trie(TrNode_child(node));
   }
 }
+#endif /* TABLING_RETROACTIVE */
 
 #if defined(TABLING_RETROACTIVE) || defined(TABLING_COMPLETE_TABLE)
 static void
@@ -1176,10 +1177,9 @@ retroactive_trie_statistics(tab_ent_ptr tab_ent)
     
   ans_node_ptr root = (ans_node_ptr)TabEnt_ground_trie(tab_ent);
   
-  traverse_ground_trie(root);
+  traverse_retroactive_trie(root);
 }
 #endif /* TABLING_RETROACTIVE || TABLING_COMPLETE_TABLE */
-#endif /* TABLING_CALL_SUBSUMPTION */
 
 static
 void traverse_answer_trie(ans_node_ptr current_node, char *str, int str_index, int *arity, int var_index, int mode, int position) {
