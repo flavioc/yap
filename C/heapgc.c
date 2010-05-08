@@ -2088,7 +2088,26 @@ mark_choicepoints(register choiceptr gc_B, tr_fr_ptr saved_TR, int very_verbose)
 	}
 	nargs = 0;
 	break;
+#ifdef TABLING_RETROACTIVE
       case _table_run_completed:
+        {
+          CELL *vars_ptr, vars;
+
+          vars_ptr = (CELL *)(CONS_CP(gc_B) +1);
+          nargs = SgFr_arity(GEN_CP(gc_B)->cp_sg_fr);
+          while (nargs--) {
+            mark_external_reference(vars_ptr);
+            vars_ptr++;
+          }
+          vars = *vars_ptr++;
+          while(vars--) {
+            mark_external_reference(vars_ptr);
+            vars_ptr++;
+          }
+      }
+      nargs = 0;
+      break;
+#endif /* TABLING_RETROACTIVE */
       case _table_answer_resolution:
 	{
 	  CELL *vars_ptr, vars;
@@ -3010,6 +3029,38 @@ sweep_choicepoints(choiceptr gc_B)
 	}
       }
       break;
+#ifdef TABLING_RETROACTIVE
+    case _table_run_completed:
+      {
+        CELL *vars_ptr, vars;
+        int nargs;
+        sweep_environments(gc_B->cp_env, EnvSize(gc_B->cp_cp), EnvBMap(gc_B->cp_cp));
+        vars_ptr = (CELL *)(CONS_CP(gc_B)+1);
+        nargs = SgFr_arity(GEN_CP(gc_B)->cp_sg_fr);
+        while(nargs--) {
+          CELL cp_cell = *vars_ptr;
+          if (MARKED_PTR(vars_ptr)) {
+            UNMARK(vars_ptr);
+            if (HEAP_PTR(cp_cell)) {
+              into_relocation_chain(vars_ptr, GET_NEXT(cp_cell));
+            }
+	        }
+	        vars_ptr++;
+	      }
+        vars = *vars_ptr++;
+        while (vars--) {	
+          CELL cp_cell = *vars_ptr;
+          if (MARKED_PTR(vars_ptr)) {
+            UNMARK(vars_ptr);
+            if (HEAP_PTR(cp_cell)) {
+              into_relocation_chain(vars_ptr, GET_NEXT(cp_cell));
+            }
+          }
+          vars_ptr++;
+        }
+      }
+      break;
+#endif /* TABLING_RETROACTIVE */
     case _table_answer_resolution:
       {
 	CELL *vars_ptr, vars;
