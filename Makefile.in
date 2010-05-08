@@ -283,7 +283,7 @@ OR_OBJECTS = \
 	tab.collect.o tab.specific.o \
 	tab.retrv.o tab.unify.o \
 	tab.utils.o tab.suspend.o tab.var.o \
-	tab.subsumption.o tab.grounded.o \
+	tab.subsumption.o tab.retroactive.o \
 	tab.consumer.o
 
 BEAM_OBJECTS = \
@@ -468,7 +468,7 @@ tab.consumer.o: $(srcdir)/OPTYap/tab.consumer.c \
 	$(srcdir)/OPTYap/opt.config.h
 	$(CC) -c $(CFLAGS) $(srcdir)/OPTYap/tab.consumer.c -o $@
 
-tab.grounded.o: $(srcdir)/OPTYap/tab.grounded.c \
+tab.retroactive.o: $(srcdir)/OPTYap/tab.retroactive.c \
 	$(srcdir)/OPTYap/tab.subsumption.c \
 	$(srcdir)/OPTYap/tab.utils.h \
 	$(srcdir)/OPTYap/tab.utils.o \
@@ -483,7 +483,7 @@ tab.grounded.o: $(srcdir)/OPTYap/tab.grounded.c \
 	$(srcdir)/H/YapHeap.h \
 	$(srcdir)/H/yapio.h \
 	$(srcdir)/OPTYap/opt.config.h
-	$(CC) -c $(CFLAGS) $(srcdir)/OPTYap/tab.grounded.c -o $@
+	$(CC) -c $(CFLAGS) $(srcdir)/OPTYap/tab.retroactive.c -o $@
 
 tab.var.o: $(srcdir)/OPTYap/tab.var.c \
 	$(srcdir)/OPTYap/tab.utils.h \

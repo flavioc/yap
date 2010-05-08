@@ -114,9 +114,9 @@ inline TSTNptr subsumptive_answer_search(CTXTdeclc SubProdSF sf, int nTerms, CPt
 void *newTSTAnswerSet(void);
 #endif /* TABLING_CALL_SUBSUMPTION */
 
-/* ------------------ **
-**   tab.grounded.c   **
-** ------------------ */
+/* --------------------- **
+**   tab.retroactive.c   **
+** --------------------- */
 
 #ifdef TABLING_CALL_SUBSUMPTION
 #ifdef TABLING_COMPLETE_TABLE
