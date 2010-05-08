@@ -2088,13 +2088,14 @@ mark_choicepoints(register choiceptr gc_B, tr_fr_ptr saved_TR, int very_verbose)
 	}
 	nargs = 0;
 	break;
+      case _table_run_completed:
       case _table_answer_resolution:
 	{
 	  CELL *vars_ptr, vars;
 
 #ifdef TABLING_RETROACTIVE
 	  vars_ptr = (CELL *)(CONS_CP(gc_B) + 1);
-	  nargs = rtp->u.Otapl.s;
+	  nargs = SgFr_arity(DepFr_sg_fr(CONS_CP(gc_B)->cp_dep_fr));
 	  while (nargs--) {	
 	    mark_external_reference(vars_ptr);
 	    vars_ptr++;
@@ -3016,7 +3017,7 @@ sweep_choicepoints(choiceptr gc_B)
 #ifdef TABLING_RETROACTIVE
   int nargs;
 	vars_ptr = (CELL *)(CONS_CP(gc_B) + 1);
-	nargs = rtp->u.Otapl.s;
+  nargs = SgFr_arity(DepFr_sg_fr(CONS_CP(gc_B)->cp_dep_fr));
 	while(nargs--) {
 	  CELL cp_cell = *vars_ptr;
 	  if (MARKED_PTR(vars_ptr)) {
