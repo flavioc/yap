@@ -392,10 +392,10 @@ void private_completion(sg_fr_ptr sg_fr) {
     complete_dependency_frame(LOCAL_top_dep_fr);
     LOCAL_top_dep_fr = dep_fr;
   }
-#ifdef TABLING_GROUNDED
+#ifdef TABLING_RETROACTIVE
   if(LOCAL_top_dep_fr)
     DepFr_prev(LOCAL_top_dep_fr) = NULL;
-#endif /* TABLING_GROUNDED */
+#endif /* TABLING_RETROACTIVE */
   
   /* complete generator subgoals */
 #ifdef LIMIT_TABLING

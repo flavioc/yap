@@ -554,11 +554,11 @@ join_answers_subgoal_frame(sg_fr_ptr sg_fr, continuation_ptr first, continuation
                  
 #endif /* TABLING_ANSWER_LIST */
 
-#ifdef TABLING_GROUNDED
+#ifdef TABLING_RETROACTIVE
 #define DepFr_init_prev_fields(DEP_FR) DepFr_prev(DEP_FR) = NULL
 #else
 #define DepFr_init_prev_fields(DEP_FR) /* do nothing */
-#endif /* TABLING_GROUNDED */
+#endif /* TABLING_RETROACTIVE */
 
 #define new_dependency_frame(DEP_FR, DEP_ON_STACK, TOP_OR_FR, LEADER_CP, CONS_CP, SG_FR, NEXT)         \
         ALLOC_DEPENDENCY_FRAME(DEP_FR);                                                                \
@@ -1350,10 +1350,10 @@ get_next_answer_continuation(dep_fr_ptr dep_fr) {
  */
 static inline int
 is_new_generator_call(sg_fr_ptr sg_fr) {
-#ifdef TABLING_GROUNDED
+#ifdef TABLING_RETROACTIVE
   if(SgFr_state(sg_fr) == suspended && SgFr_first_answer(sg_fr) == NULL)
     return TRUE; /* not an incomplete subgoal */
-#endif /* TABLING_GROUNDED */
+#endif /* TABLING_RETROACTIVE */
 
   switch(SgFr_type(sg_fr)) {
     case VARIANT_PRODUCER_SFT:

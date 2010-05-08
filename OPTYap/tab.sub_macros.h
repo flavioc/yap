@@ -477,7 +477,7 @@ abolish_incomplete_subsumptive_consumer_subgoal(subcons_fr_ptr sg_fr) {
 
 static inline void
 abolish_incomplete_subsumptive_producer_subgoal(sg_fr_ptr sg_fr) {
-#ifdef TABLING_GROUNDED
+#ifdef TABLING_RETROACTIVE
   if(SgFr_state(sg_fr) != dead)
 #endif
   {

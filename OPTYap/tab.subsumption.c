@@ -217,7 +217,7 @@ sg_fr_ptr subsumptive_call_search(yamop *code, CELL *answer_template, CELL **new
     }
   }
 
-#ifdef TABLING_GROUNDED
+#ifdef TABLING_RETROACTIVE
   if(SgFr_is_sub_consumer(sg_fr) && SgFr_state(sg_fr) < complete)
   {
     int ans_size = (int)**new_local_stack;
@@ -240,7 +240,7 @@ sg_fr_ptr subsumptive_call_search(yamop *code, CELL *answer_template, CELL **new
     
     dprintf("Num vars: %d Ans Size %d\n", nvars, ans_size);
   }
-#endif /* TABLING_GROUNDED */
+#endif /* TABLING_RETROACTIVE */
   return sg_fr;
 }
 

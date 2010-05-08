@@ -1110,7 +1110,7 @@ try_answer_jump: {
   ENDPBOp();
 
   PBOp(table_try_ground_answer, Otapl)
-#ifdef TABLING_GROUNDED
+#ifdef TABLING_RETROACTIVE
     grounded_sf_ptr sg_fr;
     ans_node_ptr ans_node = NULL;
     continuation_ptr next_cont;
@@ -1167,7 +1167,7 @@ try_answer_jump: {
     PREG = PREG->u.Otapl.d;
     PREFETCH_OP(PREG);
     GONext();
-#endif /* TABLING_GROUNDED */
+#endif /* TABLING_RETROACTIVE */
   ENDPBOp();
 
   PBOp(table_try_single, Otapl)
@@ -1192,7 +1192,7 @@ try_answer_jump: {
       init_subgoal_frame(sg_fr);
       
       UNLOCK(SgFr_lock(sg_fr));
-#ifdef TABLING_GROUNDED
+#ifdef TABLING_RETROACTIVE
       precheck_ground_generator(sg_fr);
 #endif
 #ifdef DETERMINISTIC_TABLING
@@ -1203,7 +1203,7 @@ try_answer_jump: {
       {
 	      store_generator_node(tab_ent, sg_fr, PREG->u.Otapl.s, COMPLETION);
       }
-#ifdef TABLING_GROUNDED
+#ifdef TABLING_RETROACTIVE
       check_ground_generator(sg_fr, tab_ent);
 #endif
       PREG = PREG->u.Otapl.d;  /* should work also with PREG = NEXTOP(PREG,Otapl); */
@@ -1223,13 +1223,13 @@ try_answer_jump: {
 
       store_generator_node(tab_ent, sg_fr, PREG->u.Otapl.s, TRY_ANSWER);
       
-#ifdef TABLING_GROUNDED
+#ifdef TABLING_RETROACTIVE
       if(SgFr_state(sg_fr) == suspended) {
         SgFr_state(sg_fr) = evaluating;
         SgFr_choice_point(sg_fr) = B;
         move_subgoal_top(sg_fr);
       } else
-#endif /* TABLING_GROUNDED */
+#endif /* TABLING_RETROACTIVE */
       {
         init_subgoal_frame(sg_fr);
       }
@@ -1350,11 +1350,11 @@ try_answer_jump: {
       init_subgoal_frame(sg_fr);
 
       UNLOCK(SgFr_lock(sg_fr));
-#ifdef TABLING_GROUNDED
+#ifdef TABLING_RETROACTIVE
       precheck_ground_generator(sg_fr);
 #endif
       store_generator_node(tab_ent, sg_fr, PREG->u.Otapl.s, PREG->u.Otapl.d);
-#ifdef TABLING_GROUNDED
+#ifdef TABLING_RETROACTIVE
       check_ground_generator(sg_fr, tab_ent);
 #endif
       PREG = NEXTOP(PREG, Otapl);
@@ -1373,13 +1373,13 @@ try_answer_jump: {
 
       store_generator_node(tab_ent, sg_fr, PREG->u.Otapl.s, TRY_ANSWER);
 
-#ifdef TABLING_GROUNDED
+#ifdef TABLING_RETROACTIVE
       if(SgFr_state(sg_fr) == suspended) {
         SgFr_state(sg_fr) = evaluating;
         SgFr_choice_point(sg_fr) = B;
         move_subgoal_top(sg_fr);
       } else
-#endif /* TABLING_GROUNDED */
+#endif /* TABLING_RETROACTIVE */
       {
         init_subgoal_frame(sg_fr);
       }
@@ -1501,11 +1501,11 @@ try_answer_jump: {
       /* subgoal new */
       init_subgoal_frame(sg_fr);
       UNLOCK(SgFr_lock(sg_fr));
-#ifdef TABLING_GROUNDED
+#ifdef TABLING_RETROACTIVE
       precheck_ground_generator(sg_fr);
 #endif
       store_generator_node(tab_ent, sg_fr, PREG->u.Otapl.s, NEXTOP(PREG,Otapl));
-#ifdef TABLING_GROUNDED
+#ifdef TABLING_RETROACTIVE
       check_ground_generator(sg_fr, tab_ent);
 #endif
       PREG = PREG->u.Otapl.d;
@@ -1524,13 +1524,13 @@ try_answer_jump: {
 
       store_generator_node(tab_ent, sg_fr, PREG->u.Otapl.s, TRY_ANSWER);
 
-#ifdef TABLING_GROUNDED
+#ifdef TABLING_RETROACTIVE
       if(SgFr_state(sg_fr) == suspended) {
         SgFr_state(sg_fr) = evaluating;
         SgFr_choice_point(sg_fr) = B;
         move_subgoal_top(sg_fr);
       } else
-#endif /* TABLING_GROUNDED */
+#endif /* TABLING_RETROACTIVE */
       {
         init_subgoal_frame(sg_fr);
       }
@@ -2489,12 +2489,12 @@ try_answer_jump: {
       dprintf("\n");
 #endif
 
-#ifdef TABLING_GROUNDED
+#ifdef TABLING_RETROACTIVE
       if(DepFr_is_restarter(dep_fr) && SgFr_state(DepFr_sg_fr(dep_fr)) == suspended) {
         dprintf("Restart generator\n");
         restart_generator(dep_fr);
       }
-#endif /* TABLING_GROUNDED */
+#endif /* TABLING_RETROACTIVE */
 
       ans_node = NULL;
       next = get_next_answer_continuation(dep_fr);

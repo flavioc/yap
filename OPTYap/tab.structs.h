@@ -419,7 +419,7 @@ typedef sg_fr_ptr variant_sf_ptr;
 #define SgFr_previous(X)       (CAST_SF(X)->previous)
 #define SgFr_next(X)           ((X)->next)
 
-#ifdef TABLING_GROUNDED
+#ifdef TABLING_RETROACTIVE
 #define SgFr_prev(X)              ((X)->prev)
 #define SgFr_top_gen_sg(X)        (CAST_SF(X)->top_gen_sg)
 #endif
@@ -494,10 +494,10 @@ typedef struct dependency_frame {
   choiceptr leader_choice_point;
   choiceptr consumer_choice_point;
   continuation_ptr last_consumed_answer;
-#ifdef TABLING_GROUNDED
+#ifdef TABLING_RETROACTIVE
   sg_fr_ptr top_gen_sg; /* NEW */
   struct dependency_frame *prev;
-#endif /* TABLING_GROUNDED */
+#endif /* TABLING_RETROACTIVE */
   sg_fr_ptr sg_fr; /* NEW */
   struct dependency_frame *next;
 } *dep_fr_ptr;
@@ -607,10 +607,10 @@ struct deterministic_generator_choicept {
 struct consumer_choicept {
   struct choicept cp;
   struct dependency_frame *cp_dep_fr;
-#ifdef TABLING_GROUNDED
+#ifdef TABLING_RETROACTIVE
   /* to restart a consumer node as generator node */
   struct subgoal_frame *cp_sg_fr;
-#endif /* TABLING_GROUNDED */
+#endif /* TABLING_RETROACTIVE */
 #ifdef LOW_LEVEL_TRACER
   struct pred_entry *cp_pred_entry;
 #endif /* LOW_LEVEL_TRACER */
