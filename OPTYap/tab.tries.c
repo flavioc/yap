@@ -48,9 +48,9 @@ static void traverse_global_trie(gt_node_ptr current_node, char *str, int str_in
 static void traverse_global_trie_for_subgoal(gt_node_ptr current_node, char *str, int *str_index, int *arity, int *mode);
 static void traverse_global_trie_for_answer(gt_node_ptr current_node, char *str, int *str_index, int *arity, int *mode);
 #endif /* GLOBAL_TRIE */
-#ifdef TABLING_CALL_SUBSUMPTION
-static void ground_trie_statistics(tab_ent_ptr tab_ent);
-#endif /* TABLING_CALL_SUBSUMPTION */
+#if defined(TABLING_RETROACTIVE) || defined(TABLING_COMPLETE_TABLE)
+static void retroactive_trie_statistics(tab_ent_ptr tab_ent);
+#endif /* TABLING_RETROACTIVE || TABLING_COMPLETE_TABLE */
 
 /* -------------------------- **
 **      Global functions      **
@@ -744,7 +744,7 @@ void show_table(tab_ent_ptr tab_ent, int show_mode) {
 #ifdef TABLING_RETROACTIVE
       if(TabEnt_is_grounded(tab_ent)) {
         bytes += TrStat_subgoals * sizeof(struct retroactive_subgoal_frame);
-        ground_trie_statistics(tab_ent);
+        retroactive_trie_statistics(tab_ent);
       } else
 #endif /* TABLING_RETROACTIVE */
       {
@@ -752,7 +752,7 @@ void show_table(tab_ent_ptr tab_ent, int show_mode) {
         bytes += TrStat_subgoals * sizeof(struct subsumptive_producer_subgoal_frame);
 #ifdef TABLING_COMPLETE_TABLE
         if(TabEnt_completed(tab_ent))
-          ground_trie_statistics(tab_ent);
+          retroactive_trie_statistics(tab_ent);
 #endif /* TABLING_COMPLETE_TABLE */
       }
       
@@ -1167,9 +1167,9 @@ traverse_ground_trie(ans_node_ptr node)
   }
 }
 
-#ifdef TABLING_RETROACTIVE
+#if defined(TABLING_RETROACTIVE) || defined(TABLING_COMPLETE_TABLE)
 static void
-ground_trie_statistics(tab_ent_ptr tab_ent)
+retroactive_trie_statistics(tab_ent_ptr tab_ent)
 {
   if(TabEnt_subgoal_trie(tab_ent) == NULL)
     return;
@@ -1178,7 +1178,7 @@ ground_trie_statistics(tab_ent_ptr tab_ent)
   
   traverse_ground_trie(root);
 }
-#endif /* TABLING_RETROACTIVE */
+#endif /* TABLING_RETROACTIVE || TABLING_COMPLETE_TABLE */
 #endif /* TABLING_CALL_SUBSUMPTION */
 
 static
