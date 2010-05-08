@@ -642,8 +642,8 @@ Int p_table(void) {
     SetMode_Variant(TabEnt_mode(tab_ent));
   else if (IsMode_Subsumptive(yap_flags[TABLING_MODE_FLAG]))
     SetMode_Subsumptive(TabEnt_mode(tab_ent));
-  else if (IsMode_Grounded(yap_flags[TABLING_MODE_FLAG]))
-    SetMode_Grounded(TabEnt_mode(tab_ent));
+  else if (IsMode_Retroactive(yap_flags[TABLING_MODE_FLAG]))
+    SetMode_Retroactive(TabEnt_mode(tab_ent));
 #endif
   pe->TableOfPred = tab_ent;
   return (TRUE);
@@ -677,7 +677,7 @@ void tab_entry_set_subsumptive_mode(tab_ent_ptr tab_ent) {
 
 static inline
 void tab_entry_set_retroactive_mode(tab_ent_ptr tab_ent) {
-  SetDefaultMode_Grounded(TabEnt_mode(tab_ent));
+  SetDefaultMode_Retroactive(TabEnt_mode(tab_ent));
   if (IsMode_ChecksOff(yap_flags[TABLING_MODE_FLAG]))
     TabEnt_set_retroactive(tab_ent)
 }
@@ -760,7 +760,7 @@ Int p_tabling_mode(void) {
     /* subsumptive / variant */
     if (IsDefaultMode_Subsumptive(TabEnt_mode(tab_ent)))
       mode = MkAtomTerm(Yap_LookupAtom("subsumptive"));
-    else if(IsDefaultMode_Grounded(TabEnt_mode(tab_ent)))
+    else if(IsDefaultMode_Retroactive(TabEnt_mode(tab_ent)))
       mode = MkAtomTerm(Yap_LookupAtom("grounded"));
     else
       mode = MkAtomTerm(Yap_LookupAtom("variant"));
@@ -789,7 +789,7 @@ Int p_tabling_mode(void) {
     /* subsumptive / variant */
     if(IsMode_Subsumptive(TabEnt_mode(tab_ent)))
       mode = MkAtomTerm(Yap_LookupAtom("subsumptive"));
-    else if(IsMode_Grounded(TabEnt_mode(tab_ent)))
+    else if(IsMode_Retroactive(TabEnt_mode(tab_ent)))
       mode = MkAtomTerm(Yap_LookupAtom("grounded"));
     else
       mode = MkAtomTerm(Yap_LookupAtom("variant"));

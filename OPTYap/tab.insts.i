@@ -229,10 +229,10 @@
             CONSUME_VARIANT_ANSWER(ANS_NODE, ANSWER_TMPLT);                 \
             break;                                                          \
           case SUBSUMED_CONSUMER_SFT:                                       \
-          case GROUND_CONSUMER_SFT:                                         \
+          case RETROACTIVE_CONSUMER_SFT:                                         \
             CONSUME_SUBSUMPTIVE_ANSWER(ANS_NODE, ANSWER_TMPLT);             \
             break;                                                          \
-          case GROUND_PRODUCER_SFT:                                         \
+          case RETROACTIVE_PRODUCER_SFT:                                         \
             CONSUME_RETROACTIVE_ANSWER(ANS_NODE, ANSWER_TMPLT, SG_FR);      \
             break;                                                          \
           }
@@ -502,28 +502,28 @@
 #define start_executing_field(SG_FR) /* do nothing */
 #endif /* TABLING_RETROACTIVE */
       
-#define check_retroactive_pre_stored_answers(SG_FR, TAB_ENT, GROUND_SG)       \
+#define check_retroactive_pre_stored_answers(SG_FR, TAB_ENT, RETROACTIVE_SG)       \
     if(TabEnt_retroactive_time_stamp(TAB_ENT) > 0) {                          \
       dprintf("Pre stored answers\n");                                        \
       retroactive_fr_ptr retro_sg = (retroactive_fr_ptr)(SG_FR);              \
                                                                               \
       /* retrieve more answers */                                             \
-      build_next_retroactive_producer_return_list(GROUND_SG);                 \
+      build_next_retroactive_producer_return_list(RETROACTIVE_SG);                 \
                                                                               \
-      continuation_ptr cont = SgFr_first_answer(GROUND_SG);                   \
+      continuation_ptr cont = SgFr_first_answer(RETROACTIVE_SG);                   \
                                                                               \
       if(cont) {                                                              \
         ans_node_ptr ans_node = continuation_answer(cont);                    \
         /* XXX */                                                             \
         CELL *answer_template = (CELL *)(GEN_CP(B) + 1) + SgFr_arity(SG_FR);  \
                                                                               \
-        SgFr_try_answer(GROUND_SG) = cont;                                    \
-        start_executing_field(GROUND_SG);                                     \
+        SgFr_try_answer(RETROACTIVE_SG) = cont;                                    \
+        start_executing_field(RETROACTIVE_SG);                                     \
                                                                               \
-        B->cp_ap = TRY_GROUND_ANSWER;                                         \
+        B->cp_ap = TRY_RETROACTIVE_ANSWER;                                         \
         PREG = (yamop *)CPREG;                                                \
         PREFETCH_OP(PREG);                                                    \
-        CONSUME_RETROACTIVE_ANSWER(ans_node, answer_template, GROUND_SG);     \
+        CONSUME_RETROACTIVE_ANSWER(ans_node, answer_template, RETROACTIVE_SG);     \
         YENV = ENV;                                                           \
         GONext();                                                             \
       }                                                                       \
@@ -723,7 +723,7 @@ load_answer_jump:
 #endif
     
     switch(SgFr_type(cons_sg_fr)) {
-      case GROUND_CONSUMER_SFT: {
+      case RETROACTIVE_CONSUMER_SFT: {
         retroactive_fr_ptr sg_fr = (retroactive_fr_ptr)cons_sg_fr;
         dep_fr_ptr dep_fr = CONS_CP(B)->cp_dep_fr;
         continuation_ptr cont;
@@ -1100,13 +1100,13 @@ try_answer_jump: {
 #endif /* INCOMPLETE_TABLING || TABLING_RETROACTIVE */
   ENDPBOp();
 
-  PBOp(table_try_ground_answer, Otapl)
+  PBOp(table_try_retroactive_answer, Otapl)
 #ifdef TABLING_RETROACTIVE
     retroactive_fr_ptr sg_fr;
     ans_node_ptr ans_node = NULL;
     continuation_ptr next_cont;
     
-    dprintf("===> TABLE_TRY_GROUND_ANSWER\n");
+    dprintf("===> TABLE_TRY_RETROACTIVE_ANSWER\n");
     
     sg_fr = (retroactive_fr_ptr)GEN_CP(B)->cp_sg_fr;
     next_cont = continuation_next(SgFr_try_answer(sg_fr));
@@ -1295,7 +1295,7 @@ try_answer_jump: {
     	    }
           break;
 #ifdef TABLING_RETROACTIVE
-        case GROUND_PRODUCER_SFT:
+        case RETROACTIVE_PRODUCER_SFT:
           if(TabEnt_is_load(tab_ent)) {
             check_no_answers(sg_fr);
             load_subsumptive_answers_from_sf(sg_fr, tab_ent, YENV);
@@ -1303,7 +1303,7 @@ try_answer_jump: {
             exec_retroactive_trie(tab_ent);
           }
           break;
-        case GROUND_CONSUMER_SFT:
+        case RETROACTIVE_CONSUMER_SFT:
           if(TabEnt_is_load(tab_ent)) {
             compute_retroactive_consumer_answer_list(sg_fr);
             check_no_answers(sg_fr);
@@ -1445,7 +1445,7 @@ try_answer_jump: {
     	    }
           break;
 #ifdef TABLING_RETROACTIVE
-        case GROUND_PRODUCER_SFT:
+        case RETROACTIVE_PRODUCER_SFT:
           if(TabEnt_is_load(tab_ent)) {
             check_no_answers(sg_fr);
             load_subsumptive_answers_from_sf(sg_fr, tab_ent, YENV);
@@ -1453,7 +1453,7 @@ try_answer_jump: {
             exec_retroactive_trie(tab_ent);
           }
           break;
-        case GROUND_CONSUMER_SFT:
+        case RETROACTIVE_CONSUMER_SFT:
           if(TabEnt_is_load(tab_ent)) {
             compute_retroactive_consumer_answer_list(sg_fr);
             check_no_answers(sg_fr);
@@ -1596,7 +1596,7 @@ try_answer_jump: {
     	    }
           break;
 #ifdef TABLING_RETROACTIVE
-        case GROUND_PRODUCER_SFT:
+        case RETROACTIVE_PRODUCER_SFT:
           if(TabEnt_is_load(tab_ent)) {
             check_no_answers(sg_fr);
             load_subsumptive_answers_from_sf(sg_fr, tab_ent, YENV);
@@ -1604,7 +1604,7 @@ try_answer_jump: {
             exec_retroactive_trie(tab_ent);
           }
           break;
-        case GROUND_CONSUMER_SFT:
+        case RETROACTIVE_CONSUMER_SFT:
           if(TabEnt_is_load(tab_ent)) {
             compute_retroactive_consumer_answer_list(sg_fr);
             check_no_answers(sg_fr);
@@ -1931,7 +1931,7 @@ try_answer_jump: {
       
 #ifdef TABLING_RETROACTIVE
       if(SgFr_is_retroactive_local_producer(sg_fr)) {
-        dprintf("GROUND_LOCAL PRODUCER\n");
+        dprintf("RETROACTIVE_LOCAL PRODUCER\n");
         retroactive_fr_ptr retro = (retroactive_fr_ptr)sg_fr;
         SgFr_num_ans(retro)++;
         dprintf("SgFr_num_ans(retro)=%d\n", SgFr_num_ans(retro));
@@ -2806,7 +2806,7 @@ try_answer_jump: {
             }
             break;
 #ifdef TABLING_RETROACTIVE
-          case GROUND_PRODUCER_SFT:
+          case RETROACTIVE_PRODUCER_SFT:
             {
               check_yes_answer_no_unlock(sg_fr);
               

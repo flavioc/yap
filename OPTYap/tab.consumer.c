@@ -432,9 +432,12 @@ abolish_generator_subgoals_between(sg_fr_ptr specific_sg, choiceptr min, choicep
 static inline void
 abolish_dependency_frames_between(sg_fr_ptr specific_sg, choiceptr min, choiceptr max)
 {
-  dep_fr_ptr top = StackState_dep_fr(SgFr_stack_state((grounded_sf_ptr)specific_sg));
+  dep_fr_ptr top = LOCAL_top_dep_fr; //StackState_dep_fr(SgFr_stack_state((retroactive_fr_ptr)specific_sg));
   dep_fr_ptr dep_fr;
   dprintf("min=%d max=%d\n", (int)min, (int)max);
+
+  while(top && YOUNGER_CP(DepFr_cons_cp(top), max))
+      top = DepFr_next(top);
   
   while(top && YOUNGER_CP(DepFr_cons_cp(top), min)) {
     dep_fr = top;
@@ -620,7 +623,7 @@ process_pending_subgoal_list(node_list_ptr list, retroactive_fr_ptr sg_fr) {
           mark_retroactive_consumer_as_completed(pending);
         } else {
           SgFr_producer(pending) = sg_fr;
-          SgFr_set_type(pending, GROUND_CONSUMER_SFT);
+          SgFr_set_type(pending, RETROACTIVE_CONSUMER_SFT);
           dprintf("MARKED AS CONSUMER\n");
         }
         
@@ -638,7 +641,7 @@ process_pending_subgoal_list(node_list_ptr list, retroactive_fr_ptr sg_fr) {
         printf("\n");
 #endif
         ensure_has_proper_consumers(SgFr_tab_ent(sg_fr));
-        SgFr_set_type(pending, GROUND_CONSUMER_SFT);
+        SgFr_set_type(pending, RETROACTIVE_CONSUMER_SFT);
         SgFr_producer(pending) = sg_fr;
         
         if(SgFr_is_internal(pending)) {

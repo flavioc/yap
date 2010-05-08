@@ -3793,7 +3793,7 @@ p_set_yap_flags(void)
 	      /* subsumptive / variant */
 	      if (IsDefaultMode_Subsumptive(TabEnt_mode(tab_ent)))
           TabEnt_set_subsumptive(tab_ent)
-        else if(IsDefaultMode_Grounded(TabEnt_mode(tab_ent)))
+        else if(IsDefaultMode_Retroactive(TabEnt_mode(tab_ent)))
           TabEnt_set_retroactive(tab_ent)
         else
           TabEnt_set_variant(tab_ent)
@@ -3856,7 +3856,7 @@ p_set_yap_flags(void)
         TabEnt_set_retroactive(tab_ent);
         tab_ent = TabEnt_next(tab_ent);
       }
-      SetMode_Grounded(yap_flags[TABLING_MODE_FLAG]);
+      SetMode_Retroactive(yap_flags[TABLING_MODE_FLAG]);
       SetMode_ChecksOn(yap_flags[TABLING_MODE_FLAG]);
 #endif /* TABLING_CALL_SUBSUMPTION */
     }

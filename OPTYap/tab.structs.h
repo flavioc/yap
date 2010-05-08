@@ -20,14 +20,14 @@
 #define Mode_LoadAnswers        0x20000000L  /* yap_flags[TABLING_MODE_FLAG] + struct table_entry */
 #ifdef TABLING_CALL_SUBSUMPTION
 #define Mode_Subsumptive        0x40000000L  /* yap_flags[TABLING_MODE_FLAG] + struct table_entry */
-#define Mode_Grounded           0x80000000L  /* yap_flags[TABLING_MODE_FLAG] + struct table_entry */
+#define Mode_Retroactive        0x80000000L  /* yap_flags[TABLING_MODE_FLAG] + struct table_entry */
 #endif /* TABLING_CALL_SUBSUMPTION */
 
 #define DefaultMode_Local       0x00000001L  /* struct table_entry */
 #define DefaultMode_LoadAnswers 0x00000002L  /* struct table_entry */
 #ifdef TABLING_CALL_SUBSUMPTION
 #define DefaultMode_Subsumptive 0x00000004L  /* struct table_entry */
-#define DefaultMode_Grounded    0x00000008L  /* struct table_entry */
+#define DefaultMode_Retroactive 0x00000008L  /* struct table_entry */
 #endif /* TABLING_CALL_SUBSUMPTION */
 
 #define SetMode_SchedulingOn(X)        (X) |= Mode_SchedulingOn
@@ -45,18 +45,18 @@
 #define SetMode_LoadAnswers(X)         (X) |= Mode_LoadAnswers
 #define SetMode_ExecAnswers(X)         (X) &= ~Mode_LoadAnswers
 #ifdef TABLING_CALL_SUBSUMPTION
-#define SetMode_Subsumptive(X)         (X) = ((X) | Mode_Subsumptive) & ~Mode_Grounded
-#define SetMode_Variant(X)             (X) &= ~(Mode_Subsumptive | Mode_Grounded)
-#define SetMode_Grounded(X)            (X) = ((X) | Mode_Grounded) & ~Mode_Subsumptive
+#define SetMode_Subsumptive(X)         (X) = ((X) | Mode_Subsumptive) & ~Mode_Retroactive
+#define SetMode_Variant(X)             (X) &= ~(Mode_Subsumptive | Mode_Retroactive)
+#define SetMode_Retroactive(X)         (X) = ((X) | Mode_Retroactive) & ~Mode_Subsumptive
 #endif /* TABLING_CALL_SUBSUMPTION */
 #define IsMode_Local(X)                ((X) & Mode_Local)
 #define IsMode_Batched(X)              (!IsMode_Local(X))
 #define IsMode_LoadAnswers(X)          ((X) & Mode_LoadAnswers)
 #define IsMode_ExecAnswers(X)          (!IsMode_LoadAnswers(X))
 #ifdef TABLING_CALL_SUBSUMPTION
-#define IsMode_Variant(X)              (!IsMode_Subsumptive(X) && !IsMode_Grounded(X))
+#define IsMode_Variant(X)              (!IsMode_Subsumptive(X) && !IsMode_Retroactive(X))
 #define IsMode_Subsumptive(X)          ((X) & Mode_Subsumptive)
-#define IsMode_Grounded(X)             ((X) & Mode_Grounded)
+#define IsMode_Retroactive(X)          ((X) & Mode_Retroactive)
 #endif /* TABLING_CALL_SUBSUMPTION */
 
 #define SetDefaultMode_Local(X)        (X) |= DefaultMode_Local
@@ -64,9 +64,9 @@
 #define SetDefaultMode_LoadAnswers(X)  (X) |= DefaultMode_LoadAnswers
 #define SetDefaultMode_ExecAnswers(X)  (X) &= ~DefaultMode_LoadAnswers
 #ifdef TABLING_CALL_SUBSUMPTION
-#define SetDefaultMode_Subsumptive(X)  (X) = ((X) | DefaultMode_Subsumptive) & ~DefaultMode_Grounded
-#define SetDefaultMode_Variant(X)      (X) &= ~(DefaultMode_Subsumptive | DefaultMode_Grounded)
-#define SetDefaultMode_Grounded(X)     (X) = ((X) | DefaultMode_Grounded) & ~DefaultMode_Subsumptive
+#define SetDefaultMode_Subsumptive(X)  (X) = ((X) | DefaultMode_Subsumptive) & ~DefaultMode_Retroactive
+#define SetDefaultMode_Variant(X)      (X) &= ~(DefaultMode_Subsumptive | DefaultMode_Retroactive)
+#define SetDefaultMode_Retroactive(X)  (X) = ((X) | DefaultMode_Retroactive) & ~DefaultMode_Subsumptive
 #endif /* TABLING_CALL_SUBSUMPTION */
 #define IsDefaultMode_Local(X)         ((X) & DefaultMode_Local)
 #define IsDefaultMode_Batched(X)       (!IsDefaultMode_Local(X))
@@ -74,8 +74,8 @@
 #define IsDefaultMode_ExecAnswers(X)   (!IsDefaultMode_LoadAnswers(X))
 #ifdef TABLING_CALL_SUBSUMPTION
 #define IsDefaultMode_Subsumptive(X)   ((X) & DefaultMode_Subsumptive)
-#define IsDefaultMode_Variant(X)       (!IsDefaultMode_Subsumptive(X) && !IsDefaultMode_Grounded(X))
-#define IsDefaultMode_Grounded(X)      ((X) & DefaultMode_Grounded)
+#define IsDefaultMode_Variant(X)       (!IsDefaultMode_Subsumptive(X) && !IsDefaultMode_Retroactive(X))
+#define IsDefaultMode_Retroactive(X)   ((X) & DefaultMode_Retroactive)
 #endif /* TABLING_CALL_SUBSUMPTION */
 
 /* ---------------------------- **
@@ -111,10 +111,10 @@ typedef struct table_entry {
 #ifdef TABLING_CALL_SUBSUMPTION
 #define TabEnt_is_variant(X)      (IsMode_Variant(TabEnt_mode(X)))
 #define TabEnt_is_subsumptive(X)  (IsMode_Subsumptive(TabEnt_mode(X)))
-#define TabEnt_is_retroactive(X)  (IsMode_Grounded(TabEnt_mode(X)))
+#define TabEnt_is_retroactive(X)  (IsMode_Retroactive(TabEnt_mode(X)))
 #define TabEnt_set_variant(X)     { if(TabEnt_is_empty(X)) SetMode_Variant(TabEnt_mode(X)); }
 #define TabEnt_set_subsumptive(X) { if(TabEnt_is_empty(X)) SetMode_Subsumptive(TabEnt_mode(X)); }
-#define TabEnt_set_retroactive(X) { if(TabEnt_is_empty(X)) SetMode_Grounded(TabEnt_mode(X)); }
+#define TabEnt_set_retroactive(X) { if(TabEnt_is_empty(X)) SetMode_Retroactive(TabEnt_mode(X)); }
 #define TabEnt_set_load(X)        { if(TabEnt_is_empty(X) || TabEnt_is_variant(X)) SetMode_LoadAnswers(TabEnt_mode(X)); }
 #define TabEnt_set_exec(X)        { if(TabEnt_is_empty(X) || TabEnt_is_variant(X)) SetMode_ExecAnswers(TabEnt_mode(X)); }
 #else
@@ -323,8 +323,8 @@ enum SubgoalFrameType {
   VARIANT_PRODUCER_SFT        = 0x01, /* 0001 */
   SUBSUMPTIVE_PRODUCER_SFT    = 0x03, /* 0011 */
   SUBSUMED_CONSUMER_SFT       = 0x02, /* 0010 */
-  GROUND_PRODUCER_SFT         = 0x05, /* 0101 */
-  GROUND_CONSUMER_SFT         = 0x08  /* 1000 */
+  RETROACTIVE_PRODUCER_SFT         = 0x05, /* 0101 */
+  RETROACTIVE_CONSUMER_SFT         = 0x08  /* 1000 */
 };
 
 #define SUBGOAL_FRAME_TYPE_MASK 0x0F

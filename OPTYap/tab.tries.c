@@ -343,7 +343,7 @@ complete_dependency_frame(dep_fr_ptr dep_fr)
     SgFr_num_deps(sg_fr)--;
 #endif /* TABLING_RETROACTIVE */
       break;
-    case GROUND_PRODUCER_SFT:
+    case RETROACTIVE_PRODUCER_SFT:
       dprintf("IS GEN\n");
       /* do nothing */
       break;
@@ -365,7 +365,7 @@ complete_dependency_frame(dep_fr_ptr dep_fr)
       }
       break;
 #ifdef TABLING_RETROACTIVE
-    case GROUND_CONSUMER_SFT:
+    case RETROACTIVE_CONSUMER_SFT:
       SgFr_num_deps((retroactive_fr_ptr)sg_fr)--;
     
       if(SgFr_num_deps((retroactive_fr_ptr)sg_fr) == 0) {
@@ -508,10 +508,10 @@ void free_subgoal_trie_branch(sg_node_ptr current_node, int nodes_left, int node
         FREE_SUBCONS_SUBGOAL_FRAME(sg_fr);
         break;
 #ifdef TABLING_RETROACTIVE
-      case GROUND_PRODUCER_SFT:
-      case GROUND_CONSUMER_SFT:
+      case RETROACTIVE_PRODUCER_SFT:
+      case RETROACTIVE_CONSUMER_SFT:
         free_retroactive_subgoal_data((retroactive_fr_ptr)sg_fr);
-        FREE_GROUNDED_SUBGOAL_FRAME(sg_fr);
+        FREE_RETROACTIVE_SUBGOAL_FRAME(sg_fr);
         break;
 #endif /* TABLING_RETROACTIVE */
 #endif /* TABLING_CALL_SUBSUMPTION */
@@ -1071,8 +1071,8 @@ void traverse_subgoal_trie(sg_node_ptr current_node, char *str, int str_index, i
         }
         break;
 #ifdef TABLING_RETROACTIVE
-      case GROUND_PRODUCER_SFT:
-      case GROUND_CONSUMER_SFT:
+      case RETROACTIVE_PRODUCER_SFT:
+      case RETROACTIVE_CONSUMER_SFT:
         {
           TrStat_subgoals++;
           

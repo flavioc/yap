@@ -600,7 +600,7 @@ PredForChoicePt(yamop *p_code) {
     case _table_load_answer:
     case _table_load_cons_answer:
     case _table_try_answer:
-    case _table_try_ground_answer:
+    case _table_try_retroactive_answer:
     case _table_answer_resolution:
     case _table_completion:
       return NULL; /* ricroc: is this OK? */
@@ -5457,7 +5457,7 @@ p_choicepoint_info(void)
       t = MkVarTerm();
       break;
     case _table_try_answer:
-    case _table_try_ground_answer:
+    case _table_try_retroactive_answer:
     case _table_retry_me:
     case _table_trust_me:
     case _table_retry:

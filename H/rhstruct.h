@@ -194,7 +194,7 @@
   RestoreOtaplInst(LOAD_CONS_ANSWER,_table_load_cons_answer,PredFail);
   RestoreOtaplInst(RUN_COMPLETED,_table_run_completed,PredFail);
   RestoreOtaplInst(TRY_ANSWER,_table_try_answer,PredFail);
-  RestoreOtaplInst(TRY_GROUND_ANSWER,_table_try_ground_answer,PredFail);
+  RestoreOtaplInst(TRY_RETROACTIVE_ANSWER,_table_try_retroactive_answer,PredFail);
   RestoreOtaplInst(ANSWER_RESOLUTION,_table_answer_resolution,PredFail);
   RestoreOtaplInst(COMPLETION,_table_completion,PredFail);
   RestoreOtaplInst(TRIE_RETRY_HASH,_trie_retry_hash,PredFail);

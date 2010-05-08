@@ -981,7 +981,7 @@ has_cut(yamop *pc)
     case _table_load_answer:
     case _table_load_cons_answer:
     case _table_try_answer:
-    case _table_try_ground_answer:
+    case _table_try_retroactive_answer:
     case _table_try_single:
     case _table_try_me:
     case _table_retry_me:

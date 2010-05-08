@@ -782,8 +782,8 @@ restore_opcodes(yamop *pc, yamop *max)
     case _table_trust_me:
     case _table_try:
     case _table_try_answer:
-    case _table_try_ground_answer:
     case _table_try_me:
+    case _table_try_retroactive_answer:
     case _table_try_single:
       OrArgAdjust(pc->u.Otapl.or_arg);
       TabEntryAdjust(pc->u.Otapl.te);

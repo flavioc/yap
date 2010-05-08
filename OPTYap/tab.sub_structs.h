@@ -247,11 +247,11 @@ struct retroactive_subgoal_frame {
 
 #define TabEnt_retroactive_yes(X)    (TabEnt_retroactive_trie(X) && TrNode_is_leaf(TabEnt_retroactive_trie(X)))
 
-#define GROUND_SUBGOAL_FRAME_MASK 0xC0
+#define RETROACTIVE_SUBGOAL_FRAME_MASK 0xC0
 
-#define SgFr_is_retroactive(X)                 (SgFr_type(X) & GROUND_SUBGOAL_FRAME_MASK)
-#define SgFr_is_retroactive_producer(X)        (SgFr_type(X) == GROUND_PRODUCER_SFT)
-#define SgFr_is_retroactive_consumer(X)        (SgFr_type(X) == GROUND_CONSUMER_SFT)
+#define SgFr_is_retroactive(X)                 (SgFr_type(X) & RETROACTIVE_SUBGOAL_FRAME_MASK)
+#define SgFr_is_retroactive_producer(X)        (SgFr_type(X) == RETROACTIVE_PRODUCER_SFT)
+#define SgFr_is_retroactive_consumer(X)        (SgFr_type(X) == RETROACTIVE_CONSUMER_SFT)
 #define SgFr_is_retroactive_local_producer(X)  (SgFr_is_retroactive_producer(X) && SgFr_is_local_producer((retroactive_fr_ptr)(X)))
 #define SgFr_is_retroactive_local_consumer(X)  (SgFr_is_retroactive_consumer(X) && SgFr_is_local_consumer((retroactive_fr_ptr)(X)))
 #endif /* TABLING_RETROACTIVE */

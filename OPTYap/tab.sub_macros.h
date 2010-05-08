@@ -58,7 +58,7 @@ STD_PROTO(static inline int build_next_retroactive_producer_return_list, (retroa
     
 #define new_retroactive_producer_subgoal_frame(SG_FR, CODE, LEAF) {  \
         new_basic_subgoal_frame(SG_FR, CODE, LEAF,                \
-          GROUND_PRODUCER_SFT, ALLOC_GROUNDED_SUBGOAL_FRAME);     \
+          RETROACTIVE_PRODUCER_SFT, ALLOC_RETROACTIVE_SUBGOAL_FRAME);     \
         init_retroactive_subgoal_frame(SG_FR);                         \
         SgFr_producer(SG_FR) = NULL;                              \
   }
@@ -75,7 +75,7 @@ STD_PROTO(static inline int build_next_retroactive_producer_return_list, (retroa
 
 #define new_retroactive_consumer_subgoal_frame(SG_FR, CODE, LEAF, PRODUCER) {  \
         new_basic_subgoal_frame(SG_FR, CODE, LEAF,                          \
-          GROUND_CONSUMER_SFT, ALLOC_GROUNDED_SUBGOAL_FRAME);               \
+          RETROACTIVE_CONSUMER_SFT, ALLOC_RETROACTIVE_SUBGOAL_FRAME);               \
         init_retroactive_subgoal_frame(SG_FR);                              \
         SgFr_producer(SG_FR) = PRODUCER;                                    \
       }
@@ -293,7 +293,7 @@ init_consumer_subgoal_frame(sg_fr_ptr sg_fr)
 #endif /* TABLING_RETROACTIVE */
       break;
 #ifdef TABLING_RETROACTIVE
-    case GROUND_CONSUMER_SFT:
+    case RETROACTIVE_CONSUMER_SFT:
       SgFr_num_deps((retroactive_fr_ptr)sg_fr)++;
       break;
 #endif /* TABLING_RETROACTIVE */
@@ -316,7 +316,7 @@ init_consumer_subgoal_frame(sg_fr_ptr sg_fr)
         init_sub_consumer_subgoal_frame((subcons_fr_ptr)sg_fr);
         break;
 #ifdef TABLING_RETROACTIVE
-      case GROUND_CONSUMER_SFT:
+      case RETROACTIVE_CONSUMER_SFT:
         init_retroactive_consumer_subgoal_frame((retroactive_fr_ptr)sg_fr);
         break;
 #endif /* TABLING_RETROACTIVE */

@@ -2043,7 +2043,7 @@ mark_choicepoints(register choiceptr gc_B, tr_fr_ptr saved_TR, int very_verbose)
 	nargs = 0;
 	break;
       case _table_try_answer:
-      case _table_try_ground_answer:
+      case _table_try_retroactive_answer:
       case _table_retry_me:
       case _table_trust_me:
       case _table_retry:
@@ -2938,7 +2938,7 @@ sweep_choicepoints(choiceptr gc_B)
       }
       break;
     case _table_try_answer:
-    case _table_try_ground_answer:
+    case _table_try_retroactive_answer:
     case _table_retry_me:
     case _table_trust_me:
     case _table_retry:

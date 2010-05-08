@@ -270,7 +270,7 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
 #ifdef TABLING_CALL_SUBSUMPTION
 #ifdef TABLING_RETROACTIVE
 #define retroactive_consumer_dep_case(LEADER_CP, SG_FR) \
-case GROUND_CONSUMER_SFT: \
+case RETROACTIVE_CONSUMER_SFT: \
   LEADER_CP = SgFr_choice_point(SgFr_producer((retroactive_fr_ptr)(SG_FR))); \
   break;
 #else
@@ -281,7 +281,7 @@ case GROUND_CONSUMER_SFT: \
         switch(SgFr_type(SG_FR)) {                                                \
           case VARIANT_PRODUCER_SFT:                                              \
           case SUBSUMPTIVE_PRODUCER_SFT:                                          \
-          case GROUND_PRODUCER_SFT:                                               \
+          case RETROACTIVE_PRODUCER_SFT:                                               \
             LEADER_CP = SgFr_choice_point(SG_FR);                                 \
             break;                                                                \
           case SUBSUMED_CONSUMER_SFT:                                             \
@@ -816,7 +816,7 @@ void mark_as_completed(sg_fr_ptr sg_fr) {
       mark_subsumptive_producer_as_completed((subprod_fr_ptr)sg_fr);
       break;
 #ifdef TABLING_RETROACTIVE
-    case GROUND_PRODUCER_SFT:
+    case RETROACTIVE_PRODUCER_SFT:
       dprintf("One retroactive producer completed\n");
       mark_retroactive_producer_as_completed((retroactive_fr_ptr)sg_fr);
       break;
@@ -1098,7 +1098,7 @@ abolish_incomplete_producer_subgoal(sg_fr_ptr sg_fr) {
       abolish_incomplete_subsumptive_producer_subgoal(sg_fr);
       break;
 #ifdef TABLING_RETROACTIVE
-    case GROUND_PRODUCER_SFT:
+    case RETROACTIVE_PRODUCER_SFT:
       abolish_incomplete_retroactive_producer_subgoal(sg_fr);
       break;
 #endif /* TABLING_RETROACTIVE */
@@ -1119,7 +1119,7 @@ abolish_dependency_frame(dep_fr_ptr dep_fr)
         SgFr_num_deps(sg_fr)--;
 #endif /* TABLING_RETROACTIVE */
       break;
-    case GROUND_PRODUCER_SFT:
+    case RETROACTIVE_PRODUCER_SFT:
       /* do nothing */
       break;
     case SUBSUMPTIVE_PRODUCER_SFT:
@@ -1151,7 +1151,7 @@ abolish_dependency_frame(dep_fr_ptr dep_fr)
       }
       break;
 #ifdef TABLING_RETROACTIVE
-    case GROUND_CONSUMER_SFT:
+    case RETROACTIVE_CONSUMER_SFT:
       SgFr_num_deps((retroactive_fr_ptr)sg_fr)--;
       if(SgFr_num_deps((retroactive_fr_ptr)sg_fr) == 0) {
         dprintf("incomplete retroactive goal abolished\n");
@@ -1289,7 +1289,7 @@ get_next_answer_continuation(dep_fr_ptr dep_fr) {
   switch(SgFr_type(sg_fr)) {
     case VARIANT_PRODUCER_SFT:
     case SUBSUMPTIVE_PRODUCER_SFT:
-    case GROUND_PRODUCER_SFT:
+    case RETROACTIVE_PRODUCER_SFT:
       return continuation_next(DepFr_last_answer(dep_fr));
     case SUBSUMED_CONSUMER_SFT:
       {
@@ -1319,7 +1319,7 @@ get_next_answer_continuation(dep_fr_ptr dep_fr) {
       }
       break;
 #ifdef TABLING_RETROACTIVE
-    case GROUND_CONSUMER_SFT:
+    case RETROACTIVE_CONSUMER_SFT:
       {
         continuation_ptr last_cont = DepFr_last_answer(dep_fr);
         continuation_ptr next = continuation_next(last_cont);
@@ -1358,7 +1358,7 @@ is_new_generator_call(sg_fr_ptr sg_fr) {
   switch(SgFr_type(sg_fr)) {
     case VARIANT_PRODUCER_SFT:
     case SUBSUMPTIVE_PRODUCER_SFT:
-    case GROUND_PRODUCER_SFT:
+    case RETROACTIVE_PRODUCER_SFT:
       return SgFr_state(sg_fr) == ready;
 #ifdef TABLING_CALL_SUBSUMPTION
     case SUBSUMED_CONSUMER_SFT:
@@ -1378,13 +1378,13 @@ is_new_consumer_call(sg_fr_ptr sg_fr) {
   switch(SgFr_type(sg_fr)) {
     case VARIANT_PRODUCER_SFT:
     case SUBSUMPTIVE_PRODUCER_SFT:
-    case GROUND_PRODUCER_SFT:
+    case RETROACTIVE_PRODUCER_SFT:
       return SgFr_state(sg_fr) == evaluating;
 #ifdef TABLING_CALL_SUBSUMPTION
     case SUBSUMED_CONSUMER_SFT:
       return SgFr_state(SgFr_producer((subcons_fr_ptr)sg_fr)) == evaluating;
 #ifdef TABLING_RETROACTIVE
-    case GROUND_CONSUMER_SFT:
+    case RETROACTIVE_CONSUMER_SFT:
       return SgFr_state(SgFr_producer((retroactive_fr_ptr)sg_fr)) == evaluating;
 #endif /* TABLING_RETROACTIVE */
 #endif /* TABLING_CALL_SUBSUMPTION */

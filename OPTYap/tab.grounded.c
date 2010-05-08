@@ -232,7 +232,7 @@ sg_fr_ptr retroactive_call_search(yamop *code, CELL *answer_template, CELL **new
       retroactive_fr_ptr producer = SgFr_producer(sg_fr);
       if(SgFr_state(producer) < evaluating) {
         /* turn into producer */
-        SgFr_set_type(sg_fr, GROUND_PRODUCER_SFT); 
+        SgFr_set_type(sg_fr, RETROACTIVE_PRODUCER_SFT); 
         SgFr_producer(sg_fr) = NULL;
         dprintf("Producer not evaluating\n");
       }
