@@ -676,10 +676,10 @@ void tab_entry_set_subsumptive_mode(tab_ent_ptr tab_ent) {
 }
 
 static inline
-void tab_entry_set_grounded_mode(tab_ent_ptr tab_ent) {
+void tab_entry_set_retroactive_mode(tab_ent_ptr tab_ent) {
   SetDefaultMode_Grounded(TabEnt_mode(tab_ent));
   if (IsMode_ChecksOff(yap_flags[TABLING_MODE_FLAG]))
-    TabEnt_set_grounded(tab_ent)
+    TabEnt_set_retroactive(tab_ent)
 }
 
 static
@@ -718,10 +718,10 @@ Int p_use_grounded_tabling(void) {
     return FALSE;
   
   if(TabEnt_is_empty(tab_ent)) {
-    tab_entry_set_grounded_mode(tab_ent);
+    tab_entry_set_retroactive_mode(tab_ent);
     return TRUE;
   } else
-    return TabEnt_is_grounded(tab_ent);
+    return TabEnt_is_retroactive(tab_ent);
 }
 #endif /* TABLING_CALL_SUBSUMPTION */
 
@@ -844,7 +844,7 @@ Int p_tabling_mode(void) {
     }
     
     if(strcmp(str_val, "grounded") == 0) {
-      tab_entry_set_grounded_mode(tab_ent);
+      tab_entry_set_retroactive_mode(tab_ent);
       return TRUE;
     }
 #endif /* TABLING_CALL_SUBSUMPTION */
@@ -863,13 +863,13 @@ abolish_table(tab_ent_ptr tab_ent) {
   
   if(TabEnt_subgoal_trie(tab_ent)) {
 #ifdef TABLING_RETROACTIVE
-    if(TabEnt_is_grounded(tab_ent)) {
-      free_ground_trie(tab_ent);
+    if(TabEnt_is_retroactive(tab_ent)) {
+      free_retroactive_trie(tab_ent);
     }
 #endif /* TABLING_RETROACTIVE */
 #ifdef TABLING_COMPLETE_TABLE
     if(TabEnt_completed(tab_ent)) {
-      free_ground_trie(tab_ent);
+      free_retroactive_trie(tab_ent);
     }
 #endif /* TABLING_COMPLETE_TABLE */
     

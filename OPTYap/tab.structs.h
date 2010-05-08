@@ -111,10 +111,10 @@ typedef struct table_entry {
 #ifdef TABLING_CALL_SUBSUMPTION
 #define TabEnt_is_variant(X)      (IsMode_Variant(TabEnt_mode(X)))
 #define TabEnt_is_subsumptive(X)  (IsMode_Subsumptive(TabEnt_mode(X)))
-#define TabEnt_is_grounded(X)     (IsMode_Grounded(TabEnt_mode(X)))
+#define TabEnt_is_retroactive(X)  (IsMode_Grounded(TabEnt_mode(X)))
 #define TabEnt_set_variant(X)     { if(TabEnt_is_empty(X)) SetMode_Variant(TabEnt_mode(X)); }
 #define TabEnt_set_subsumptive(X) { if(TabEnt_is_empty(X)) SetMode_Subsumptive(TabEnt_mode(X)); }
-#define TabEnt_set_grounded(X)    { if(TabEnt_is_empty(X)) SetMode_Grounded(TabEnt_mode(X)); }
+#define TabEnt_set_retroactive(X) { if(TabEnt_is_empty(X)) SetMode_Grounded(TabEnt_mode(X)); }
 #define TabEnt_set_load(X)        { if(TabEnt_is_empty(X) || TabEnt_is_variant(X)) SetMode_LoadAnswers(TabEnt_mode(X)); }
 #define TabEnt_set_exec(X)        { if(TabEnt_is_empty(X) || TabEnt_is_variant(X)) SetMode_ExecAnswers(TabEnt_mode(X)); }
 #else

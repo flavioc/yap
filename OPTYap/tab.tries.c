@@ -92,8 +92,8 @@ sg_fr_ptr subgoal_search(yamop *preg, CELL **local_stack_ptr)
   } else if(TabEnt_is_subsumptive(tab_ent)) {
     sg_fr = subsumptive_call_search(preg, local_stack, local_stack_ptr);
 #ifdef TABLING_RETROACTIVE
-  } else if(TabEnt_is_grounded(tab_ent)) {
-    sg_fr = grounded_call_search(preg, local_stack, local_stack_ptr);
+  } else if(TabEnt_is_retroactive(tab_ent)) {
+    sg_fr = retroactive_call_search(preg, local_stack, local_stack_ptr);
 #endif /* TABLING_RETROACTIVE */
   }
 #else
@@ -118,10 +118,10 @@ ans_node_ptr answer_search(sg_fr_ptr sg_fr, CELL *subs_ptr) {
     CELL* answerVector = subs_ptr + nTerms;
     return (ans_node_ptr)subsumptive_answer_search((subprod_fr_ptr)sg_fr, nTerms, answerVector);
 #ifdef TABLING_RETROACTIVE
-  } else if(SgFr_is_ground_producer(sg_fr)) {
+  } else if(SgFr_is_retroactive_producer(sg_fr)) {
     int nTerms = *subs_ptr;
     CELL* answerVector = subs_ptr + nTerms;
-    return (ans_node_ptr)grounded_answer_search((retroactive_fr_ptr)sg_fr, answerVector);
+    return (ans_node_ptr)retroactive_answer_search((retroactive_fr_ptr)sg_fr, answerVector);
 #endif /* TABLING_RETROACTIVE */
   }
 #endif /* TABLING_CALL_SUBSUMPTION */
@@ -369,8 +369,8 @@ complete_dependency_frame(dep_fr_ptr dep_fr)
       SgFr_num_deps((retroactive_fr_ptr)sg_fr)--;
     
       if(SgFr_num_deps((retroactive_fr_ptr)sg_fr) == 0) {
-        mark_ground_consumer_as_completed((retroactive_fr_ptr)sg_fr);
-        dprintf("One ground consumer completed\n");
+        mark_retroactive_consumer_as_completed((retroactive_fr_ptr)sg_fr);
+        dprintf("One retroactive consumer completed\n");
       }
       break;
 #endif /* TABLING_RETROACTIVE */
@@ -510,7 +510,7 @@ void free_subgoal_trie_branch(sg_node_ptr current_node, int nodes_left, int node
 #ifdef TABLING_RETROACTIVE
       case GROUND_PRODUCER_SFT:
       case GROUND_CONSUMER_SFT:
-        free_ground_subgoal_data((retroactive_fr_ptr)sg_fr);
+        free_retroactive_subgoal_data((retroactive_fr_ptr)sg_fr);
         FREE_GROUNDED_SUBGOAL_FRAME(sg_fr);
         break;
 #endif /* TABLING_RETROACTIVE */
@@ -742,7 +742,7 @@ void show_table(tab_ent_ptr tab_ent, int show_mode) {
 #ifdef TABLING_CALL_SUBSUMPTION
     } else {
 #ifdef TABLING_RETROACTIVE
-      if(TabEnt_is_grounded(tab_ent)) {
+      if(TabEnt_is_retroactive(tab_ent)) {
         bytes += TrStat_subgoals * sizeof(struct retroactive_subgoal_frame);
         retroactive_trie_statistics(tab_ent);
       } else
@@ -1076,15 +1076,15 @@ void traverse_subgoal_trie(sg_node_ptr current_node, char *str, int str_index, i
         {
           TrStat_subgoals++;
           
-          if(SgFr_is_ground_consumer(sg_fr)) {
-            retroactive_fr_ptr ground_sg = (retroactive_fr_ptr)sg_fr;
-            retroactive_fr_ptr producer_sg = (retroactive_fr_ptr)SgFr_producer(ground_sg);
+          if(SgFr_is_retroactive_consumer(sg_fr)) {
+            retroactive_fr_ptr retro_sg = (retroactive_fr_ptr)sg_fr;
+            retroactive_fr_ptr producer_sg = (retroactive_fr_ptr)SgFr_producer(retro_sg);
             
-            if(SgFr_state(ground_sg) < complete && SgFr_state(producer_sg) >= complete) {
-              mark_ground_consumer_as_completed(ground_sg);
+            if(SgFr_state(retro_sg) < complete && SgFr_state(producer_sg) >= complete) {
+              mark_retroactive_consumer_as_completed(retro_sg);
             }
             
-            build_next_ground_consumer_return_list(ground_sg);
+            build_next_retroactive_consumer_return_list(retro_sg);
           }
           if(SgFr_has_no_answers(sg_fr)) {
             if(SgFr_state(sg_fr) < complete) {
@@ -1095,7 +1095,7 @@ void traverse_subgoal_trie(sg_node_ptr current_node, char *str, int str_index, i
               SHOW_TABLE_STRUCTURE("    NO\n");
             }
           } else {
-            show_ground_with_answers(sg_fr);
+            show_retroactive_with_answers(sg_fr);
           }
         }
         break;
@@ -1175,7 +1175,7 @@ retroactive_trie_statistics(tab_ent_ptr tab_ent)
   if(TabEnt_subgoal_trie(tab_ent) == NULL)
     return;
     
-  ans_node_ptr root = (ans_node_ptr)TabEnt_ground_trie(tab_ent);
+  ans_node_ptr root = (ans_node_ptr)TabEnt_retroactive_trie(tab_ent);
   
   traverse_retroactive_trie(root);
 }

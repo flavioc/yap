@@ -49,7 +49,7 @@
 #ifdef TABLING_RETROACTIVE
 #define store_cons_args_local_stack(ARITY) store_args_local_stack(ARITY)
 #define update_generator_node(SG_FR)      \
-    if(SgFr_is_ground_producer(SG_FR)) {  \
+    if(SgFr_is_retroactive_producer(SG_FR)) {  \
       SgFr_update_saved_max((retroactive_fr_ptr)(SG_FR));       \
     }
 #define DepFr_add_queue(DEP_FR) \
@@ -233,7 +233,7 @@
             CONSUME_SUBSUMPTIVE_ANSWER(ANS_NODE, ANSWER_TMPLT);             \
             break;                                                          \
           case GROUND_PRODUCER_SFT:                                         \
-            CONSUME_GROUND_ANSWER(ANS_NODE, ANSWER_TMPLT, SG_FR);           \
+            CONSUME_RETROACTIVE_ANSWER(ANS_NODE, ANSWER_TMPLT, SG_FR);      \
             break;                                                          \
           }
 
@@ -461,18 +461,16 @@
         UNLOCK(SgFr_lock(SG_FR));                   \
         exec_compiled_trie(SgFr_answer_trie(SG_FR))
 
-#ifdef TABLING_CALL_SUBSUMPTION
-
 #define compute_subsumptive_consumer_answer_list(SG_FR) \
       if(SgFr_state(SG_FR) < complete) {      \
         build_next_subsumptive_consumer_return_list((subcons_fr_ptr)(SG_FR)); \
         SgFr_state(SG_FR) = complete; \
       }
       
-#define compute_ground_consumer_answer_list(SG_FR)                        \
-      if(SgFr_state(SG_FR) < complete) {                                  \
-        build_next_ground_consumer_return_list((retroactive_fr_ptr)(SG_FR)); \
-        SgFr_state(SG_FR) = complete;                                     \
+#define compute_retroactive_consumer_answer_list(SG_FR)                           \
+      if(SgFr_state(SG_FR) < complete) {                                          \
+        build_next_retroactive_consumer_return_list((retroactive_fr_ptr)(SG_FR)); \
+        SgFr_state(SG_FR) = complete;                                             \
       }
       
 #define set_subsumptive_producer(SG_FR)                           \
@@ -482,19 +480,19 @@
       SG_FR = (sg_fr_ptr)SgFr_producer((subcons_fr_ptr)(SG_FR));  \
       LOCK(SgFr_lock(SG_FR))
       
-#define exec_ground_trie(TAB_ENT)                                       \
-      if(TabEnt_arity(TAB_ENT) == 0) {                                  \
-        if(TabEnt_ground_yes(TAB_ENT)) {                                \
-          procceed_yes_answer();                                        \
-        } else {                                                        \
-          goto fail;                                                    \
-        }                                                               \
-      } else {                                                          \
-        ans_node_ptr trie = (ans_node_ptr)TabEnt_ground_trie(TAB_ENT);  \
-        if(trie == NULL || TrNode_child(trie) == NULL) {                \
-          goto fail;                                                    \
-        }                                                               \
-        exec_compiled_trie(trie);                                       \
+#define exec_retroactive_trie(TAB_ENT)                                      \
+      if(TabEnt_arity(TAB_ENT) == 0) {                                      \
+        if(TabEnt_retroactive_yes(TAB_ENT)) {                               \
+          procceed_yes_answer();                                            \
+        } else {                                                            \
+          goto fail;                                                        \
+        }                                                                   \
+      } else {                                                              \
+        ans_node_ptr trie = (ans_node_ptr)TabEnt_retroactive_trie(TAB_ENT); \
+        if(trie == NULL || TrNode_child(trie) == NULL) {                    \
+          goto fail;                                                        \
+        }                                                                   \
+        exec_compiled_trie(trie);                                           \
       }
       
 #ifdef TABLING_RETROACTIVE
@@ -504,75 +502,75 @@
 #define start_executing_field(SG_FR) /* do nothing */
 #endif /* TABLING_RETROACTIVE */
       
-#define check_ground_pre_stored_answers(SG_FR, TAB_ENT, GROUND_SG)  \
-    if(TabEnt_ground_time_stamp(TAB_ENT) > 0) {                     \
-      dprintf("Pre stored answers\n");                              \
-      retroactive_fr_ptr ground_sg = (retroactive_fr_ptr)(SG_FR);         \
-                                                                    \
-      /* retrieve more answers */                                   \
-      build_next_ground_producer_return_list(GROUND_SG);            \
-                                                                    \
-      continuation_ptr cont = SgFr_first_answer(GROUND_SG);         \
-                                                                    \
-      if(cont) {                                                    \
-        ans_node_ptr ans_node = continuation_answer(cont);          \
+#define check_retroactive_pre_stored_answers(SG_FR, TAB_ENT, GROUND_SG)       \
+    if(TabEnt_retroactive_time_stamp(TAB_ENT) > 0) {                          \
+      dprintf("Pre stored answers\n");                                        \
+      retroactive_fr_ptr retro_sg = (retroactive_fr_ptr)(SG_FR);              \
+                                                                              \
+      /* retrieve more answers */                                             \
+      build_next_retroactive_producer_return_list(GROUND_SG);                 \
+                                                                              \
+      continuation_ptr cont = SgFr_first_answer(GROUND_SG);                   \
+                                                                              \
+      if(cont) {                                                              \
+        ans_node_ptr ans_node = continuation_answer(cont);                    \
+        /* XXX */                                                             \
         CELL *answer_template = (CELL *)(GEN_CP(B) + 1) + SgFr_arity(SG_FR);  \
-                                                                    \
-        SgFr_try_answer(GROUND_SG) = cont;                          \
-        start_executing_field(GROUND_SG);                           \
-                                                                    \
-        B->cp_ap = TRY_GROUND_ANSWER;                               \
-        PREG = (yamop *)CPREG;                                      \
-        PREFETCH_OP(PREG);                                          \
-        CONSUME_GROUND_ANSWER(ans_node, answer_template, GROUND_SG);\
-        YENV = ENV;                                                 \
-        GONext();                                                   \
-      }                                                             \
+                                                                              \
+        SgFr_try_answer(GROUND_SG) = cont;                                    \
+        start_executing_field(GROUND_SG);                                     \
+                                                                              \
+        B->cp_ap = TRY_GROUND_ANSWER;                                         \
+        PREG = (yamop *)CPREG;                                                \
+        PREFETCH_OP(PREG);                                                    \
+        CONSUME_RETROACTIVE_ANSWER(ans_node, answer_template, GROUND_SG);     \
+        YENV = ENV;                                                           \
+        GONext();                                                             \
+      }                                                                       \
     }
 
-#define check_ground_generator(SG_FR, TAB_ENT)                      \
-    if(SgFr_is_ground_producer(SG_FR)) {                            \
-      retroactive_fr_ptr ground_sg = (retroactive_fr_ptr)(SG_FR);         \
-      check_ground_pending_subgoals(SG_FR, TAB_ENT, ground_sg);     \
-      if(!SgFr_is_ground_local_producer(SG_FR)) {                   \
-        check_ground_pre_stored_answers(SG_FR, TAB_ENT, ground_sg); \
-      }                                                             \
+#define check_retroactive_generator(SG_FR, TAB_ENT)                       \
+    if(SgFr_is_retroactive_producer(SG_FR)) {                             \
+      retroactive_fr_ptr retro_sg = (retroactive_fr_ptr)(SG_FR);          \
+      check_retroactive_pending_subgoals(SG_FR, TAB_ENT, retro_sg);       \
+      if(!SgFr_is_retroactive_local_producer(SG_FR)) {                    \
+        check_retroactive_pre_stored_answers(SG_FR, TAB_ENT, retro_sg);   \
+      }                                                                   \
     }
 
 #ifdef TABLING_RETROACTIVE
-#define precheck_ground_generator(SG_FR)                            \
-     if(SgFr_is_ground_producer(SG_FR)) {                           \
-       SgFr_set_saved_max((retroactive_fr_ptr)(SG_FR), B);             \
-       Bind_and_Trail(&SgFr_start((retroactive_fr_ptr)SG_FR), (Term)B_FZ);              \
+#define precheck_retroactive_generator(SG_FR)                               \
+     if(SgFr_is_retroactive_producer(SG_FR)) {                              \
+       SgFr_set_saved_max((retroactive_fr_ptr)(SG_FR), B);                  \
+       Bind_and_Trail(&SgFr_start((retroactive_fr_ptr)SG_FR), (Term)B_FZ);  \
      }
      
 #else
-#define precheck_ground_generator(SG_FR) /* do nothing */
+#define precheck_retroactive_generator(SG_FR) /* do nothing */
 #endif /* TABLING_RETROACTIVE */
 
-/* Consume subsuming answer ANS_NODE using ANS_TMPLT
- * as the pointer to the answer template.
- * the size of the answer template is calculated and
- * consume_subsumptive_answer is called to do the real work
- */
+#ifdef TABLING_CALL_SUBSUMPTION
 #define CONSUME_SUBSUMPTIVE_ANSWER(ANS_NODE, ANS_TMPLT) {                     \
   int arity = (int)*(ANS_TMPLT);                                              \
   CELL *sub_answer_template = (ANS_TMPLT) + arity;                            \
   consume_subsumptive_answer((BTNptr)(ANS_NODE), arity, sub_answer_template); \
 }
+#else
+#define CONSUME_SUBSUMPTIVE_ANSWER(ANS_NODE, ANS_TMPLT) /* do nothing */
+#endif /* TABLING_CALL_SUBSUMPTION */
 
 #ifdef TABLING_RETROACTIVE
-#define CONSUME_GROUND_ANSWER(ANS_NODE, ANS_TMPLT, SG_FR) \
-  if(SgFr_is_most_general((retroactive_fr_ptr)(SG_FR))) {    \
-    CONSUME_VARIANT_ANSWER(ANS_NODE, ANS_TMPLT);          \
-  } else {                                                \
-    CONSUME_SUBSUMPTIVE_ANSWER(ANS_NODE, ANS_TMPLT);      \
+#define CONSUME_RETROACTIVE_ANSWER(ANS_NODE, ANS_TMPLT, SG_FR)  \
+  if(SgFr_is_most_general((retroactive_fr_ptr)(SG_FR))) {       \
+    CONSUME_VARIANT_ANSWER(ANS_NODE, ANS_TMPLT);                \
+  } else {                                                      \
+    CONSUME_SUBSUMPTIVE_ANSWER(ANS_NODE, ANS_TMPLT);            \
   }
 #else
-#define CONSUME_GROUND_ANSWER(ANS_NODE, ANS_TMPLT, SG_FR) /* do nothing */
+#define CONSUME_RETROACTIVE_ANSWER(ANS_NODE, ANS_TMPLT, SG_FR) /* do nothing */
 #endif /* TABLING_RETROACTIVE */
   
-#define consume_next_ground_answer(CONT, SG_FR)                 \
+#define consume_next_retroactive_answer(CONT, SG_FR)            \
   CELL *answer_template = GENERATOR_ANSWER_TEMPLATE(B, SG_FR);  \
   ans_node_ptr ans_node = continuation_answer(CONT);            \
                                                                 \
@@ -606,13 +604,6 @@
   YENV = ENV;                                                   \
   GONext()
 
-#else
-
-#define CONSUME_SUBSUMPTIVE_ANSWER(ANS_NODE, ANS_TMPLT) Yap_Error(INTERNAL_ERROR, TermNil, "tabling by call subsumption not supported")
-#define CONSUME_GROUND_ANSWER(ANS_NODE, ANS_TMPLT, SG_FR) Yap_Error(INTERNAL_ERROR, TermNil, "grounded tabling not supported")
-
-#endif /* TABLING_CALL_SUBSUMPTION */
-
 #ifdef TABLING_COMPLETE_TABLE
 #define completed_table_optimization(TAB_ENT)                                       \
   if(TabEnt_is_exec(TAB_ENT) && TabEnt_completed(TAB_ENT))                          \
@@ -620,7 +611,7 @@
     YENV2MEM;                                                                       \
     YENV = copy_arguments_as_the_answer_template(YENV - 1, TabEnt_arity(TAB_ENT));  \
     MEM2YENV;                                                                       \
-    exec_ground_trie(TAB_ENT);                                                      \
+    exec_retroactive_trie(TAB_ENT);                                                      \
   }
 #else
 #define completed_table_optimization(TAB_ENT) /* nothing */
@@ -750,7 +741,7 @@ load_answer_jump:
             goto answer_resolution;
           }
           
-          build_next_ground_consumer_return_list(sg_fr);
+          build_next_retroactive_consumer_return_list(sg_fr);
 
           if(SgFr_try_answer(sg_fr))
             cont = continuation_next(SgFr_try_answer(sg_fr));
@@ -761,7 +752,7 @@ load_answer_jump:
             dprintf("Consuming...\n");
             /* as long we can consume answers we
              * can avoid being a real consumer */
-            consume_next_ground_answer(cont, sg_fr);
+            consume_next_retroactive_answer(cont, sg_fr);
           } else if(SgFr_saved_cp(SgFr_producer(sg_fr))) {
             retroactive_fr_ptr prod = SgFr_producer(sg_fr);
             choiceptr cp = SgFr_saved_cp(prod);
@@ -824,8 +815,8 @@ load_answer_jump:
         if(SgFr_state(sg_fr) < complete) {
           dprintf("just completed!\n");
           /* producer subgoal just completed */
-          build_next_ground_consumer_return_list(sg_fr);
-          mark_ground_consumer_as_completed(sg_fr);
+          build_next_retroactive_consumer_return_list(sg_fr);
+          mark_retroactive_consumer_as_completed(sg_fr);
         }
         
         if(dep_fr) {
@@ -1136,7 +1127,7 @@ try_answer_jump: {
       
       PREG = (yamop *) CPREG;
       PREFETCH_OP(PREG);
-      CONSUME_GROUND_ANSWER(ans_node, answer_template, sg_fr);
+      CONSUME_RETROACTIVE_ANSWER(ans_node, answer_template, sg_fr);
       YENV = ENV;
       GONext();
     } else {
@@ -1193,7 +1184,7 @@ try_answer_jump: {
       
       UNLOCK(SgFr_lock(sg_fr));
 #ifdef TABLING_RETROACTIVE
-      precheck_ground_generator(sg_fr);
+      precheck_retroactive_generator(sg_fr);
 #endif
 #ifdef DETERMINISTIC_TABLING
       if (IsMode_Batched(TabEnt_mode(tab_ent))) {
@@ -1204,7 +1195,7 @@ try_answer_jump: {
 	      store_generator_node(tab_ent, sg_fr, PREG->u.Otapl.s, COMPLETION);
       }
 #ifdef TABLING_RETROACTIVE
-      check_ground_generator(sg_fr, tab_ent);
+      check_retroactive_generator(sg_fr, tab_ent);
 #endif
       PREG = PREG->u.Otapl.d;  /* should work also with PREG = NEXTOP(PREG,Otapl); */
       PREFETCH_OP(PREG);
@@ -1309,16 +1300,16 @@ try_answer_jump: {
             check_no_answers(sg_fr);
             load_subsumptive_answers_from_sf(sg_fr, tab_ent, YENV);
           } else {
-            exec_ground_trie(tab_ent);
+            exec_retroactive_trie(tab_ent);
           }
           break;
         case GROUND_CONSUMER_SFT:
           if(TabEnt_is_load(tab_ent)) {
-            compute_ground_consumer_answer_list(sg_fr);
+            compute_retroactive_consumer_answer_list(sg_fr);
             check_no_answers(sg_fr);
             load_subsumptive_answers_from_sf(sg_fr, tab_ent, YENV);
           } else {
-            exec_ground_trie(tab_ent);
+            exec_retroactive_trie(tab_ent);
           }
           break;
 #endif /* TABLING_RETROACTIVE */
@@ -1351,11 +1342,11 @@ try_answer_jump: {
 
       UNLOCK(SgFr_lock(sg_fr));
 #ifdef TABLING_RETROACTIVE
-      precheck_ground_generator(sg_fr);
+      precheck_retroactive_generator(sg_fr);
 #endif
       store_generator_node(tab_ent, sg_fr, PREG->u.Otapl.s, PREG->u.Otapl.d);
 #ifdef TABLING_RETROACTIVE
-      check_ground_generator(sg_fr, tab_ent);
+      check_retroactive_generator(sg_fr, tab_ent);
 #endif
       PREG = NEXTOP(PREG, Otapl);
       PREFETCH_OP(PREG);
@@ -1459,16 +1450,16 @@ try_answer_jump: {
             check_no_answers(sg_fr);
             load_subsumptive_answers_from_sf(sg_fr, tab_ent, YENV);
           } else {
-            exec_ground_trie(tab_ent);
+            exec_retroactive_trie(tab_ent);
           }
           break;
         case GROUND_CONSUMER_SFT:
           if(TabEnt_is_load(tab_ent)) {
-            compute_ground_consumer_answer_list(sg_fr);
+            compute_retroactive_consumer_answer_list(sg_fr);
             check_no_answers(sg_fr);
             load_subsumptive_answers_from_sf(sg_fr, tab_ent, YENV);
           } else {
-            exec_ground_trie(tab_ent);
+            exec_retroactive_trie(tab_ent);
           }
           break;
 #endif /* TABLING_RETROACTIVE */
@@ -1502,11 +1493,11 @@ try_answer_jump: {
       init_subgoal_frame(sg_fr);
       UNLOCK(SgFr_lock(sg_fr));
 #ifdef TABLING_RETROACTIVE
-      precheck_ground_generator(sg_fr);
+      precheck_retroactive_generator(sg_fr);
 #endif
       store_generator_node(tab_ent, sg_fr, PREG->u.Otapl.s, NEXTOP(PREG,Otapl));
 #ifdef TABLING_RETROACTIVE
-      check_ground_generator(sg_fr, tab_ent);
+      check_retroactive_generator(sg_fr, tab_ent);
 #endif
       PREG = PREG->u.Otapl.d;
       PREFETCH_OP(PREG);
@@ -1610,16 +1601,16 @@ try_answer_jump: {
             check_no_answers(sg_fr);
             load_subsumptive_answers_from_sf(sg_fr, tab_ent, YENV);
           } else {
-            exec_ground_trie(tab_ent);
+            exec_retroactive_trie(tab_ent);
           }
           break;
         case GROUND_CONSUMER_SFT:
           if(TabEnt_is_load(tab_ent)) {
-            compute_ground_consumer_answer_list(sg_fr);
+            compute_retroactive_consumer_answer_list(sg_fr);
             check_no_answers(sg_fr);
             load_subsumptive_answers_from_sf(sg_fr, tab_ent, YENV);
           } else {
-            exec_ground_trie(tab_ent);
+            exec_retroactive_trie(tab_ent);
           }
           break;
 #endif /* TABLING_RETROACTIVE */
@@ -1919,9 +1910,9 @@ try_answer_jump: {
 #ifdef TABLING_RETROACTIVE
       dprintf("NEW_ANSWER_CP=%d\n", (int)B);
       
-      if(SgFr_is_ground_producer(sg_fr)) {
-        retroactive_fr_ptr ground = (retroactive_fr_ptr)sg_fr;
-        SgFr_update_saved_max(ground);
+      if(SgFr_is_retroactive_producer(sg_fr)) {
+        retroactive_fr_ptr retro = (retroactive_fr_ptr)sg_fr;
+        SgFr_update_saved_max(retro);
       }
 #endif /* TABLING_RETROACTIVE */
 
@@ -1939,17 +1930,17 @@ try_answer_jump: {
       UNLOCK(SgFr_lock(sg_fr));
       
 #ifdef TABLING_RETROACTIVE
-      if(SgFr_is_ground_local_producer(sg_fr)) {
+      if(SgFr_is_retroactive_local_producer(sg_fr)) {
         dprintf("GROUND_LOCAL PRODUCER\n");
-        retroactive_fr_ptr ground = (retroactive_fr_ptr)sg_fr;
-        SgFr_num_ans(ground)++;
-        dprintf("SgFr_num_ans(ground)=%d\n", SgFr_num_ans(ground));
+        retroactive_fr_ptr retro = (retroactive_fr_ptr)sg_fr;
+        SgFr_num_ans(retro)++;
+        dprintf("SgFr_num_ans(retro)=%d\n", SgFr_num_ans(retro));
         
-        if(SgFr_num_ans(ground) > 1 && POWER_OF_TWO(SgFr_num_ans(ground))) {
+        if(FALSE && SgFr_num_ans(retro) > 1 && POWER_OF_TWO(SgFr_num_ans(retro))) {
           dprintf("Act as batched\n");
           choiceptr mycp = SgFr_choice_point(sg_fr);
           choiceptr target = mycp->cp_b;
-          SgFr_saved_cp(ground) = B;
+          SgFr_saved_cp(retro) = B;
           dprintf("TR %d B->cp_tr %d target->cp_tr %d mycp->cp_tr %d\n", (int)TR, (int)B->cp_tr, (int)target->cp_tr, (int)mycp->cp_tr);
           dprintf("Saved_cp %d target %d\n", (int)B, target);
           unbind_variables(TR, target->cp_tr);
@@ -1982,7 +1973,7 @@ try_answer_jump: {
       if (IS_BATCHED_GEN_CP(gcp)) {
 
 #ifdef TABLING_RETROACTIVE
-        if(SgFr_is_ground_producer(sg_fr)) {
+        if(SgFr_is_retroactive_producer(sg_fr)) {
           Bind_and_Trail(&SgFr_executing((retroactive_fr_ptr)sg_fr), (Term)B);
         }
         SET_TOP_GEN_SG(SgFr_top_gen_sg(sg_fr));
@@ -2419,7 +2410,7 @@ try_answer_jump: {
     {
 #ifdef TABLING_RETROACTIVE
       sg_fr_ptr sg_fr = GEN_CP(B)->cp_sg_fr;
-      if(SgFr_is_ground_local_producer(sg_fr)) {
+      if(SgFr_is_retroactive_local_producer(sg_fr)) {
         if(B != DepFr_leader_cp(LOCAL_top_dep_fr)) {
           /* not leader on that node */
           B = B->cp_b;
@@ -2757,11 +2748,11 @@ try_answer_jump: {
       private_completion(sg_fr);
       
 #ifdef TABLING_RETROACTIVE
-      if(SgFr_is_ground_local_producer(sg_fr)) {
+      if(SgFr_is_retroactive_local_producer(sg_fr)) {
         /* more general subgoal has just completed,
            get into the consumer! */
         B = B->cp_b;
-        dprintf("Backtrack ground local producer\n");
+        dprintf("Backtrack retroactive local producer\n");
         SET_BB(PROTECT_FROZEN_B(B));
         goto fail;     
       }
@@ -2824,7 +2815,7 @@ try_answer_jump: {
               if(TabEnt_is_load(tab_ent)) {
                 load_answers_from_sf_no_unlock(sg_fr, tab_ent, CONSUME_SUBSUMPTIVE_ANSWER, LOAD_CONS_ANSWER, YENV);
               } else {
-                exec_ground_trie(tab_ent);
+                exec_retroactive_trie(tab_ent);
               }
             }
             break;

@@ -34,7 +34,7 @@
 
 #ifdef TABLING_COMPLETE_TABLE
 void
-transform_subsumptive_into_ground_trie(subprod_fr_ptr sg_fr)
+transform_subsumptive_into_retroactive_trie(subprod_fr_ptr sg_fr)
 {
   tab_ent_ptr tab_ent = SgFr_tab_ent(sg_fr);
   ans_node_ptr answer_trie = SgFr_answer_trie(sg_fr);
@@ -46,10 +46,10 @@ transform_subsumptive_into_ground_trie(subprod_fr_ptr sg_fr)
   SgFr_answer_trie(sg_fr) = NULL;
   
   /* ... and put it on the table entry */
-  TabEnt_ground_trie(tab_ent) = (sg_node_ptr)answer_trie;
+  TabEnt_retroactive_trie(tab_ent) = (sg_node_ptr)answer_trie;
   
   /* now remove the subgoal trie and its subgoals */
-  free_subgoal_trie_from_ground_table(tab_ent);
+  free_subgoal_trie_from_retroactive_table(tab_ent);
 }
 #endif /* TABLING_COMPLETE_TABLE */
 

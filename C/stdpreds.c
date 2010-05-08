@@ -3794,7 +3794,7 @@ p_set_yap_flags(void)
 	      if (IsDefaultMode_Subsumptive(TabEnt_mode(tab_ent)))
           TabEnt_set_subsumptive(tab_ent)
         else if(IsDefaultMode_Grounded(TabEnt_mode(tab_ent)))
-          TabEnt_set_grounded(tab_ent)
+          TabEnt_set_retroactive(tab_ent)
         else
           TabEnt_set_variant(tab_ent)
 #endif /* TABLING_CALL_SUBSUMPTION */
@@ -3853,7 +3853,7 @@ p_set_yap_flags(void)
     } else if(value == 7) { /* grounded */
       tab_ent_ptr tab_ent = GLOBAL_root_tab_ent;
       while(tab_ent) {
-        TabEnt_set_grounded(tab_ent);
+        TabEnt_set_retroactive(tab_ent);
         tab_ent = TabEnt_next(tab_ent);
       }
       SetMode_Grounded(yap_flags[TABLING_MODE_FLAG]);

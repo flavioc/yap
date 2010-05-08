@@ -30,7 +30,7 @@
 #include "tab.tries.h"
 
 static inline retroactive_fr_ptr
-create_new_ground_producer_subgoal(sg_node_ptr leaf_node, tab_ent_ptr tab_ent, yamop *code) {
+create_new_retroactive_producer_subgoal(sg_node_ptr leaf_node, tab_ent_ptr tab_ent, yamop *code) {
   retroactive_fr_ptr sg_fr;
   
 #if defined(TABLE_LOCK_AT_NODE_LEVEL)
@@ -39,7 +39,7 @@ create_new_ground_producer_subgoal(sg_node_ptr leaf_node, tab_ent_ptr tab_ent, y
   LOCK_TABLE(leaf_node);
 #endif /* TABLE_LOCK_LEVEL */
 
-  new_grounded_producer_subgoal_frame(sg_fr, code, leaf_node);
+  new_retroactive_producer_subgoal_frame(sg_fr, code, leaf_node);
   
     /* unlock table entry */
 #if defined(TABLE_LOCK_AT_ENTRY_LEVEL)
@@ -54,7 +54,7 @@ create_new_ground_producer_subgoal(sg_node_ptr leaf_node, tab_ent_ptr tab_ent, y
 }
 
 static inline retroactive_fr_ptr
-create_new_ground_consumer_subgoal(sg_node_ptr leaf_node, tab_ent_ptr tab_ent, yamop *code, retroactive_fr_ptr subsumer) {
+create_new_retroactive_consumer_subgoal(sg_node_ptr leaf_node, tab_ent_ptr tab_ent, yamop *code, retroactive_fr_ptr subsumer) {
   retroactive_fr_ptr sg_fr;
   
 #if defined(TABLE_LOCK_AT_NODE_LEVEL)
@@ -63,7 +63,7 @@ create_new_ground_consumer_subgoal(sg_node_ptr leaf_node, tab_ent_ptr tab_ent, y
   LOCK_TABLE(leaf_node);
 #endif /* TABLE_LOCK_LEVEL */
 
-  new_grounded_consumer_subgoal_frame(sg_fr, code, leaf_node, subsumer);
+  new_retroactive_consumer_subgoal_frame(sg_fr, code, leaf_node, subsumer);
   
   /* XXX MUST REMOVE THIS */
   /* unlock table entry */
@@ -106,7 +106,7 @@ is_most_general_call(sg_node_ptr leaf, int arity)
 
 #ifdef TABLING_COMPLETE_TABLE
 void
-free_subgoal_trie_from_ground_table(tab_ent_ptr tab_ent)
+free_subgoal_trie_from_retroactive_table(tab_ent_ptr tab_ent)
 {
   sg_hash_ptr hash;
   sg_node_ptr sg_node;
@@ -141,7 +141,7 @@ copy_arguments_as_the_answer_template(CELL *answer_template, int arity)
   return answer_template;
 }
 
-sg_fr_ptr grounded_call_search(yamop *code, CELL *answer_template, CELL **new_local_stack)
+sg_fr_ptr retroactive_call_search(yamop *code, CELL *answer_template, CELL **new_local_stack)
 {
   tab_ent_ptr tab_ent = CODE_TABLE_ENTRY(code);
   BTNptr btRoot = TabEnt_subgoal_trie(tab_ent);
@@ -157,7 +157,7 @@ sg_fr_ptr grounded_call_search(yamop *code, CELL *answer_template, CELL **new_lo
     sg_node_ptr leaf = TrNode_child(btRoot);
     
     if(leaf == NULL) {
-      leaf = (sg_node_ptr)create_new_ground_producer_subgoal(btRoot, tab_ent, code);
+      leaf = (sg_node_ptr)create_new_retroactive_producer_subgoal(btRoot, tab_ent, code);
     }
     
     return (sg_fr_ptr)leaf;
@@ -168,7 +168,6 @@ sg_fr_ptr grounded_call_search(yamop *code, CELL *answer_template, CELL **new_lo
   Trail_ResetTOS;
   TermStack_PushLowToHighVector(CALL_ARGUMENTS(), arity);
   
-  dprintf("ground_call_search\n");
   btn = iter_sub_trie_lookup(CTXTc btRoot, &path_type);
   Trail_Unwind_All;
   
@@ -184,7 +183,7 @@ sg_fr_ptr grounded_call_search(yamop *code, CELL *answer_template, CELL **new_lo
     sg_node_ptr leaf = variant_call_cont_insert(tab_ent, (sg_node_ptr)stl_restore_variant_cont(),
       variant_cont.bindings.num, CALL_SUB_TRIE_NT);
       
-    sg_fr = create_new_ground_producer_subgoal(leaf, tab_ent, code);
+    sg_fr = create_new_retroactive_producer_subgoal(leaf, tab_ent, code);
     
     Trail_Unwind_All;
     dprintf("New producer\n");
@@ -193,14 +192,14 @@ sg_fr_ptr grounded_call_search(yamop *code, CELL *answer_template, CELL **new_lo
     if(is_most_general_call(leaf, arity))
       SgFr_set_most_general(sg_fr);
     
-    create_ground_answer_template(sg_fr, *new_local_stack);
+    create_retroactive_answer_template(sg_fr, *new_local_stack);
     
   } else { /* new consumer */
     
     retroactive_fr_ptr subsumer;
     retroactive_fr_ptr found = (retroactive_fr_ptr)TrNode_sg_fr(btn);
     
-    if(SgFr_is_ground_producer(found))
+    if(SgFr_is_retroactive_producer(found))
       /* 'found' is generating answers */
       subsumer = found;
     else
@@ -216,9 +215,9 @@ sg_fr_ptr grounded_call_search(yamop *code, CELL *answer_template, CELL **new_lo
             btn = variant_call_cont_insert(tab_ent, (sg_node_ptr)stl_restore_variant_cont(), variant_cont.bindings.num, CALL_SUB_TRIE_NT);
             Trail_Unwind_All;
             
-            sg_fr = create_new_ground_consumer_subgoal(btn, tab_ent, code, subsumer);
+            sg_fr = create_new_retroactive_consumer_subgoal(btn, tab_ent, code, subsumer);
             
-            create_ground_answer_template(sg_fr, *new_local_stack);
+            create_retroactive_answer_template(sg_fr, *new_local_stack);
             
             ensure_has_proper_consumers(tab_ent);
         } else
@@ -229,7 +228,7 @@ sg_fr_ptr grounded_call_search(yamop *code, CELL *answer_template, CELL **new_lo
         break;
     }
     
-    if(SgFr_is_ground_consumer(sg_fr)) {
+    if(SgFr_is_retroactive_consumer(sg_fr)) {
       retroactive_fr_ptr producer = SgFr_producer(sg_fr);
       if(SgFr_state(producer) < evaluating) {
         /* turn into producer */
@@ -244,20 +243,20 @@ sg_fr_ptr grounded_call_search(yamop *code, CELL *answer_template, CELL **new_lo
 }
 
 inline
-TSTNptr grounded_answer_search(retroactive_fr_ptr sf, CPtr answerVector) {
+TSTNptr retroactive_answer_search(retroactive_fr_ptr sf, CPtr answerVector) {
 
   TSTNptr root, tstn;
   tab_ent_ptr tab_ent = SgFr_tab_ent(sf);
   int arity = TabEnt_arity(tab_ent);
 
   AnsVarCtr = 0;
-  root = (TSTNptr)TabEnt_ground_trie(tab_ent);
+  root = (TSTNptr)TabEnt_retroactive_trie(tab_ent);
   
   /* ver TS pois podem ser inseridas respostas por outros geradores... XXX */
   
   if ( IsNULL(root) ) {
-    TabEnt_ground_trie(tab_ent) = (sg_node_ptr)newTSTAnswerSet();
-    root = (TSTNptr)TabEnt_ground_trie(tab_ent);
+    TabEnt_retroactive_trie(tab_ent) = (sg_node_ptr)newTSTAnswerSet();
+    root = (TSTNptr)TabEnt_retroactive_trie(tab_ent);
   }
   
   auto_update_instructions = TRUE;
@@ -265,7 +264,7 @@ TSTNptr grounded_answer_search(retroactive_fr_ptr sf, CPtr answerVector) {
   tstn = subsumptive_tst_search(root, arity, answerVector, (int)TabEnt_proper_consumers(tab_ent));
   
   /* update time stamp */
-  SgFr_timestamp(sf) = TabEnt_ground_time_stamp(tab_ent);
+  SgFr_timestamp(sf) = TabEnt_retroactive_time_stamp(tab_ent);
        
   Trail_Unwind_All;
   return tstn;

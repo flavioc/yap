@@ -101,7 +101,7 @@ void consume_variant_answer(ans_node_ptr ans_node, int size, CELL *answer_templa
 
 #ifdef TABLING_CALL_SUBSUMPTION
 #ifdef TABLING_COMPLETE_TABLE
-void transform_subsumptive_into_ground_trie(subprod_fr_ptr sg_fr);
+void transform_subsumptive_into_retroactive_trie(subprod_fr_ptr sg_fr);
 #endif /* TABLING_COMPLETE_TABLE */
 void update_generator_path(sg_node_ptr node);
 void decrement_generator_path(sg_node_ptr start);
@@ -120,13 +120,13 @@ void *newTSTAnswerSet(void);
 
 #ifdef TABLING_CALL_SUBSUMPTION
 #ifdef TABLING_COMPLETE_TABLE
-void free_subgoal_trie_from_ground_table(tab_ent_ptr tab_ent);
+void free_subgoal_trie_from_retroactive_table(tab_ent_ptr tab_ent);
 int is_most_general_call(sg_node_ptr leaf, int arity);
 #endif /* TABLING_COMPLETE_TABLE */
 #ifdef TABLING_RETROACTIVE
 CELL* copy_arguments_as_the_answer_template(CELL *answer_template, int arity);
-sg_fr_ptr grounded_call_search(yamop *code, CELL *answer_template, CELL **new_local_stack);
-inline TSTNptr grounded_answer_search(retroactive_fr_ptr sf, CPtr answerVector);
+sg_fr_ptr retroactive_call_search(yamop *code, CELL *answer_template, CELL **new_local_stack);
+inline TSTNptr retroactive_answer_search(retroactive_fr_ptr sf, CPtr answerVector);
 #endif /* TABLING_RETROACTIVE */
 #endif /* TABLING_CALL_SUBSUMPTION */
 

@@ -224,11 +224,11 @@ struct retroactive_subgoal_frame {
 }
 #endif /* TABLING_RETROACTIVE */
 
-#define TabEnt_ground_trie(X)       (TrNode_next(TabEnt_subgoal_trie(X)))
-#define TabEnt_has_ground_trie(X)   (TabEnt_ground_trie(X) != NULL)
-#define TabEnt_ground_time_stamp(X) (TabEnt_ground_trie(X) ? \
-                                      TSTN_time_stamp((tst_node_ptr)TabEnt_ground_trie(X))  \
-                                      : 0)
+#define TabEnt_retroactive_trie(X)        (TrNode_next(TabEnt_subgoal_trie(X)))
+#define TabEnt_has_retroactive_trie(X)    (TabEnt_retroactive_trie(X) != NULL)
+#define TabEnt_retroactive_time_stamp(X)  (TabEnt_has_retroactive_trie(X) ? \
+                                            TSTN_time_stamp((tst_node_ptr)TabEnt_retroactive_trie(X))  \
+                                            : 0)
                                       
 /* ------------------------------------------------------ */
 
@@ -245,15 +245,15 @@ struct retroactive_subgoal_frame {
 #define TabEnt_set_completed(X) TabEnt_set_flag(X, TABLE_ENTRY_COMPLETED)
 #define TabEnt_completed(X)     (TabEnt_subgoal_trie(X) && TabEnt_has_flag(X, TABLE_ENTRY_COMPLETED))
 
-#define TabEnt_ground_yes(X)    (TabEnt_ground_trie(X) && TrNode_is_leaf(TabEnt_ground_trie(X)))
+#define TabEnt_retroactive_yes(X)    (TabEnt_retroactive_trie(X) && TrNode_is_leaf(TabEnt_retroactive_trie(X)))
 
 #define GROUND_SUBGOAL_FRAME_MASK 0xC0
 
-#define SgFr_is_ground(X)                 (SgFr_type(X) & GROUND_SUBGOAL_FRAME_MASK)
-#define SgFr_is_ground_producer(X)        (SgFr_type(X) == GROUND_PRODUCER_SFT)
-#define SgFr_is_ground_consumer(X)        (SgFr_type(X) == GROUND_CONSUMER_SFT)
-#define SgFr_is_ground_local_producer(X)  (SgFr_is_ground_producer(X) && SgFr_is_local_producer((retroactive_fr_ptr)(X)))
-#define SgFr_is_ground_local_consumer(X)  (SgFr_is_ground_consumer(X) && SgFr_is_local_consumer((retroactive_fr_ptr)(X)))
+#define SgFr_is_retroactive(X)                 (SgFr_type(X) & GROUND_SUBGOAL_FRAME_MASK)
+#define SgFr_is_retroactive_producer(X)        (SgFr_type(X) == GROUND_PRODUCER_SFT)
+#define SgFr_is_retroactive_consumer(X)        (SgFr_type(X) == GROUND_CONSUMER_SFT)
+#define SgFr_is_retroactive_local_producer(X)  (SgFr_is_retroactive_producer(X) && SgFr_is_local_producer((retroactive_fr_ptr)(X)))
+#define SgFr_is_retroactive_local_consumer(X)  (SgFr_is_retroactive_consumer(X) && SgFr_is_local_consumer((retroactive_fr_ptr)(X)))
 #endif /* TABLING_RETROACTIVE */
 
 #endif /* TABLING_CALL_SUBSUMPTION */

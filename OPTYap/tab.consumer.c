@@ -617,7 +617,7 @@ process_pending_subgoal_list(node_list_ptr list, retroactive_fr_ptr sg_fr) {
         retroactive_fr_ptr producer = SgFr_producer(pending);
         if(producer && SgFr_state(producer) >= complete) {
           /* already completed */
-          mark_ground_consumer_as_completed(pending);
+          mark_retroactive_consumer_as_completed(pending);
         } else {
           SgFr_producer(pending) = sg_fr;
           SgFr_set_type(pending, GROUND_CONSUMER_SFT);
@@ -625,13 +625,13 @@ process_pending_subgoal_list(node_list_ptr list, retroactive_fr_ptr sg_fr) {
         }
         
         REMOVE_PENDING_NODE();
-      } else if(SgFr_state(pending) == evaluating && SgFr_is_ground_consumer(pending)) {
+      } else if(SgFr_state(pending) == evaluating && SgFr_is_retroactive_consumer(pending)) {
         /* change producer, execute RUN_COMPLETED */
         dprintf("found an evaluating subgoal that is consumer\n");
         update_specific_consumers(pending);
         SgFr_producer(pending) = sg_fr;
         REMOVE_PENDING_NODE();
-      } else if(SgFr_state(pending) == evaluating && SgFr_is_ground_producer(pending)) {
+      } else if(SgFr_state(pending) == evaluating && SgFr_is_retroactive_producer(pending)) {
 #ifdef FDEBUG
         printf("Found a specific subgoal already running: ");
         printSubgoalTriePath(stdout, SgFr_leaf(pending), SgFr_tab_ent(pending));
@@ -845,7 +845,7 @@ add_dependency_frame(retroactive_fr_ptr sg_fr, choiceptr cp)
   CONS_CP(cp)->cp_sg_fr = NULL;
   if(SgFr_try_answer(sg_fr))
     DepFr_last_answer(dep_fr) = SgFr_try_answer(sg_fr);
-  if(SgFr_is_ground_local_producer(producer))
+  if(SgFr_is_retroactive_local_producer(producer))
     DepFr_set_top_consumer(dep_fr);
   
   cp->cp_ap = ANSWER_RESOLUTION;
