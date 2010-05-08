@@ -135,18 +135,18 @@ struct tab_stack_state {
 
 /* --------------------------------------------------- */
 
-/* ---------------------- **
-**  ground subgoal frame  **
-** ---------------------- */
+/* --------------------------- **
+**  retroactive subgoal frame  **
+** --------------------------- */
 
-typedef struct grounded_subgoal_frame *grounded_sf_ptr;
+typedef struct retroactive_subgoal_frame *grounded_sf_ptr;
 
 #define SUBGOAL_FRAME_TYPE_OTHER_MASK 0xF0
 #define SG_FR_MOST_GENERAL 0x80
 #define SG_FR_LOCAL_PRODUCER 0x10
 #define SG_FR_LOCAL_CONSUMER 0x20
 
-struct grounded_subgoal_frame {
+struct retroactive_subgoal_frame {
   subgoal_frame_type flags;
   subgoal_state state_flag;
   
@@ -163,7 +163,7 @@ struct grounded_subgoal_frame {
   continuation_ptr first_answer;
   continuation_ptr last_answer;
   
-  struct grounded_subgoal_frame *next;
+  struct retroactive_subgoal_frame *next;
   
   sg_fr_ptr prev;
   sg_fr_ptr top_gen_sg;

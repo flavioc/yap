@@ -743,7 +743,7 @@ void show_table(tab_ent_ptr tab_ent, int show_mode) {
     } else {
 #ifdef TABLING_RETROACTIVE
       if(TabEnt_is_grounded(tab_ent)) {
-        bytes += TrStat_subgoals * sizeof(struct grounded_subgoal_frame);
+        bytes += TrStat_subgoals * sizeof(struct retroactive_subgoal_frame);
         ground_trie_statistics(tab_ent);
       } else
 #endif /* TABLING_RETROACTIVE */

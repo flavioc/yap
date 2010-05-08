@@ -119,7 +119,7 @@ struct global_pages {
 #ifdef TABLING_CALL_SUBSUMPTION
   struct pages subsumptive_producer_subgoal_frame_pages;
   struct pages subsumed_consumer_subgoal_frame_pages;
-  struct pages grounded_subgoal_frame_pages;
+  struct pages retroactive_subgoal_frame_pages;
 #endif /* TABLING_CALL_SUBSUMPTION */
   
   struct pages node_list_pages;
@@ -262,7 +262,7 @@ struct global_data{
 #define GLOBAL_PAGES_variant_sg_fr              (GLOBAL.pages.variant_subgoal_frame_pages)
 #define GLOBAL_PAGES_subprod_sg_fr              (GLOBAL.pages.subsumptive_producer_subgoal_frame_pages)
 #define GLOBAL_PAGES_subcons_sg_fr              (GLOBAL.pages.subsumed_consumer_subgoal_frame_pages)
-#define GLOBAL_PAGES_grounded_sg_fr             (GLOBAL.pages.grounded_subgoal_frame_pages)
+#define GLOBAL_PAGES_grounded_sg_fr             (GLOBAL.pages.retroactive_subgoal_frame_pages)
 #define GLOBAL_PAGES_sg_node                    (GLOBAL.pages.subgoal_trie_node_pages)
 #define GLOBAL_PAGES_long_sg_node               (GLOBAL.pages.long_subgoal_trie_node_pages)
 #define GLOBAL_PAGES_float_sg_node              (GLOBAL.pages.float_subgoal_trie_node_pages)

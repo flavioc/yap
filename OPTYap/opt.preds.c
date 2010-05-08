@@ -117,7 +117,7 @@ static void shm_table_entries(long *pages_in_use, long *bytes_in_use);
 static void shm_variant_subgoal_frames(long *pages_in_use, long *bytes_in_use);
 static void shm_subprod_subgoal_frames(long *pages_in_use, long *bytes_in_use);
 static void shm_subcons_subgoal_frames(long *pages_in_use, long *bytes_in_use);
-static void shm_grounded_subgoal_frames(long *pages_in_use, long *bytes_in_use);
+static void shm_retroactive_subgoal_frames(long *pages_in_use, long *bytes_in_use);
 static void shm_subgoal_trie_nodes(long *pages_in_use, long *bytes_in_use);
 static void shm_answer_trie_nodes(long *pages_in_use, long *bytes_in_use);
 static void shm_subgoal_trie_hashes(long *pages_in_use, long *bytes_in_use);
@@ -1073,7 +1073,7 @@ Int p_tabling_statistics(void) {
   shm_variant_subgoal_frames(&pages_in_use, &bytes_in_use);
   shm_subprod_subgoal_frames(&pages_in_use, &bytes_in_use);
   shm_subcons_subgoal_frames(&pages_in_use, &bytes_in_use);
-  shm_grounded_subgoal_frames(&pages_in_use, &bytes_in_use);
+  shm_retroactive_subgoal_frames(&pages_in_use, &bytes_in_use);
   
   shm_subgoal_trie_nodes(&pages_in_use, &bytes_in_use);
   shm_answer_trie_nodes(&pages_in_use, &bytes_in_use);
@@ -1105,7 +1105,7 @@ Int p_tabling_statistics(void) {
 
 #ifdef TABLING_RETROACTIVE
   fprintf(Yap_stdout, "  Retroactive subgoal frames:            %10ld structs in use\n", Pg_str_in_use(GLOBAL_PAGES_grounded_sg_fr));
-  bytes_in_use += Pg_str_in_use(GLOBAL_PAGES_grounded_sg_fr) * sizeof(struct grounded_subgoal_frame);
+  bytes_in_use += Pg_str_in_use(GLOBAL_PAGES_grounded_sg_fr) * sizeof(struct retroactive_subgoal_frame);
 #endif /* TABLING_RETROACTIVE */
   
   fprintf(Yap_stdout, "  Subgoal trie nodes:                    %10ld structs in use\n", subgoal_node_structs_in_use());
@@ -1177,7 +1177,7 @@ Int p_opt_statistics(void) {
   shm_variant_subgoal_frames(&pages_in_use, &bytes_in_use);
   shm_subprod_subgoal_frames(&pages_in_use, &bytes_in_use);
   shm_subcons_subgoal_frames(&pages_in_use, &bytes_in_use);
-  shm_grounded_subgoal_frames(&pages_in_use, &bytes_in_use);
+  shm_retroactive_subgoal_frames(&pages_in_use, &bytes_in_use);
   
   shm_subgoal_trie_nodes(&pages_in_use, &bytes_in_use);
   shm_answer_trie_nodes(&pages_in_use, &bytes_in_use);
@@ -1233,7 +1233,7 @@ Int p_opt_statistics(void) {
 
 #ifdef TABLING_RETROACTIVE
   fprintf(Yap_stdout, "  Retroactive subgoal frames:            %10ld structs in use\n", Pg_str_in_use(GLOBAL_PAGES_grounded_sg_fr));
-  bytes_in_use += Pg_str_in_use(GLOBAL_PAGES_grounded_sg_fr) * sizeof(struct grounded_subgoal_frame);
+  bytes_in_use += Pg_str_in_use(GLOBAL_PAGES_grounded_sg_fr) * sizeof(struct retroactive_subgoal_frame);
 #endif
   
   fprintf(Yap_stdout, "  Subgoal trie nodes:                    %10ld structs in use\n", subgoal_node_structs_in_use());
@@ -1580,7 +1580,7 @@ void shm_subcons_subgoal_frames(long *pages_in_use, long *bytes_in_use) {
 }
 
 static
-void shm_grounded_subgoal_frames(long *pages_in_use, long *bytes_in_use) {
+void shm_retroactive_subgoal_frames(long *pages_in_use, long *bytes_in_use) {
   long cont = 0;
   pg_hd_ptr pg_hd;
   grounded_sf_ptr aux_ptr;
@@ -1599,7 +1599,7 @@ void shm_grounded_subgoal_frames(long *pages_in_use, long *bytes_in_use) {
         Pg_str_free(GLOBAL_PAGES_grounded_sg_fr) == cont ? " " : "*",
         Pg_pg_alloc(GLOBAL_PAGES_grounded_sg_fr), Pg_str_in_use(GLOBAL_PAGES_grounded_sg_fr));
   *pages_in_use += Pg_pg_alloc(GLOBAL_PAGES_grounded_sg_fr);
-  *bytes_in_use += Pg_str_in_use(GLOBAL_PAGES_grounded_sg_fr) * sizeof(struct grounded_subgoal_frame);   
+  *bytes_in_use += Pg_str_in_use(GLOBAL_PAGES_grounded_sg_fr) * sizeof(struct retroactive_subgoal_frame);   
   return;
 }
 
