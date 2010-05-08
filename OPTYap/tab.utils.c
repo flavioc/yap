@@ -643,6 +643,7 @@ void printSubsumptiveAnswer(FILE *fp, CELL* vars)
 }
 
 CELL *AT = NULL;
+int AT_SIZE = 0;
 
 #ifdef SIZEOF_DOUBLE == 2*SIZEOF_INT_P
 static inline Term
@@ -763,6 +764,64 @@ copy_answer_template(CELL *ans_tmplt, CELL *dest)
   Trail_Unwind_All;
 
   return size;
+}
+
+static inline int
+count_subterm(Term val)
+{
+  if(IsAtomOrIntTerm(val)) {
+    return 1;
+  } else if(IsVarTerm(val)) {
+    return 1;
+  } else if(IsApplTerm(val)) {
+    Functor f = FunctorOfTerm(val);
+
+    if(f == FunctorDouble) {
+#ifdef SIZEOF_DOUBLE == 2*SIZEOF_INT_P
+      return 5;
+#else
+      return 4;
+#endif /* SIZEOF_DOUBLE == 2*SIZEOF_INT_P */
+    } else if(f == FunctorLongInt) {
+      return 4;
+    } else if (f == FunctorDBRef) {
+      Yap_Error(INTERNAL_ERROR, TermNil, "unsupported type tag (FunctorDBRef in count_subterm)");
+    } else if (f == FunctorBigInt) {
+      Yap_Error(INTERNAL_ERROR, TermNil, "unsupported type tag (FunctorBigInt in count_subterm)");
+    } else {
+      int i, arity = ArityOfFunctor(f);
+      int total = 2;
+      
+      for(i = 1; i <= arity; ++i)
+        total += count_subterm(Deref(*(RepAppl(val) + i)));
+      
+      return total;
+    }
+  } else if(IsPairTerm(val)) {
+    int total = 1;
+    
+    total += count_subterm(Deref(*(RepPair(val))));
+    total += count_subterm(Deref(*(RepPair(val) + 1)));
+    
+    return total;
+  }
+  
+  Yap_Error(INTERNAL_ERROR, TermNil, "unknown type tag (count_subterm)");
+  /* NOT REACHED */
+  return 0;
+}
+
+
+int
+answer_template_size(CELL *ans_tmplt)
+{
+  int size = (int)*ans_tmplt++;
+  int i, total = 0;
+  
+  for(i = 0; i < size; ++i, ++ans_tmplt)
+    total += count_subterm((Term)*ans_tmplt);
+  
+  return total;
 }
 
 #endif /* TABLING_CALL_SUBSUMPTION */

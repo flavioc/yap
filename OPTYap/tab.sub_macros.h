@@ -13,7 +13,7 @@
 
 #ifdef TABLING_CALL_SUBSUMPTION
 
-STD_PROTO(static inline void mark_subsumptive_consumer_as_completed, (subcons_fr_ptr));
+STD_PROTO(static inline void mark_subsumed_consumer_as_completed, (subcons_fr_ptr));
 STD_PROTO(static inline void mark_subsumptive_producer_as_completed, (subprod_fr_ptr));
 #ifdef TABLING_RETROACTIVE
 STD_PROTO(static inline void mark_retroactive_consumer_as_completed, (retroactive_fr_ptr));
@@ -328,9 +328,11 @@ init_consumer_subgoal_frame(sg_fr_ptr sg_fr)
 #endif /* TABLING_CALL_SUBSUMPTION */
         
 static inline
-void mark_subsumptive_consumer_as_completed(subcons_fr_ptr sg_fr) {
+void mark_subsumed_consumer_as_completed(subcons_fr_ptr sg_fr) {
   LOCK(SgFr_lock(sg_fr));
   SgFr_state(sg_fr) = complete;
+  FREE_BLOCK(SgFr_answer_template(sg_fr));
+  SgFr_answer_template(sg_fr) = NULL;
 #ifdef TABLING_RETROACTIVE
   SgFr_num_deps(sg_fr) = 0;
 #endif /* TABLING_RETROACTIVE */
@@ -438,6 +440,10 @@ void free_producer_subgoal_data(sg_fr_ptr sg_fr, int delete_all) {
 
 static inline void
 free_consumer_subgoal_data(subcons_fr_ptr sg_fr) {
+  if(SgFr_answer_template(sg_fr)) {
+    FREE_BLOCK(SgFr_answer_template(sg_fr));
+    SgFr_answer_template(sg_fr) = NULL;
+  }
   free_answer_continuation(SgFr_first_answer(sg_fr));
 }
 
@@ -555,7 +561,8 @@ build_next_subsumptive_consumer_return_list(subcons_fr_ptr consumer_sg) {
 
   SgFr_timestamp(consumer_sg) = producer_ts;
   
-  AT = SgFr_at_block(consumer_sg);
+  AT = answer_template;
+  AT_SIZE = SgFr_at_full_size(consumer_sg);
   
   return tst_collect_relevant_answers(trie, consumer_ts, size,
           STANDARDIZE_AT_PTR(answer_template, size), (sg_fr_ptr)consumer_sg);
@@ -581,6 +588,7 @@ build_next_retroactive_consumer_return_list(retroactive_fr_ptr consumer_sg) {
   SgFr_timestamp(consumer_sg) = TabEnt_retroactive_time_stamp(SgFr_tab_ent(consumer_sg));
   
   AT = SgFr_at_block(consumer_sg);
+  AT_SIZE = AT_BLOCK_SIZE;
   
   return tst_collect_relevant_answers(trie, consumer_ts, size,
     STANDARDIZE_AT_PTR(answer_template, size), (sg_fr_ptr)consumer_sg);
@@ -603,6 +611,7 @@ build_next_retroactive_producer_return_list(retroactive_fr_ptr producer_sg) {
   
   SgFr_timestamp(producer_sg) = retro_ts;
   AT = SgFr_at_block(producer_sg);
+  AT_SIZE = AT_BLOCK_SIZE;
   
   return tst_collect_relevant_answers(trie, producer_ts, size,
     STANDARDIZE_AT_PTR(answer_template, size),

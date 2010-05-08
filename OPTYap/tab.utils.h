@@ -466,6 +466,7 @@ static inline CellTag TrieSymbolType(Term t)
 }
 
 xsbBool are_identical_terms(Cell term1, Cell term2);
+int answer_template_size(CELL *ans_tmplt);
 int copy_answer_template(CELL *ans_tmplt, CELL *dest);
 void printSubsumptiveAnswer(FILE *fp, CELL* vars);
 CELL* construct_subgoal_heap(BTNptr pLeaf, CPtr* var_pointer, int arity, int pushArguments, int invertHeap);
@@ -538,8 +539,9 @@ typedef enum Trie_Path_Type {
 extern struct VariantContinuation variant_cont;
 
 extern CELL* AT;
+extern int AT_SIZE;
 
-#define IsAnswerTemplateVar(VAR) ((CPtr)(VAR) >= AT && ((CPtr)(VAR) <= (AT + AT_BLOCK_SIZE)))
+#define IsAnswerTemplateVar(VAR) ((CPtr)(VAR) >= AT && ((CPtr)(VAR) <= (AT + AT_SIZE)))
 
 #endif /* TABLING_CALL_SUBSUMPTION */
 

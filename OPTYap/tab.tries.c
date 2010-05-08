@@ -360,7 +360,7 @@ complete_dependency_frame(dep_fr_ptr dep_fr)
 #endif /* TABLING_RETROACTIVE */
       dprintf("dep sub %d\n", SgFr_num_deps((subcons_fr_ptr)sg_fr));
       if(SgFr_num_deps((subcons_fr_ptr)sg_fr) == 0) {
-        mark_subsumptive_consumer_as_completed((subcons_fr_ptr)sg_fr);
+        mark_subsumed_consumer_as_completed((subcons_fr_ptr)sg_fr);
         dprintf("One subsumptive consumer completed\n");
       }
       break;
