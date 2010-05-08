@@ -139,7 +139,7 @@ struct tab_stack_state {
 **  retroactive subgoal frame  **
 ** --------------------------- */
 
-typedef struct retroactive_subgoal_frame *grounded_sf_ptr;
+typedef struct retroactive_subgoal_frame *retroactive_fr_ptr;
 
 #define SUBGOAL_FRAME_TYPE_OTHER_MASK 0xF0
 #define SG_FR_MOST_GENERAL 0x80
@@ -182,7 +182,7 @@ struct retroactive_subgoal_frame {
   struct tab_stack_state stack_state;
   
   time_stamp ts;
-  grounded_sf_ptr producer;
+  retroactive_fr_ptr producer;
   CELL* answer_template;
   int at_size;
   CELL at_block[AT_BLOCK_SIZE];
@@ -252,8 +252,8 @@ struct retroactive_subgoal_frame {
 #define SgFr_is_ground(X)                 (SgFr_type(X) & GROUND_SUBGOAL_FRAME_MASK)
 #define SgFr_is_ground_producer(X)        (SgFr_type(X) == GROUND_PRODUCER_SFT)
 #define SgFr_is_ground_consumer(X)        (SgFr_type(X) == GROUND_CONSUMER_SFT)
-#define SgFr_is_ground_local_producer(X)  (SgFr_is_ground_producer(X) && SgFr_is_local_producer((grounded_sf_ptr)(X)))
-#define SgFr_is_ground_local_consumer(X)  (SgFr_is_ground_consumer(X) && SgFr_is_local_consumer((grounded_sf_ptr)(X)))
+#define SgFr_is_ground_local_producer(X)  (SgFr_is_ground_producer(X) && SgFr_is_local_producer((retroactive_fr_ptr)(X)))
+#define SgFr_is_ground_local_consumer(X)  (SgFr_is_ground_consumer(X) && SgFr_is_local_consumer((retroactive_fr_ptr)(X)))
 #endif /* TABLING_RETROACTIVE */
 
 #endif /* TABLING_CALL_SUBSUMPTION */

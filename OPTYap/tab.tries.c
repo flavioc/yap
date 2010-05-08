@@ -121,7 +121,7 @@ ans_node_ptr answer_search(sg_fr_ptr sg_fr, CELL *subs_ptr) {
   } else if(SgFr_is_ground_producer(sg_fr)) {
     int nTerms = *subs_ptr;
     CELL* answerVector = subs_ptr + nTerms;
-    return (ans_node_ptr)grounded_answer_search((grounded_sf_ptr)sg_fr, answerVector);
+    return (ans_node_ptr)grounded_answer_search((retroactive_fr_ptr)sg_fr, answerVector);
 #endif /* TABLING_RETROACTIVE */
   }
 #endif /* TABLING_CALL_SUBSUMPTION */
@@ -366,10 +366,10 @@ complete_dependency_frame(dep_fr_ptr dep_fr)
       break;
 #ifdef TABLING_RETROACTIVE
     case GROUND_CONSUMER_SFT:
-      SgFr_num_deps((grounded_sf_ptr)sg_fr)--;
+      SgFr_num_deps((retroactive_fr_ptr)sg_fr)--;
     
-      if(SgFr_num_deps((grounded_sf_ptr)sg_fr) == 0) {
-        mark_ground_consumer_as_completed((grounded_sf_ptr)sg_fr);
+      if(SgFr_num_deps((retroactive_fr_ptr)sg_fr) == 0) {
+        mark_ground_consumer_as_completed((retroactive_fr_ptr)sg_fr);
         dprintf("One ground consumer completed\n");
       }
       break;
@@ -510,7 +510,7 @@ void free_subgoal_trie_branch(sg_node_ptr current_node, int nodes_left, int node
 #ifdef TABLING_RETROACTIVE
       case GROUND_PRODUCER_SFT:
       case GROUND_CONSUMER_SFT:
-        free_ground_subgoal_data((grounded_sf_ptr)sg_fr);
+        free_ground_subgoal_data((retroactive_fr_ptr)sg_fr);
         FREE_GROUNDED_SUBGOAL_FRAME(sg_fr);
         break;
 #endif /* TABLING_RETROACTIVE */
@@ -1077,8 +1077,8 @@ void traverse_subgoal_trie(sg_node_ptr current_node, char *str, int str_index, i
           TrStat_subgoals++;
           
           if(SgFr_is_ground_consumer(sg_fr)) {
-            grounded_sf_ptr ground_sg = (grounded_sf_ptr)sg_fr;
-            grounded_sf_ptr producer_sg = (grounded_sf_ptr)SgFr_producer(ground_sg);
+            retroactive_fr_ptr ground_sg = (retroactive_fr_ptr)sg_fr;
+            retroactive_fr_ptr producer_sg = (retroactive_fr_ptr)SgFr_producer(ground_sg);
             
             if(SgFr_state(ground_sg) < complete && SgFr_state(producer_sg) >= complete) {
               mark_ground_consumer_as_completed(ground_sg);

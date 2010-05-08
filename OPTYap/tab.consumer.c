@@ -363,7 +363,7 @@ transform_external_subsumed_consumers(choiceptr min, sg_fr_ptr sg_fr,
 static inline void
 abolish_generator_subgoals_between(sg_fr_ptr specific_sg, choiceptr min, choiceptr max)
 {
-  sg_fr_ptr top = StackState_sg_fr(SgFr_stack_state((grounded_sf_ptr)specific_sg));
+  sg_fr_ptr top = StackState_sg_fr(SgFr_stack_state((retroactive_fr_ptr)specific_sg));
   sg_fr_ptr bottom = SgFr_next(specific_sg);
   sg_fr_ptr sg_fr;
   dep_fr_ptr external;
@@ -449,7 +449,7 @@ abolish_dependency_frames_between(sg_fr_ptr specific_sg, choiceptr min, choicept
 }
 
 static inline void
-internal_producer_to_consumer(grounded_sf_ptr sg_fr, grounded_sf_ptr producer)
+internal_producer_to_consumer(retroactive_fr_ptr sg_fr, retroactive_fr_ptr producer)
 {
   dprintf("internal_producer_to_consumer\n");
   
@@ -479,7 +479,7 @@ internal_producer_to_consumer(grounded_sf_ptr sg_fr, grounded_sf_ptr producer)
 }
 
 static inline void
-external_producer_to_consumer(grounded_sf_ptr sg_fr, grounded_sf_ptr producer)
+external_producer_to_consumer(retroactive_fr_ptr sg_fr, retroactive_fr_ptr producer)
 {
   dprintf("external_producer_to_consumer\n");
   
@@ -502,7 +502,7 @@ external_producer_to_consumer(grounded_sf_ptr sg_fr, grounded_sf_ptr producer)
            there is a change that this new-consumer could be
            lost when the dependency frame is created lazily,
          */
-        add_dependency_frame((grounded_sf_ptr)sg_fr, gen_cp);
+        add_dependency_frame((retroactive_fr_ptr)sg_fr, gen_cp);
       } else {
         /* update generator choice point to point to RUN_COMPLETED */
         gen_cp->cp_ap = (yamop *)RUN_COMPLETED;
@@ -523,7 +523,7 @@ external_producer_to_consumer(grounded_sf_ptr sg_fr, grounded_sf_ptr producer)
        -> create a dependency frame and turn this node into a consumer
     */
     dprintf("Getting a new dependency frame!\n");
-    add_dependency_frame((grounded_sf_ptr)sg_fr, gen_cp);
+    add_dependency_frame((retroactive_fr_ptr)sg_fr, gen_cp);
   }
 }
 
@@ -544,9 +544,9 @@ is_internal_to_set(sg_fr_ptr pending, node_list_ptr all)
 }
 
 static inline void
-update_specific_consumers(grounded_sf_ptr pending)
+update_specific_consumers(retroactive_fr_ptr pending)
 {
-  grounded_sf_ptr producer = SgFr_producer(pending);
+  retroactive_fr_ptr producer = SgFr_producer(pending);
   choiceptr min = SgFr_choice_point(producer);
   dep_fr_ptr top = LOCAL_top_dep_fr;
   
@@ -567,7 +567,7 @@ update_specific_consumers(grounded_sf_ptr pending)
 }
 
 static inline void
-reset_answers(grounded_sf_ptr sg_fr) {
+reset_answers(retroactive_fr_ptr sg_fr) {
   continuation_ptr ptr = SgFr_first_answer(sg_fr);
   continuation_ptr last = SgFr_last_answer(sg_fr);
   
@@ -580,7 +580,7 @@ reset_answers(grounded_sf_ptr sg_fr) {
 }
 
 void
-process_pending_subgoal_list(node_list_ptr list, grounded_sf_ptr sg_fr) {
+process_pending_subgoal_list(node_list_ptr list, retroactive_fr_ptr sg_fr) {
   node_list_ptr orig = list;
   
   if(list == NULL)
@@ -601,10 +601,10 @@ process_pending_subgoal_list(node_list_ptr list, grounded_sf_ptr sg_fr) {
   /* search specific subgoals that are running and the general is internal */
   choiceptr min_internal = NULL;
   node_list_ptr before = NULL;
-  grounded_sf_ptr min_sg = NULL;
+  retroactive_fr_ptr min_sg = NULL;
   
   while(list) {
-    grounded_sf_ptr pending = (grounded_sf_ptr)NodeList_node(list);
+    retroactive_fr_ptr pending = (retroactive_fr_ptr)NodeList_node(list);
     
     if(pending != sg_fr) {
       if(SgFr_state(pending) == ready) {
@@ -614,7 +614,7 @@ process_pending_subgoal_list(node_list_ptr list, grounded_sf_ptr sg_fr) {
          * that it can be seen as completed if
          * it is called again in the future
          */
-        grounded_sf_ptr producer = SgFr_producer(pending);
+        retroactive_fr_ptr producer = SgFr_producer(pending);
         if(producer && SgFr_state(producer) >= complete) {
           /* already completed */
           mark_ground_consumer_as_completed(pending);
@@ -731,7 +731,7 @@ process_pending_subgoal_list(node_list_ptr list, grounded_sf_ptr sg_fr) {
     list = orig;
     /* prune external computations */
     while(list) {
-      grounded_sf_ptr pending = (grounded_sf_ptr)NodeList_node(list);
+      retroactive_fr_ptr pending = (retroactive_fr_ptr)NodeList_node(list);
       
       external_producer_to_consumer(pending, sg_fr);
 
@@ -830,10 +830,10 @@ reinsert_dep_fr(dep_fr_ptr dep_fr, choiceptr cp)
 }
 
 void
-add_dependency_frame(grounded_sf_ptr sg_fr, choiceptr cp)
+add_dependency_frame(retroactive_fr_ptr sg_fr, choiceptr cp)
 {
   dep_fr_ptr dep_fr;
-  grounded_sf_ptr producer = SgFr_producer(sg_fr);
+  retroactive_fr_ptr producer = SgFr_producer(sg_fr);
   dprintf("add_dependency_frame leader=%d\n", (int)SgFr_choice_point(producer));
   
   new_dependency_frame(dep_fr, TRUE, LOCAL_top_or_fr, SgFr_choice_point(producer), cp, (sg_fr_ptr)sg_fr, NULL);

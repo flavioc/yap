@@ -29,9 +29,9 @@
 #include "tab.utils.h"
 #include "tab.tries.h"
 
-static inline grounded_sf_ptr
+static inline retroactive_fr_ptr
 create_new_ground_producer_subgoal(sg_node_ptr leaf_node, tab_ent_ptr tab_ent, yamop *code) {
-  grounded_sf_ptr sg_fr;
+  retroactive_fr_ptr sg_fr;
   
 #if defined(TABLE_LOCK_AT_NODE_LEVEL)
   LOCK(TrNode_lock(leaf_node));
@@ -53,9 +53,9 @@ create_new_ground_producer_subgoal(sg_node_ptr leaf_node, tab_ent_ptr tab_ent, y
   return sg_fr;
 }
 
-static inline grounded_sf_ptr
-create_new_ground_consumer_subgoal(sg_node_ptr leaf_node, tab_ent_ptr tab_ent, yamop *code, grounded_sf_ptr subsumer) {
-  grounded_sf_ptr sg_fr;
+static inline retroactive_fr_ptr
+create_new_ground_consumer_subgoal(sg_node_ptr leaf_node, tab_ent_ptr tab_ent, yamop *code, retroactive_fr_ptr subsumer) {
+  retroactive_fr_ptr sg_fr;
   
 #if defined(TABLE_LOCK_AT_NODE_LEVEL)
   LOCK(TrNode_lock(leaf_node));
@@ -147,7 +147,7 @@ sg_fr_ptr grounded_call_search(yamop *code, CELL *answer_template, CELL **new_lo
   BTNptr btRoot = TabEnt_subgoal_trie(tab_ent);
   BTNptr btn;
   TriePathType path_type;
-  grounded_sf_ptr sg_fr = NULL;
+  retroactive_fr_ptr sg_fr = NULL;
   int arity = CODE_ARITY(code);
   
   /* create answer template on local stack */
@@ -197,8 +197,8 @@ sg_fr_ptr grounded_call_search(yamop *code, CELL *answer_template, CELL **new_lo
     
   } else { /* new consumer */
     
-    grounded_sf_ptr subsumer;
-    grounded_sf_ptr found = (grounded_sf_ptr)TrNode_sg_fr(btn);
+    retroactive_fr_ptr subsumer;
+    retroactive_fr_ptr found = (retroactive_fr_ptr)TrNode_sg_fr(btn);
     
     if(SgFr_is_ground_producer(found))
       /* 'found' is generating answers */
@@ -230,7 +230,7 @@ sg_fr_ptr grounded_call_search(yamop *code, CELL *answer_template, CELL **new_lo
     }
     
     if(SgFr_is_ground_consumer(sg_fr)) {
-      grounded_sf_ptr producer = SgFr_producer(sg_fr);
+      retroactive_fr_ptr producer = SgFr_producer(sg_fr);
       if(SgFr_state(producer) < evaluating) {
         /* turn into producer */
         SgFr_set_type(sg_fr, GROUND_PRODUCER_SFT); 
@@ -244,7 +244,7 @@ sg_fr_ptr grounded_call_search(yamop *code, CELL *answer_template, CELL **new_lo
 }
 
 inline
-TSTNptr grounded_answer_search(grounded_sf_ptr sf, CPtr answerVector) {
+TSTNptr grounded_answer_search(retroactive_fr_ptr sf, CPtr answerVector) {
 
   TSTNptr root, tstn;
   tab_ent_ptr tab_ent = SgFr_tab_ent(sf);

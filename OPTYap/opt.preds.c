@@ -1583,14 +1583,14 @@ static
 void shm_retroactive_subgoal_frames(long *pages_in_use, long *bytes_in_use) {
   long cont = 0;
   pg_hd_ptr pg_hd;
-  grounded_sf_ptr aux_ptr;
+  retroactive_fr_ptr aux_ptr;
   
   pg_hd = Pg_free_pg(GLOBAL_PAGES_grounded_sg_fr);
   while (pg_hd) {
     aux_ptr = PgHd_free_str(pg_hd);
     while (aux_ptr) {
       cont++;
-      aux_ptr = (grounded_sf_ptr)SgFr_next(aux_ptr);
+      aux_ptr = (retroactive_fr_ptr)SgFr_next(aux_ptr);
     }
     pg_hd = PgHd_next(pg_hd);
   }

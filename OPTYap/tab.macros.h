@@ -271,7 +271,7 @@ STD_PROTO(static inline tg_sol_fr_ptr CUT_prune_tg_solution_frames, (tg_sol_fr_p
 #ifdef TABLING_RETROACTIVE
 #define ground_consumer_dep_case(LEADER_CP, SG_FR) \
 case GROUND_CONSUMER_SFT: \
-  LEADER_CP = SgFr_choice_point(SgFr_producer((grounded_sf_ptr)(SG_FR))); \
+  LEADER_CP = SgFr_choice_point(SgFr_producer((retroactive_fr_ptr)(SG_FR))); \
   break;
 #else
 #define ground_consumer_dep_case(LEADER_CP, SG_FR) /* nothing */
@@ -818,7 +818,7 @@ void mark_as_completed(sg_fr_ptr sg_fr) {
 #ifdef TABLING_RETROACTIVE
     case GROUND_PRODUCER_SFT:
       dprintf("One ground producer completed\n");
-      mark_ground_producer_as_completed((grounded_sf_ptr)sg_fr);
+      mark_ground_producer_as_completed((retroactive_fr_ptr)sg_fr);
       break;
 #endif /* TABLING_RETROACTIVE */
 #endif /* TABLING_CALL_SUBSUMPTION */
@@ -1152,10 +1152,10 @@ abolish_dependency_frame(dep_fr_ptr dep_fr)
       break;
 #ifdef TABLING_RETROACTIVE
     case GROUND_CONSUMER_SFT:
-      SgFr_num_deps((grounded_sf_ptr)sg_fr)--;
-      if(SgFr_num_deps((grounded_sf_ptr)sg_fr) == 0) {
+      SgFr_num_deps((retroactive_fr_ptr)sg_fr)--;
+      if(SgFr_num_deps((retroactive_fr_ptr)sg_fr) == 0) {
         dprintf("incomplete ground goal abolished\n");
-        abolish_incomplete_ground_consumer_subgoal((grounded_sf_ptr)sg_fr);
+        abolish_incomplete_ground_consumer_subgoal((retroactive_fr_ptr)sg_fr);
       }
       break;
 #endif /* TABLING_RETROACTIVE */
@@ -1327,7 +1327,7 @@ get_next_answer_continuation(dep_fr_ptr dep_fr) {
         if(next)
           return next;
         
-        grounded_sf_ptr consumer_sg = (grounded_sf_ptr)sg_fr;
+        retroactive_fr_ptr consumer_sg = (retroactive_fr_ptr)sg_fr;
         
         if(build_next_ground_consumer_return_list(consumer_sg))
           return continuation_next(last_cont);
@@ -1385,7 +1385,7 @@ is_new_consumer_call(sg_fr_ptr sg_fr) {
       return SgFr_state(SgFr_producer((subcons_fr_ptr)sg_fr)) == evaluating;
 #ifdef TABLING_RETROACTIVE
     case GROUND_CONSUMER_SFT:
-      return SgFr_state(SgFr_producer((grounded_sf_ptr)sg_fr)) == evaluating;
+      return SgFr_state(SgFr_producer((retroactive_fr_ptr)sg_fr)) == evaluating;
 #endif /* TABLING_RETROACTIVE */
 #endif /* TABLING_CALL_SUBSUMPTION */
     default:

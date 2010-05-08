@@ -50,7 +50,7 @@
 #define store_cons_args_local_stack(ARITY) store_args_local_stack(ARITY)
 #define update_generator_node(SG_FR)      \
     if(SgFr_is_ground_producer(SG_FR)) {  \
-      SgFr_update_saved_max((grounded_sf_ptr)(SG_FR));       \
+      SgFr_update_saved_max((retroactive_fr_ptr)(SG_FR));       \
     }
 #define DepFr_add_queue(DEP_FR) \
         check_dependency_frame(); \
@@ -471,7 +471,7 @@
       
 #define compute_ground_consumer_answer_list(SG_FR)                        \
       if(SgFr_state(SG_FR) < complete) {                                  \
-        build_next_ground_consumer_return_list((grounded_sf_ptr)(SG_FR)); \
+        build_next_ground_consumer_return_list((retroactive_fr_ptr)(SG_FR)); \
         SgFr_state(SG_FR) = complete;                                     \
       }
       
@@ -507,7 +507,7 @@
 #define check_ground_pre_stored_answers(SG_FR, TAB_ENT, GROUND_SG)  \
     if(TabEnt_ground_time_stamp(TAB_ENT) > 0) {                     \
       dprintf("Pre stored answers\n");                              \
-      grounded_sf_ptr ground_sg = (grounded_sf_ptr)(SG_FR);         \
+      retroactive_fr_ptr ground_sg = (retroactive_fr_ptr)(SG_FR);         \
                                                                     \
       /* retrieve more answers */                                   \
       build_next_ground_producer_return_list(GROUND_SG);            \
@@ -532,7 +532,7 @@
 
 #define check_ground_generator(SG_FR, TAB_ENT)                      \
     if(SgFr_is_ground_producer(SG_FR)) {                            \
-      grounded_sf_ptr ground_sg = (grounded_sf_ptr)(SG_FR);         \
+      retroactive_fr_ptr ground_sg = (retroactive_fr_ptr)(SG_FR);         \
       check_ground_pending_subgoals(SG_FR, TAB_ENT, ground_sg);     \
       if(!SgFr_is_ground_local_producer(SG_FR)) {                   \
         check_ground_pre_stored_answers(SG_FR, TAB_ENT, ground_sg); \
@@ -542,8 +542,8 @@
 #ifdef TABLING_RETROACTIVE
 #define precheck_ground_generator(SG_FR)                            \
      if(SgFr_is_ground_producer(SG_FR)) {                           \
-       SgFr_set_saved_max((grounded_sf_ptr)(SG_FR), B);             \
-       Bind_and_Trail(&SgFr_start((grounded_sf_ptr)SG_FR), (Term)B_FZ);              \
+       SgFr_set_saved_max((retroactive_fr_ptr)(SG_FR), B);             \
+       Bind_and_Trail(&SgFr_start((retroactive_fr_ptr)SG_FR), (Term)B_FZ);              \
      }
      
 #else
@@ -563,7 +563,7 @@
 
 #ifdef TABLING_RETROACTIVE
 #define CONSUME_GROUND_ANSWER(ANS_NODE, ANS_TMPLT, SG_FR) \
-  if(SgFr_is_most_general((grounded_sf_ptr)(SG_FR))) {    \
+  if(SgFr_is_most_general((retroactive_fr_ptr)(SG_FR))) {    \
     CONSUME_VARIANT_ANSWER(ANS_NODE, ANS_TMPLT);          \
   } else {                                                \
     CONSUME_SUBSUMPTIVE_ANSWER(ANS_NODE, ANS_TMPLT);      \
@@ -733,7 +733,7 @@ load_answer_jump:
     
     switch(SgFr_type(cons_sg_fr)) {
       case GROUND_CONSUMER_SFT: {
-        grounded_sf_ptr sg_fr = (grounded_sf_ptr)cons_sg_fr;
+        retroactive_fr_ptr sg_fr = (retroactive_fr_ptr)cons_sg_fr;
         dep_fr_ptr dep_fr = CONS_CP(B)->cp_dep_fr;
         continuation_ptr cont;
         
@@ -763,7 +763,7 @@ load_answer_jump:
              * can avoid being a real consumer */
             consume_next_ground_answer(cont, sg_fr);
           } else if(SgFr_saved_cp(SgFr_producer(sg_fr))) {
-            grounded_sf_ptr prod = SgFr_producer(sg_fr);
+            retroactive_fr_ptr prod = SgFr_producer(sg_fr);
             choiceptr cp = SgFr_saved_cp(prod);
             
             rebind_variables(cp->cp_tr, B->cp_tr);
@@ -1111,13 +1111,13 @@ try_answer_jump: {
 
   PBOp(table_try_ground_answer, Otapl)
 #ifdef TABLING_RETROACTIVE
-    grounded_sf_ptr sg_fr;
+    retroactive_fr_ptr sg_fr;
     ans_node_ptr ans_node = NULL;
     continuation_ptr next_cont;
     
     dprintf("===> TABLE_TRY_GROUND_ANSWER\n");
     
-    sg_fr = (grounded_sf_ptr)GEN_CP(B)->cp_sg_fr;
+    sg_fr = (retroactive_fr_ptr)GEN_CP(B)->cp_sg_fr;
     next_cont = continuation_next(SgFr_try_answer(sg_fr));
     
     if(next_cont) {
@@ -1920,7 +1920,7 @@ try_answer_jump: {
       dprintf("NEW_ANSWER_CP=%d\n", (int)B);
       
       if(SgFr_is_ground_producer(sg_fr)) {
-        grounded_sf_ptr ground = (grounded_sf_ptr)sg_fr;
+        retroactive_fr_ptr ground = (retroactive_fr_ptr)sg_fr;
         SgFr_update_saved_max(ground);
       }
 #endif /* TABLING_RETROACTIVE */
@@ -1941,7 +1941,7 @@ try_answer_jump: {
 #ifdef TABLING_RETROACTIVE
       if(SgFr_is_ground_local_producer(sg_fr)) {
         dprintf("GROUND_LOCAL PRODUCER\n");
-        grounded_sf_ptr ground = (grounded_sf_ptr)sg_fr;
+        retroactive_fr_ptr ground = (retroactive_fr_ptr)sg_fr;
         SgFr_num_ans(ground)++;
         dprintf("SgFr_num_ans(ground)=%d\n", SgFr_num_ans(ground));
         
@@ -1983,7 +1983,7 @@ try_answer_jump: {
 
 #ifdef TABLING_RETROACTIVE
         if(SgFr_is_ground_producer(sg_fr)) {
-          Bind_and_Trail(&SgFr_executing((grounded_sf_ptr)sg_fr), (Term)B);
+          Bind_and_Trail(&SgFr_executing((retroactive_fr_ptr)sg_fr), (Term)B);
         }
         SET_TOP_GEN_SG(SgFr_top_gen_sg(sg_fr));
 #endif
@@ -2030,6 +2030,7 @@ try_answer_jump: {
         goto fail;
       }
     } else {
+      dprintf("REPEATED ANSWER\n");
       /* repeated answer */
 #if defined(TABLE_LOCK_AT_ENTRY_LEVEL)
       UNLOCK(SgFr_lock(sg_fr));
@@ -2092,8 +2093,8 @@ try_answer_jump: {
 
 #ifdef TABLING_RETROACTIVE
     if(DepFr_is_top_consumer(dep_fr)) {
-      grounded_sf_ptr sg_fr = (grounded_sf_ptr)DepFr_sg_fr(dep_fr);
-      grounded_sf_ptr prod = SgFr_producer(sg_fr);
+      retroactive_fr_ptr sg_fr = (retroactive_fr_ptr)DepFr_sg_fr(dep_fr);
+      retroactive_fr_ptr prod = SgFr_producer(sg_fr);
       if(SgFr_state(prod) < complete && SgFr_saved_cp(prod)) {
         choiceptr cp = SgFr_saved_cp(prod);
         dprintf("saved_cp %d B %d\n", (int)cp, (int)B);
