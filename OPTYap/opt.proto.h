@@ -126,6 +126,7 @@ int is_most_general_call(sg_node_ptr leaf, int arity);
 #ifdef TABLING_RETROACTIVE
 CELL* copy_arguments_as_the_answer_template(CELL *answer_template, int arity);
 sg_fr_ptr retroactive_call_search(yamop *code, CELL *answer_template, CELL **new_local_stack);
+int mark_answer_subgoal(tst_node_ptr node, retroactive_fr_ptr sf);
 inline TSTNptr retroactive_answer_search(retroactive_fr_ptr sf, CPtr answerVector);
 #endif /* TABLING_RETROACTIVE */
 #endif /* TABLING_CALL_SUBSUMPTION */

@@ -344,7 +344,7 @@ mark_answer_hash(tst_node_ptr node, retroactive_fr_ptr sf) {
 }
 
 /* returns TRUE if new answer */
-static inline int
+int
 mark_answer_subgoal(tst_node_ptr node, retroactive_fr_ptr sf) {
   node_list_ptr list = (node_list_ptr)TSTN_child(node);
   

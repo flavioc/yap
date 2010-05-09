@@ -246,7 +246,7 @@ struct retroactive_subgoal_frame {
 
 #define TabEnt_retroactive_yes(X)    (TabEnt_retroactive_trie(X) && TrNode_is_leaf(TabEnt_retroactive_trie(X)))
 
-#define RETROACTIVE_SUBGOAL_FRAME_MASK 0xC0
+#define RETROACTIVE_SUBGOAL_FRAME_MASK 0x0C
 
 #define SgFr_is_retroactive(X)                 (SgFr_type(X) & RETROACTIVE_SUBGOAL_FRAME_MASK)
 #define SgFr_is_retroactive_producer(X)        (SgFr_type(X) == RETROACTIVE_PRODUCER_SFT)

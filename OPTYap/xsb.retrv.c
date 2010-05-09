@@ -643,6 +643,9 @@ xsbBool tst_collect_relevant_answers(CTXTdeclc TSTNptr tstRoot, TimeStamp ts,
 
 #ifdef SUBSUMPTION_YAP
   xsbBool any_answers;
+#ifdef TABLING_RETROACTIVE
+  xsbBool retroactive;
+#endif /* TABLING_RETROACTIVE */
   continuation_ptr first, last;
 #else
   ALNptr tstAnswerList;  /* for collecting leaves to be returned */
@@ -684,6 +687,9 @@ xsbBool tst_collect_relevant_answers(CTXTdeclc TSTNptr tstRoot, TimeStamp ts,
 #else
   first = last = NULL;
   any_answers = FALSE;
+#ifdef TABLING_RETROACTIVE
+  retroactive = SgFr_is_retroactive_producer(sg_fr);
+#endif /* TABLING_RETROACTIVE */
 #endif /* SUBSUMPTION_XSB */
   symbol = 0;   /* suppress compiler warning */
 
@@ -947,7 +953,16 @@ xsbBool tst_collect_relevant_answers(CTXTdeclc TSTNptr tstRoot, TimeStamp ts,
       first = SgFr_first_answer(sg_fr);
       last = SgFr_last_answer(sg_fr);
     }
-    push_new_answer_set(parent_node, first, last);
+#ifdef TABLING_RETROACTIVE
+    if(retroactive) {
+      if(mark_answer_subgoal(parent_node, (retroactive_fr_ptr)sg_fr)) {
+        push_new_answer_set(parent_node, first, last);
+      } /* else repeated answer */
+    } else
+#endif /* TABLING_RETROACTIVE */
+    {
+      push_new_answer_set(parent_node, first, last);
+    }
 #endif /* SUBSUMPTION_XSB */
   }
   if ( CPStack_IsEmpty ) {
