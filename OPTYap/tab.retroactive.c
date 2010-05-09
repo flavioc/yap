@@ -111,10 +111,6 @@ free_subgoal_trie_from_retroactive_table(tab_ent_ptr tab_ent)
   sg_hash_ptr hash;
   sg_node_ptr sg_node;
 
-  hash = TabEnt_hash_chain(tab_ent);
-  TabEnt_hash_chain(tab_ent) = NULL;
-  free_subgoal_trie_hash_chain(hash);
-  
   if(TabEnt_subgoal_trie(tab_ent)) {
     sg_node = TrNode_child(TabEnt_subgoal_trie(tab_ent));
     
@@ -242,6 +238,44 @@ sg_fr_ptr retroactive_call_search(yamop *code, CELL *answer_template, CELL **new
   return (sg_fr_ptr)sg_fr;
 }
 
+static inline void
+mark_answer_subgoal(tst_node_ptr node, retroactive_fr_ptr sf) {
+  node_list_ptr list = (node_list_ptr)TSTN_child(node);
+  node_list_ptr orig = list;
+  
+  /* try to locate answer */
+  while(list) {
+    retroactive_fr_ptr elem = (retroactive_fr_ptr)NodeList_node(list);
+    
+    if(elem == sf) {
+      break;
+    }
+    
+    list = NodeList_next(list);
+  }
+  
+  /* if list is not NULL, subgoal frame was found! */
+  if(list) {
+    /* found, old answer */
+    TrNode_set_ans(node);
+    printf("Old answer\n");
+  } else {
+    /* not found, add */
+    node_list_ptr new_node;
+    ALLOC_NODE_LIST(new_node);
+    
+    NodeList_next(new_node) = orig;
+    NodeList_node(new_node) = (ans_node_ptr)sf;
+    
+    TSTN_child(node) = (tst_node_ptr)new_node;
+    
+    printf("New answer\n");
+    
+    /* new answer */
+    TrNode_unset_is_ans(node);
+  }
+}
+
 inline
 TSTNptr retroactive_answer_search(retroactive_fr_ptr sf, CPtr answerVector) {
 
@@ -262,6 +296,8 @@ TSTNptr retroactive_answer_search(retroactive_fr_ptr sf, CPtr answerVector) {
   auto_update_instructions = TRUE;
   
   tstn = subsumptive_tst_search(root, arity, answerVector, (int)TabEnt_proper_consumers(tab_ent));
+  
+  mark_answer_subgoal(tstn, sf);
   
   /* update time stamp */
   SgFr_timestamp(sf) = TabEnt_retroactive_time_stamp(tab_ent);

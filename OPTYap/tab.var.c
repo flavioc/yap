@@ -76,6 +76,8 @@ variant_call_cont_insert(tab_ent_ptr tab_ent, sg_node_ptr current_node, int coun
     SUBGOAL_TOKEN_CHECK_INSERT(tab_ent, current_node, symbol, node_type | flags);
   }
   
+  TrNode_set_leaf(current_node);
+  
   return current_node;
 }
 

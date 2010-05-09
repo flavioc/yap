@@ -33,7 +33,6 @@ STD_PROTO(static inline void unbind_variables, (tr_fr_ptr, tr_fr_ptr));
 STD_PROTO(static inline void rebind_variables, (tr_fr_ptr, tr_fr_ptr));
 STD_PROTO(static inline void restore_bindings, (tr_fr_ptr, tr_fr_ptr));
 
-STD_PROTO(static inline void free_subgoal_trie_hash_chain, (sg_hash_ptr));
 STD_PROTO(static inline void free_answer_trie_hash_chain, (ans_hash_ptr));
 
 STD_PROTO(static inline void free_answer_trie_node, (ans_node_ptr));
@@ -335,19 +334,11 @@ case RETROACTIVE_CONSUMER_SFT: \
 
 #ifdef TABLE_LOCK_AT_ENTRY_LEVEL
 #define TabEnt_init_lock_field(TAB_ENT)  INIT_LOCK(TabEnt_lock(TAB_ENT))
-#define SgHash_init_next_field(HASH, TAB_ENT)          \
-        Hash_next(HASH) = TabEnt_hash_chain(TAB_ENT);  \
-        TabEnt_hash_chain(TAB_ENT) = HASH
 #define AnsHash_init_next_field(HASH, SG_FR)       \
         Hash_next(HASH) = (ans_hash_ptr)SgFr_hash_chain(SG_FR);  \
         SgFr_hash_chain(SG_FR) = HASH
 #else
 #define TabEnt_init_lock_field(TAB_ENT)
-#define SgHash_init_next_field(HASH, TAB_ENT)          \
-        LOCK(TabEnt_lock(TAB_ENT));                    \
-        Hash_next(HASH) = TabEnt_hash_chain(TAB_ENT);  \
-        TabEnt_hash_chain(TAB_ENT) = HASH;             \
-        UNLOCK(TabEnt_lock(TAB_ENT))
 #define AnsHash_init_next_field(HASH, SG_FR)       \
         LOCK(SgFr_lock(SG_FR));                    \
         Hash_next(HASH) = (ans_hash_ptr)SgFr_hash_chain(SG_FR);  \
@@ -582,7 +573,6 @@ join_answers_subgoal_frame(sg_fr_ptr sg_fr, continuation_ptr first, continuation
           TabEnt_arity(TAB_ENT) = ARITY;                        \
           TabEnt_mode(TAB_ENT) = 0;                             \
           TabEnt_subgoal_trie(TAB_ENT) = NULL;                  \
-          TabEnt_hash_chain(TAB_ENT) = NULL;                    \
           TabEnt_next(TAB_ENT) = GLOBAL_root_tab_ent;           \
           GLOBAL_root_tab_ent = TAB_ENT;                        \
         }
@@ -643,8 +633,7 @@ join_answers_subgoal_frame(sg_fr_ptr sg_fr, continuation_ptr first, continuation
         TrNode_node_type(HASH) = HASH_HEADER_NT | TYPE;             \
         Hash_num_buckets(HASH) = BASE_HASH_BUCKETS;                 \
         ALLOC_HASH_BUCKETS(Hash_buckets(HASH), BASE_HASH_BUCKETS);  \
-        Hash_num_nodes(HASH) = NUM_NODES;                           \
-        SgHash_init_next_field(HASH, TAB_ENT)
+        Hash_num_nodes(HASH) = NUM_NODES
         
 #define new_sub_subgoal_trie_hash(HASH, NUM_NODES, TAB_ENT)         \
         { subg_hash_ptr sub_hash;                                   \
@@ -1214,35 +1203,6 @@ void abolish_incomplete_subgoals(choiceptr prune_cp) {
   SET_TOP_GEN_SG(LOCAL_top_sg_fr);
 #endif /* TABLING_RETROACTIVE */
 }
-
-static inline
-void free_subgoal_trie_hash_chain(sg_hash_ptr hash) {
-  while (hash) {
-    sg_node_ptr chain_node, *bucket, *last_bucket;
-    sg_hash_ptr next_hash;
-
-    bucket = Hash_buckets(hash);
-    last_bucket = bucket + Hash_num_buckets(hash);
-    while (! *bucket)
-      bucket++;
-    chain_node = *bucket;
-    TrNode_child(TrNode_parent(chain_node)) = chain_node;
-    while (++bucket != last_bucket) {
-      if (*bucket) {
-        while (TrNode_next(chain_node))
-          chain_node = TrNode_next(chain_node);
-        TrNode_next(chain_node) = *bucket;
-        chain_node = *bucket;
-      }
-    }
-    next_hash = Hash_next(hash);
-    FREE_HASH_BUCKETS(Hash_buckets(hash));
-    free_subgoal_trie_hash(hash);
-    hash = next_hash;
-  }
-  return;
-}
-
 
 /*
  * free_answer_trie_hash_chain and free_tst_hash_chain

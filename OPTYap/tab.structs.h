@@ -91,7 +91,6 @@ typedef struct table_entry {
   int pred_arity;
   int mode_flags;
   struct subgoal_trie_node *subgoal_trie;
-  struct subgoal_trie_hash *hash_chain;
   struct table_entry *next;
 } *tab_ent_ptr;
 
@@ -101,7 +100,6 @@ typedef struct table_entry {
 #define TabEnt_arity(X)           ((X)->pred_arity)
 #define TabEnt_mode(X)            ((X)->mode_flags)
 #define TabEnt_subgoal_trie(X)    ((X)->subgoal_trie)
-#define TabEnt_hash_chain(X)      ((X)->hash_chain)
 #define TabEnt_next(X)            ((X)->next)
 
 #define TabEnt_is_load(X)         (IsMode_LoadAnswers(TabEnt_mode(X)))
@@ -271,7 +269,6 @@ typedef struct subgoal_trie_hash {
   int number_of_buckets;
   struct subgoal_trie_node **buckets;
   int number_of_nodes;
-  struct subgoal_trie_hash *next;
 } *sg_hash_ptr;
 
 /* ---------------------------------- */

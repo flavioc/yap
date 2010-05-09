@@ -864,13 +864,8 @@ Int p_tabling_mode(void) {
 
 static inline void
 abolish_table(tab_ent_ptr tab_ent) {
-  sg_hash_ptr hash;
   sg_node_ptr sg_node;
 
-  hash = TabEnt_hash_chain(tab_ent);
-  TabEnt_hash_chain(tab_ent) = NULL;
-  free_subgoal_trie_hash_chain(hash);
-  
   if(TabEnt_subgoal_trie(tab_ent)) {
 #ifdef TABLING_RETROACTIVE
     if(TabEnt_is_retroactive(tab_ent)) {
@@ -892,7 +887,7 @@ abolish_table(tab_ent_ptr tab_ent) {
 #ifdef GLOBAL_TRIE
       free_subgoal_trie_branch(sg_node, TabEnt_arity(tab_ent), TRAVERSE_POSITION_FIRST);
 #else
-      free_subgoal_trie_branch(sg_node, TabEnt_arity(tab_ent), 0, TRAVERSE_POSITION_FIRST);
+      free_subgoal_trie_branch(sg_node, TRAVERSE_POSITION_FIRST);
 #endif /* GLOBAL_TRIE */
     }
   }

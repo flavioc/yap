@@ -74,7 +74,7 @@ void private_completion(sg_fr_ptr sg_fr);
 #ifdef GLOBAL_TRIE
 void free_subgoal_trie_branch(sg_node_ptr node, int nodes_left, int position);
 #else
-void free_subgoal_trie_branch(sg_node_ptr node, int nodes_left, int nodes_extra, int position);
+void free_subgoal_trie_branch(sg_node_ptr node, int position);
 #endif /* GLOBAL_TRIE */
 void free_answer_trie_branch(ans_node_ptr node, int position);
 void update_answer_trie(sg_fr_ptr sg_fr);
