@@ -466,12 +466,42 @@ free_retroactive_subgoal_data(retroactive_fr_ptr sg_fr) {
   free_answer_continuation(SgFr_first_answer(sg_fr));
 }
 
+static inline 
+void free_retroactive_trie_branch(ans_node_ptr current_node, int position) {
+  if (! IS_ANSWER_LEAF_NODE(current_node))
+    free_retroactive_trie_branch(TrNode_child(current_node), TRAVERSE_POSITION_FIRST);
+  else {
+    /* leaf node */
+    node_list_ptr list = (node_list_ptr)TrNode_child(current_node);
+    
+    while(list) {
+      node_list_ptr next = NodeList_next(list);
+      FREE_NODE_LIST(list);
+      list = next;
+    }
+  }
+
+  if (position == TRAVERSE_POSITION_FIRST) {
+    ans_node_ptr next_node = TrNode_next(current_node);
+    FREE_TST_ANSWER_TRIE_NODE(current_node);
+    while (next_node) {
+      current_node = next_node;
+      next_node = TrNode_next(current_node);
+      free_retroactive_trie_branch(current_node, TRAVERSE_POSITION_NEXT);
+    }
+  } else {
+    FREE_TST_ANSWER_TRIE_NODE(current_node);
+  }
+}
+
 static inline void
 free_retroactive_trie(tab_ent_ptr tab_ent) {
   ans_node_ptr answer_trie = (ans_node_ptr)TabEnt_retroactive_trie(tab_ent);
   if(answer_trie) {
+    if(TabEnt_retroactive_hash_chain(tab_ent))
+      free_tst_hash_chain(TabEnt_retroactive_hash_chain(tab_ent));
     if(TrNode_child(answer_trie))
-      free_answer_trie_branch(TrNode_child(answer_trie), TRAVERSE_POSITION_FIRST);
+      free_retroactive_trie_branch(TrNode_child(answer_trie), TRAVERSE_POSITION_FIRST);
     FREE_TST_ANSWER_TRIE_NODE(answer_trie);
   }
 }

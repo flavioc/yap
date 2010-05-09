@@ -535,7 +535,7 @@
       retroactive_fr_ptr retro_sg = (retroactive_fr_ptr)(SG_FR);          \
       check_retroactive_pending_subgoals(SG_FR, TAB_ENT, retro_sg);       \
       if(!SgFr_is_retroactive_local_producer(SG_FR)) {                    \
-        check_retroactive_pre_stored_answers(SG_FR, TAB_ENT, retro_sg);   \
+        /*check_retroactive_pre_stored_answers(SG_FR, TAB_ENT, retro_sg);*/   \
       }                                                                   \
     }
 

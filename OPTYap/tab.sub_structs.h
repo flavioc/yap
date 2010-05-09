@@ -227,6 +227,7 @@ struct retroactive_subgoal_frame {
 #define TabEnt_retroactive_time_stamp(X)  (TabEnt_has_retroactive_trie(X) ? \
                                             TSTN_time_stamp((tst_node_ptr)TabEnt_retroactive_trie(X))  \
                                             : 0)
+#define TabEnt_retroactive_hash_chain(X)  ((tst_ans_hash_ptr)TrNode_next(TabEnt_retroactive_trie(X)))
                                       
 /* ------------------------------------------------------ */
 

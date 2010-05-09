@@ -575,7 +575,7 @@ reset_answers(retroactive_fr_ptr sg_fr) {
   continuation_ptr last = SgFr_last_answer(sg_fr);
   
   while(ptr) {
-    TrNode_unset_is_ans(continuation_answer(ptr));
+    //TrNode_unset_is_ans(continuation_answer(ptr));
     if(ptr == last)
       break;
     ptr = continuation_next(ptr);

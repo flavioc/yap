@@ -258,7 +258,7 @@ mark_answer_subgoal(tst_node_ptr node, retroactive_fr_ptr sf) {
   if(list) {
     /* found, old answer */
     TrNode_set_ans(node);
-    printf("Old answer\n");
+//    printf("Old answer\n");
   } else {
     /* not found, add */
     node_list_ptr new_node;
@@ -269,7 +269,7 @@ mark_answer_subgoal(tst_node_ptr node, retroactive_fr_ptr sf) {
     
     TSTN_child(node) = (tst_node_ptr)new_node;
     
-    printf("New answer\n");
+//    printf("New answer\n");
     
     /* new answer */
     TrNode_unset_is_ans(node);
