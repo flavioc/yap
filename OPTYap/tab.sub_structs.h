@@ -253,6 +253,20 @@ struct retroactive_subgoal_frame {
 #define SgFr_is_retroactive_consumer(X)        (SgFr_type(X) == RETROACTIVE_CONSUMER_SFT)
 #define SgFr_is_retroactive_local_producer(X)  (SgFr_is_retroactive_producer(X) && SgFr_is_local_producer((retroactive_fr_ptr)(X)))
 #define SgFr_is_retroactive_local_consumer(X)  (SgFr_is_retroactive_consumer(X) && SgFr_is_local_consumer((retroactive_fr_ptr)(X)))
+
+/* ------------------------------------------------------ */
+
+typedef struct retro_leaf_index {
+  int marker; /* must always be zero */
+  node_list_ptr *buckets;
+  int number_of_buckets;
+  int number_of_sgs;
+} *retro_leaf_ptr;
+
+#define LeafIndex_is_hash(X)    (!(retro_leaf_ptr)(X)->marker)
+#define LeafIndex_mark_hash(X)  ((X)->marker = 0)
+#define Hash_num_sgs(X)         ((X)->number_of_sgs)
+
 #endif /* TABLING_RETROACTIVE */
 
 #endif /* TABLING_CALL_SUBSUMPTION */

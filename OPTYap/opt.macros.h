@@ -508,8 +508,11 @@ extern int Yap_page_size;
 #define ALLOC_TST_ANSWER_TRIE_HASH(STR)   ALLOC_STRUCT(STR, GLOBAL_PAGES_tst_answer_trie_hash, struct tst_answer_trie_hash)
 #define FREE_TST_ANSWER_TRIE_HASH(STR)    FREE_STRUCT(STR, GLOBAL_PAGES_tst_answer_trie_hash, struct tst_answer_trie_hash)
 
-#define ALLOC_GEN_INDEX_NODE(STR) ALLOC_STRUCT(STR, GLOBAL_PAGES_gen_index_node, struct gen_index_node)
-#define FREE_GEN_INDEX_NODE(STR) FREE_STRUCT(STR, GLOBAL_PAGES_gen_index_node, struct gen_index_node)
+#define ALLOC_GEN_INDEX_NODE(STR)   ALLOC_STRUCT(STR, GLOBAL_PAGES_gen_index_node, struct gen_index_node)
+#define FREE_GEN_INDEX_NODE(STR)    FREE_STRUCT(STR, GLOBAL_PAGES_gen_index_node, struct gen_index_node)
+
+#define ALLOC_RETRO_LEAF_INDEX(STR) ALLOC_STRUCT(STR, GLOBAL_PAGES_retro_leaf_index, struct retro_leaf_index)
+#define FREE_RETRO_LEAF_INDEX(STR)  FREE_STRUCT(STR, GLOBAL_PAGES_retro_leaf_index, struct retro_leaf_index)
 
 
 /* ------------------------------------- **

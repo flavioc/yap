@@ -1787,4 +1787,5 @@ tg_sol_fr_ptr CUT_prune_tg_solution_frames(tg_sol_fr_ptr solutions, int ltt) {
     return return_solution;
   }
 }
+
 #endif /* TABLING_INNER_CUTS */

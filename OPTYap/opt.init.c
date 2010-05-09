@@ -135,6 +135,9 @@ void Yap_init_global(int max_table_size, int n_workers, int sch_loop, int delay_
   INIT_PAGES(GLOBAL_PAGES_tst_index_node, struct tst_index_node);
   INIT_PAGES(GLOBAL_PAGES_tst_answer_trie_hash, struct tst_answer_trie_hash);
   INIT_PAGES(GLOBAL_PAGES_gen_index_node, struct gen_index_node);
+#ifdef TABLING_RETROACTIVE
+  INIT_PAGES(GLOBAL_PAGES_retro_leaf_index, struct retro_leaf_index);
+#endif /* TABLING_RETROACTIVE */
 #endif
 
   INIT_PAGES(GLOBAL_PAGES_dep_fr, struct dependency_frame);

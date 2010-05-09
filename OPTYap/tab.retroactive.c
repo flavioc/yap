@@ -238,11 +238,12 @@ sg_fr_ptr retroactive_call_search(yamop *code, CELL *answer_template, CELL **new
   return (sg_fr_ptr)sg_fr;
 }
 
-static inline void
-mark_answer_subgoal(tst_node_ptr node, retroactive_fr_ptr sf) {
-  node_list_ptr list = (node_list_ptr)TSTN_child(node);
-  node_list_ptr orig = list;
-  
+#define THRESHOLD_HASHTABLE   2
+#define THRESHOLD_BUCKET      (THRESHOLD_HASHTABLE / 2)
+#define HASH_ELEM(ELEM, SEED) ((unsigned int)(ELEM) & (SEED))
+
+static inline int
+find_subgoal_list(node_list_ptr list, retroactive_fr_ptr sf, int *total) {
   /* try to locate answer */
   while(list) {
     retroactive_fr_ptr elem = (retroactive_fr_ptr)NodeList_node(list);
@@ -251,29 +252,120 @@ mark_answer_subgoal(tst_node_ptr node, retroactive_fr_ptr sf) {
       break;
     }
     
+    *total = *total + 1;
     list = NodeList_next(list);
   }
   
-  /* if list is not NULL, subgoal frame was found! */
-  if(list) {
-    /* found, old answer */
-    TrNode_set_ans(node);
-//    printf("Old answer\n");
-  } else {
-    /* not found, add */
-    node_list_ptr new_node;
-    ALLOC_NODE_LIST(new_node);
+  return list != NULL;
+}
+
+static inline void
+insert_list_into_hash(node_list_ptr list, retro_leaf_ptr hash) {
+  node_list_ptr *bucket;
+  
+  while(list) {
+    node_list_ptr next = NodeList_next(list);
     
-    NodeList_next(new_node) = orig;
-    NodeList_node(new_node) = (ans_node_ptr)sf;
-    
-    TSTN_child(node) = (tst_node_ptr)new_node;
-    
-//    printf("New answer\n");
-    
-    /* new answer */
-    TrNode_unset_is_ans(node);
+    /* add 'list' to hash table */
+    bucket = Hash_bucket(hash, HASH_ELEM(NodeList_node(list), Hash_seed(hash)));
+    NodeList_next(list) = *bucket;
+    *bucket = list;
+    list = next;
   }
+}
+
+static inline void
+create_hash_table(tst_node_ptr node, int total) {
+  retro_leaf_ptr hash;
+  
+  ALLOC_RETRO_LEAF_INDEX(hash);
+  LeafIndex_mark_hash(hash);
+  Hash_num_buckets(hash) = BASE_HASH_BUCKETS;
+  Hash_num_sgs(hash) = total;
+  ALLOC_HASH_BUCKETS(Hash_buckets(hash), BASE_HASH_BUCKETS);
+  
+  /* insert nodes */
+  insert_list_into_hash((node_list_ptr)TSTN_child(node), hash);
+  TSTN_child(node) = (tst_node_ptr)hash;
+}
+
+static node_list_ptr
+new_subgoal_list_elem(retroactive_fr_ptr sf, node_list_ptr next) {
+  node_list_ptr new_node;
+  
+  ALLOC_NODE_LIST(new_node);
+    
+  NodeList_next(new_node) = next;
+  NodeList_node(new_node) = (ans_node_ptr)sf;
+  
+  return new_node;
+}
+
+static inline void
+expand_hash_table(tst_node_ptr node) {
+  retro_leaf_ptr hash = (retro_leaf_ptr)TrNode_child(node);
+  node_list_ptr *old_bucket = Hash_buckets(hash);
+  node_list_ptr *save_old = old_bucket;
+  node_list_ptr *end_old_bucket = old_bucket + Hash_num_buckets(hash);
+  
+  Hash_num_buckets(hash) *= 2;
+  ALLOC_HASH_BUCKETS(Hash_buckets(hash), Hash_num_buckets(hash));
+  
+  while(old_bucket != end_old_bucket) {
+    if(*old_bucket)
+      insert_list_into_hash(*old_bucket, hash);
+    ++old_bucket;
+  }
+  
+  FREE_HASH_BUCKETS(save_old);
+}
+
+static inline int
+mark_answer_hash(tst_node_ptr node, retroactive_fr_ptr sf) {
+  retro_leaf_ptr hash = (retro_leaf_ptr)TrNode_child(node);
+  node_list_ptr *bucket;
+  
+  bucket = Hash_bucket(hash, HASH_ELEM(sf, Hash_seed(hash)));
+  
+  int total = 0;
+  if(find_subgoal_list(*bucket, sf, &total))
+    return FALSE;
+  
+  node_list_ptr new_node = new_subgoal_list_elem(sf, *bucket);
+  ++total;
+  *bucket = new_node;
+  
+  Hash_num_sgs(hash)++;
+  
+  if(total > THRESHOLD_BUCKET)
+    expand_hash_table(node);
+  
+  return TRUE;
+}
+
+/* returns TRUE if new answer */
+static inline int
+mark_answer_subgoal(tst_node_ptr node, retroactive_fr_ptr sf) {
+  node_list_ptr list = (node_list_ptr)TSTN_child(node);
+  
+  if(list != NULL && LeafIndex_is_hash((retro_leaf_ptr)list))
+    return mark_answer_hash(node, sf);
+
+  int total = 0;
+  
+  if(find_subgoal_list(list, sf, &total))
+    return FALSE;
+  
+  /* not found, add */
+  node_list_ptr new_node = new_subgoal_list_elem(sf, (node_list_ptr)TSTN_child(node));
+  TSTN_child(node) = (tst_node_ptr)new_node;
+  ++total;
+  
+  if(total > THRESHOLD_HASHTABLE) {
+    create_hash_table(node, total);
+  }
+  
+  return TRUE;
 }
 
 inline
@@ -297,7 +389,10 @@ TSTNptr retroactive_answer_search(retroactive_fr_ptr sf, CPtr answerVector) {
   
   tstn = subsumptive_tst_search(root, arity, answerVector, (int)TabEnt_proper_consumers(tab_ent));
   
-  mark_answer_subgoal(tstn, sf);
+  if(mark_answer_subgoal(tstn, sf))
+    TrNode_unset_is_ans(tstn); /* new answer */
+  else
+    TrNode_set_ans(tstn); /* old answer */
   
   /* update time stamp */
   SgFr_timestamp(sf) = TabEnt_retroactive_time_stamp(tab_ent);
