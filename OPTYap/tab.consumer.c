@@ -385,13 +385,14 @@ abolish_generator_subgoals_between(sg_fr_ptr specific_sg, choiceptr min, choicep
           else
             external = NULL;
             
+          remove_subgoal_frame_from_stack(sg_fr);
+            
           if(external) {
             SgFr_state(sg_fr) = suspended;
           } else {
             dprintf("Could not find external dep fr!\n");
             dprintf("REALLY ABOLISHED %d\n", (int)sg_fr);
             abolish_incomplete_producer_subgoal(sg_fr);
-            remove_subgoal_frame_from_stack(sg_fr);
           }
           break;
         case SUBSUMPTIVE_PRODUCER_SFT: {
@@ -405,7 +406,7 @@ abolish_generator_subgoals_between(sg_fr_ptr specific_sg, choiceptr min, choicep
           }
           
           remove_subgoal_frame_from_stack(sg_fr);
-            
+          
           if(SgFr_num_proper_deps(prod_sg) > 0) {
             dprintf("Num proper deps: %d\n", SgFr_num_proper_deps(prod_sg));
             update_external_consumers(specific_sg, gen_cp, max, sg_fr, SgFr_num_proper_deps(prod_sg));

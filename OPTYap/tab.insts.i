@@ -996,15 +996,12 @@
             printSubgoalTriePath(stdout, SgFr_leaf(sg_fr), SgFr_tab_ent(sg_fr));
             dprintf("\n");
 #endif
-            if(ON_SG_FR_STACK(sg_fr))
-              reorder_subgoal_frame(sg_fr, B);
-            else
-              reinsert_subgoal_frame(sg_fr, B);
+            reinsert_subgoal_frame(sg_fr, B);
             restart_code_execution(sg_fr);
           } else {
             B->cp_ap = TRY_ANSWER;
             
-            reorder_subgoal_frame(sg_fr, B);
+            reinsert_subgoal_frame(sg_fr, B);
             SgFr_try_answer(sg_fr) = DepFr_last_answer(dep_fr);
             dprintf("Going to try_answer_jump\n");
             goto try_answer_jump;
@@ -1211,16 +1208,7 @@ try_answer_jump: {
 
       store_generator_node(tab_ent, sg_fr, PREG->u.Otapl.s, TRY_ANSWER);
       
-#ifdef TABLING_RETROACTIVE
-      if(SgFr_state(sg_fr) == suspended) {
-        SgFr_state(sg_fr) = evaluating;
-        SgFr_choice_point(sg_fr) = B;
-        move_subgoal_top(sg_fr);
-      } else
-#endif /* TABLING_RETROACTIVE */
-      {
-        init_subgoal_frame(sg_fr);
-      }
+      init_subgoal_frame(sg_fr);
       
       UNLOCK(SgFr_lock(sg_fr));
       
@@ -1361,16 +1349,7 @@ try_answer_jump: {
 
       store_generator_node(tab_ent, sg_fr, PREG->u.Otapl.s, TRY_ANSWER);
 
-#ifdef TABLING_RETROACTIVE
-      if(SgFr_state(sg_fr) == suspended) {
-        SgFr_state(sg_fr) = evaluating;
-        SgFr_choice_point(sg_fr) = B;
-        move_subgoal_top(sg_fr);
-      } else
-#endif /* TABLING_RETROACTIVE */
-      {
-        init_subgoal_frame(sg_fr);
-      }
+      init_subgoal_frame(sg_fr);
 
       UNLOCK(SgFr_lock(sg_fr));
       
@@ -1512,16 +1491,7 @@ try_answer_jump: {
 
       store_generator_node(tab_ent, sg_fr, PREG->u.Otapl.s, TRY_ANSWER);
 
-#ifdef TABLING_RETROACTIVE
-      if(SgFr_state(sg_fr) == suspended) {
-        SgFr_state(sg_fr) = evaluating;
-        SgFr_choice_point(sg_fr) = B;
-        move_subgoal_top(sg_fr);
-      } else
-#endif /* TABLING_RETROACTIVE */
-      {
-        init_subgoal_frame(sg_fr);
-      }
+      init_subgoal_frame(sg_fr);
 
       UNLOCK(SgFr_lock(sg_fr));
       
