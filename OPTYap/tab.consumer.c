@@ -63,6 +63,12 @@ check_dependency_frame(void)
 static inline int
 is_internal_subgoal_frame(sg_fr_ptr specific_sg, sg_fr_ptr sf, choiceptr min)
 {
+  if(sf == NULL)
+    return FALSE;
+    
+  if(sf == specific_sg)
+    return TRUE;
+    
   sg_fr_ptr top_gen = SgFr_top_gen_sg(sf);
   
   while(top_gen && EQUAL_OR_YOUNGER_CP(SgFr_choice_point(top_gen), min)) {
@@ -78,17 +84,7 @@ is_internal_subgoal_frame(sg_fr_ptr specific_sg, sg_fr_ptr sf, choiceptr min)
 static inline int
 is_internal_dep_fr(sg_fr_ptr specific_sg, dep_fr_ptr dep_fr, choiceptr limit)
 {
-  sg_fr_ptr top_gen = DepFr_top_gen_sg(dep_fr);
-  
-  /* XXX YOUNGER */
-  while(top_gen && SgFr_choice_point(top_gen) <= limit) {
-    if(top_gen == specific_sg)
-      return TRUE;
-    
-    top_gen = SgFr_top_gen_sg(top_gen);
-  }
-  
-  return FALSE;
+  return is_internal_subgoal_frame(specific_sg, DepFr_top_gen_sg(dep_fr), limit);
 }
 
 static inline dep_fr_ptr

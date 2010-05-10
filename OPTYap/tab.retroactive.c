@@ -182,7 +182,6 @@ sg_fr_ptr retroactive_call_search(yamop *code, CELL *answer_template, CELL **new
     sg_fr = create_new_retroactive_producer_subgoal(leaf, tab_ent, code);
     
     Trail_Unwind_All;
-    dprintf("New producer\n");
     
     /* determine if is most general */
     if(is_most_general_call(leaf, arity))
@@ -204,7 +203,6 @@ sg_fr_ptr retroactive_call_search(yamop *code, CELL *answer_template, CELL **new
     switch(path_type) {
       case VARIANT_PATH:
         sg_fr = found;
-        dprintf("variant path\n");
         break;
       case SUBSUMPTIVE_PATH:
         if(SgFr_state(subsumer) < complete || TabEnt_is_load(tab_ent)) {
@@ -230,7 +228,6 @@ sg_fr_ptr retroactive_call_search(yamop *code, CELL *answer_template, CELL **new
         /* turn into producer */
         SgFr_set_type(sg_fr, RETROACTIVE_PRODUCER_SFT); 
         SgFr_producer(sg_fr) = NULL;
-        dprintf("Producer not evaluating\n");
       }
     }
   }
