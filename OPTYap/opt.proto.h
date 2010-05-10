@@ -150,6 +150,7 @@ void process_pending_subgoal_list(node_list_ptr list, retroactive_fr_ptr sg_fr);
 void add_dependency_frame(retroactive_fr_ptr sg_fr, choiceptr cp);
 void reinsert_subgoal_frame(sg_fr_ptr sg_fr, choiceptr new_cp);
 void reinsert_dependency_frame(dep_fr_ptr dep_fr);
+void reorder_subgoal_frame(sg_fr_ptr sg_fr, choiceptr new_gen_cp);
 void remove_from_restarted_gens(choiceptr cp);
 void remove_sg_fr_from_restarted_gens(sg_fr_ptr sg_fr);
 void transform_node_into_loader(choiceptr cp, sg_fr_ptr sg_fr,

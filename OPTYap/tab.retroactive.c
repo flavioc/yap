@@ -238,7 +238,7 @@ sg_fr_ptr retroactive_call_search(yamop *code, CELL *answer_template, CELL **new
   return (sg_fr_ptr)sg_fr;
 }
 
-#define THRESHOLD_HASHTABLE   2
+#define THRESHOLD_HASHTABLE   8
 #define THRESHOLD_BUCKET      (THRESHOLD_HASHTABLE / 2)
 #define HASH_ELEM(ELEM, SEED) ((unsigned int)(ELEM) & (SEED))
 

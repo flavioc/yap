@@ -172,7 +172,9 @@ update_leader_fields(choiceptr old_leader, choiceptr new_leader, choiceptr min)
   if(SgFr_prev(SG_FR))                                \
     SgFr_next(SgFr_prev(SG_FR)) = SgFr_next(SG_FR);   \
   if(SgFr_next(SG_FR))                                \
-    SgFr_prev(SgFr_next(SG_FR)) = SgFr_prev(SG_FR)
+    SgFr_prev(SgFr_next(SG_FR)) = SgFr_prev(SG_FR);   \
+  SgFr_prev(SG_FR) = NULL;                            \
+  SgFr_next(SG_FR) = NULL
 
 void
 reorder_subgoal_frame(sg_fr_ptr sg_fr, choiceptr new_gen_cp)
@@ -282,7 +284,7 @@ transform_external_subsumed_consumers(choiceptr min, sg_fr_ptr sg_fr,
           while(ptr_old) {
             if((sg_fr_ptr)NodeList_node(ptr_old) == dep)
             {
-              new_sg = (sg_fr_ptr)NodeList_node(ptr_new);
+              new_sg = (subprod_fr_ptr)NodeList_node(ptr_new);
               break;
             }
 
@@ -309,14 +311,14 @@ transform_external_subsumed_consumers(choiceptr min, sg_fr_ptr sg_fr,
 #endif
 
             ALLOC_NODE_LIST(new_old_list);
-            NodeList_node(new_old_list) = DepFr_sg_fr(top);
+            NodeList_node(new_old_list) = (ans_node_ptr)DepFr_sg_fr(top);
             NodeList_next(new_old_list) = old_sg_list;
             old_sg_list = new_old_list;
           
             SgFr_state(new_sg) = suspended;
 
             ALLOC_NODE_LIST(new_new_list);
-            NodeList_node(new_new_list) = new_sg;
+            NodeList_node(new_new_list) = (ans_node_ptr)new_sg;
             NodeList_next(new_new_list) = new_sg_list;
             new_sg_list = new_new_list;
             
@@ -477,7 +479,7 @@ internal_producer_to_consumer(retroactive_fr_ptr sg_fr, retroactive_fr_ptr produ
   SgFr_set_local_producer(producer);
   SgFr_set_local_consumer(sg_fr);
   
-  SgFr_top_gen_sg(producer) = sg_fr;
+  SgFr_top_gen_sg(producer) = (sg_fr_ptr)sg_fr;
   B->cp_b = gen_cp;
 }
 

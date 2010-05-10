@@ -1268,6 +1268,7 @@ extern char emacs_tmp[], emacs_tmp2[];
 #include "tab.xsb.h"
 #include "tab.tst.h"
 #include "tab.retrv.h"
+#include "tab.specific.h"
 #include "opt.proto.h"
 #include "opt.macros.h"
 #endif /* YAPOR || TABLING */

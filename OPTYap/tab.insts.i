@@ -505,8 +505,6 @@
 #define check_retroactive_pre_stored_answers(SG_FR, TAB_ENT, RETROACTIVE_SG)  \
     if(TabEnt_retroactive_time_stamp(TAB_ENT) > 0) {                          \
       dprintf("Pre stored answers\n");                                        \
-      retroactive_fr_ptr retro_sg = (retroactive_fr_ptr)(SG_FR);              \
-                                                                              \
       /* retrieve more answers */                                             \
       build_next_retroactive_producer_return_list(RETROACTIVE_SG);            \
                                                                               \
@@ -668,8 +666,6 @@
   ENDPBOp();
 
   PBOp(table_load_answer, Otapl)
-load_answer_jump:
-  
     INIT_PREFETCH()
     
     CELL *ans_tmplt;
@@ -715,11 +711,10 @@ load_answer_jump:
     INIT_PREFETCH()
     
     sg_fr_ptr cons_sg_fr = CONS_CP(B)->cp_sg_fr;
-    tab_ent_ptr tab_ent = SgFr_tab_ent(cons_sg_fr);
     
 #ifdef FDEBUG
     dprintf("===> TABLE_RUN_COMPLETED ");
-    printSubgoalTriePath(stdout, SgFr_leaf(cons_sg_fr), tab_ent);
+    printSubgoalTriePath(stdout, SgFr_leaf(cons_sg_fr), SgFr_tab_ent(cons_sg_fr));
     dprintf("\n");
 #endif
     
@@ -888,18 +883,18 @@ load_answer_jump:
           dprintf("CONSUMER SUBGOAL HAS CHANGED\n");
           SgFr_num_deps(sg_fr)--;
           if(SgFr_num_deps(sg_fr) == 0) {
-            dprintf("DELETING CONSUMER AT LEAST\n");
+            dprintf("DELETING CONSUMER AT LAST\n");
             free_consumer_subgoal_data(sg_fr);
             FREE_SUBCONS_SUBGOAL_FRAME(sg_fr);
           }
           
           /* set to new */
-          sg_fr_ptr new_sg = TrNode_sg_fr(leaf);
+          sg_fr_ptr new_sg = (sg_fr_ptr)TrNode_sg_fr(leaf);
           
           CONS_CP(B)->cp_sg_fr = new_sg;
           DepFr_sg_fr(dep_fr) = new_sg;
           DepFr_last_answer(dep_fr) = (continuation_ptr)CONSUMER_DEFAULT_LAST_ANSWER(new_sg, dep_fr);
-          transform_consumer_answer_template(sg_fr, B);
+          transform_consumer_answer_template(new_sg, B);
           goto run_completed;
         }
         

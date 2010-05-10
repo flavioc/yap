@@ -280,7 +280,7 @@ STD_PROTO(static inline int build_next_retroactive_producer_return_list, (retroa
   HBREG = PROTECT_FROZEN_H(B);  \
   SET_BB(PROTECT_FROZEN_B(B))
   
-#define ON_SG_FR_STACK(SG_FR) (SG_FR == LOCAL_top_dep_fr || SgFr_prev(SG_FR) != NULL || SgFr_next(SG_FR) != NULL)
+#define ON_SG_FR_STACK(SG_FR) (SG_FR == LOCAL_top_sg_fr || SgFr_prev(SG_FR) != NULL || SgFr_next(SG_FR) != NULL)
 
 #ifdef TABLING_CALL_SUBSUMPTION
 static inline void
