@@ -634,7 +634,7 @@ ALNptr tst_collect_relevant_answers(CTXTdeclc TSTNptr tstRoot, TimeStamp ts,
 				    int numTerms, CPtr termsRev)
 #else
 xsbBool tst_collect_relevant_answers(CTXTdeclc TSTNptr tstRoot, TimeStamp ts,
-            int numTerms, CPtr termsRev, sg_fr_ptr sg_fr)
+            int numTerms, CPtr termsRev, sg_fr_ptr sg_fr, int do_pending)
 #endif /* SUBSUMPTION_XSB */
 {
 
@@ -643,9 +643,6 @@ xsbBool tst_collect_relevant_answers(CTXTdeclc TSTNptr tstRoot, TimeStamp ts,
 
 #ifdef SUBSUMPTION_YAP
   xsbBool any_answers;
-#ifdef TABLING_RETROACTIVE
-  xsbBool retroactive;
-#endif /* TABLING_RETROACTIVE */
   continuation_ptr first, last;
 #else
   ALNptr tstAnswerList;  /* for collecting leaves to be returned */
@@ -687,9 +684,6 @@ xsbBool tst_collect_relevant_answers(CTXTdeclc TSTNptr tstRoot, TimeStamp ts,
 #else
   first = last = NULL;
   any_answers = FALSE;
-#ifdef TABLING_RETROACTIVE
-  retroactive = SgFr_is_retroactive_producer(sg_fr);
-#endif /* TABLING_RETROACTIVE */
 #endif /* SUBSUMPTION_XSB */
   symbol = 0;   /* suppress compiler warning */
 
@@ -950,14 +944,18 @@ xsbBool tst_collect_relevant_answers(CTXTdeclc TSTNptr tstRoot, TimeStamp ts,
 #else
     if(!any_answers) {
       any_answers = TRUE;
-      first = SgFr_first_answer(sg_fr);
-      last = SgFr_last_answer(sg_fr);
+#ifdef TABLING_RETROACTIVE
+      if(!do_pending)
+#endif /* TABLING_RETROACTIVE */
+      {
+        first = SgFr_first_answer(sg_fr);
+        last = SgFr_last_answer(sg_fr);
+      }
     }
 #ifdef TABLING_RETROACTIVE
-    if(retroactive) {
-      if(mark_answer_subgoal(parent_node, (retroactive_fr_ptr)sg_fr)) {
-        push_new_answer_set(parent_node, first, last);
-      } /* else repeated answer */
+    if(do_pending) {
+      if((TSTNptr)do_pending != parent_node)
+        add_answer_pending(parent_node, (retroactive_fr_ptr)sg_fr);
     } else
 #endif /* TABLING_RETROACTIVE */
     {
@@ -972,7 +970,7 @@ xsbBool tst_collect_relevant_answers(CTXTdeclc TSTNptr tstRoot, TimeStamp ts,
   goto While_TSnotEmpty;
 end_retrv:
 #ifdef SUBSUMPTION_YAP
-  if(any_answers) {
+  if(any_answers && !do_pending) {
     SgFr_first_answer(sg_fr) = first;
     SgFr_last_answer(sg_fr) = last;
   }

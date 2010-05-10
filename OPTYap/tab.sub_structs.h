@@ -184,10 +184,13 @@ struct retroactive_subgoal_frame {
   CELL* answer_template;
   int at_size;
   int at_full_size;
+  
+  node_list_ptr pending_answers;
 };
 
 #define SgFr_num_ans(X)             ((X)->num_ans)
 #define SgFr_stack_state(X)         ((X)->stack_state)
+#define SgFr_pending_answers(X)     ((X)->pending_answers)
 
 #define SgFr_start_cp(X)            ((choiceptr)SgFr_start(X))
 #define SgFr_new_answer_cp(X)       ((choiceptr)SgFr_executing(X))

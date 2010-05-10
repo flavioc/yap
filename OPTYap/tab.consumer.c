@@ -386,7 +386,7 @@ abolish_generator_subgoals_between(sg_fr_ptr specific_sg, choiceptr min, choicep
             external = NULL;
             
           remove_subgoal_frame_from_stack(sg_fr);
-            
+
           if(external) {
             SgFr_state(sg_fr) = suspended;
           } else {
@@ -621,9 +621,7 @@ process_pending_subgoal_list(node_list_ptr list, retroactive_fr_ptr sg_fr) {
           /* already completed */
           mark_retroactive_consumer_as_completed(pending);
         } else {
-          SgFr_producer(pending) = sg_fr;
-          SgFr_set_type(pending, RETROACTIVE_CONSUMER_SFT);
-          dprintf("MARKED AS CONSUMER\n");
+          transform_producer_into_consumer(pending, sg_fr);
         }
         
         REMOVE_PENDING_NODE();
@@ -640,9 +638,9 @@ process_pending_subgoal_list(node_list_ptr list, retroactive_fr_ptr sg_fr) {
         printf("\n");
 #endif
         ensure_has_proper_consumers(SgFr_tab_ent(sg_fr));
-        SgFr_set_type(pending, RETROACTIVE_CONSUMER_SFT);
-        SgFr_producer(pending) = sg_fr;
-
+        
+        transform_producer_into_consumer(pending, sg_fr);
+        
         reset_answers(pending);
         
         if(SgFr_is_internal(pending)) {
@@ -920,7 +918,6 @@ transform_consumer_answer_template(sg_fr_ptr sg_fr, choiceptr cp)
       }
     }
   }
-  
   
   /* write variables */
   CELL **binding, *termptr;

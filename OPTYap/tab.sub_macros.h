@@ -43,6 +43,8 @@ STD_PROTO(static inline int build_next_subsumptive_consumer_return_list, (subcon
 #ifdef TABLING_RETROACTIVE
 STD_PROTO(static inline int build_next_retroactive_consumer_return_list, (retroactive_fr_ptr));
 STD_PROTO(static inline int build_next_retroactive_producer_return_list, (retroactive_fr_ptr));
+
+STD_PROTO(static inline void transform_producer_into_consumer, (retroactive_fr_ptr, retroactive_fr_ptr));
 #endif /* TABLING_RETROACTIVE */
 
 #define retroactive_trie_create_tsi(TAB_ENT) tstCreateTSIs((tst_node_ptr)TabEnt_retroactive_trie(TAB_ENT))
@@ -70,6 +72,7 @@ STD_PROTO(static inline int build_next_retroactive_producer_return_list, (retroa
         SgFr_num_ans(SG_FR) = 0;                \
         SgFr_saved_max(SG_FR) = NULL;           \
         SgFr_saved_cp(SG_FR) = NULL;            \
+        SgFr_pending_answers(SG_FR) = NULL;     \
         RESET_VARIABLE(&SgFr_executing(SG_FR)); \
         RESET_VARIABLE(&SgFr_start(SG_FR))
 
@@ -608,15 +611,15 @@ build_next_subsumptive_consumer_return_list(subcons_fr_ptr consumer_sg) {
   AT_SIZE = SgFr_at_full_size(consumer_sg);
   
   return tst_collect_relevant_answers(trie, consumer_ts, size,
-          STANDARDIZE_AT_PTR(answer_template, size), (sg_fr_ptr)consumer_sg);
+          STANDARDIZE_AT_PTR(answer_template, size), (sg_fr_ptr)consumer_sg, FALSE);
 }
 
 #ifdef TABLING_RETROACTIVE
 static inline int
 build_next_retroactive_consumer_return_list(retroactive_fr_ptr consumer_sg) {
   retroactive_fr_ptr producer_sg = SgFr_producer(consumer_sg);
-  const int producer_ts = SgFr_timestamp(producer_sg);
-  const int consumer_ts = SgFr_timestamp(consumer_sg);
+  const time_stamp producer_ts = SgFr_timestamp(producer_sg);
+  const time_stamp consumer_ts = SgFr_timestamp(consumer_sg);
   
   if(producer_ts == consumer_ts)
     return FALSE; /* no answers were inserted */
@@ -634,14 +637,14 @@ build_next_retroactive_consumer_return_list(retroactive_fr_ptr consumer_sg) {
   AT_SIZE = SgFr_at_full_size(consumer_sg);
   
   return tst_collect_relevant_answers(trie, consumer_ts, size,
-    STANDARDIZE_AT_PTR(answer_template, size), (sg_fr_ptr)consumer_sg);
+    STANDARDIZE_AT_PTR(answer_template, size), (sg_fr_ptr)consumer_sg, FALSE);
 }
 
 static inline int
 build_next_retroactive_producer_return_list(retroactive_fr_ptr producer_sg) {
   tab_ent_ptr tab_ent = SgFr_tab_ent(producer_sg);
-  const int producer_ts = SgFr_timestamp(producer_sg);
-  const int retro_ts = TabEnt_retroactive_time_stamp(tab_ent);
+  const time_stamp producer_ts = SgFr_timestamp(producer_sg);
+  const time_stamp retro_ts = TabEnt_retroactive_time_stamp(tab_ent);
   
   if(producer_ts == retro_ts)
     return FALSE; /* no answers */
@@ -653,13 +656,61 @@ build_next_retroactive_producer_return_list(retroactive_fr_ptr producer_sg) {
   tst_node_ptr trie = (tst_node_ptr)TabEnt_retroactive_trie(tab_ent);
   
   SgFr_timestamp(producer_sg) = retro_ts;
-  AT = SgFr_answer_template(producer_sg);
+  AT = answer_template;
   AT_SIZE = SgFr_at_full_size(producer_sg);
   
   return tst_collect_relevant_answers(trie, producer_ts, size,
     STANDARDIZE_AT_PTR(answer_template, size),
-    (sg_fr_ptr)producer_sg);
+    (sg_fr_ptr)producer_sg, FALSE);
 }
+
+static inline void
+transform_producer_into_consumer(retroactive_fr_ptr sf, retroactive_fr_ptr producer)
+{
+  SgFr_set_type(sf, RETROACTIVE_CONSUMER_SFT);
+  SgFr_producer(sf) = producer;
+  
+  /* copy pending answers */
+  node_list_ptr pending = SgFr_pending_answers(sf);
+  SgFr_pending_answers(sf) = NULL;
+  
+  if(pending && LeafIndex_is_hash((retro_leaf_ptr)pending)) {
+    retro_leaf_ptr hash = (retro_leaf_ptr)pending;
+    
+    node_list_ptr *buckets = Hash_buckets(hash);
+    node_list_ptr *end = buckets + Hash_num_buckets(hash);
+
+    while(buckets != end) {
+      if(*buckets) {
+        pending = *buckets;
+        
+        while(pending) {
+          node_list_ptr next = NodeList_next(pending);
+          
+          push_new_answer_set(NodeList_node(pending), SgFr_first_answer(sf), SgFr_last_answer(sf));
+          
+          FREE_NODE_LIST(pending);
+          
+          pending = next;
+        }
+      }
+      
+      ++buckets;
+    }
+    
+    FREE_HASH_BUCKETS(Hash_buckets(hash));
+  } else {
+    while(pending) {
+      node_list_ptr next = NodeList_next(pending);
+    
+      push_new_answer_set(NodeList_node(pending), SgFr_first_answer(sf), SgFr_last_answer(sf));
+    
+      FREE_NODE_LIST(pending);
+      pending = next;
+    }
+  }
+}
+
 #endif /* TABLING_RETROACTIVE */
 
 #endif /* TABLING_CALL_SUBSUMPTION */
