@@ -121,8 +121,8 @@ void *newTSTAnswerSet(void);
 #ifdef TABLING_CALL_SUBSUMPTION
 #ifdef TABLING_COMPLETE_TABLE
 void free_subgoal_trie_from_retroactive_table(tab_ent_ptr tab_ent);
-int is_most_general_call(sg_node_ptr leaf, int arity);
 #endif /* TABLING_COMPLETE_TABLE */
+int is_most_general_call(sg_node_ptr leaf, int arity);
 #ifdef TABLING_RETROACTIVE
 CELL* copy_arguments_as_the_answer_template(CELL *answer_template, int arity);
 sg_fr_ptr retroactive_call_search(yamop *code, CELL *answer_template, CELL **new_local_stack);
