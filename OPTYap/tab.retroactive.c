@@ -503,7 +503,9 @@ add_answer_pending(tst_node_ptr node, retroactive_fr_ptr sf)
   }
 }
 
-#define GetTimeStamp(NODE) (IsHashedNode(NODE) ? TSIN_time_stamp((tst_index_ptr)(TSTN_time_stamp(NODE))) : TSTN_time_stamp(NODE))
+#define GetTimeStamp(NODE, TAB_ENT) ((IsHashedNode(NODE) && TabEnt_proper_consumers(TAB_ENT))  ?  \
+            TSIN_time_stamp((tst_index_ptr)(TSTN_time_stamp(NODE))) :                             \
+                TSTN_time_stamp(NODE))
 
 inline
 TSTNptr retroactive_answer_search(retroactive_fr_ptr sf, CPtr answerVector) {
@@ -533,7 +535,7 @@ TSTNptr retroactive_answer_search(retroactive_fr_ptr sf, CPtr answerVector) {
   
 #if 1
   dprintf("old_timestamp %d new_timestamp %d sf timestamp %d ans %d ts %lu\n",
-    (int)old_timestamp, (int)new_timestamp, (int)SgFr_timestamp(sf), (int)tstn, GetTimeStamp(tstn));
+    (int)old_timestamp, (int)new_timestamp, (int)SgFr_timestamp(sf), (int)tstn, GetTimeStamp(tstn, tab_ent));
 
   if(old_timestamp == new_timestamp-1 && SgFr_timestamp(sf) == old_timestamp) {
     /* ok answer! */
@@ -544,7 +546,7 @@ TSTNptr retroactive_answer_search(retroactive_fr_ptr sf, CPtr answerVector) {
     dprintf("one answer inserted by someone else\n");
     TrNode_unset_is_ans(tstn);
     SgFr_timestamp(sf) = new_timestamp;
-  } else if(GetTimeStamp(tstn) <= SgFr_timestamp(sf)) {
+  } else if(GetTimeStamp(tstn, tab_ent) <= SgFr_timestamp(sf)) {
     dprintf("answer old for trie\n");
     /* answer is old for the trie */
     if(locate_pending_answers(tstn, sf))
@@ -555,6 +557,7 @@ TSTNptr retroactive_answer_search(retroactive_fr_ptr sf, CPtr answerVector) {
     /* multiple answers were inserted */
     ensure_has_proper_consumers(tab_ent);
 
+    dprintf("multiple answers were inserted\n");
     CELL *answer_template = SgFr_answer_template(sf);
     const int size = SgFr_at_size(sf);
 

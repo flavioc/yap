@@ -461,10 +461,10 @@
         UNLOCK(SgFr_lock(SG_FR));                   \
         exec_compiled_trie(SgFr_answer_trie(SG_FR))
 
-#define compute_subsumptive_consumer_answer_list(SG_FR) \
-      if(SgFr_state(SG_FR) < complete) {      \
+#define compute_subsumptive_consumer_answer_list(SG_FR)                       \
+      if(SgFr_state(SG_FR) < complete) {                                      \
         build_next_subsumptive_consumer_return_list((subcons_fr_ptr)(SG_FR)); \
-        SgFr_state(SG_FR) = complete; \
+        SgFr_state(SG_FR) = complete;                                         \
       }
       
 #define compute_retroactive_consumer_answer_list(SG_FR)                           \
@@ -606,7 +606,7 @@
     YENV2MEM;                                                                       \
     YENV = copy_arguments_as_the_answer_template(YENV - 1, TabEnt_arity(TAB_ENT));  \
     MEM2YENV;                                                                       \
-    exec_retroactive_trie(TAB_ENT);                                                      \
+    exec_retroactive_trie(TAB_ENT);                                                 \
   }
 #else
 #define completed_table_optimization(TAB_ENT) /* nothing */
@@ -615,10 +615,8 @@
 /* Consume a variant answer ANS_NODE using ANS_TMPLT
  * as the pointer to the answer template.
  */
-#define CONSUME_VARIANT_ANSWER(ANS_NODE, ANS_TMPLT) { \
-    int arity = (int)*(ANS_TMPLT);  \
-    consume_variant_answer(ANS_NODE, arity, (ANS_TMPLT)+1); \
-  }
+#define CONSUME_VARIANT_ANSWER(ANS_NODE, ANS_TMPLT) \
+      consume_variant_answer(ANS_NODE, (int)*(ANS_TMPLT), (ANS_TMPLT)+1)
 
 /* ------------------------------ **
 **      Tabling instructions      **
