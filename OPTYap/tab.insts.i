@@ -508,8 +508,7 @@
                                                                               \
       if(cont) {                                                              \
         ans_node_ptr ans_node = continuation_answer(cont);                    \
-        /* XXX */                                                             \
-        CELL *answer_template = (CELL *)(GEN_CP(B) + 1) + SgFr_arity(SG_FR);  \
+        CELL *answer_template = GENERATOR_ANSWER_TEMPLATE(B, SG_FR);          \
                                                                               \
         SgFr_try_answer(RETROACTIVE_SG) = cont;                               \
         TrNode_set_ans(ans_node);                                             \
