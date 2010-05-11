@@ -165,8 +165,11 @@ void printTriePath(CTXTdeclc FILE *fp, BTNptr pLeaf, xsbBool print_address)
   fprintf(fp, ")");
 }
 
-void printSubgoalTriePath(CTXTdeclc FILE *fp, BTNptr pLeaf, tab_ent_ptr tab_entry)
+void printSubgoalTriePath(CTXTdeclc FILE *fp, sg_fr_ptr sg_fr)
 {
+  tab_ent_ptr tab_entry = SgFr_tab_ent(sg_fr);
+  BTNptr pLeaf = SgFr_leaf(sg_fr);
+  
   fprintf(fp, "%s", string_val((Term)TabEnt_atom(tab_entry)));
   
   printTriePath(fp, pLeaf, NO);
@@ -220,9 +223,9 @@ recursivePrintSubterm(FILE *fp, Term symbol, xsbBool list_recursion, PrintVarTyp
       Float dbl = FloatOfTerm(symbol);
       
       if(list_recursion)
-        fprintf(fp, "|" FloatFormatString "]", dbl);
+        fprintf(fp, "|%.15g]", dbl);
       else
-        fprintf(fp, FloatFormatString, dbl);
+        fprintf(fp, "%.15g", dbl);
     } else if(f == FunctorLongInt) {
       Int li = LongIntOfTerm(symbol);
       
@@ -627,6 +630,7 @@ void printSubsumptiveAnswer(FILE *fp, CELL* vars)
   int i = 0;
 
   Trail_ResetTOS;
+  variable_counter = 0;
   
   fprintf(fp, "    ");
   for(i = 0; i < total; ++i, --vars) {

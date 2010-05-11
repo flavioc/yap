@@ -19,6 +19,9 @@ typedef struct sub_subgoal_trie_node {
 } *subg_node_ptr;
 
 #define TrNode_num_gen(X)     ((X)->num_generators)
+#define TrNode_get_num_gen(X) (TrNode_num_gen(X) == 0 ? 0 : \
+                                (IsHashedNode((sg_node_ptr)X) ? \
+                                  GNIN_num_gen(TrNode_index_node(X)) : TrNode_num_gen(X)))
 #define TrNode_index_node(X)  ((gen_index_ptr)TrNode_num_gen(X))
 
 EXTEND_STRUCT(sub_subgoal_trie_node, subg_node_ptr, long, Int long_int);

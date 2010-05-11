@@ -186,6 +186,7 @@ process_next:
     hash = NULL;
   }
   
+  printf("Decrement path!\n");
   if(update_generators)
     decrement_generator_path(node);
 }

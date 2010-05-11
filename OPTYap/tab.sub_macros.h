@@ -106,7 +106,7 @@ STD_PROTO(static inline void transform_producer_into_consumer, (retroactive_fr_p
 #define init_retroactive_consumer_subgoal_frame(SG_FR)              \
         { SgFr_state(SG_FR) = evaluating;                           \
           SgFr_choice_point(SG_FR) = B;                             \
-          increment_sugoal_path(SG_FR);                             \
+          increment_subgoal_path(SG_FR);                            \
         }
         
 #define create_retroactive_answer_template(SG_FR, FROM)                                     \
@@ -208,9 +208,11 @@ STD_PROTO(static inline void transform_producer_into_consumer, (retroactive_fr_p
         }                                                           \
       }
       
-#define increment_sugoal_path(SG_FR)                                \
+#define increment_subgoal_path(SG_FR)                               \
       { subg_node_ptr leaf = (subg_node_ptr)SgFr_leaf(SG_FR);       \
-        if(TrNode_num_gen(leaf) == 1) {                             \
+        if(TrNode_num_gen(leaf) != 0) {                         \
+           Yap_Error(INTERNAL_ERROR, TermNil,                       \
+              "leaf node be == 0 (increment_subgoal_path)");        \
         } else {                                                    \
           update_generator_path((sg_node_ptr)leaf);                 \
         }                                                           \
@@ -218,10 +220,11 @@ STD_PROTO(static inline void transform_producer_into_consumer, (retroactive_fr_p
       
 #define decrement_subgoal_path(SG_FR)                               \
       { subg_node_ptr leaf = (subg_node_ptr)SgFr_leaf(SG_FR);       \
-        if(TrNode_num_gen(leaf) > 1) {                              \
-          /*Yap_Error(INTERNAL_ERROR, TermNil,                        \
-            "leaf node be <= 1 (decrement_subgoal_path)");*/          \
-        } else if(TrNode_num_gen(leaf) == 1) {                      \
+        if(TrNode_get_num_gen(leaf) != 1) {                         \
+          Yap_Error(INTERNAL_ERROR, TermNil,                        \
+            "leaf node be == 1, is %d (decrement_subgoal_path)",    \
+                TrNode_get_num_gen(leaf));                          \
+        } else {                                                    \
           decrement_generator_path((sg_node_ptr)leaf);              \
         }                                                           \
       }
@@ -586,7 +589,7 @@ void free_tst_hash_index(tst_ans_hash_ptr hash) {
       list = collect_specific_generator_goals(TAB_ENT, size,           \
           STANDARDIZE_AT_PTR(answer_template, size));                  \
       process_pending_subgoal_list(list, RETRO_SG);                    \
-      increment_sugoal_path(SG_FR);                                    \
+      increment_subgoal_path(SG_FR);                                   \
     }
 #else
 #define check_retroactive_pending_subgoals(SG_FR, TAB_ENT, RETRO_SG) /* do nothing */

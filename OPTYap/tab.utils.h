@@ -424,7 +424,7 @@ void printAnswerTemplate(FILE *fp, CPtr ans_tmplt, int size);
 void printSubstitutionFactor(FILE *fp, CELL* factor);
 void printTermStack(FILE *fp);
 void printTriePath(CTXTdeclc FILE *fp, sg_node_ptr pLeaf, xsbBool print_address);
-void printSubgoalTriePath(CTXTdeclc FILE *fp, sg_node_ptr pLeaf, tab_ent_ptr tab_entry);
+void printSubgoalTriePath(CTXTdeclc FILE *fp, sg_fr_ptr sg_fr);
 
 #ifdef TABLING_CALL_SUBSUMPTION
 
