@@ -119,35 +119,38 @@ STD_PROTO(static inline void transform_producer_into_consumer, (retroactive_fr_p
           create_retroactive_answer_template(SG_FR, FROM);    \
         }
         
-#define show_consumer_subsumptive_answers(CONS_SG, PROD_SG, HEAP_SG) \
-      {                                                     \
-        continuation_ptr cont = SgFr_first_answer(CONS_SG); \
-        CELL* ans_tmplt =                                   \
-          reconstruct_template_for_producer_no_args(PROD_SG, \
-                (HEAP_SG) - 1);  \
-        tr_fr_ptr saved_TR = TR;  \
-        CELL*     saved_HB = HB;  \
-        const int ans_size = (int)*ans_tmplt; \
-        ans_tmplt += ans_size;  \
-        HB = H; \
-        while(cont) { \
-          tst_node_ptr ans = (tst_node_ptr)continuation_answer(cont); \
+#define show_consumer_subsumptive_answers(CONS_SG, PROD_SG, HEAP_SG)    \
+      {                                                                 \
+        continuation_ptr cont = SgFr_first_answer(CONS_SG);             \
+        CELL* ans_tmplt =                                               \
+          reconstruct_template_for_producer_no_args(PROD_SG,            \
+                (HEAP_SG) - 1);                                         \
+        tr_fr_ptr saved_TR = TR;                                        \
+        CELL*     saved_HB = HB;                                        \
+        CELL*     saved_H = H;                                          \
+        const int ans_size = (int)*ans_tmplt;                           \
+        ans_tmplt += ans_size;                                          \
+        HB = H;                                                         \
+        while(cont) {                                                   \
+          tst_node_ptr ans = (tst_node_ptr)continuation_answer(cont);   \
           consume_subsumptive_answer((BTNptr)ans, ans_size, ans_tmplt); \
-          printSubsumptiveAnswer(Yap_stdout, HEAP_SG); \
-          trail_unwind(saved_TR); \
-          cont = continuation_next(cont); \
-        } \
-        /* restore TR and HB */ \
-        TR = saved_TR;  \
-        HB = saved_HB;  \
+          printSubsumptiveAnswer(Yap_stdout, HEAP_SG);                  \
+          trail_unwind(saved_TR);                                       \
+          cont = continuation_next(cont);                               \
+          H = HB = saved_H;                                             \
+        }                                                               \
+        /* restore HB */                                                \
+        HB = saved_HB;                                                  \
       }
       
-#define show_retroactive_answers(SG_FR, ANS_TMPLT, VARS)         \
+#define show_retroactive_answers(SG_FR, ANS_TMPLT, VARS) \
       {                                                     \
-        continuation_ptr cont = SgFr_first_answer(SG_FR);   \
         tr_fr_ptr saved_TR = TR;                            \
-        CELL *    saved_HB = HB;                            \
-        int ans_size = SgFr_arity(SG_FR);                   \
+        CELL*     saved_HB = HB;                            \
+        CELL*     saved_H = H;                              \
+        continuation_ptr cont = SgFr_first_answer(SG_FR);   \
+        const int ans_size = (int)*(ANS_TMPLT);             \
+        ANS_TMPLT += ans_size;                              \
                                                             \
         HB = H;                                             \
         while(cont) {                                       \
@@ -156,9 +159,9 @@ STD_PROTO(static inline void transform_producer_into_consumer, (retroactive_fr_p
           printSubsumptiveAnswer(Yap_stdout, VARS);         \
           trail_unwind(saved_TR);                           \
           cont = continuation_next(cont);                   \
+          H = HB = saved_H;                                 \
         }                                                   \
-        /* restore TR and HB */                             \
-        TR = saved_TR;                                      \
+        /* restore HB */                                    \
         HB = saved_HB;                                      \
       }
 
@@ -166,14 +169,14 @@ STD_PROTO(static inline void transform_producer_into_consumer, (retroactive_fr_p
       {                                                             \
         CELL* vars = (CELL * )HeapTop - 1;                          \
         CELL* saved_H = construct_subgoal_heap(SgFr_leaf(CONS_SG),  \
-              &vars, SgFr_arity(CONS_SG), TRUE, FALSE);             \
+              &vars, SgFr_arity(CONS_SG), TRUE);                    \
                                                                     \
         if((int)*vars == 0) {                                       \
           TrStat_answers_true++;                                    \
           SHOW_TABLE_STRUCTURE("    TRUE\n");                       \
         } else {                                                    \
           if(TrStat_show == SHOW_MODE_STRUCTURE) {                  \
-            show_consumer_subsumptive_answers(CONS_SG, PROD_SG,vars);   \
+            show_consumer_subsumptive_answers(CONS_SG, PROD_SG, vars);   \
           }                                                         \
         }                                                           \
                                                                     \
@@ -181,28 +184,6 @@ STD_PROTO(static inline void transform_producer_into_consumer, (retroactive_fr_p
         H = saved_H;                                                \
                                                                     \
         if (SgFr_state(CONS_SG) < complete) {                       \
-          TrStat_sg_incomplete++;                                   \
-          SHOW_TABLE_STRUCTURE("    ---> INCOMPLETE\n");            \
-        }                                                           \
-      }
-
-#define show_retroactive_with_answers(SG_FR)                        \
-      {                                                             \
-        CELL* vars = (CELL *)HeapTop - 1;                           \
-        CELL *saved_H = construct_subgoal_heap(SgFr_leaf(SG_FR),    \
-          &vars, SgFr_arity(SG_FR), FALSE, TRUE);                   \
-                                                                    \
-        if((int)*vars == 0) {                                       \
-          TrStat_answers_true++;                                    \
-          SHOW_TABLE_STRUCTURE("    TRUE\n");                       \
-        } else {                                                    \
-          if(TrStat_show == SHOW_MODE_STRUCTURE) {                  \
-            CELL *answer_template = saved_H + SgFr_arity(SG_FR) -1; \
-            show_retroactive_answers(SG_FR, answer_template, vars); \
-          }                                                         \
-        }                                                           \
-        H = saved_H;                                                \
-        if(SgFr_state(SG_FR) < complete) {                          \
           TrStat_sg_incomplete++;                                   \
           SHOW_TABLE_STRUCTURE("    ---> INCOMPLETE\n");            \
         }                                                           \
@@ -702,6 +683,7 @@ transform_producer_into_consumer(retroactive_fr_ptr sf, retroactive_fr_ptr produ
     }
     
     FREE_HASH_BUCKETS(Hash_buckets(hash));
+    FREE_RETRO_LEAF_INDEX(hash);
   } else {
     while(pending) {
       node_list_ptr next = NodeList_next(pending);

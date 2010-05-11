@@ -170,7 +170,7 @@ sg_fr_ptr retroactive_call_search(yamop *code, CELL *answer_template, CELL **new
 #ifdef FDEBUG
   if(btn) {
     printf("Subsumption call found: ");
-    printSubgoalTriePath(stdout, btn, tab_ent);
+    printSubgoalTriePathAll(stdout, btn, tab_ent);
     printf("\n");
   }
 #endif
@@ -528,7 +528,7 @@ TSTNptr retroactive_answer_search(retroactive_fr_ptr sf, CPtr answerVector) {
   
   time_stamp old_timestamp = TabEnt_retroactive_time_stamp(tab_ent);
   time_stamp new_timestamp;
-  
+
   tstn = subsumptive_tst_search(root, arity, answerVector, (int)TabEnt_proper_consumers(tab_ent));
   
   new_timestamp = TabEnt_retroactive_time_stamp(tab_ent);
@@ -542,11 +542,15 @@ TSTNptr retroactive_answer_search(retroactive_fr_ptr sf, CPtr answerVector) {
     dprintf("ok answer\n");
     TrNode_unset_is_ans(tstn);
     SgFr_timestamp(sf) = new_timestamp;
-  } else if(old_timestamp == new_timestamp && SgFr_timestamp(sf) == old_timestamp-1) {
+  } else if(old_timestamp == new_timestamp &&
+      SgFr_timestamp(sf) == old_timestamp-1 && GetTimeStamp(tstn, tab_ent) == new_timestamp)
+  {
     dprintf("one answer inserted by someone else\n");
     TrNode_unset_is_ans(tstn);
     SgFr_timestamp(sf) = new_timestamp;
-  } else if(GetTimeStamp(tstn, tab_ent) <= SgFr_timestamp(sf)) {
+  } else if(GetTimeStamp(tstn, tab_ent) == SgFr_timestamp(sf)) {
+    TrNode_set_ans(tstn);
+  } else if(GetTimeStamp(tstn, tab_ent) < SgFr_timestamp(sf)) {
     dprintf("answer old for trie\n");
     /* answer is old for the trie */
     if(locate_pending_answers(tstn, sf))

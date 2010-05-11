@@ -102,7 +102,7 @@ sg_fr_ptr subgoal_search(yamop *preg, CELL **local_stack_ptr)
   
 #ifdef FDEBUG
   dprintf("SUBGOAL IS: ");
-  printSubgoalTriePath(stdout, SgFr_leaf(sg_fr), tab_ent);
+  printSubgoalTriePath(stdout, sg_fr);
   printf("\n");
 #endif
 
@@ -1063,18 +1063,30 @@ void traverse_subgoal_trie(sg_node_ptr current_node, char *str, int str_index, i
       case RETROACTIVE_PRODUCER_SFT:
       case RETROACTIVE_CONSUMER_SFT:
         {
+          CELL* vars = (CELL *)HeapTop - 1;
+          CELL *saved_H = NULL;
+          CELL *answer_template = NULL;
+          
           TrStat_subgoals++;
           
           if(SgFr_is_retroactive_consumer(sg_fr)) {
             retroactive_fr_ptr retro_sg = (retroactive_fr_ptr)sg_fr;
             retroactive_fr_ptr producer_sg = (retroactive_fr_ptr)SgFr_producer(retro_sg);
             
-            if(SgFr_state(retro_sg) < complete && SgFr_state(producer_sg) >= complete) {
-              mark_retroactive_consumer_as_completed(retro_sg);
+            if(SgFr_state(retro_sg) < complete) {
+              if(SgFr_state(producer_sg) >= complete)
+                mark_retroactive_consumer_as_completed(retro_sg);
+                
+              if(!SgFr_answer_template(retro_sg)) {
+                saved_H = construct_subgoal_heap(SgFr_leaf(sg_fr), &vars, SgFr_arity(sg_fr), FALSE);
+                answer_template = construct_answer_template_from_sg(saved_H, SgFr_arity(sg_fr), vars-1);
+                create_retroactive_answer_template(retro_sg, answer_template);
+              }
+
+              build_next_retroactive_consumer_return_list(retro_sg);
             }
-            
-            build_next_retroactive_consumer_return_list(retro_sg);
           }
+          
           if(SgFr_has_no_answers(sg_fr)) {
             if(SgFr_state(sg_fr) < complete) {
               TrStat_sg_incomplete++;
@@ -1084,8 +1096,28 @@ void traverse_subgoal_trie(sg_node_ptr current_node, char *str, int str_index, i
               SHOW_TABLE_STRUCTURE("    NO\n");
             }
           } else {
-            show_retroactive_with_answers(sg_fr);
+            if(!saved_H) {
+              saved_H = construct_subgoal_heap(SgFr_leaf(sg_fr), &vars, SgFr_arity(sg_fr), FALSE);
+              answer_template = construct_answer_template_from_sg(saved_H, SgFr_arity(sg_fr), vars-1);
+            }
+            
+            if((int)*vars == 0) {
+              TrStat_answers_true++;
+              SHOW_TABLE_STRUCTURE("    TRUE\n");
+            } else {
+              if(TrStat_show == SHOW_MODE_STRUCTURE) {
+                show_retroactive_answers(sg_fr, answer_template, vars);
+              }
+            }
+            
+            if(SgFr_state(sg_fr) < complete) {
+              TrStat_sg_incomplete++;
+              SHOW_TABLE_STRUCTURE("    ---> INCOMPLETE\n");
+            }
           }
+          
+          if(saved_H)
+            H = saved_H;
         }
         break;
 #endif /* TABLING_RETROACTIVE */

@@ -295,14 +295,14 @@ transform_external_subsumed_consumers(choiceptr min, sg_fr_ptr sg_fr,
             node_list_ptr new_new_list;
 
 #ifdef FDEBUG
-            printSubgoalTriePath(stdout, SgFr_leaf(dep), SgFr_tab_ent(dep));
+            printSubgoalTriePath(stdout, dep);
             dprintf("\n");
 #endif
             new_subsumptive_producer_subgoal_frame(new_sg, SgFr_code(dep), SgFr_leaf(dep));
             SgFr_choice_point(new_sg) = cp;
 
 #ifdef FDEBUG
-            printSubgoalTriePath(stdout, SgFr_leaf(new_sg), SgFr_tab_ent(new_sg));
+            printSubgoalTriePath(stdout, (sg_fr_ptr)new_sg);
             dprintf("\n");
 #endif
 
@@ -588,7 +588,7 @@ process_pending_subgoal_list(node_list_ptr list, retroactive_fr_ptr sg_fr) {
   if(list == NULL)
     return;
     
-  dprintf("PENDING!\n");
+  printf("PENDING!\n");
     
 #define REMOVE_PENDING_NODE() {                   \
     node_list_ptr next = NodeList_next(list);     \
@@ -634,7 +634,7 @@ process_pending_subgoal_list(node_list_ptr list, retroactive_fr_ptr sg_fr) {
       } else if(SgFr_state(pending) == evaluating && SgFr_is_retroactive_producer(pending)) {
 #ifdef FDEBUG
         printf("Found a specific subgoal already running: ");
-        printSubgoalTriePath(stdout, SgFr_leaf(pending), SgFr_tab_ent(pending));
+        printSubgoalTriePath(stdout, (sg_fr_ptr)pending);
         printf("\n");
 #endif
         ensure_has_proper_consumers(SgFr_tab_ent(sg_fr));
@@ -755,7 +755,7 @@ debug_subgoal_frame_stack(void)
   
   while(top) {
 #ifdef FDEBUG
-    printSubgoalTriePath(stdout, SgFr_leaf(top), SgFr_tab_ent(top));
+    printSubgoalTriePath(stdout, top);
     dprintf("\n");
 #endif 
     top = SgFr_next(top);

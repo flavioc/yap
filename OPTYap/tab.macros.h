@@ -790,7 +790,7 @@ void mark_as_completed(sg_fr_ptr sg_fr) {
 
 #ifdef FDEBUG
   printf("COMPLETED SUBGOAL: ");
-  printSubgoalTriePath(stdout, SgFr_leaf(sg_fr), SgFr_tab_ent(sg_fr));
+  printSubgoalTriePath(stdout, sg_fr);
   dprintf("\n");
 #endif
   
@@ -1186,7 +1186,7 @@ void abolish_incomplete_subgoals(choiceptr prune_cp) {
     
     LOCK(SgFr_lock(sg_fr));
     #ifdef FDEBUG
-              printSubgoalTriePath(stdout, SgFr_leaf(sg_fr), SgFr_tab_ent(sg_fr));
+              printSubgoalTriePath(stdout, sg_fr);
               dprintf("\n");
     #endif
     abolish_incomplete_producer_subgoal(sg_fr);

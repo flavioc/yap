@@ -425,6 +425,7 @@ void printSubstitutionFactor(FILE *fp, CELL* factor);
 void printTermStack(FILE *fp);
 void printTriePath(CTXTdeclc FILE *fp, sg_node_ptr pLeaf, xsbBool print_address);
 void printSubgoalTriePath(CTXTdeclc FILE *fp, sg_fr_ptr sg_fr);
+void printSubgoalTriePathAll(CTXTdeclc FILE *fp, sg_node_ptr leaf, tab_ent_ptr tab_ent);
 
 #ifdef TABLING_CALL_SUBSUMPTION
 
@@ -469,8 +470,11 @@ xsbBool are_identical_terms(Cell term1, Cell term2);
 int answer_template_size(CELL *ans_tmplt);
 int copy_answer_template(CELL *ans_tmplt, CELL *dest);
 void printSubsumptiveAnswer(FILE *fp, CELL* vars);
-CELL* construct_subgoal_heap(BTNptr pLeaf, CPtr* var_pointer, int arity, int pushArguments, int invertHeap);
+CELL* construct_subgoal_heap(BTNptr pLeaf, CPtr* var_pointer, int arity, int pushArguments);
 CPtr reconstruct_template_for_producer_no_args(SubProdSF subsumer, CELL* ans_tmplt);
+#ifdef TABLING_RETROACTIVE
+CELL* construct_answer_template_from_sg(CELL* subgoal_args, int arity, CELL* ans_tmplt);
+#endif /* TABLING_RETROACTIVE */
 void printTrieNode(FILE *fp, BTNptr pTN);
 
 /* -------------------------------- */

@@ -708,7 +708,7 @@
     
 #ifdef FDEBUG
     dprintf("===> TABLE_RUN_COMPLETED ");
-    printSubgoalTriePath(stdout, SgFr_leaf(cons_sg_fr), SgFr_tab_ent(cons_sg_fr));
+    printSubgoalTriePath(stdout, cons_sg_fr);
     dprintf("\n");
 #endif
     
@@ -987,7 +987,7 @@
           if(is_sub_transform) {
             dprintf("Is subtransform!\n");
 #ifdef FDEBUG
-            printSubgoalTriePath(stdout, SgFr_leaf(sg_fr), SgFr_tab_ent(sg_fr));
+            printSubgoalTriePath(stdout, sg_fr);
             dprintf("\n");
 #endif
             reinsert_subgoal_frame(sg_fr, B);
@@ -1691,7 +1691,7 @@ try_answer_jump: {
     }
 #ifdef FDEBUG
     dprintf("===> TABLE_NEW_ANSWER %d ", (int)B);
-    printSubgoalTriePath(stdout, SgFr_leaf(sg_fr), SgFr_tab_ent(sg_fr));
+    printSubgoalTriePath(stdout, sg_fr);
     dprintf("\n");
 #endif
     
@@ -2023,7 +2023,7 @@ try_answer_jump: {
     dep_fr = CONS_CP(B)->cp_dep_fr;
 #ifdef FDEBUG
     dprintf("===> TABLE_ANSWER_RESOLUTION %d sg_fr %d ", (int)B, (int)DepFr_sg_fr(dep_fr));
-    printSubgoalTriePath(stdout, SgFr_leaf(DepFr_sg_fr(dep_fr)), SgFr_tab_ent(DepFr_sg_fr(dep_fr)));
+    printSubgoalTriePath(stdout, DepFr_sg_fr(dep_fr));
     dprintf("\n");
 #endif
     LOCK(DepFr_lock(dep_fr));
@@ -2118,7 +2118,7 @@ try_answer_jump: {
         LOCK(DepFr_lock(dep_fr));
         
 #ifdef FDEBUG
-        printSubgoalTriePath(stdout, SgFr_leaf(DepFr_sg_fr(dep_fr)), SgFr_tab_ent(DepFr_sg_fr(dep_fr)));
+        printSubgoalTriePath(stdout, DepFr_sg_fr(dep_fr));
         dprintf("\n");
 #endif
         
@@ -2346,7 +2346,7 @@ try_answer_jump: {
       sg_fr_ptr sg_fr = GEN_CP(B)->cp_sg_fr;
       
       dprintf("===> TABLE_COMPLETION ");
-      printSubgoalTriePath(stdout, SgFr_leaf(sg_fr), SgFr_tab_ent(sg_fr));
+      printSubgoalTriePath(stdout, sg_fr);
       dprintf("\n");
     }
 #endif
@@ -2438,7 +2438,7 @@ try_answer_jump: {
       LOCK(DepFr_lock(dep_fr));
       
 #ifdef FDEBUG
-      printSubgoalTriePath(stdout, SgFr_leaf(DepFr_sg_fr(dep_fr)), SgFr_tab_ent(DepFr_sg_fr(dep_fr)));
+      printSubgoalTriePath(stdout, DepFr_sg_fr(dep_fr));
       dprintf("\n");
 #endif
 

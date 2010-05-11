@@ -161,7 +161,7 @@ sg_fr_ptr subsumptive_call_search(yamop *code, CELL *answer_template, CELL **new
 #ifdef FDEBUG
   if(btn) {
     dprintf("Subsumption call found: ");
-    printSubgoalTriePath(stdout, btn, tab_ent);
+    printSubgoalTriePathAll(stdout, btn, tab_ent);
     dprintf("\n");
   }
 #endif
@@ -274,8 +274,8 @@ TSTNptr subsumptive_tst_search(CTXTdeclc TSTNptr tstRoot, int nTerms, CPtr termV
       }
     }
   } else
-    return tstRoot;   
-  
+    return tstRoot;
+
   return tstn;
 }
 

@@ -167,12 +167,15 @@ void printTriePath(CTXTdeclc FILE *fp, BTNptr pLeaf, xsbBool print_address)
 
 void printSubgoalTriePath(CTXTdeclc FILE *fp, sg_fr_ptr sg_fr)
 {
-  tab_ent_ptr tab_entry = SgFr_tab_ent(sg_fr);
-  BTNptr pLeaf = SgFr_leaf(sg_fr);
+  printSubgoalTriePathAll(fp, SgFr_leaf(sg_fr), SgFr_tab_ent(sg_fr));
+}
+
+void
+printSubgoalTriePathAll(CTXTdeclc FILE *fp, sg_node_ptr leaf, tab_ent_ptr tab_ent)
+{
+  fprintf(fp, "%s", string_val((Term)TabEnt_atom(tab_ent)));
   
-  fprintf(fp, "%s", string_val((Term)TabEnt_atom(tab_entry)));
-  
-  printTriePath(fp, pLeaf, NO);
+  printTriePath(fp, leaf, NO);
 }
 
 static int variable_counter = 0;
@@ -522,7 +525,7 @@ recursive_construct_subgoal(CELL* trie_vars, CELL* placeholder)
 }
 
 CELL* construct_subgoal_heap(BTNptr pLeaf, CPtr* var_pointer, int arity,
-  int pushArguments, int invertHeap)
+  int pushArguments)
 {
   CELL* orig_hreg = H;
   CELL* trie_vars = *var_pointer;
@@ -536,24 +539,8 @@ CELL* construct_subgoal_heap(BTNptr pLeaf, CPtr* var_pointer, int arity,
   CELL *arguments = H;
   H += arity;
   
-  if(invertHeap) {
-    CELL* new_arguments = H;
-    
-    H += arity;
-    
-    for(i = 0; i < arity; ++i)
-      recursive_construct_subgoal(trie_vars, new_arguments + i);
-    
-    /* invert arguments */
-    for(i = 0; i < arity; ++i) {
-      CELL value = *(new_arguments + (arity-1) - i);
-      *(arguments + i) = value;
-    }
-    
-  } else {
-    for(i = 0; i < arity; ++i)
-      recursive_construct_subgoal(trie_vars, arguments + i);
-  }
+  for(i = 0; i < arity; ++i)
+    recursive_construct_subgoal(trie_vars, arguments + i);
     
   if(pushArguments) {
     TermStack_ResetTOS;
@@ -815,7 +802,6 @@ count_subterm(Term val)
   return 0;
 }
 
-
 int
 answer_template_size(CELL *ans_tmplt)
 {
@@ -827,5 +813,21 @@ answer_template_size(CELL *ans_tmplt)
   
   return total;
 }
+
+#ifdef TABLING_RETROACTIVE
+CELL*
+construct_answer_template_from_sg(CELL* subgoal_args, int arity, CELL* ans_tmplt)
+{
+  int i;
+  
+  for(i = 0; i < arity; ++i) {
+    *ans_tmplt-- = (CELL)(subgoal_args + i);
+  }
+  
+  *ans_tmplt = arity;
+  
+  return ans_tmplt;
+}
+#endif /* TABLING_RETROACTIVE */
 
 #endif /* TABLING_CALL_SUBSUMPTION */
