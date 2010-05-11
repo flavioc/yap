@@ -503,11 +503,7 @@
 #endif /* TABLING_RETROACTIVE */
       
 #define check_retroactive_pre_stored_answers(SG_FR, TAB_ENT, RETROACTIVE_SG)  \
-    if(TabEnt_retroactive_time_stamp(TAB_ENT) > 0) {                          \
-      dprintf("Pre stored answers\n");                                        \
-      /* retrieve more answers */                                             \
-      build_next_retroactive_producer_return_list(RETROACTIVE_SG);            \
-                                                                              \
+    {                                                                         \
       continuation_ptr cont = SgFr_first_answer(RETROACTIVE_SG);              \
                                                                               \
       if(cont) {                                                              \
@@ -532,6 +528,7 @@
     if(SgFr_is_retroactive_producer(SG_FR)) {                             \
       retroactive_fr_ptr retro_sg = (retroactive_fr_ptr)(SG_FR);          \
       check_retroactive_pending_subgoals(SG_FR, TAB_ENT, retro_sg);       \
+      build_next_retroactive_producer_return_list(retro_sg);              \
       if(!SgFr_is_retroactive_local_producer(SG_FR)) {                    \
         check_retroactive_pre_stored_answers(SG_FR, TAB_ENT, retro_sg);   \
       }                                                                   \
