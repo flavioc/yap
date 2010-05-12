@@ -2130,6 +2130,41 @@ mark_choicepoints(register choiceptr gc_B, tr_fr_ptr saved_TR, int very_verbose)
 	}
 	nargs = 0;
 	break;
+      case _trie_retry_hash:
+	{
+	  CELL *vars_ptr;
+	  int heap_arity, vars_arity, subs_arity;
+    /* note that choice point is a hash_cp_ptr */
+	  vars_ptr = (CELL *)((hash_cp_ptr)gc_B + 1);
+	  heap_arity = *vars_ptr;
+	  vars_arity = *(vars_ptr + heap_arity + 1);
+	  subs_arity = *(vars_ptr + heap_arity + 2);
+	  vars_ptr += heap_arity + subs_arity + vars_arity + 2;
+	  if (vars_arity) {
+	    while (vars_arity--) {	
+	      mark_external_reference(vars_ptr);
+	      vars_ptr--;
+	    }
+	  }
+	  if (subs_arity) {
+	    while (subs_arity--) {	
+	      mark_external_reference(vars_ptr);
+	      vars_ptr--;
+	    }
+	  }
+	  vars_ptr -= 2;
+	  if (heap_arity) {
+	    while (heap_arity--) {	
+	      if (*vars_ptr == 0)  /* float/longint extension mark */
+		break;
+	      mark_external_reference(vars_ptr);
+	      vars_ptr--;
+	    }
+	  }
+	}
+	nargs = 0;
+	break;
+      case _trie_do_hash:
       case _trie_trust_null:
       case _trie_retry_null:
       case _trie_trust_null_in_new_pair:
@@ -2158,8 +2193,6 @@ mark_choicepoints(register choiceptr gc_B, tr_fr_ptr saved_TR, int very_verbose)
       case _trie_retry_float:
       case _trie_trust_long:
       case _trie_retry_long:
-      case _trie_do_hash:
-      case _trie_retry_hash:
       case _trie_try_long_int:
       case _trie_retry_long_int:
       case _trie_trust_long_int:
@@ -2191,8 +2224,10 @@ mark_choicepoints(register choiceptr gc_B, tr_fr_ptr saved_TR, int very_verbose)
 	  vars_ptr -= 2;
 	  if (heap_arity) {
 	    while (heap_arity--) {	
-	      if (*vars_ptr == 0)  /* float/longint extension mark */
+	      if (*vars_ptr == 0)  /* float/longint extension mark */ {
+          printf("MARK!\n");
 		break;
+        }
 	      mark_external_reference(vars_ptr);
 	      vars_ptr--;
 	    }
@@ -3095,6 +3130,59 @@ sweep_choicepoints(choiceptr gc_B)
 	}
       }
       break;
+    case _trie_retry_hash:
+      {
+	CELL *vars_ptr;
+	int heap_arity, vars_arity, subs_arity;
+	sweep_environments(gc_B->cp_env, EnvSize(gc_B->cp_cp), EnvBMap(gc_B->cp_cp));
+  /* note that this a hash cp */
+	vars_ptr = (CELL *)((hash_cp_ptr)gc_B + 1);
+	heap_arity = *vars_ptr;
+	vars_arity = *(vars_ptr + heap_arity + 1);
+	subs_arity = *(vars_ptr + heap_arity + 2);
+	vars_ptr += heap_arity + subs_arity + vars_arity + 2;
+	if (vars_arity) {
+	  while (vars_arity--) {	
+	    CELL cp_cell = *vars_ptr;
+	    if (MARKED_PTR(vars_ptr)) {
+	      UNMARK(vars_ptr);
+	      if (HEAP_PTR(cp_cell)) {
+		into_relocation_chain(vars_ptr, GET_NEXT(cp_cell));
+	      }
+	    }
+	    vars_ptr--;
+	  }
+	}
+	if (subs_arity) {
+	  while (subs_arity--) {	
+	    CELL cp_cell = *vars_ptr;
+	    if (MARKED_PTR(vars_ptr)) {
+	      UNMARK(vars_ptr);
+	      if (HEAP_PTR(cp_cell)) {
+		into_relocation_chain(vars_ptr, GET_NEXT(cp_cell));
+	      }
+	    }
+	    vars_ptr--;
+	  }
+	}
+	vars_ptr -= 2;
+	if (heap_arity) {
+	  while (heap_arity--) {
+	    CELL cp_cell = *vars_ptr;
+	    if (*vars_ptr == 0)  /* float/longint extension mark */
+	      break;
+	    if (MARKED_PTR(vars_ptr)) {
+	      UNMARK(vars_ptr);
+	      if (HEAP_PTR(cp_cell)) {
+		into_relocation_chain(vars_ptr, GET_NEXT(cp_cell));
+	      }
+	    }
+	    vars_ptr--;
+	  }
+	}
+      }
+      break;
+    case _trie_do_hash:
     case _trie_trust_null:
     case _trie_retry_null:
     case _trie_trust_null_in_new_pair:
