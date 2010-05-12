@@ -377,11 +377,15 @@ abolish_generator_subgoals_between(sg_fr_ptr specific_sg, choiceptr min, choicep
       remove_subgoal_frame_from_stack(sg_fr);
       dprintf("ABOLISH SPECIFIC GENERATOR %d\n", (int)min);
     } else if(is_internal_subgoal_frame(specific_sg, sg_fr, min)) {
-      dprintf("Trying to abolish %d cp %d\n", (int)sg_fr, (int)SgFr_choice_point(sg_fr));
+      choiceptr sg_cp = SgFr_choice_point(sg_fr);
+      
+      sg_cp->cp_ap = NULL;
+      
+      dprintf("Trying to abolish %d cp %d\n", (int)sg_fr, (int)sg_cp);
       switch(SgFr_type(sg_fr)) {
         case VARIANT_PRODUCER_SFT:
           if(SgFr_num_deps(sg_fr) > 0)
-            external = update_external_consumers(specific_sg, SgFr_choice_point(sg_fr), max, sg_fr, SgFr_num_deps(sg_fr));
+            external = update_external_consumers(specific_sg, sg_cp, max, sg_fr, SgFr_num_deps(sg_fr));
           else
             external = NULL;
             
@@ -398,7 +402,7 @@ abolish_generator_subgoals_between(sg_fr_ptr specific_sg, choiceptr min, choicep
         case SUBSUMPTIVE_PRODUCER_SFT: {
           choiceptr gen_cp = SgFr_choice_point(sg_fr);
           subprod_fr_ptr prod_sg = (subprod_fr_ptr)sg_fr;
-          int subsumed_consumers = SgFr_num_deps((sg_fr_ptr)prod_sg) - SgFr_num_proper_deps(prod_sg);
+          const int subsumed_consumers = SgFr_num_deps((sg_fr_ptr)prod_sg) - SgFr_num_proper_deps(prod_sg);
           
           if(subsumed_consumers > 0) {
             transform_external_subsumed_consumers(gen_cp, sg_fr, specific_sg,
@@ -419,8 +423,11 @@ abolish_generator_subgoals_between(sg_fr_ptr specific_sg, choiceptr min, choicep
           break;
         }
         default:
-          dprintf("REALLY ABOLISHED %d\n", (int)sg_fr);
-          abolish_incomplete_producer_subgoal(sg_fr);
+#ifdef FDEBUG
+          dprintf("REALLY ABOLISHED %d cp %d (", (int)sg_fr, (int)sg_cp);
+          printSubgoalTriePath(stdout, sg_fr); printf("\n");
+#endif
+          abolish_incomplete_retroactive_consumer_subgoal((retroactive_fr_ptr)sg_fr);
           remove_subgoal_frame_from_stack(sg_fr);
           break;
       }
@@ -445,6 +452,8 @@ abolish_dependency_frames_between(sg_fr_ptr specific_sg, choiceptr min, choicept
     if(is_internal_dep_fr(specific_sg, dep_fr, min)) {
       REMOVE_DEP_FR_FROM_STACK_NEXT(dep_fr, top);
       dprintf("Removing consumer choice point %d\n", (int)DepFr_cons_cp(dep_fr));
+      /* choice point is dead */
+      DepFr_cons_cp(dep_fr)->cp_ap = NULL;
       abolish_dependency_frame(dep_fr);
     }
   }
@@ -559,7 +568,6 @@ update_specific_consumers(retroactive_fr_ptr pending)
       /* update this consumer node */
       choiceptr cp = DepFr_cons_cp(top);
       dprintf("Updated instr to RUN_COMPLETED on cp %d\n", (int)cp);
-      
       CONS_CP(cp)->cp_sg_fr = (sg_fr_ptr)pending;
       cp->cp_ap = RUN_COMPLETED;
     }
