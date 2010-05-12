@@ -337,15 +337,15 @@ void mark_subsumptive_producer_as_completed(subprod_fr_ptr sg_fr) {
   if(TabEnt_is_exec(SgFr_tab_ent(sg_fr))) {
     free_tst_hash_index((tst_ans_hash_ptr)SgFr_hash_chain(sg_fr));
     /* answer list or blocks are not removed because of show_table */
-    
+
+#ifdef TABLING_COMPLETE_TABLE
     if(SgFr_is_most_general(sg_fr)) {
       dprintf("Completing most general\n");
-      TabEnt_set_completed(SgFr_tab_ent(sg_fr));
       
-#ifdef TABLING_COMPLETE_TABLE
+      TabEnt_set_completed(SgFr_tab_ent(sg_fr));
       transform_subsumptive_into_retroactive_trie(sg_fr);
-#endif /* TABLING_COMPLETE_TABLE */
     }
+#endif /* TABLING_COMPLETE_TABLE */
   }
 }
 
@@ -370,15 +370,15 @@ void mark_retroactive_producer_as_completed(retroactive_fr_ptr sg_fr) {
     FREE_BLOCK(SgFr_answer_template(sg_fr));
     SgFr_answer_template(sg_fr) = NULL;
   }
-#ifdef TABLING_COMPLETE_TABLE
   if(SgFr_is_most_general(sg_fr)) {
     tab_ent_ptr tab_ent = SgFr_tab_ent(sg_fr);
     
     TabEnt_set_completed(tab_ent);
+#ifdef TABLING_COMPLETE_TABLE
     if(TabEnt_is_exec(tab_ent))
       free_subgoal_trie_from_retroactive_table(tab_ent);
-  }
 #endif /* TABLING_COMPLETE_TABLE */
+  }
 }
 #endif /* TABLING_RETROACTIVE */
 
