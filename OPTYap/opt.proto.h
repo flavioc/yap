@@ -77,6 +77,7 @@ void free_subgoal_trie_branch(sg_node_ptr node, int nodes_left, int position);
 void free_subgoal_trie_branch(sg_node_ptr node, int position);
 #endif /* GLOBAL_TRIE */
 void free_answer_trie_branch(ans_node_ptr node, int position);
+void update_answer_trie_root(ans_node_ptr root_child);
 void update_answer_trie(sg_fr_ptr sg_fr);
 void show_table(tab_ent_ptr tab_ent, int show_mode);
 #ifdef GLOBAL_TRIE

@@ -205,7 +205,7 @@ sg_fr_ptr retroactive_call_search(yamop *code, CELL *answer_template, CELL **new
         sg_fr = found;
         break;
       case SUBSUMPTIVE_PATH:
-        if(SgFr_state(subsumer) < complete || TabEnt_is_load(tab_ent)) {
+        if(SgFr_state(subsumer) < complete || retroactive_table_load(tab_ent)) {
             btn = variant_call_cont_insert(tab_ent, (sg_node_ptr)stl_restore_variant_cont(), variant_cont.bindings.num, CALL_SUB_TRIE_NT);
             Trail_Unwind_All;
             
@@ -524,7 +524,7 @@ TSTNptr retroactive_answer_search(retroactive_fr_ptr sf, CPtr answerVector) {
     root = (TSTNptr)TabEnt_retroactive_trie(tab_ent);
   }
   
-  auto_update_instructions = TRUE;
+  auto_update_instructions = FALSE;
   
   time_stamp old_timestamp = TabEnt_retroactive_time_stamp(tab_ent);
   time_stamp new_timestamp;

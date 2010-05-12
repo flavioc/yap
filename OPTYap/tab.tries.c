@@ -554,25 +554,27 @@ void free_answer_trie_branch(ans_node_ptr current_node, int position) {
   return;
 }
 
+void update_answer_trie_root(ans_node_ptr root_child) {
+#ifdef YAPOR
+  TrNode_instr(root_child) -= 1;
+#ifdef TABLING_INNER_CUTS
+  update_answer_trie_branch(NULL, root_child);
+#else
+  update_answer_trie_branch(root_child);
+#endif /* TABLING_INNER_CUTS */
+#else /* TABLING */
+  update_answer_trie_branch(root_child, TRAVERSE_POSITION_FIRST);
+#endif /* YAPOR */
+}
 
 void update_answer_trie(sg_fr_ptr sg_fr) {
   /* complete --> compiled : complete_in_use --> compiled_in_use */
   SgFr_state(sg_fr) += 2;
   
-  /* compile only with variants */
   if(SgFr_is_variant(sg_fr) || SgFr_is_sub_producer(sg_fr)) {
     ans_node_ptr current_node = TrNode_child(SgFr_answer_trie(sg_fr));
     if (current_node) {
-#ifdef YAPOR
-      TrNode_instr(current_node) -= 1;
-#ifdef TABLING_INNER_CUTS
-      update_answer_trie_branch(NULL, current_node);
-#else
-      update_answer_trie_branch(current_node);
-#endif /* TABLING_INNER_CUTS */
-#else /* TABLING */
-      update_answer_trie_branch(current_node, TRAVERSE_POSITION_FIRST);
-#endif /* YAPOR */
+      update_answer_trie_root(current_node);
     }
   }
   

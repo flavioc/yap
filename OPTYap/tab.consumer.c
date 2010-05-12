@@ -588,7 +588,7 @@ process_pending_subgoal_list(node_list_ptr list, retroactive_fr_ptr sg_fr) {
   if(list == NULL)
     return;
     
-  printf("PENDING!\n");
+  dprintf("PENDING!\n");
     
 #define REMOVE_PENDING_NODE() {                   \
     node_list_ptr next = NodeList_next(list);     \

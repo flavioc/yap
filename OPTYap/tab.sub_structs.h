@@ -240,15 +240,17 @@ struct retroactive_subgoal_frame {
 /* table entry flags */
 #define TABLE_ENTRY_COMPLETED 0x01
 #define TABLE_ENTRY_PROPER_CONSUMERS 0x02
+#define TABLE_ENTRY_COMPILED 0x04
 
 #define TabEnt_flags(X)                 (TrNode_parent(TabEnt_subgoal_trie(X)))
 #define TabEnt_set_flag(X, FLAG)        (TabEnt_flags(X) = (sg_node_ptr)((unsigned int)TabEnt_flags(X) | (unsigned int)FLAG))
 #define TabEnt_has_flag(X, FLAG)        ((unsigned int)TabEnt_flags(X) & (unsigned int)(FLAG))
 #define TabEnt_set_proper_consumers(X)  TabEnt_set_flag(X, TABLE_ENTRY_PROPER_CONSUMERS)
 #define TabEnt_proper_consumers(X)      TabEnt_has_flag(X, TABLE_ENTRY_PROPER_CONSUMERS)
-
-#define TabEnt_set_completed(X) TabEnt_set_flag(X, TABLE_ENTRY_COMPLETED)
-#define TabEnt_completed(X)     (TabEnt_subgoal_trie(X) && TabEnt_has_flag(X, TABLE_ENTRY_COMPLETED))
+#define TabEnt_compiled(X)              TabEnt_has_flag(X, TABLE_ENTRY_COMPILED)
+#define TabEnt_set_compiled(X)          TabEnt_set_flag(X, TABLE_ENTRY_COMPILED)
+#define TabEnt_set_completed(X)         TabEnt_set_flag(X, TABLE_ENTRY_COMPLETED)
+#define TabEnt_completed(X)             (TabEnt_subgoal_trie(X) && TabEnt_has_flag(X, TABLE_ENTRY_COMPLETED))
 
 #define TabEnt_retroactive_yes(X)    (TabEnt_retroactive_trie(X) && TrNode_is_leaf(TabEnt_retroactive_trie(X)))
 

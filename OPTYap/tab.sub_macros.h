@@ -45,6 +45,7 @@ STD_PROTO(static inline int build_next_retroactive_consumer_return_list, (retroa
 STD_PROTO(static inline int build_next_retroactive_producer_return_list, (retroactive_fr_ptr));
 
 STD_PROTO(static inline void transform_producer_into_consumer, (retroactive_fr_ptr, retroactive_fr_ptr));
+STD_PROTO(static inline void move_pending_answers, (retroactive_fr_ptr));
 #endif /* TABLING_RETROACTIVE */
 
 #define retroactive_trie_create_tsi(TAB_ENT) tstCreateTSIs((tst_node_ptr)TabEnt_retroactive_trie(TAB_ENT))
@@ -269,6 +270,8 @@ STD_PROTO(static inline void transform_producer_into_consumer, (retroactive_fr_p
   
 #define ON_SG_FR_STACK(SG_FR) (SG_FR == LOCAL_top_sg_fr || SgFr_prev(SG_FR) != NULL || SgFr_next(SG_FR) != NULL)
 
+#define retroactive_table_load(TAB_ENT) (TabEnt_is_load(TAB_ENT) || !TabEnt_completed(TAB_ENT))
+
 #ifdef TABLING_CALL_SUBSUMPTION
 static inline void
 init_consumer_subgoal_frame(sg_fr_ptr sg_fr)
@@ -335,13 +338,14 @@ void mark_subsumptive_producer_as_completed(subprod_fr_ptr sg_fr) {
     free_tst_hash_index((tst_ans_hash_ptr)SgFr_hash_chain(sg_fr));
     /* answer list or blocks are not removed because of show_table */
     
-#ifdef TABLING_COMPLETE_TABLE
     if(SgFr_is_most_general(sg_fr)) {
       dprintf("Completing most general\n");
       TabEnt_set_completed(SgFr_tab_ent(sg_fr));
+      
+#ifdef TABLING_COMPLETE_TABLE
       transform_subsumptive_into_retroactive_trie(sg_fr);
-    }
 #endif /* TABLING_COMPLETE_TABLE */
+    }
   }
 }
 
@@ -522,6 +526,7 @@ abolish_incomplete_retroactive_consumer_subgoal(retroactive_fr_ptr sg_fr) {
 static inline void
 abolish_incomplete_retroactive_producer_subgoal(sg_fr_ptr sg_fr) {
   SgFr_state(sg_fr) = ready;
+  move_pending_answers((retroactive_fr_ptr)sg_fr);
 }
 #endif /* TABLING_RETROACTIVE */
 
@@ -649,12 +654,8 @@ build_next_retroactive_producer_return_list(retroactive_fr_ptr producer_sg) {
 }
 
 static inline void
-transform_producer_into_consumer(retroactive_fr_ptr sf, retroactive_fr_ptr producer)
+move_pending_answers(retroactive_fr_ptr sf)
 {
-  SgFr_set_type(sf, RETROACTIVE_CONSUMER_SFT);
-  SgFr_producer(sf) = producer;
-  
-  /* copy pending answers */
   node_list_ptr pending = SgFr_pending_answers(sf);
   SgFr_pending_answers(sf) = NULL;
   
@@ -694,6 +695,15 @@ transform_producer_into_consumer(retroactive_fr_ptr sf, retroactive_fr_ptr produ
       pending = next;
     }
   }
+}
+
+static inline void
+transform_producer_into_consumer(retroactive_fr_ptr sf, retroactive_fr_ptr producer)
+{
+  SgFr_set_type(sf, RETROACTIVE_CONSUMER_SFT);
+  SgFr_producer(sf) = producer;
+  
+  move_pending_answers(sf);
 }
 
 #endif /* TABLING_RETROACTIVE */

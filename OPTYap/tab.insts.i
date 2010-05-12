@@ -480,19 +480,23 @@
       SG_FR = (sg_fr_ptr)SgFr_producer((subcons_fr_ptr)(SG_FR));  \
       LOCK(SgFr_lock(SG_FR))
       
-#define exec_retroactive_trie(TAB_ENT)                                      \
-      if(TabEnt_arity(TAB_ENT) == 0) {                                      \
-        if(TabEnt_retroactive_yes(TAB_ENT)) {                               \
-          procceed_yes_answer();                                            \
-        } else {                                                            \
-          goto fail;                                                        \
-        }                                                                   \
-      } else {                                                              \
-        ans_node_ptr trie = (ans_node_ptr)TabEnt_retroactive_trie(TAB_ENT); \
-        if(trie == NULL || TrNode_child(trie) == NULL) {                    \
-          goto fail;                                                        \
-        }                                                                   \
-        exec_compiled_trie(trie);                                           \
+#define exec_retroactive_trie(TAB_ENT)                                          \
+      if(TabEnt_arity(TAB_ENT) == 0) {                                          \
+        if(TabEnt_retroactive_yes(TAB_ENT)) {                                   \
+          procceed_yes_answer();                                                \
+        } else {                                                                \
+          goto fail;                                                            \
+        }                                                                       \
+      } else {                                                                  \
+        ans_node_ptr trie = (ans_node_ptr)TabEnt_retroactive_trie(TAB_ENT);     \
+        if(trie == NULL || TrNode_child(trie) == NULL) {                        \
+          goto fail;                                                            \
+        }                                                                       \
+        if(!TabEnt_compiled(TAB_ENT)) {                                         \
+          update_answer_trie_root(TrNode_child(trie));                          \
+          TabEnt_set_compiled(TAB_ENT);                                         \
+        }                                                                       \
+        exec_compiled_trie(trie);                                               \
       }
       
 #ifdef TABLING_RETROACTIVE
@@ -1275,7 +1279,7 @@ try_answer_jump: {
           break;
 #ifdef TABLING_RETROACTIVE
         case RETROACTIVE_PRODUCER_SFT:
-          if(TabEnt_is_load(tab_ent)) {
+          if(retroactive_table_load(tab_ent)) {
             check_no_answers(sg_fr);
             load_subsumptive_answers_from_sf(sg_fr, tab_ent, YENV);
           } else {
@@ -1283,7 +1287,7 @@ try_answer_jump: {
           }
           break;
         case RETROACTIVE_CONSUMER_SFT:
-          if(TabEnt_is_load(tab_ent)) {
+          if(retroactive_table_load(tab_ent)) {
             compute_retroactive_consumer_answer_list(sg_fr);
             check_no_answers(sg_fr);
             load_subsumptive_answers_from_sf(sg_fr, tab_ent, YENV);
@@ -1416,7 +1420,7 @@ try_answer_jump: {
           break;
 #ifdef TABLING_RETROACTIVE
         case RETROACTIVE_PRODUCER_SFT:
-          if(TabEnt_is_load(tab_ent)) {
+          if(retroactive_table_load(tab_ent)) {
             check_no_answers(sg_fr);
             load_subsumptive_answers_from_sf(sg_fr, tab_ent, YENV);
           } else {
@@ -1424,7 +1428,7 @@ try_answer_jump: {
           }
           break;
         case RETROACTIVE_CONSUMER_SFT:
-          if(TabEnt_is_load(tab_ent)) {
+          if(retroactive_table_load(tab_ent)) {
             compute_retroactive_consumer_answer_list(sg_fr);
             check_no_answers(sg_fr);
             load_subsumptive_answers_from_sf(sg_fr, tab_ent, YENV);
@@ -1558,7 +1562,7 @@ try_answer_jump: {
           break;
 #ifdef TABLING_RETROACTIVE
         case RETROACTIVE_PRODUCER_SFT:
-          if(TabEnt_is_load(tab_ent)) {
+          if(retroactive_table_load(tab_ent)) {
             check_no_answers(sg_fr);
             load_subsumptive_answers_from_sf(sg_fr, tab_ent, YENV);
           } else {
@@ -1566,7 +1570,7 @@ try_answer_jump: {
           }
           break;
         case RETROACTIVE_CONSUMER_SFT:
-          if(TabEnt_is_load(tab_ent)) {
+          if(retroactive_table_load(tab_ent)) {
             compute_retroactive_consumer_answer_list(sg_fr);
             check_no_answers(sg_fr);
             load_subsumptive_answers_from_sf(sg_fr, tab_ent, YENV);
@@ -2773,7 +2777,7 @@ try_answer_jump: {
               
               tab_ent_ptr tab_ent = SgFr_tab_ent(sg_fr);
               
-              if(TabEnt_is_load(tab_ent)) {
+              if(retroactive_table_load(tab_ent)) {
                 load_answers_from_sf_no_unlock(sg_fr, tab_ent, CONSUME_SUBSUMPTIVE_ANSWER, LOAD_CONS_ANSWER, YENV);
               } else {
                 exec_retroactive_trie(tab_ent);
