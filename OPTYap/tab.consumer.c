@@ -32,12 +32,12 @@ void debug_subgoal_frame_stack(void);
 void
 check_dependency_frame(void)
 {
-#ifdef FDEBUG
+#ifdef RETRO_CHECK
   dep_fr_ptr top = LOCAL_top_dep_fr;
   
   if(top) {
     if(DepFr_prev(top)) {
-      dprintf("prev of LOCAL_top_dep_fr must be == NULL\n");
+      printf("prev of LOCAL_top_dep_fr must be == NULL\n");
       exit(1);
     }
   }
@@ -47,13 +47,13 @@ check_dependency_frame(void)
     
     if(top) {
       if(DepFr_prev(top) != before) {
-        dprintf("prev(top) must be == before\n");
+        printf("prev(top) must be == before\n");
         exit(1);
       }
     }
     if(top == before)
     {
-      dprintf("top can't be equal to before\n");
+      printf("top can't be equal to before\n");
       exit(1);
     }
   }
@@ -366,6 +366,11 @@ abolish_generator_subgoals_between(sg_fr_ptr specific_sg, choiceptr min, choicep
   sg_fr_ptr sg_fr;
   dep_fr_ptr external;
   
+  /*
+  while(top && YOUNGER_CP(SgFr_choice_point(top), max))
+    top = SgFr_next(top);
+  */
+  
   /* abolish generators */
   while(top != bottom)
   {
@@ -438,12 +443,9 @@ abolish_generator_subgoals_between(sg_fr_ptr specific_sg, choiceptr min, choicep
 static inline void
 abolish_dependency_frames_between(sg_fr_ptr specific_sg, choiceptr min, choiceptr max)
 {
-  dep_fr_ptr top = LOCAL_top_dep_fr; //StackState_dep_fr(SgFr_stack_state((retroactive_fr_ptr)specific_sg));
+  dep_fr_ptr top = StackState_dep_fr(SgFr_stack_state((retroactive_fr_ptr)specific_sg));
   dep_fr_ptr dep_fr;
   dprintf("min=%d max=%d\n", (int)min, (int)max);
-
-  while(top && YOUNGER_CP(DepFr_cons_cp(top), max))
-      top = DepFr_next(top);
   
   while(top && YOUNGER_CP(DepFr_cons_cp(top), min)) {
     dep_fr = top;
@@ -521,11 +523,10 @@ external_producer_to_consumer(retroactive_fr_ptr sg_fr, retroactive_fr_ptr produ
         /* cp_dep_fr is only set when the generator was evaluating
          * using local scheduling, to be sure set as NULL */
         CONS_CP(gen_cp)->cp_dep_fr = NULL;
-    
-        if(gen_cp != limit_cp) {
-          limit_cp->cp_b = gen_cp;
-          limit_cp->cp_ap = TRUSTFAILCODE;
-        }
+      }
+      if(gen_cp != limit_cp) {
+        limit_cp->cp_b = gen_cp;
+        limit_cp->cp_ap = TRUSTFAILCODE;
       }
   } else {
     /* we are out of the execution path of the specific subgoal
@@ -644,6 +645,8 @@ process_pending_subgoal_list(node_list_ptr list, retroactive_fr_ptr sg_fr) {
         printf("Found a specific subgoal already running: ");
         printSubgoalTriePath(stdout, (sg_fr_ptr)pending);
         printf("\n");
+        printf("General subgoal: "); printSubgoalTriePath(stdout, (sg_fr_ptr)sg_fr);
+        printf("\n");
 #endif
         ensure_has_proper_consumers(SgFr_tab_ent(sg_fr));
         
@@ -757,7 +760,9 @@ process_pending_subgoal_list(node_list_ptr list, retroactive_fr_ptr sg_fr) {
 void
 debug_subgoal_frame_stack(void)
 {
+#ifdef RETRO_CHECKS
   sg_fr_ptr top = LOCAL_top_sg_fr;
+  sg_fr_ptr before = NULL;
   
   dprintf("SUBGOAL FRAME STACK\n");
   
@@ -765,15 +770,29 @@ debug_subgoal_frame_stack(void)
 #ifdef FDEBUG
     printSubgoalTriePath(stdout, top);
     dprintf("\n");
-#endif 
+#endif
+    if(top == SgFr_next(top)) {
+      printf("top should not == SgFr_next(top)\n");
+      exit(1);
+    }
+    
+    if(SgFr_prev(top) != before) {
+      printf("SgFr_prev(top) == before\n");
+      exit(1);
+    }
+    
+    before = top;
     top = SgFr_next(top);
   }
   dprintf("END OF SUBGOAL FRAME STACK\n");
+#endif
 }
 
 void
 reinsert_subgoal_frame(sg_fr_ptr sg_fr, choiceptr new_cp)
 {
+  debug_subgoal_frame_stack();
+  
   if(LOCAL_top_sg_fr == NULL) {
     LOCAL_top_sg_fr = sg_fr;
     SgFr_next(sg_fr) = NULL;
@@ -802,6 +821,7 @@ reinsert_subgoal_frame(sg_fr_ptr sg_fr, choiceptr new_cp)
       SgFr_prev(top) = sg_fr;
     SgFr_next(sg_fr) = top;
   }
+  debug_subgoal_frame_stack();
 }
 
 static inline void

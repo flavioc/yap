@@ -710,6 +710,11 @@
     
     sg_fr_ptr cons_sg_fr = CONS_CP(B)->cp_sg_fr;
     
+    if(cons_sg_fr == (sg_fr_ptr)538475492)
+      {
+        printf("AHHHHHH\n");
+        exit(1);
+      }
 #ifdef FDEBUG
     dprintf("===> TABLE_RUN_COMPLETED ");
     printSubgoalTriePath(stdout, cons_sg_fr);
@@ -818,6 +823,7 @@
           
           cont = continuation_next(DepFr_last_answer(dep_fr));
           REMOVE_DEP_FR_FROM_STACK(dep_fr);
+          SgFr_num_deps((retroactive_fr_ptr)sg_fr) = 0;
           FREE_DEPENDENCY_FRAME(dep_fr);
           
           if(!cont) {
@@ -985,7 +991,7 @@
           SgFr_state(sg_fr) = evaluating;
           GEN_CP(B)->cp_dep_fr = NULL; /* local_dep */
           SET_TOP_GEN_SG(sg_fr);
-          abolish_dependency_frame(dep_fr);
+          FREE_DEPENDENCY_FRAME(dep_fr);
           SgFr_choice_point(sg_fr) = B;
           
           if(is_sub_transform) {
@@ -1044,6 +1050,7 @@
       break;
       default:
       dprintf("default fail!\n");
+      exit(1);
       break;
     }
     
@@ -1195,7 +1202,6 @@ try_answer_jump: {
       GONext();
 #if defined(INCOMPLETE_TABLING) || defined(TABLING_RETROACTIVE)
     } else if (SgFr_state(sg_fr) == incomplete || SgFr_state(sg_fr) == suspended) {
-      dprintf("incomplete!!\n");
       /* subgoal incomplete --> start by loading the answers already found */
       
       continuation_ptr cont = SgFr_first_answer(sg_fr);
@@ -2040,7 +2046,6 @@ try_answer_jump: {
       /* unconsumed answer */
       ans_node = continuation_answer(next);
       DepFr_last_answer(dep_fr) = next;
-      dprintf("LAST ANSWER SET TO %d\n", (int)next);
       UNLOCK(DepFr_lock(dep_fr));
       consume_answer_and_procceed(dep_fr, ans_node);
     }
@@ -2349,7 +2354,7 @@ try_answer_jump: {
     {
       sg_fr_ptr sg_fr = GEN_CP(B)->cp_sg_fr;
       
-      dprintf("===> TABLE_COMPLETION ");
+      dprintf("===> TABLE_COMPLETION %d ", B);
       printSubgoalTriePath(stdout, sg_fr);
       dprintf("\n");
     }

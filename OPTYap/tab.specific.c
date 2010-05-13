@@ -70,7 +70,6 @@ static inline
 xsbBool
 Unify_with_Variable(Cell symbol, Cell subterm, BTNptr node) {
   if(PrologVar_IsMarked(subterm) && TrieSymbolType(symbol) != XSB_REF) {
-    dprintf("Marked against a constant %d\n", symbol);
     return FALSE;
   }
   
@@ -96,7 +95,6 @@ Unify_with_Variable(Cell symbol, Cell subterm, BTNptr node) {
 #endif
       if(PrologVar_IsMarked(subterm)) {
         if(IsNewTrieVar(symbol)) {
-          dprintf("Can not be new trie var!\n");
           return FALSE;
         }
         
@@ -104,16 +102,13 @@ Unify_with_Variable(Cell symbol, Cell subterm, BTNptr node) {
         int trie_index = DecodeTrieVar(BTN_Symbol(node));
         
         if(prolog_index != trie_index) {
-          dprintf("Failed to compare %d == %d\n", prolog_index, trie_index);
           return FALSE;
         }
       } else {
-        dprintf("New call variable\n");
         /* new call variable */
         int trie_index = DecodeTrieVar(BTN_Symbol(node));
         
         PrologVar_MarkIt(subterm, trie_index);
-        dprintf("Marked variable: %d\n", trie_index);
       }
       break;
 #ifdef SUBSUMPTION_YAP

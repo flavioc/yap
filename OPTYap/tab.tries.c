@@ -81,9 +81,9 @@ sg_fr_ptr subgoal_search(yamop *preg, CELL **local_stack_ptr)
   }
   
 #ifdef FDEBUG
-  dprintf("subgoal_search for ");
+  printf("subgoal_search for ");
   printCalledSubgoal(stdout, preg);
-  dprintf("\n");
+  printf("\n");
 #endif
   
 #ifdef TABLING_CALL_SUBSUMPTION
@@ -186,7 +186,6 @@ process_next:
     hash = NULL;
   }
   
-  printf("Decrement path!\n");
   if(update_generators)
     decrement_generator_path(node);
 }
@@ -344,10 +343,19 @@ complete_dependency_frame(dep_fr_ptr dep_fr)
     SgFr_num_deps(sg_fr)--;
 #endif /* TABLING_RETROACTIVE */
       break;
+#ifdef TABLING_RETROACTIVE
     case RETROACTIVE_PRODUCER_SFT:
+#ifdef RETRO_CHECKS
+      if(SgFr_num_deps((retroactive_fr_ptr)sg_fr) == 0) {
+        printf("num_deps must be > 0\n");
+        exit(1);
+      }
+#endif
+      SgFr_num_deps((retroactive_fr_ptr)sg_fr)--;
       dprintf("IS GEN\n");
       /* do nothing */
       break;
+#endif /* TABLING_RETROACTIVE */
     case SUBSUMPTIVE_PRODUCER_SFT:
 #ifdef TABLING_RETROACTIVE
       SgFr_num_proper_deps((subprod_fr_ptr)sg_fr)--;
@@ -367,6 +375,12 @@ complete_dependency_frame(dep_fr_ptr dep_fr)
       break;
 #ifdef TABLING_RETROACTIVE
     case RETROACTIVE_CONSUMER_SFT:
+#ifdef RETRO_CHECKS
+      if(SgFr_num_deps((retroactive_fr_ptr)sg_fr) == 0) {
+        printf("num_deps is 0\n");
+        exit(1);
+      }
+#endif
       SgFr_num_deps((retroactive_fr_ptr)sg_fr)--;
     
       if(SgFr_num_deps((retroactive_fr_ptr)sg_fr) == 0) {

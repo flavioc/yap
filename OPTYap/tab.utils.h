@@ -557,6 +557,7 @@ extern int AT_SIZE;
 #else
 #define dprintf(MESG, ARGS...)
 #endif
+//#define RETRO_CHECKS 1
 
 #endif /* TABLING */
 

@@ -50,6 +50,13 @@ STD_PROTO(static inline void move_pending_answers, (retroactive_fr_ptr));
 
 #define retroactive_trie_create_tsi(TAB_ENT) tstCreateTSIs((tst_node_ptr)TabEnt_retroactive_trie(TAB_ENT))
 #define init_num_deps(SG_FR) SgFr_num_deps(SG_FR) = 0
+#define init_num_proper_deps(SG_FR) SgFr_num_proper_deps(SG_FR) = 0
+
+#ifdef TABLING_RETROACTIVE
+#define init_retro_num_proper_deps(SG_FR) init_num_proper_deps(SG_FR)
+#else
+#define init_retro_num_proper_deps(SG_FR) /* do nothing */
+#endif
 
 #define new_subsumptive_producer_subgoal_frame(SG_FR, CODE, LEAF) { \
         new_basic_subgoal_frame(SG_FR, CODE, LEAF,                  \
@@ -57,6 +64,7 @@ STD_PROTO(static inline void move_pending_answers, (retroactive_fr_ptr));
         SgFr_prod_consumers(SG_FR) = NULL;                          \
         SgFr_answer_trie(SG_FR) = newTSTAnswerSet();                \
         init_retro_num_deps((sg_fr_ptr)SG_FR);                      \
+        init_retro_num_proper_deps((subprod_fr_ptr)SG_FR);          \
     }
     
 #define new_retroactive_producer_subgoal_frame(SG_FR, CODE, LEAF) {  \
@@ -74,6 +82,7 @@ STD_PROTO(static inline void move_pending_answers, (retroactive_fr_ptr));
         SgFr_saved_max(SG_FR) = NULL;           \
         SgFr_saved_cp(SG_FR) = NULL;            \
         SgFr_pending_answers(SG_FR) = NULL;     \
+        init_retro_num_deps((retroactive_fr_ptr)SG_FR); \
         RESET_VARIABLE(&SgFr_executing(SG_FR)); \
         RESET_VARIABLE(&SgFr_start(SG_FR))
 
@@ -190,22 +199,25 @@ STD_PROTO(static inline void move_pending_answers, (retroactive_fr_ptr));
         }                                                           \
       }
       
-#define increment_subgoal_path(SG_FR)                               \
-      { subg_node_ptr leaf = (subg_node_ptr)SgFr_leaf(SG_FR);       \
-        if(TrNode_num_gen(leaf) != 0) {                         \
-           Yap_Error(INTERNAL_ERROR, TermNil,                       \
-              "leaf node be == 0 (increment_subgoal_path)");        \
-        } else {                                                    \
-          update_generator_path((sg_node_ptr)leaf);                 \
-        }                                                           \
+#define increment_subgoal_path(SG_FR)                                   \
+      { subg_node_ptr leaf = (subg_node_ptr)SgFr_leaf(SG_FR);           \
+        /*printf("increment "); printSubgoalTriePath(stdout, SG_FR); printf("\n");*/  \
+        if(TrNode_num_gen(leaf) != 0) {                                 \
+           Yap_Error(INTERNAL_ERROR, TermNil,                           \
+              "leaf node must be == 0, is %d (%d) (increment_subgoal_path)", \
+                      TrNode_get_num_gen(leaf), (int)SG_FR);            \
+        } else {                                                        \
+          update_generator_path((sg_node_ptr)leaf);                     \
+        }                                                               \
       }
       
 #define decrement_subgoal_path(SG_FR)                               \
       { subg_node_ptr leaf = (subg_node_ptr)SgFr_leaf(SG_FR);       \
+        /*printf("decrement "); printSubgoalTriePath(stdout, SG_FR); printf("\n");*/  \
         if(TrNode_get_num_gen(leaf) != 1) {                         \
           Yap_Error(INTERNAL_ERROR, TermNil,                        \
-            "leaf node be == 1, is %d (decrement_subgoal_path)",    \
-                TrNode_get_num_gen(leaf));                          \
+              "leaf node be == 1, is %d (decrement_subgoal_path)",  \
+                  TrNode_get_num_gen(leaf));                        \
         } else {                                                    \
           decrement_generator_path((sg_node_ptr)leaf);              \
         }                                                           \
@@ -249,6 +261,8 @@ STD_PROTO(static inline void move_pending_answers, (retroactive_fr_ptr));
     DepFr_next(DepFr_prev(DEP_FR)) = NEXT;                  \
   if(NEXT)                                                  \
     DepFr_prev(NEXT) = DepFr_prev(DEP_FR);                  \
+  DepFr_next(DEP_FR) = NULL;                                \
+  DepFr_prev(DEP_FR) = NULL;                                \
   check_dependency_frame()
   
 #define restore_general_node()  \
@@ -285,6 +299,7 @@ init_consumer_subgoal_frame(sg_fr_ptr sg_fr)
       break;
 #ifdef TABLING_RETROACTIVE
     case RETROACTIVE_CONSUMER_SFT:
+    case RETROACTIVE_PRODUCER_SFT:
       SgFr_num_deps((retroactive_fr_ptr)sg_fr)++;
       break;
 #endif /* TABLING_RETROACTIVE */
@@ -366,6 +381,7 @@ void mark_retroactive_consumer_as_completed(retroactive_fr_ptr sg_fr) {
 static inline
 void mark_retroactive_producer_as_completed(retroactive_fr_ptr sg_fr) {
   decrement_subgoal_path(sg_fr);
+  SgFr_num_deps(sg_fr) = 0;
   if(SgFr_answer_template(sg_fr)) {
     FREE_BLOCK(SgFr_answer_template(sg_fr));
     SgFr_answer_template(sg_fr) = NULL;
@@ -521,11 +537,14 @@ abolish_incomplete_subsumptive_producer_subgoal(sg_fr_ptr sg_fr) {
 static inline void
 abolish_incomplete_retroactive_consumer_subgoal(retroactive_fr_ptr sg_fr) {
   SgFr_state(sg_fr) = ready;
+  decrement_subgoal_path(sg_fr);
 }
 
 static inline void
 abolish_incomplete_retroactive_producer_subgoal(sg_fr_ptr sg_fr) {
   SgFr_state(sg_fr) = ready;
+  SgFr_num_deps(sg_fr) = 0;
+  decrement_subgoal_path(sg_fr);
   move_pending_answers((retroactive_fr_ptr)sg_fr);
 }
 #endif /* TABLING_RETROACTIVE */

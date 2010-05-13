@@ -2134,7 +2134,7 @@ mark_choicepoints(register choiceptr gc_B, tr_fr_ptr saved_TR, int very_verbose)
 	{
 	  CELL *vars_ptr;
 	  int heap_arity, vars_arity, subs_arity;
-    /* note that choice point is a hash_cp_ptr */
+    /* note that the choice point is a hash_cp_ptr */
 	  vars_ptr = (CELL *)((hash_cp_ptr)gc_B + 1);
 	  heap_arity = *vars_ptr;
 	  vars_arity = *(vars_ptr + heap_arity + 1);

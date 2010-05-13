@@ -405,9 +405,13 @@ case RETROACTIVE_CONSUMER_SFT: \
       SgFr_prev(LOCAL_top_sg_fr) = SG_FR
 
 #define SgFr_is_top_stack(SG_FR) SgFr_prev(SG_FR) == NULL
+
+#define SgFr_init_deps(SG_FR) if(SgFr_is_retroactive(SG_FR)) \
+                                  SgFr_num_deps((retroactive_fr_ptr)SG_FR)++
 #else
 #define init_retro_num_deps(SG_FR) /* nothing */
 #define SgFr_init_prev_fields(SG_FR) /* nothing */
+#define SgFr_init_deps(SG_FR) /* nothing */
 #endif /* TABLING_RETROACTIVE */
 
 #define init_subgoal_frame(SG_FR)                                  \
@@ -416,6 +420,8 @@ case RETROACTIVE_CONSUMER_SFT: \
           SgFr_init_prev_fields(SG_FR);                            \
           SgFr_next(SG_FR) = LOCAL_top_sg_fr;                      \
           LOCAL_top_sg_fr = SG_FR;                                 \
+          SgFr_init_deps(SG_FR);                                   \
+          debug_subgoal_frame_stack();                             \
 	      }
 
 #define SgFr_has_real_answers(SG_FR)                                      \
@@ -1110,12 +1116,28 @@ abolish_dependency_frame(dep_fr_ptr dep_fr)
 #endif /* TABLING_RETROACTIVE */
       break;
     case RETROACTIVE_PRODUCER_SFT:
-      /* do nothing */
+#ifdef RETRO_CHECKS
+      if(SgFr_num_deps((retroactive_fr_ptr)sg_fr) == 0) {
+        printf("num_deps must be > 0\n");
+        exit(1);
+      }
+#endif
+      SgFr_num_deps((retroactive_fr_ptr)sg_fr)--;
       break;
     case SUBSUMPTIVE_PRODUCER_SFT:
 #ifdef TABLING_RETROACTIVE
       {
         subprod_fr_ptr prod_sg = (subprod_fr_ptr)sg_fr;
+#ifdef RETRO_CHECKS
+      if(SgFr_num_deps(sg_fr) == 0) {
+        printf("num_deps must be > 0\n");
+        exit(1);
+      }
+      if(SgFr_num_proper_deps(prod_sg) == 0) {
+        printf("num_proper_deps must be > 0\n");
+        exit(1);
+      }
+#endif
         SgFr_num_deps((sg_fr_ptr)prod_sg)--;
         SgFr_num_proper_deps(prod_sg)--;
         
@@ -1142,9 +1164,16 @@ abolish_dependency_frame(dep_fr_ptr dep_fr)
       break;
 #ifdef TABLING_RETROACTIVE
     case RETROACTIVE_CONSUMER_SFT:
-      SgFr_num_deps((retroactive_fr_ptr)sg_fr)--;
+#ifdef RETRO_CHECKS
       if(SgFr_num_deps((retroactive_fr_ptr)sg_fr) == 0) {
-        dprintf("incomplete retroactive goal abolished\n");
+        printf("num_deps must be > 0\n");
+        exit(1);
+      }
+#endif
+      SgFr_num_deps((retroactive_fr_ptr)sg_fr)--;
+      dprintf("num_deps %d\n", SgFr_num_deps((retroactive_fr_ptr)sg_fr));
+      if(SgFr_num_deps((retroactive_fr_ptr)sg_fr) == 0) {
+        dprintf("incomplete retroactive consumer goal abolished\n");
         abolish_incomplete_retroactive_consumer_subgoal((retroactive_fr_ptr)sg_fr);
       }
       break;
