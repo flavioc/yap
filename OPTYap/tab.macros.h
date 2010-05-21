@@ -1115,6 +1115,7 @@ abolish_dependency_frame(dep_fr_ptr dep_fr)
         SgFr_num_deps(sg_fr)--;
 #endif /* TABLING_RETROACTIVE */
       break;
+#ifdef TABLING_RETROACTIVE
     case RETROACTIVE_PRODUCER_SFT:
 #ifdef RETRO_CHECKS
       if(SgFr_num_deps((retroactive_fr_ptr)sg_fr) == 0) {
@@ -1124,6 +1125,7 @@ abolish_dependency_frame(dep_fr_ptr dep_fr)
 #endif
       SgFr_num_deps((retroactive_fr_ptr)sg_fr)--;
       break;
+#endif /* TABLING_RETROACTIVE */
     case SUBSUMPTIVE_PRODUCER_SFT:
 #ifdef TABLING_RETROACTIVE
       {
