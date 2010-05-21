@@ -1079,7 +1079,7 @@ void traverse_subgoal_trie(sg_node_ptr current_node, char *str, int str_index, i
       case RETROACTIVE_PRODUCER_SFT:
       case RETROACTIVE_CONSUMER_SFT:
         {
-          CELL* vars = (CELL *)HeapTop - 1;
+          CELL* vars = (CELL *)YENV - 1;
           CELL *saved_H = NULL;
           CELL *answer_template = NULL;
           
