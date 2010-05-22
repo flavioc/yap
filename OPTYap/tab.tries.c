@@ -761,7 +761,10 @@ void show_table(tab_ent_ptr tab_ent, int show_mode) {
 #endif /* TABLING_COMPLETE_TABLE */
       }
       
-      bytes += TrStat_sg_nodes * sizeof(struct sub_subgoal_trie_node);
+      if(TabEnt_is_subsumptive(tab_ent))
+        bytes += TrStat_sg_nodes * sizeof(struct subgoal_trie_node);
+      else
+        bytes += TrStat_sg_nodes * sizeof(struct sub_subgoal_trie_node);
       bytes += TrStat_float_sg_nodes * sizeof(struct float_sub_subgoal_trie_node);
       bytes += TrStat_long_sg_nodes * sizeof(struct long_sub_subgoal_trie_node);
       bytes += TrStat_sg_hash * sizeof(struct sub_subgoal_trie_hash);
@@ -958,7 +961,7 @@ void traverse_subgoal_trie(sg_node_ptr current_node, char *str, int str_index, i
     TrStat_hash_buckets += Hash_num_buckets(hash);
     
 #ifdef TABLING_CALL_SUBSUMPTION
-    if(!TabEnt_is_variant(tab_ent)) {
+    if(TabEnt_is_retroactive(tab_ent)) {
       count_subgoal_hash_index(hash, TrStat_sg_indexes);
     }
 #endif

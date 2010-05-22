@@ -107,41 +107,6 @@ create_new_producer_subgoal(sg_node_ptr leaf_node, tab_ent_ptr tab_ent, yamop *c
 /* answer template functions */
 #include "xsb.at.c"
 
-void
-decrement_generator_path(sg_node_ptr node) {
-  while(!TrNode_is_root(node)) {
-    if(IsHashedNode(node)) {
-      gen_index_ptr gen_index = TrNode_index_node((subg_node_ptr)node);
-      if(GNIN_num_gen(gen_index) == 1) {
-        gen_index_remove((subg_node_ptr)node, (subg_hash_ptr)TrNode_child(TrNode_parent(node)));
-      } else
-        GNIN_num_gen(gen_index)--;
-    } else
-      TrNode_num_gen((subg_node_ptr)node)--;
-    
-    node = TrNode_parent(node);
-  }
-  
-  TrNode_num_gen((subg_node_ptr)node)--;
-}
-
-void
-update_generator_path(sg_node_ptr node) {
-  while(!TrNode_is_root(node)) {
-    if(IsHashedNode(node)) {
-      if(TrNode_num_gen((subg_node_ptr)node) == 0)
-        gen_index_add((subg_node_ptr)node, (subg_hash_ptr)TrNode_child(TrNode_parent(node)), 1);
-      else
-        GNIN_num_gen((gen_index_ptr)TrNode_num_gen((subg_node_ptr)node))++;
-    } else
-      TrNode_num_gen((subg_node_ptr)node)++;
-    
-    node = TrNode_parent(node);
-  }
-  
-  TrNode_num_gen((subg_node_ptr)node)++;
-}
-
 sg_fr_ptr subsumptive_call_search(yamop *code, CELL *answer_template, CELL **new_local_stack)
 {
   tab_ent_ptr tab_ent = CODE_TABLE_ENTRY(code);
@@ -170,7 +135,7 @@ sg_fr_ptr subsumptive_call_search(yamop *code, CELL *answer_template, CELL **new
     Trail_Unwind_All;
     
     sg_node_ptr leaf = variant_call_cont_insert(tab_ent, (sg_node_ptr)stl_restore_variant_cont(),
-      variant_cont.bindings.num, CALL_SUB_TRIE_NT);
+      variant_cont.bindings.num, 0);
     
     *new_local_stack = extract_template_from_insertion(answer_template);
     sg_fr = create_new_producer_subgoal(leaf, tab_ent, code);
@@ -203,7 +168,7 @@ sg_fr_ptr subsumptive_call_search(yamop *code, CELL *answer_template, CELL **new
         break;
       case SUBSUMPTIVE_PATH:
         if(SgFr_state(subsumer) < complete || TabEnt_is_load(tab_ent)) {
-            btn = variant_call_cont_insert(tab_ent, (sg_node_ptr)stl_restore_variant_cont(), variant_cont.bindings.num, CALL_SUB_TRIE_NT);
+            btn = variant_call_cont_insert(tab_ent, (sg_node_ptr)stl_restore_variant_cont(), variant_cont.bindings.num, 0);
             Trail_Unwind_All;
             sg_fr = create_new_consumer_subgoal(btn, subsumer, tab_ent, code);
             

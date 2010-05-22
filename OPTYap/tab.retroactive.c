@@ -29,6 +29,41 @@
 #include "tab.utils.h"
 #include "tab.tries.h"
 
+void
+decrement_generator_path(sg_node_ptr node) {
+  while(!TrNode_is_root(node)) {
+    if(IsHashedNode(node)) {
+      gen_index_ptr gen_index = TrNode_index_node((subg_node_ptr)node);
+      if(GNIN_num_gen(gen_index) == 1) {
+        gen_index_remove((subg_node_ptr)node, (subg_hash_ptr)TrNode_child(TrNode_parent(node)));
+      } else
+        GNIN_num_gen(gen_index)--;
+    } else
+      TrNode_num_gen((subg_node_ptr)node)--;
+    
+    node = TrNode_parent(node);
+  }
+  
+  TrNode_num_gen((subg_node_ptr)node)--;
+}
+
+void
+update_generator_path(sg_node_ptr node) {
+  while(!TrNode_is_root(node)) {
+    if(IsHashedNode(node)) {
+      if(TrNode_num_gen((subg_node_ptr)node) == 0)
+        gen_index_add((subg_node_ptr)node, (subg_hash_ptr)TrNode_child(TrNode_parent(node)), 1);
+      else
+        GNIN_num_gen((gen_index_ptr)TrNode_num_gen((subg_node_ptr)node))++;
+    } else
+      TrNode_num_gen((subg_node_ptr)node)++;
+    
+    node = TrNode_parent(node);
+  }
+  
+  TrNode_num_gen((subg_node_ptr)node)++;
+}
+
 static inline retroactive_fr_ptr
 create_new_retroactive_producer_subgoal(sg_node_ptr leaf_node, tab_ent_ptr tab_ent, yamop *code) {
   retroactive_fr_ptr sg_fr;
@@ -534,8 +569,8 @@ TSTNptr retroactive_answer_search(retroactive_fr_ptr sf, CPtr answerVector) {
   new_timestamp = TabEnt_retroactive_time_stamp(tab_ent);
   
 #if 1
-  dprintf("old_timestamp %d new_timestamp %d sf timestamp %d ans %d ts %lu\n",
-    (int)old_timestamp, (int)new_timestamp, (int)SgFr_timestamp(sf), (int)tstn, GetTimeStamp(tstn, tab_ent));
+  /*dprintf("old_timestamp %d new_timestamp %d sf timestamp %d ans %d ts %lu\n",
+    (int)old_timestamp, (int)new_timestamp, (int)SgFr_timestamp(sf), (int)tstn, GetTimeStamp(tstn, tab_ent));*/
 
   if(old_timestamp == new_timestamp-1 && SgFr_timestamp(sf) == old_timestamp) {
     /* ok answer! */
