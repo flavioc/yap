@@ -619,6 +619,7 @@ regexec.o: $(srcdir)/library/regex/regexec.c config.h
 absmi.o: $(srcdir)/C/absmi.c \
 	$(srcdir)/OPTYap/tab.tries.insts.i \
 	$(srcdir)/OPTYap/tab.insts.i \
+	$(srcdir)/OPTYap/tab.sub.i \
 	$(srcdir)/OPTYap/opt.structs.h \
 	$(srcdir)/OPTYap/or.macros.h \
 	$(srcdir)/OPTYap/tab.blocks.h \

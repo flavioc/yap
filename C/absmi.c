@@ -3128,6 +3128,7 @@ Yap_absmi(int inp)
 #endif /* YAPOR */
 #ifdef TABLING
 #include "tab.insts.i"
+#include "tab.sub.i"
 #include "tab.tries.insts.i"
 #endif /* TABLING */
 
