@@ -191,7 +191,9 @@
 #endif /* YAPOR */
 #ifdef TABLING
   yamop  table_load_answer_code[1];
+  yamop  table_load_answer_jump_code[1];
   yamop  table_load_cons_answer_code[1];
+  yamop  table_load_cons_answer_jump_code[1];
   yamop  table_restart_generator_code[1];
   yamop  table_run_completed_code[1];
   yamop  table_try_answer_code[1];

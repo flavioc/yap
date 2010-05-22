@@ -329,11 +329,8 @@
 #ifdef TABLING_INNER_CUTS
   OPCODE(clause_with_cut            ,e),
 #endif
-  OPCODE(table_load_cons_answer     ,Otapl),
   OPCODE(table_load_answer          ,Otapl),
-  OPCODE(table_run_completed        ,Otapl),
   OPCODE(table_try_answer           ,Otapl),
-  OPCODE(table_try_retroactive_answer,Otapl),
   OPCODE(table_try_single           ,Otapl),
   OPCODE(table_try_me               ,Otapl),
   OPCODE(table_try                  ,Otapl),
@@ -344,6 +341,11 @@
   OPCODE(table_new_answer           ,s),
   OPCODE(table_answer_resolution    ,Otapl),
   OPCODE(table_completion           ,Otapl),
+  OPCODE(table_load_answer_jump     ,Otapl),
+  OPCODE(table_load_cons_answer     ,Otapl),
+  OPCODE(table_load_cons_answer_jump,Otapl),
+  OPCODE(table_run_completed        ,Otapl),
+  OPCODE(table_try_retroactive_answer,Otapl),
   OPCODE(trie_do_null               ,e),
   OPCODE(trie_trust_null            ,e),
   OPCODE(trie_try_null              ,e),

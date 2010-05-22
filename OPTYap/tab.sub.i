@@ -9,12 +9,79 @@
   comment:     subsumption + retroactive tabling related instructions   
                                                                      
 **********************************************************************/
-  
-  PBOp(table_load_cons_answer, Otapl)
-#ifdef TABLING_CALL_SUBSUMPTION
+
+/* auxiliary macros */
+
+#define jump_retroactive(CHOICE_PT, DEP_FR)   \
+        B = CHOICE_PT;                        \
+        TR = TR_FZ;                           \
+        if (TR != B->cp_tr)                   \
+          TRAIL_LINK(B->cp_tr);               \
+        H = HBREG = PROTECT_FROZEN_H(B);      \
+        restore_yaam_reg_cpdepth(B);          \
+        CPREG = B->cp_cp;                     \
+        ENV = B->cp_env;                      \
+        if(DEP_FR)                            \
+          RESTORE_TOP_GEN_SG(DEP_FR);         \
+        PREG = RUN_COMPLETED;                 \
+        PREFETCH_OP(PREG);                    \
+        YENV = ENV;                           \
+        GONext()
+        
+#define back_retroactive_master(MASTER)                         \
+        restore_bindings(B->cp_tr, (MASTER)->cp_tr);            \
+        jump_retroactive(MASTER, CONS_CP(MASTER)->cp_dep_fr)
+        
+  PBOp(table_load_answer_jump, Otapl)
+#ifdef TABLING_RETROACTIVE
+load_answer_jump:
+    INIT_PREFETCH()
+
     CELL *ans_tmplt;
     ans_node_ptr ans_node;
     continuation_ptr next;
+
+    dprintf("===> TABLE_LOAD_ANSWER_JUMP \n");
+    
+    if(LOAD_CP(B)->cp_last_answer == NULL) {
+      /* time to jump back */
+      choiceptr back = B->cp_b;
+      
+      TABLING_close_alt(B);
+      SET_BB(PROTECT_FROZEN_B(B));
+      
+      back_retroactive_master(back);
+    }
+
+    ans_tmplt = (CELL *) (LOAD_CP(B) + 1);
+
+    next = continuation_next(LOAD_CP(B)->cp_last_answer);
+    ans_node = continuation_answer(next);
+
+    if(continuation_has_next(next)) {
+      restore_loader_node(next);
+    } else {
+      restore_loader_node(NULL);
+    }
+
+    consume_answer_leaf(ans_node, ans_tmplt, CONSUME_VARIANT_ANSWER);
+
+    END_PREFETCH()
+#else
+    Yap_Error(INTERNAL_ERROR, TermNil, "invalid instruction (table_load_answer_jump)");
+#endif /* TABLING_RETROACTIVE */
+  ENDPBOp();
+  
+  PBOp(table_load_cons_answer, Otapl)
+#ifdef TABLING_CALL_SUBSUMPTION
+load_cons_answer:
+    INIT_PREFETCH()
+    
+    CELL *ans_tmplt;
+    ans_node_ptr ans_node;
+    continuation_ptr next;
+    
+    dprintf("===> TABLE_LOAD_CONS_ANSWER \n");
     
     ans_tmplt = (CELL *) (LOAD_CP(B) + 1);
     
@@ -28,9 +95,52 @@
     }
     
     consume_answer_leaf(ans_node, ans_tmplt, CONSUME_SUBSUMPTIVE_ANSWER);
+
+    END_PREFETCH()
 #else
     Yap_Error(INTERNAL_ERROR, TermNil, "invalid instruction (table_load_cons_answer)");
 #endif
+  ENDPBOp();
+  
+  PBOp(table_load_cons_answer_jump, Otapl)
+#ifdef TABLING_RETROACTIVE
+load_cons_answer_jump:
+    INIT_PREFETCH()
+      
+    CELL *ans_tmplt;
+    ans_node_ptr ans_node;
+    continuation_ptr next;
+    
+    dprintf("===> TABLE_LOAD_CONS_ANSWER_JUMP \n");
+    
+    if(LOAD_CP(B)->cp_last_answer == NULL) {
+      /* time to jump back */
+      choiceptr back = B->cp_b;
+      
+      TABLING_close_alt(B);
+      SET_BB(PROTECT_FROZEN_B(B));
+      
+      back_retroactive_master(back);
+    }
+    
+    ans_tmplt = (CELL *)(LOAD_CP(B) + 1);
+    
+    next = continuation_next(LOAD_CP(B)->cp_last_answer);
+    
+    ans_node = continuation_answer(next);
+    
+    if(continuation_has_next(next)) {
+      restore_loader_node(next);
+    } else {
+      restore_loader_node(NULL);
+    }
+    
+    consume_answer_leaf(ans_node, ans_tmplt, CONSUME_SUBSUMPTIVE_ANSWER);
+
+    END_PREFETCH()
+#else
+    Yap_Error(INTERNAL_ERROR, TermNil, "invalid instruction (table_load_cons_answer_jump)");
+#endif /* TABLING_RETROACTIVE */
   ENDPBOp();
   
   PBOp(table_run_completed, Otapl)
@@ -42,11 +152,6 @@
 
     sg_fr_ptr cons_sg_fr = CONS_CP(B)->cp_sg_fr;
 
-    if(cons_sg_fr == (sg_fr_ptr)538475492)
-      {
-        printf("AHHHHHH\n");
-        exit(1);
-      }
 #ifdef FDEBUG
     dprintf("===> TABLE_RUN_COMPLETED ");
     printSubgoalTriePath(stdout, cons_sg_fr);
@@ -122,50 +227,48 @@
           {
             /* launch consumer */
             dprintf("Lost consumer found!\n");
-
-            restore_bindings(B->cp_tr, cp->cp_tr);
             DepFr_backchain_cp(top) = B;
-
-            B = cp;
-            TR = TR_FZ;
-            if (TR != B->cp_tr)
-              TRAIL_LINK(B->cp_tr);
-
-            H = HBREG = PROTECT_FROZEN_H(B);
-            restore_yaam_reg_cpdepth(B);
-            CPREG = B->cp_cp;
-            ENV = B->cp_env;
-            RESTORE_TOP_GEN_SG(top);
-            PREG = RUN_COMPLETED;
-            PREFETCH_OP(PREG);
-            YENV = ENV;
-            GONext();
+            restore_bindings(B->cp_tr, cp->cp_tr);
+            jump_retroactive(cp, top);
           }
 
           top = DepFr_next(top);
         }
 
         if(SgFr_state(sg_fr) < complete) {
-          dprintf("just completed!\n");
           /* producer subgoal just completed */
           build_next_retroactive_consumer_return_list(sg_fr);
           mark_retroactive_consumer_as_completed(sg_fr);
         }
+        
+        choiceptr jump_to = NULL;
 
         if(dep_fr) {
           dprintf("ABOLISH DEP_FR\n");
 
-          cont = continuation_next(DepFr_last_answer(dep_fr));
+          jump_to = DepFr_backchain_cp(dep_fr);
+          cont = DepFr_last_answer(dep_fr);
           REMOVE_DEP_FR_FROM_STACK(dep_fr);
           SgFr_num_deps((retroactive_fr_ptr)sg_fr) = 0;
           FREE_DEPENDENCY_FRAME(dep_fr);
 
-          if(!cont) {
+          if(!continuation_has_next(cont)) {
             TABLING_close_alt(B);
-            B = B->cp_b;
             SET_BB(PROTECT_FROZEN_B(B));
-            goto fail;
+            if(jump_to) {
+              back_retroactive_master(jump_to);
+            } else {
+              B = B->cp_b;
+              goto fail;
+            }
           }
+          
+          if(jump_to) {
+            transform_node_into_loader(B, cons_sg_fr, cont, LOAD_CONS_ANSWER_JUMP);
+            B->cp_b = jump_to;
+            goto load_cons_answer_jump;
+          } else
+            cont = continuation_next(cont);
         } else if(SgFr_try_answer(sg_fr)) {
           /* some answers were consumed before */
           cont = continuation_next(SgFr_try_answer(sg_fr));
@@ -268,40 +371,38 @@
           B->cp_ap = ANSWER_RESOLUTION;
           goto answer_resolution;
         }
+        
+        /* producer subgoal just completed */
 
         dprintf("just completed sub!\n");
 
-        /* producer subgoal just completed */
+        choiceptr jump_to = DepFr_backchain_cp(dep_fr);
+        
         REMOVE_DEP_FR_FROM_STACK(dep_fr);
         complete_dependency_frame(dep_fr);
 
         build_next_subsumptive_consumer_return_list(sg_fr);
 
-        continuation_ptr cont = continuation_next(DepFr_last_answer(dep_fr));
+        continuation_ptr cont = DepFr_last_answer(dep_fr);
 
-        if(!cont) {
+        if(!continuation_has_next(cont)) {
           /* fail sooner */
           B = B->cp_b;
           SET_BB(PROTECT_FROZEN_B(B));
+          if(jump_to) {
+            back_retroactive_master(jump_to);
+          }
           goto fail;
         }
-
-        CELL *answer_template;
-
-        /* transform into a loader! */
-        if(continuation_has_next(cont)) {
-          dprintf("transform into sub loader\n");
-          restore_general_node();
-          transform_node_into_loader(B, cons_sg_fr, cont, LOAD_CONS_ANSWER);
-          answer_template = LOADER_ANSWER_TEMPLATE(B);
+        
+        if(jump_to) {
+          B->cp_b = jump_to;
+          transform_node_into_loader(B, cons_sg_fr, cont, LOAD_CONS_ANSWER_JUMP);
+          goto load_cons_answer_jump;
         } else {
-          answer_template = GENERATOR_ANSWER_TEMPLATE(B, sg_fr);
-          pop_general_node();
+          transform_node_into_loader(B, cons_sg_fr, cont, LOAD_CONS_ANSWER);
+          goto load_cons_answer;
         }
-
-        /* load answer */
-        consume_answer_leaf(continuation_answer(cont), answer_template,
-            CONSUME_SUBSUMPTIVE_ANSWER);
       }
       break;
       case SUBSUMPTIVE_PRODUCER_SFT:
@@ -310,6 +411,7 @@
         sg_fr_ptr sg_fr = cons_sg_fr;
         dep_fr_ptr dep_fr = CONS_CP(B)->cp_dep_fr;
         int is_sub_transform = DepFr_is_subtransform(dep_fr);
+        
         DepFr_clear_subtransform(dep_fr);
         DepFr_clear_restarter(dep_fr);
 
@@ -348,41 +450,40 @@
           goto answer_resolution;
         }
 
+        /* producer subgoal just completed */
+        
         dprintf("just completed variant node!\n");
 
-        /* producer subgoal just completed */
+        choiceptr jump_to = DepFr_backchain_cp(dep_fr);
+        
         REMOVE_DEP_FR_FROM_STACK(dep_fr);
         complete_dependency_frame(dep_fr);
 
-        continuation_ptr cont = continuation_next(DepFr_last_answer(dep_fr));
+        continuation_ptr cont = DepFr_last_answer(dep_fr);
 
-        if(!cont) {
+        if(!continuation_has_next(cont)) {
           /* fail sooner */
           B = B->cp_b;
           SET_BB(PROTECT_FROZEN_B(B));
+          if(jump_to) {
+            back_retroactive_master(jump_to);
+          }
           goto fail;
         }
 
-        CELL *answer_template;
-
         /* transform into a loader! */
-        if(continuation_has_next(cont)) {
-          dprintf("transform into var loader\n");
-          restore_general_node();
-          transform_node_into_loader(B, sg_fr, cont, LOAD_ANSWER);
-          answer_template = LOADER_ANSWER_TEMPLATE(B);
+        if(jump_to) {
+          B->cp_b = jump_to;
+          transform_node_into_loader(B, sg_fr, cont, LOAD_ANSWER_JUMP);
+          goto load_answer_jump;
         } else {
-          answer_template = GENERATOR_ANSWER_TEMPLATE(B, sg_fr);
-          pop_general_node();
+          transform_node_into_loader(B, sg_fr, cont, LOAD_ANSWER);
+          goto load_answer;
         }
-
-        /* load answer */
-        consume_answer_leaf(continuation_answer(cont), answer_template,
-            CONSUME_VARIANT_ANSWER);
       }
       break;
       default:
-      dprintf("default fail!\n");
+      dprintf("default fail!\n"); // xxx
       exit(1);
       break;
     }

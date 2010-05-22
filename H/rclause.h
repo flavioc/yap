@@ -774,16 +774,13 @@ restore_opcodes(yamop *pc, yamop *max)
     case _table_answer_resolution:
     case _table_completion:
     case _table_load_answer:
-    case _table_load_cons_answer:
     case _table_retry:
     case _table_retry_me:
-    case _table_run_completed:
     case _table_trust:
     case _table_trust_me:
     case _table_try:
     case _table_try_answer:
     case _table_try_me:
-    case _table_try_retroactive_answer:
     case _table_try_single:
       OrArgAdjust(pc->u.Otapl.or_arg);
       TabEntryAdjust(pc->u.Otapl.te);
@@ -803,6 +800,19 @@ restore_opcodes(yamop *pc, yamop *max)
     case _table_new_answer:
       pc->u.s.s = ConstantAdjust(pc->u.s.s);
       pc = NEXTOP(pc,s);
+      break;
+      /* instructions type Otapl */
+    case _table_load_answer_jump:
+    case _table_load_cons_answer:
+    case _table_load_cons_answer_jump:
+    case _table_run_completed:
+    case _table_try_retroactive_answer:
+      OrArgAdjust(pc->u.Otapl.or_arg);
+      TabEntryAdjust(pc->u.Otapl.te);
+      pc->u.Otapl.s = ArityAdjust(pc->u.Otapl.s);
+      pc->u.Otapl.p = PtoPredAdjust(pc->u.Otapl.p);
+      pc->u.Otapl.d = PtoOpAdjust(pc->u.Otapl.d);
+      pc = NEXTOP(pc,Otapl);
       break;
       /* instructions type e */
     case _trie_do_atom:

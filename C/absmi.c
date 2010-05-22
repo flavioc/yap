@@ -1876,7 +1876,9 @@ Yap_absmi(int inp)
 	      switch (opnum) {
 #ifdef TABLING
 	      case _table_load_answer:
+        case _table_load_answer_jump:
         case _table_load_cons_answer:
+        case _table_load_cons_answer_jump:
 		low_level_trace(retry_table_loader, LOAD_CP(B)->cp_pred_entry, NULL);
 		break;
 	      case _table_try_answer:

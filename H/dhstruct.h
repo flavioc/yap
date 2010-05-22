@@ -191,7 +191,9 @@
 #endif /* YAPOR */
 #ifdef TABLING
 #define LOAD_ANSWER Yap_heap_regs->table_load_answer_code
+#define LOAD_ANSWER_JUMP Yap_heap_regs->table_load_answer_jump_code
 #define LOAD_CONS_ANSWER Yap_heap_regs->table_load_cons_answer_code
+#define LOAD_CONS_ANSWER_JUMP Yap_heap_regs->table_load_cons_answer_jump_code
 #define RESTART_GENERATOR Yap_heap_regs->table_restart_generator_code
 #define RUN_COMPLETED Yap_heap_regs->table_run_completed_code
 #define TRY_ANSWER Yap_heap_regs->table_try_answer_code

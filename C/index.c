@@ -979,7 +979,9 @@ has_cut(yamop *pc)
 #endif /* YAPOR */
 #ifdef TABLING
     case _table_load_answer:
+    case _table_load_answer_jump:
     case _table_load_cons_answer:
+    case _table_load_cons_answer_jump:
     case _table_try_answer:
     case _table_try_retroactive_answer:
     case _table_try_single:

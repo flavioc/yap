@@ -641,6 +641,7 @@
 #endif /* TABLING_INNER_CUTS */
 
   PBOp(table_load_answer, Otapl)
+load_answer:
     INIT_PREFETCH()
     
     CELL *ans_tmplt;
