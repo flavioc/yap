@@ -43,6 +43,8 @@ main :-
 	start_ifdef("TABLING", W, C, L, F, H),
 	file('OPTYap/tab.insts.i',W,C,L, F, H),
 	retractall(op(_,_)),
+	file('OPTYap/tab.sub.i',W,C,L, F, H),
+	retractall(op(_,_)),
 	file('OPTYap/tab.tries.insts.i', W, C, L, F, H),
 	end_ifdef(W, C, L, F, H),
 	footer(W),
