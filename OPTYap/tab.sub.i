@@ -483,13 +483,9 @@ load_cons_answer_jump:
       }
       break;
       default:
-      dprintf("default fail!\n"); // xxx
-      exit(1);
+        Yap_Error(INTERNAL_ERROR, TermNil, "invalid subgoal frame type (table_run_completed)");
       break;
     }
-
-    printf("CANT BE HERE!!!\n");
-    exit(1);
     END_PREFETCH()
 #endif /* TABLING_RETROACTIVE */
   ENDPBOp();
