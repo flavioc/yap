@@ -267,6 +267,7 @@
 #define restart_generator(DEP_FR) {                       \
         choiceptr cp = DepFr_cons_cp(DEP_FR);             \
         rebind_variables(cp->cp_tr, B->cp_tr);            \
+        cp->cp_b = B; /* node backtracks to leader */     \
         B = cp;                                           \
         TR = TR_FZ;                                       \
         if(TR != B->cp_tr)                                \
