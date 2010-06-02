@@ -69,11 +69,37 @@
 static inline
 xsbBool
 Unify_with_Variable(Cell symbol, Cell subterm, BTNptr node) {
-  if(PrologVar_IsMarked(subterm) && TrieSymbolType(symbol) != XSB_REF) {
-    return FALSE;
+  int type = TrieSymbolType(symbol);
+
+  switch(type) {
+    case XSB_REF:
+#ifdef SUBSUMPTION_XSB
+    case XSB_REF1:
+#endif
+      if(PrologVar_IsMarked(subterm)) {
+        if(IsNewTrieVar(symbol))
+          return FALSE;
+        
+        int prolog_index = PrologVar_Index(subterm);
+        int trie_index = DecodeTrieVar(BTN_Symbol(node));
+        
+        if(prolog_index != trie_index)
+          return FALSE;
+      } else {
+        /* new call variable */
+        int trie_index = DecodeTrieVar(BTN_Symbol(node));
+        
+        PrologVar_MarkIt(subterm, trie_index);
+      }
+      return TRUE;
+    default:
+      break;
   }
-  
-  switch(TrieSymbolType(symbol)) {
+
+  if(PrologVar_IsMarked(subterm))
+    return FALSE;
+
+  switch(type) {
     case XSB_INT:
 #ifdef SUBSUMPTION_XSB
     case XSB_FLOAT:
