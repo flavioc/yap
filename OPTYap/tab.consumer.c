@@ -577,19 +577,6 @@ update_specific_consumers(retroactive_fr_ptr pending)
   }
 }
 
-static inline void
-reset_answers(retroactive_fr_ptr sg_fr) {
-  continuation_ptr ptr = SgFr_first_answer(sg_fr);
-  continuation_ptr last = SgFr_last_answer(sg_fr);
-  
-  while(ptr) {
-    //TrNode_unset_is_ans(continuation_answer(ptr));
-    if(ptr == last)
-      break;
-    ptr = continuation_next(ptr);
-  }
-}
-
 void
 process_pending_subgoal_list(node_list_ptr list, retroactive_fr_ptr sg_fr) {
   node_list_ptr orig = list;
@@ -651,8 +638,6 @@ process_pending_subgoal_list(node_list_ptr list, retroactive_fr_ptr sg_fr) {
         ensure_has_proper_consumers(SgFr_tab_ent(sg_fr));
         
         transform_producer_into_consumer(pending, sg_fr);
-        
-        reset_answers(pending);
         
         if(SgFr_is_internal(pending)) {
           choiceptr min = SgFr_choice_point(pending);
