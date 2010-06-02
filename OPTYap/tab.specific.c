@@ -242,7 +242,6 @@ While_TSnotEmpty:
         }
         
         symbol = BTN_Symbol(cur_chain);
-        TrieSymbol_Deref(symbol);
         CPStack_PushFrame(alt_chain);
         TermStackLog_PushFrame;
         if(!Unify_with_Variable(symbol, subterm, cur_chain))
