@@ -361,27 +361,19 @@ transform_external_subsumed_consumers(choiceptr min, sg_fr_ptr sg_fr,
 static inline void
 abolish_generator_subgoals_between(sg_fr_ptr specific_sg, choiceptr min, choiceptr max)
 {
-  sg_fr_ptr top = StackState_sg_fr(SgFr_stack_state((retroactive_fr_ptr)specific_sg));
-  sg_fr_ptr bottom = SgFr_next(specific_sg);
+  sg_fr_ptr top = SgFr_prev(specific_sg);
   sg_fr_ptr sg_fr;
   dep_fr_ptr external;
   
-  /*
-  while(top && YOUNGER_CP(SgFr_choice_point(top), max))
-    top = SgFr_next(top);
-  */
+  remove_subgoal_frame_from_stack(specific_sg);
   
   /* abolish generators */
-  while(top != bottom)
+  while(top && !YOUNGER_CP(SgFr_choice_point(top), max))
   {
     sg_fr = top; 
-    top = SgFr_next(sg_fr);
+    top = SgFr_prev(sg_fr);
     
-    if(sg_fr == specific_sg) {
-      abolish_incomplete_producer_subgoal(sg_fr);
-      remove_subgoal_frame_from_stack(sg_fr);
-      dprintf("ABOLISH SPECIFIC GENERATOR %d\n", (int)min);
-    } else if(is_internal_subgoal_frame(specific_sg, sg_fr, min)) {
+    if(is_internal_subgoal_frame(specific_sg, sg_fr, min)) {
       choiceptr sg_cp = SgFr_choice_point(sg_fr);
       
       sg_cp->cp_ap = NULL;
@@ -432,7 +424,7 @@ abolish_generator_subgoals_between(sg_fr_ptr specific_sg, choiceptr min, choicep
           dprintf("REALLY ABOLISHED %d cp %d (", (int)sg_fr, (int)sg_cp);
           printSubgoalTriePath(stdout, sg_fr); printf("\n");
 #endif
-          abolish_incomplete_retroactive_consumer_subgoal((retroactive_fr_ptr)sg_fr);
+          abolish_incomplete_retroactive_consumer_subgoal(sg_fr);
           remove_subgoal_frame_from_stack(sg_fr);
           break;
       }

@@ -128,11 +128,9 @@ typedef subsumptive_consumer_sf *subcons_fr_ptr;
 #ifdef TABLING_RETROACTIVE
 struct tab_stack_state {
   struct dependency_frame *dep_fr;
-  sg_fr_ptr sg_fr;
 };
 
 #define StackState_dep_fr(X) ((X).dep_fr)
-#define StackState_sg_fr(X)  ((X).sg_fr)
 
 /* --------------------------------------------------- */
 
@@ -218,8 +216,7 @@ struct retroactive_subgoal_frame {
 
 #define SgFr_set_saved_max(X, VAL) \
       SgFr_saved_max(X) = VAL;  \
-      StackState_dep_fr(SgFr_stack_state(X)) = LOCAL_top_dep_fr;  \
-      StackState_sg_fr(SgFr_stack_state(X)) = LOCAL_top_sg_fr
+      StackState_dep_fr(SgFr_stack_state(X)) = LOCAL_top_dep_fr
 
 #define SgFr_update_saved_max(X)    { \
     if(B < SgFr_saved_max(X) || B_FZ < SgFr_saved_max(X)) { \
