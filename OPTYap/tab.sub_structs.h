@@ -121,18 +121,9 @@ typedef subsumptive_consumer_sf *subcons_fr_ptr;
 #define SgFr_at_full_size(X)    ((X)->at_full_size)
 #define SgFr_num_deps(X)        ((X)->num_deps)
 
-/* --------------- **
-**   stack state   **
-** --------------- */
+/* --------------------------------------------------- */
 
 #ifdef TABLING_RETROACTIVE
-struct tab_stack_state {
-  struct dependency_frame *dep_fr;
-};
-
-#define StackState_dep_fr(X) ((X).dep_fr)
-
-/* --------------------------------------------------- */
 
 /* --------------------------- **
 **  retroactive subgoal frame  **
@@ -177,8 +168,6 @@ struct retroactive_subgoal_frame {
   choiceptr saved_max;
   
   int num_ans;
-
-  struct tab_stack_state stack_state;
   
   time_stamp ts;
   retroactive_fr_ptr producer;
@@ -190,7 +179,6 @@ struct retroactive_subgoal_frame {
 };
 
 #define SgFr_num_ans(X)             ((X)->num_ans)
-#define SgFr_stack_state(X)         ((X)->stack_state)
 #define SgFr_pending_answers(X)     ((X)->pending_answers)
 
 #define SgFr_start_cp(X)            ((choiceptr)SgFr_start(X))
@@ -206,7 +194,6 @@ struct retroactive_subgoal_frame {
 #define SgFr_is_most_general(X)     (SgFr_flags(X) & SG_FR_MOST_GENERAL)
 #define SgFr_set_most_general(X)    (SgFr_flags(X) |= SG_FR_MOST_GENERAL)
 
-#ifdef TABLING_RETROACTIVE
 #define SgFr_set_local_producer(X)  (SgFr_flags(X) |= SG_FR_LOCAL_PRODUCER)
 #define SgFr_is_local_producer(X)   (SgFr_flags(X) & SG_FR_LOCAL_PRODUCER)
 #define SgFr_set_local_consumer(X)  (SgFr_flags(X) |= SG_FR_LOCAL_CONSUMER)
@@ -215,15 +202,13 @@ struct retroactive_subgoal_frame {
 #define SgFr_set_producer(X)        (SgFr_flags(X) |= SG_FR_PRODUCER)
 
 #define SgFr_set_saved_max(X, VAL) \
-      SgFr_saved_max(X) = VAL;  \
-      StackState_dep_fr(SgFr_stack_state(X)) = LOCAL_top_dep_fr
+      SgFr_saved_max(X) = VAL
 
 #define SgFr_update_saved_max(X)    { \
     if(B < SgFr_saved_max(X) || B_FZ < SgFr_saved_max(X)) { \
       SgFr_set_saved_max(X, B_FZ < B ? B_FZ : B); \
     } \
 }
-#endif /* TABLING_RETROACTIVE */
 
 #define TabEnt_retroactive_trie(X)        (TrNode_next(TabEnt_subgoal_trie(X)))
 #define TabEnt_has_retroactive_trie(X)    (TabEnt_retroactive_trie(X) != NULL)

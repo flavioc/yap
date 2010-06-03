@@ -473,14 +473,18 @@ typedef sg_fr_ptr variant_sf_ptr;
 **      Struct dependency_frame      **
 ** --------------------------------- */
 
+#ifdef TABLING_RETROACTIVE
 #define DEP_FR_TOP_CONSUMER 0x01
 #define DEP_FR_SUBTRANSFORM 0x02
 #define DEP_FR_RESTARTER 0x04
 
 typedef unsigned char dependency_type;
+#endif /* TABLING_RETROACTIVE */
   
 typedef struct dependency_frame {
+#ifdef TABLING_RETROACTIVE
   dependency_type flags;
+#endif
 #if defined(YAPOR) || defined(THREADS)
   lockvar lock;
 #endif

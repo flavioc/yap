@@ -435,10 +435,13 @@ abolish_generator_subgoals_between(sg_fr_ptr specific_sg, choiceptr min, choicep
 static inline void
 abolish_dependency_frames_between(sg_fr_ptr specific_sg, choiceptr min, choiceptr max)
 {
-  dep_fr_ptr top = StackState_dep_fr(SgFr_stack_state((retroactive_fr_ptr)specific_sg));
+  dep_fr_ptr top = LOCAL_top_dep_fr;
   dep_fr_ptr dep_fr;
   dprintf("min=%d max=%d\n", (int)min, (int)max);
   
+  while(top && YOUNGER_CP(DepFr_cons_cp(top), max))
+    top = DepFr_next(top);
+    
   while(top && YOUNGER_CP(DepFr_cons_cp(top), min)) {
     dep_fr = top;
     top = DepFr_next(dep_fr);
