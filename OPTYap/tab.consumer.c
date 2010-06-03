@@ -424,7 +424,7 @@ abolish_generator_subgoals_between(sg_fr_ptr specific_sg, choiceptr min, choicep
           dprintf("REALLY ABOLISHED %d cp %d (", (int)sg_fr, (int)sg_cp);
           printSubgoalTriePath(stdout, sg_fr); printf("\n");
 #endif
-          abolish_incomplete_retroactive_consumer_subgoal(sg_fr);
+          abolish_incomplete_retroactive_producer_subgoal(sg_fr);
           remove_subgoal_frame_from_stack(sg_fr);
           break;
       }
