@@ -554,8 +554,10 @@ join_answers_subgoal_frame(sg_fr_ptr sg_fr, continuation_ptr first, continuation
 
 #ifdef TABLING_RETROACTIVE
 #define DepFr_init_prev_fields(DEP_FR) DepFr_prev(DEP_FR) = NULL
+#define DepFr_init_flags_field(DEP_FR) DepFr_flags(DEP_FR) = 0
 #else
 #define DepFr_init_prev_fields(DEP_FR) /* do nothing */
+#define DepFr_init_flags_field(DEP_FR) /* do nothing */
 #endif /* TABLING_RETROACTIVE */
 
 #define new_dependency_frame(DEP_FR, DEP_ON_STACK, TOP_OR_FR, LEADER_CP, CONS_CP, SG_FR, NEXT)         \
@@ -569,7 +571,7 @@ join_answers_subgoal_frame(sg_fr_ptr sg_fr, continuation_ptr first, continuation
         DepFr_init_prev_fields(DEP_FR);                                                                \
         DepFr_sg_fr(DEP_FR) = SG_FR;                                                                   \
         DepFr_last_answer(DEP_FR) = (continuation_ptr)CONSUMER_DEFAULT_LAST_ANSWER(SG_FR, DEP_FR);     \
-        DepFr_flags(DEP_FR) = 0
+        DepFr_init_flags_field(DEP_FR)
 
 #define new_table_entry(TAB_ENT, PRED_ENTRY, ATOM, ARITY)       \
         { ALLOC_TABLE_ENTRY(TAB_ENT);                           \

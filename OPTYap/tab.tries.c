@@ -133,7 +133,6 @@ void delete_subgoal_path(sg_fr_ptr sg_fr) {
   sg_node_ptr node = SgFr_leaf(sg_fr);
   sg_node_ptr parent, first_child, old_node, *bucket;
   sg_hash_ptr hash = NULL;
-  int update_generators = TrNode_is_sub_call(node) && TrNode_num_gen((subg_node_ptr)node) > 0;
   
   TrNode_child(node) = NULL;
   
@@ -174,9 +173,7 @@ process_next:
         TrNode_child(parent) = NULL;
         free_subgoal_trie_hash(hash);
         dprintf("FREE SUBGOAL TRIE HASH\n");
-      } else if(update_generators)
-        /* if we got here then the index exists and GNIN_num_gen(index) == 1 */
-        gen_index_remove((subg_node_ptr)node, (subg_hash_ptr)hash);
+      }
     }
 
     old_node = node;
@@ -185,9 +182,6 @@ process_next:
     
     hash = NULL;
   }
-  
-  if(update_generators)
-    decrement_generator_path(node);
 }
 #endif /* TABLING_CALL_SUBSUMPTION */
 
