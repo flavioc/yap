@@ -421,7 +421,6 @@ case RETROACTIVE_CONSUMER_SFT: \
           SgFr_next(SG_FR) = LOCAL_top_sg_fr;                      \
           LOCAL_top_sg_fr = SG_FR;                                 \
           SgFr_init_deps(SG_FR);                                   \
-          debug_subgoal_frame_stack();                             \
 	      }
 
 #define SgFr_has_real_answers(SG_FR)                                      \
