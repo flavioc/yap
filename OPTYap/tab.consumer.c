@@ -27,12 +27,16 @@
 #include "tab.utils.h"
 #include "tab.tries.h"
 
+#ifdef RETRO_CHECKS
 void debug_subgoal_frame_stack(void);
+#else
+#define debug_subgoal_frame_stack()
+#endif
 
+#ifdef RETRO_CHECKS
 void
 check_dependency_frame(void)
 {
-#ifdef RETRO_CHECK
   dep_fr_ptr top = LOCAL_top_dep_fr;
   
   if(top) {
@@ -58,8 +62,8 @@ check_dependency_frame(void)
       exit(1);
     }
   }
-#endif
 }
+#endif
 
 static inline int
 is_internal_subgoal_frame(sg_fr_ptr specific_sg, sg_fr_ptr sf, choiceptr min)
@@ -765,10 +769,10 @@ process_pending_subgoal_list(node_list_ptr list, retroactive_fr_ptr sg_fr) {
   dprintf("ok\n");
 }
 
+#ifdef RETRO_CHECKS
 void
 debug_subgoal_frame_stack(void)
 {
-#ifdef RETRO_CHECKS
   sg_fr_ptr top = LOCAL_top_sg_fr;
   sg_fr_ptr before = NULL;
   
@@ -793,8 +797,8 @@ debug_subgoal_frame_stack(void)
     top = SgFr_next(top);
   }
   dprintf("END OF SUBGOAL FRAME STACK\n");
-#endif
 }
+#endif
 
 void
 reinsert_subgoal_frame(sg_fr_ptr sg_fr, choiceptr new_cp)

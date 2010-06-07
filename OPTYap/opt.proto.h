@@ -146,7 +146,11 @@ void consume_subsumptive_answer(CTXTdeclc BTNptr pAnsLeaf, int sizeTmplt, CPtr p
 ** ---------------- */
 
 #ifdef TABLING_RETROACTIVE
+#ifdef RETRO_CHECKS
 void check_dependency_frame(void);
+#else
+#define check_dependency_frame()
+#endif
 void move_subgoal_top(sg_fr_ptr sg_fr);
 void process_pending_subgoal_list(node_list_ptr list, retroactive_fr_ptr sg_fr);
 void add_dependency_frame(retroactive_fr_ptr sg_fr, choiceptr cp);
