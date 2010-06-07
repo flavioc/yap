@@ -93,77 +93,55 @@ update_external_consumers(sg_fr_ptr specific_sg, choiceptr min, choiceptr max, s
 {
   dep_fr_ptr top = LOCAL_top_dep_fr;
   dep_fr_ptr found = NULL;
-  choiceptr found_cp = NULL; /* REMOVE XXX */
   choiceptr realmin = SgFr_choice_point(specific_sg);
   int first_external_leader = FALSE;
   
   while(count && top && YOUNGER_CP(DepFr_cons_cp(top), min)) {
     if(DepFr_sg_fr(top) == gen) {
       dprintf("found a dep fr for gencp %d\n", (int)SgFr_choice_point(gen));
-      /* XXX: if nao necessario */
-      if(YOUNGER_CP(DepFr_cons_cp(top), max) || !is_internal_dep_fr(specific_sg, top, min)) {
-        choiceptr cp = DepFr_cons_cp(top);
-        
-        --count;
-        
-        dprintf("Found one external dep_fr %d cp %d\n", (int)top, (int)DepFr_cons_cp(top));
-        if(!found) {
+      choiceptr cp = DepFr_cons_cp(top);
+
+      --count;
+      dprintf("Found one external dep_fr %d cp %d\n", (int)top, (int)DepFr_cons_cp(top));
+      if(!found) {
+        choiceptr leader_cp = DepFr_leader_cp(top);
+        sg_fr_ptr leader_sg = GEN_CP(leader_cp)->cp_sg_fr;
+          
+        found = top;
+          
+        if(leader_sg == gen ||
+          is_internal_subgoal_frame(specific_sg, leader_sg, realmin))
+        {
+          DepFr_leader_cp(top) = cp;
+        } else { /* external leader */
+          first_external_leader = TRUE;
+          /* keep leader */
+        }
+      } else {
+        if(!first_external_leader) {
+          /* leader must be internal! */
+          DepFr_leader_cp(top) = cp;
+        } else {
+          /* try to locate external leader */
           choiceptr leader_cp = DepFr_leader_cp(top);
           sg_fr_ptr leader_sg = GEN_CP(leader_cp)->cp_sg_fr;
-          
-          found = top;
-          found_cp = cp;
-          
           if(leader_sg == gen ||
-            is_internal_subgoal_frame(specific_sg, leader_sg, realmin))
+              is_internal_subgoal_frame(specific_sg, leader_sg, realmin))
           {
             DepFr_leader_cp(top) = cp;
-          } else { /* external leader */
-            first_external_leader = TRUE;
-            /* keep leader */
-          }
-        } else {
-          if(!first_external_leader) {
-            /* leader must be internal! */
-            DepFr_leader_cp(top) = cp;
-          } else {
-            /* try to locate external leader */
-            choiceptr leader_cp = DepFr_leader_cp(top);
-            sg_fr_ptr leader_sg = GEN_CP(leader_cp)->cp_sg_fr;
-            if(leader_sg == gen ||
-                is_internal_subgoal_frame(specific_sg, leader_sg, realmin))
-            {
-              DepFr_leader_cp(top) = cp;
-            }
           }
         }
-        
-        cp->cp_ap = RUN_COMPLETED;
-        DepFr_backchain_cp(top) = NULL;
-        DepFr_set_restarter(top);
-        CONS_CP(cp)->cp_sg_fr = gen;
       }
-    }
-    top = DepFr_next(top);
-  }
-  
-  return found;
-}
 
-static inline void
-update_leader_fields(choiceptr old_leader, choiceptr new_leader, choiceptr min)
-{
-  dprintf("where leader is %d change to %d within min=%d\n", (int)old_leader, (int)new_leader, (int)min);
-  dep_fr_ptr top = LOCAL_top_dep_fr;
-  
-  while(top && YOUNGER_CP(DepFr_cons_cp(top), min)) {
-    if(DepFr_leader_cp(top) == old_leader) {
-      dprintf("Changed leader from %d to %d on cp %d dep_fr %d\n", (int)old_leader, (int)new_leader, (int)DepFr_cons_cp(top), (int)top);
-      DepFr_leader_cp(top) = new_leader;
+      cp->cp_ap = RUN_COMPLETED;
+      DepFr_backchain_cp(top) = NULL;
+      DepFr_set_restarter(top);
+      CONS_CP(cp)->cp_sg_fr = gen;
     }
-    
     top = DepFr_next(top);
   }
+
+  return found;
 }
 
 #define remove_subgoal_frame_from_stack(SG_FR)        \
@@ -391,50 +369,47 @@ update_external_retro_consumers(sg_fr_ptr specific_sg, choiceptr min, choiceptr 
         SgFr_producer((retroactive_fr_ptr)DepFr_sg_fr(top)) = general;
       }
 
-      /* XXX remove if */
-      if(YOUNGER_CP(DepFr_cons_cp(top), max) || !is_internal_dep_fr(specific_sg, top, min)) {
-        /* external consumer */
-        choiceptr cp = DepFr_cons_cp(top);
+      /* external consumer */
+      choiceptr cp = DepFr_cons_cp(top);
 
-        --count;
+      --count;
 
-        dprintf("Found one external dep_fr %d cp %d\n", (int)top, (int)DepFr_cons_cp(top));
-        if(first_consumer) {
+      dprintf("Found one external dep_fr %d cp %d\n", (int)top, (int)DepFr_cons_cp(top));
+      if(first_consumer) {
+        choiceptr leader_cp = DepFr_leader_cp(top);
+        sg_fr_ptr leader_sg = GEN_CP(leader_cp)->cp_sg_fr;
+
+        first_consumer = FALSE;
+
+        if((retroactive_fr_ptr)leader_sg == gen ||
+          is_internal_subgoal_frame(specific_sg, leader_sg, realmin))
+        {
+          DepFr_leader_cp(top) = cp;
+        } else { /* external leader */
+          first_external_leader = TRUE;
+          /* keep leader */
+        }
+      } else {
+        if(!first_external_leader) {
+          /* leader must be internal! */
+          DepFr_leader_cp(top) = cp;
+        } else {
+          /* try to locate external leader */
           choiceptr leader_cp = DepFr_leader_cp(top);
           sg_fr_ptr leader_sg = GEN_CP(leader_cp)->cp_sg_fr;
-
-          first_consumer = FALSE;
-
           if((retroactive_fr_ptr)leader_sg == gen ||
-            is_internal_subgoal_frame(specific_sg, leader_sg, realmin))
+              is_internal_subgoal_frame(specific_sg, leader_sg, realmin))
           {
             DepFr_leader_cp(top) = cp;
-          } else { /* external leader */
-            first_external_leader = TRUE;
-            /* keep leader */
-          }
-        } else {
-          if(!first_external_leader) {
-            /* leader must be internal! */
-            DepFr_leader_cp(top) = cp;
           } else {
-            /* try to locate external leader */
-            choiceptr leader_cp = DepFr_leader_cp(top);
-            sg_fr_ptr leader_sg = GEN_CP(leader_cp)->cp_sg_fr;
-            if((retroactive_fr_ptr)leader_sg == gen ||
-                is_internal_subgoal_frame(specific_sg, leader_sg, realmin))
-            {
-              DepFr_leader_cp(top) = cp;
-            } else {
-              /* keep external leader */
-            }
+            /* keep external leader */
           }
         }
-
-        cp->cp_ap = RUN_COMPLETED;
-        DepFr_backchain_cp(top) = NULL;
-        CONS_CP(cp)->cp_sg_fr = DepFr_sg_fr(top);
       }
+
+      cp->cp_ap = RUN_COMPLETED;
+      DepFr_backchain_cp(top) = NULL;
+      CONS_CP(cp)->cp_sg_fr = DepFr_sg_fr(top);
     }
 
     top = DepFr_next(top);
