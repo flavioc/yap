@@ -690,6 +690,7 @@ process_pending_subgoal_list(node_list_ptr list, retroactive_fr_ptr sg_fr) {
 #endif
       ensure_has_proper_consumers(SgFr_tab_ent(sg_fr));
       transform_producer_into_consumer(pending, sg_fr);
+      decrement_subgoal_path(pending);
 
       if(SgFr_is_internal(pending)) {
         choiceptr min = SgFr_choice_point(pending);
