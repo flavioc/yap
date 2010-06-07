@@ -552,8 +552,6 @@ TSTNptr retroactive_answer_search(retroactive_fr_ptr sf, CPtr answerVector) {
   AnsVarCtr = 0;
   root = (TSTNptr)TabEnt_retroactive_trie(tab_ent);
   
-  /* ver TS pois podem ser inseridas respostas por outros geradores... XXX */
-  
   if ( IsNULL(root) ) {
     TabEnt_retroactive_trie(tab_ent) = (sg_node_ptr)newTSTAnswerSet();
     root = (TSTNptr)TabEnt_retroactive_trie(tab_ent);
@@ -583,9 +581,7 @@ TSTNptr retroactive_answer_search(retroactive_fr_ptr sf, CPtr answerVector) {
     dprintf("one answer inserted by someone else\n");
     TrNode_unset_is_ans(tstn);
     SgFr_timestamp(sf) = new_timestamp;
-  } else if(GetTimeStamp(tstn, tab_ent) == SgFr_timestamp(sf)) {
-    TrNode_set_ans(tstn);
-  } else if(GetTimeStamp(tstn, tab_ent) < SgFr_timestamp(sf)) {
+  } else if(GetTimeStamp(tstn, tab_ent) <= SgFr_timestamp(sf)) {
     dprintf("answer old for trie\n");
     /* answer is old for the trie */
     if(locate_pending_answers(tstn, sf))
