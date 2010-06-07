@@ -2276,17 +2276,6 @@ try_answer_jump: {
       
       private_completion(sg_fr);
       
-#ifdef TABLING_RETROACTIVE
-      if(SgFr_is_retroactive_local_producer(sg_fr)) {
-        /* more general subgoal has just completed,
-           get into the consumer! */
-        B = B->cp_b;
-        dprintf("Backtrack retroactive local producer\n");
-        SET_BB(PROTECT_FROZEN_B(B));
-        goto fail;     
-      }
-#endif /* TABLING_RETROACTIVE */
-
       if (IS_BATCHED_GEN_CP(B)) {
         /* batched scheduling -> backtrack */
         B = B->cp_b;
