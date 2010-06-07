@@ -482,7 +482,7 @@ internal_producer_to_consumer(retroactive_fr_ptr sg_fr, retroactive_fr_ptr produ
   SgFr_set_local_producer(producer);
   SgFr_set_local_consumer(sg_fr);
   
-  SgFr_top_gen_sg(producer) = (sg_fr_ptr)sg_fr;
+  SgFr_top_gen_sg(producer) = SgFr_top_gen_sg(sg_fr);
   B->cp_b = gen_cp;
 }
 
