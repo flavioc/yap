@@ -156,6 +156,17 @@ copy_arguments_as_the_answer_template(CELL *answer_template, int arity)
   return answer_template;
 }
 
+static inline retroactive_fr_ptr
+get_producer(retroactive_fr_ptr found)
+{
+  retroactive_fr_ptr ret = found;
+
+  while(!SgFr_is_retroactive_producer(ret))
+    ret = SgFr_producer(ret);
+
+  return ret;
+}
+
 sg_fr_ptr retroactive_call_search(yamop *code, CELL *answer_template, CELL **new_local_stack)
 {
   tab_ent_ptr tab_ent = CODE_TABLE_ENTRY(code);
@@ -217,7 +228,7 @@ sg_fr_ptr retroactive_call_search(yamop *code, CELL *answer_template, CELL **new
       /* 'found' is generating answers */
       subsumer = found;
     else
-      subsumer = SgFr_producer(found);
+      subsumer = get_producer(found);
     
     switch(path_type) {
       case VARIANT_PATH:
