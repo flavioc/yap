@@ -41,6 +41,7 @@ check_dependency_frame(void)
       exit(1);
     }
   }
+  
   while(top) {
     dep_fr_ptr before = top;
     top = DepFr_next(top);
@@ -92,13 +93,14 @@ update_external_consumers(sg_fr_ptr specific_sg, choiceptr min, choiceptr max, s
 {
   dep_fr_ptr top = LOCAL_top_dep_fr;
   dep_fr_ptr found = NULL;
-  choiceptr found_cp = NULL;
+  choiceptr found_cp = NULL; /* REMOVE XXX */
   choiceptr realmin = SgFr_choice_point(specific_sg);
   int first_external_leader = FALSE;
   
   while(count && top && YOUNGER_CP(DepFr_cons_cp(top), min)) {
     if(DepFr_sg_fr(top) == gen) {
       dprintf("found a dep fr for gencp %d\n", (int)SgFr_choice_point(gen));
+      /* XXX: if nao necessario */
       if(YOUNGER_CP(DepFr_cons_cp(top), max) || !is_internal_dep_fr(specific_sg, top, min)) {
         choiceptr cp = DepFr_cons_cp(top);
         
@@ -357,6 +359,88 @@ transform_external_subsumed_consumers(choiceptr min, sg_fr_ptr sg_fr,
   return found;
 }
 
+static inline void
+update_external_retro_consumers(sg_fr_ptr specific_sg, choiceptr min, choiceptr max,
+    retroactive_fr_ptr gen, int count)
+{
+  dep_fr_ptr top = LOCAL_top_dep_fr;
+  choiceptr realmin = SgFr_choice_point(specific_sg);
+  int first_external_leader = FALSE; /* leader computation optimization */
+  int first_consumer = TRUE;
+  int is_specific = (specific_sg == (sg_fr_ptr)gen);
+  retroactive_fr_ptr general = NULL;
+
+  dprintf("COUNT: %d\n", count);
+  
+  while(count && top && YOUNGER_CP(DepFr_cons_cp(top), min)) {
+    /* try to go to producer */
+    retroactive_fr_ptr dep_sg_fr = (retroactive_fr_ptr)DepFr_sg_fr(top);
+    if(SgFr_is_retroactive_consumer(dep_sg_fr))
+      dep_sg_fr = SgFr_producer(dep_sg_fr);
+
+    if(dep_sg_fr == gen || (is_specific && dep_sg_fr == general)) {
+      dprintf("found a dep fr for gencp %d\n", (int)SgFr_choice_point(gen));
+
+      /* update the pruned subgoal consumers */
+      if(SgFr_is_retroactive_consumer(DepFr_sg_fr(top)) &&
+          dep_sg_fr == (retroactive_fr_ptr)specific_sg)
+      {
+        dprintf("Update producer %d\n", (int)SgFr_producer((retroactive_fr_ptr)specific_sg));
+        general = SgFr_producer((retroactive_fr_ptr)specific_sg);
+        SgFr_num_deps(general)++;
+        SgFr_producer((retroactive_fr_ptr)DepFr_sg_fr(top)) = general;
+      }
+
+      /* XXX remove if */
+      if(YOUNGER_CP(DepFr_cons_cp(top), max) || !is_internal_dep_fr(specific_sg, top, min)) {
+        /* external consumer */
+        choiceptr cp = DepFr_cons_cp(top);
+
+        --count;
+
+        dprintf("Found one external dep_fr %d cp %d\n", (int)top, (int)DepFr_cons_cp(top));
+        if(first_consumer) {
+          choiceptr leader_cp = DepFr_leader_cp(top);
+          sg_fr_ptr leader_sg = GEN_CP(leader_cp)->cp_sg_fr;
+
+          first_consumer = FALSE;
+
+          if((retroactive_fr_ptr)leader_sg == gen ||
+            is_internal_subgoal_frame(specific_sg, leader_sg, realmin))
+          {
+            DepFr_leader_cp(top) = cp;
+          } else { /* external leader */
+            first_external_leader = TRUE;
+            /* keep leader */
+          }
+        } else {
+          if(!first_external_leader) {
+            /* leader must be internal! */
+            DepFr_leader_cp(top) = cp;
+          } else {
+            /* try to locate external leader */
+            choiceptr leader_cp = DepFr_leader_cp(top);
+            sg_fr_ptr leader_sg = GEN_CP(leader_cp)->cp_sg_fr;
+            if((retroactive_fr_ptr)leader_sg == gen ||
+                is_internal_subgoal_frame(specific_sg, leader_sg, realmin))
+            {
+              DepFr_leader_cp(top) = cp;
+            } else {
+              /* keep external leader */
+            }
+          }
+        }
+
+        cp->cp_ap = RUN_COMPLETED;
+        DepFr_backchain_cp(top) = NULL;
+        CONS_CP(cp)->cp_sg_fr = DepFr_sg_fr(top);
+      }
+    }
+
+    top = DepFr_next(top);
+  }
+}
+
 /* note that the general subgoal is always on the top of the generator stack ;-) */
 static inline void
 abolish_generator_subgoals_between(sg_fr_ptr specific_sg, choiceptr min, choiceptr max)
@@ -365,7 +449,13 @@ abolish_generator_subgoals_between(sg_fr_ptr specific_sg, choiceptr min, choicep
   sg_fr_ptr sg_fr;
   dep_fr_ptr external;
   
+  /* prune specific subgoal frame */
   remove_subgoal_frame_from_stack(specific_sg);
+  if(SgFr_num_deps(specific_sg) > 0) {
+    update_external_retro_consumers(specific_sg, min, max,
+        (retroactive_fr_ptr)specific_sg, SgFr_num_deps(specific_sg));
+    SgFr_num_deps(specific_sg) = 0;
+  }
   
   /* abolish generators */
   while(top && !YOUNGER_CP(SgFr_choice_point(top), max))
@@ -419,13 +509,19 @@ abolish_generator_subgoals_between(sg_fr_ptr specific_sg, choiceptr min, choicep
           
           break;
         }
-        default:
+        case RETROACTIVE_PRODUCER_SFT: {
 #ifdef FDEBUG
           dprintf("REALLY ABOLISHED %d cp %d (", (int)sg_fr, (int)sg_cp);
           printSubgoalTriePath(stdout, sg_fr); printf("\n");
 #endif
+          if(SgFr_num_deps(sg_fr) > 0)
+            update_external_retro_consumers(specific_sg, sg_cp, max, (retroactive_fr_ptr)sg_fr,
+                SgFr_num_deps(sg_fr));
+
           abolish_incomplete_retroactive_producer_subgoal(sg_fr);
           remove_subgoal_frame_from_stack(sg_fr);
+        }
+        default:
           break;
       }
     }
@@ -550,28 +646,6 @@ is_internal_to_set(sg_fr_ptr pending, node_list_ptr all)
   return FALSE;
 }
 
-static inline void
-update_specific_consumers(retroactive_fr_ptr pending)
-{
-  retroactive_fr_ptr producer = SgFr_producer(pending);
-  choiceptr min = SgFr_choice_point(producer);
-  dep_fr_ptr top = LOCAL_top_dep_fr;
-  
-  dprintf("MIN: %d\n", (int)min);
-  
-  while(top && YOUNGER_CP(DepFr_cons_cp(top), min)) {
-    if(DepFr_sg_fr(top) == (sg_fr_ptr)pending) {
-      /* update this consumer node */
-      choiceptr cp = DepFr_cons_cp(top);
-      dprintf("Updated instr to RUN_COMPLETED on cp %d\n", (int)cp);
-      CONS_CP(cp)->cp_sg_fr = (sg_fr_ptr)pending;
-      cp->cp_ap = RUN_COMPLETED;
-    }
-    dprintf("ONEEEE\n");
-    top = DepFr_next(top);
-  }
-}
-
 void
 process_pending_subgoal_list(node_list_ptr list, retroactive_fr_ptr sg_fr) {
   node_list_ptr orig = list;
@@ -599,63 +673,41 @@ process_pending_subgoal_list(node_list_ptr list, retroactive_fr_ptr sg_fr) {
   while(list) {
     retroactive_fr_ptr pending = (retroactive_fr_ptr)NodeList_node(list);
     
-    if(pending != sg_fr) {
-      if(SgFr_state(pending) == ready) {
-        /*
-         * this subgoal is incomplete
-         * change the producer of the subgoal so
-         * that it can be seen as completed if
-         * it is called again in the future
-         */
-        retroactive_fr_ptr producer = SgFr_producer(pending);
-        if(producer && SgFr_state(producer) >= complete) {
-          /* already completed */
-          mark_retroactive_consumer_as_completed(pending);
-        } else {
-          transform_producer_into_consumer(pending, sg_fr);
-        }
-        
-        REMOVE_PENDING_NODE();
-      } else if(SgFr_state(pending) == evaluating && SgFr_is_retroactive_consumer(pending)) {
-        /* change producer, execute RUN_COMPLETED */
-        dprintf("found an evaluating subgoal that is consumer\n");
-        update_specific_consumers(pending);
-        SgFr_producer(pending) = sg_fr;
-        REMOVE_PENDING_NODE();
-      } else if(SgFr_state(pending) == evaluating && SgFr_is_retroactive_producer(pending)) {
+    if(pending == sg_fr) {
+      /* remove self */
+      REMOVE_PENDING_NODE();
+    } else if(SgFr_state(pending) == ready) {
+      REMOVE_PENDING_NODE();
+    } else if(SgFr_state(pending) == evaluating && SgFr_is_retroactive_consumer(pending)) {
+      REMOVE_PENDING_NODE();
+    } else if(SgFr_state(pending) == evaluating && SgFr_is_retroactive_producer(pending)) {
 #ifdef FDEBUG
-        printf("Found a specific subgoal already running: ");
-        printSubgoalTriePath(stdout, (sg_fr_ptr)pending);
-        printf("\n");
-        printf("General subgoal: "); printSubgoalTriePath(stdout, (sg_fr_ptr)sg_fr);
-        printf("\n");
+      printf("Found a specific subgoal already running: ");
+      printSubgoalTriePath(stdout, (sg_fr_ptr)pending);
+      printf("\n");
+      printf("General subgoal: "); printSubgoalTriePath(stdout, (sg_fr_ptr)sg_fr);
+      printf("\n");
 #endif
-        ensure_has_proper_consumers(SgFr_tab_ent(sg_fr));
-        
-        transform_producer_into_consumer(pending, sg_fr);
-        
-        if(SgFr_is_internal(pending)) {
-          choiceptr min = SgFr_choice_point(pending);
-          
-          if(min_internal == NULL || min > min_internal) {
-            min_internal = min;
-            min_sg = pending;
-            dprintf("found new min\n");
-          }
-          REMOVE_PENDING_NODE();
-        } else {
-          dprintf("skipping external node\n");
-          /* skip this subgoal */
-          before = list;
-          list = NodeList_next(list);
+      ensure_has_proper_consumers(SgFr_tab_ent(sg_fr));
+      transform_producer_into_consumer(pending, sg_fr);
+
+      if(SgFr_is_internal(pending)) {
+        choiceptr min = SgFr_choice_point(pending);
+
+        if(min_internal == NULL || min > min_internal) {
+          min_internal = min;
+          min_sg = pending;
+          dprintf("found new min\n");
         }
-      } else {
-        /* should not be here */
         REMOVE_PENDING_NODE();
+      } else {
+        dprintf("skipping external node\n");
+        /* skip this subgoal */
+        before = list;
+        list = NodeList_next(list);
       }
     } else {
-      dprintf("removed self\n");
-      /* remove self */
+      /* should not be here */
       REMOVE_PENDING_NODE();
     }
   }

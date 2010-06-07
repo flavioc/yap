@@ -406,7 +406,7 @@ struct local_data{
 #ifdef TABLING
   /* local data related to tabling */
   struct answer_trie_node *next_free_answer_trie_node;
-  struct subgoal_frame *top_subgoal_frame; /* MUST BE BASE XXXX */
+  struct subgoal_frame *top_subgoal_frame;
 #ifdef TABLING_RETROACTIVE
   struct subgoal_frame *top_gen_sg;
 #endif /* TABLING_RETROACTIVE */

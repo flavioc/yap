@@ -116,7 +116,6 @@ STD_PROTO(static inline void move_pending_answers, (retroactive_fr_ptr));
 #define init_retroactive_consumer_subgoal_frame(SG_FR)              \
         { SgFr_state(SG_FR) = evaluating;                           \
           SgFr_choice_point(SG_FR) = B;                             \
-          increment_subgoal_path(SG_FR);                            \
         }
         
 #define create_retroactive_answer_template(SG_FR, FROM)                                     \
@@ -298,6 +297,8 @@ init_consumer_subgoal_frame(sg_fr_ptr sg_fr)
       break;
 #ifdef TABLING_RETROACTIVE
     case RETROACTIVE_CONSUMER_SFT:
+      SgFr_num_deps(SgFr_producer((retroactive_fr_ptr)sg_fr))++;
+      break;
     case RETROACTIVE_PRODUCER_SFT:
       SgFr_num_deps((retroactive_fr_ptr)sg_fr)++;
       break;
@@ -373,7 +374,6 @@ void mark_retroactive_consumer_as_completed(retroactive_fr_ptr sg_fr) {
   }
   SgFr_state(sg_fr) = complete;
   SgFr_num_deps(sg_fr) = 0;
-  decrement_subgoal_path(sg_fr);
   UNLOCK(SgFr_lock(sg_fr));
 }
 
@@ -536,7 +536,6 @@ abolish_incomplete_subsumptive_producer_subgoal(sg_fr_ptr sg_fr) {
 static inline void
 abolish_incomplete_retroactive_consumer_subgoal(retroactive_fr_ptr sg_fr) {
   SgFr_state(sg_fr) = ready;
-  decrement_subgoal_path(sg_fr);
 }
 
 static inline void

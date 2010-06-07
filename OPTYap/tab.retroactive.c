@@ -92,24 +92,8 @@ static inline retroactive_fr_ptr
 create_new_retroactive_consumer_subgoal(sg_node_ptr leaf_node, tab_ent_ptr tab_ent, yamop *code, retroactive_fr_ptr subsumer) {
   retroactive_fr_ptr sg_fr;
   
-#if defined(TABLE_LOCK_AT_NODE_LEVEL)
-  LOCK(TrNode_lock(leaf_node));
-#elif defined(TABLE_LOCK_AT_WRITE_LEVEL)
-  LOCK_TABLE(leaf_node);
-#endif /* TABLE_LOCK_LEVEL */
-
   new_retroactive_consumer_subgoal_frame(sg_fr, code, leaf_node, subsumer);
   
-  /* XXX MUST REMOVE THIS */
-  /* unlock table entry */
-#if defined(TABLE_LOCK_AT_ENTRY_LEVEL)
-  UNLOCK(TabEnt_lock(tab_ent));
-#elif defined(TABLE_LOCK_AT_NODE_LEVEL)
-  UNLOCK(TrNode_lock(current_node));
-#elif defined(TABLE_LOCK_AT_WRITE_LEVEL)
-  UNLOCK_TABLE(current_node);
-#endif /* TABLE_LOCK_LEVEL */
-
   return sg_fr;
 }
 

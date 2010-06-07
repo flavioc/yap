@@ -794,7 +794,6 @@ void show_table(tab_ent_ptr tab_ent, int show_mode) {
     fprintf(Yap_stdout, "    Answers 'NO': %ld\n", TrStat_answers_no);
     fprintf(Yap_stdout, "    Answer trie nodes: %ld\n", TrStat_ans_nodes + TrStat_float_ans_nodes + TrStat_long_ans_nodes);
 
-    /* XXX */
     fprintf(Yap_stdout, "  Total memory in use: %ld bytes\n", bytes);
   }
   return;

@@ -406,12 +406,9 @@ case RETROACTIVE_CONSUMER_SFT: \
 
 #define SgFr_is_top_stack(SG_FR) SgFr_prev(SG_FR) == NULL
 
-#define SgFr_init_deps(SG_FR) if(SgFr_is_retroactive(SG_FR)) \
-                                  SgFr_num_deps((retroactive_fr_ptr)SG_FR)++
 #else
 #define init_retro_num_deps(SG_FR) /* nothing */
 #define SgFr_init_prev_fields(SG_FR) /* nothing */
-#define SgFr_init_deps(SG_FR) /* nothing */
 #endif /* TABLING_RETROACTIVE */
 
 #define init_subgoal_frame(SG_FR)                                  \
@@ -420,7 +417,6 @@ case RETROACTIVE_CONSUMER_SFT: \
           SgFr_init_prev_fields(SG_FR);                            \
           SgFr_next(SG_FR) = LOCAL_top_sg_fr;                      \
           LOCAL_top_sg_fr = SG_FR;                                 \
-          SgFr_init_deps(SG_FR);                                   \
 	      }
 
 #define SgFr_has_real_answers(SG_FR)                                      \
@@ -1174,9 +1170,8 @@ abolish_dependency_frame(dep_fr_ptr dep_fr)
       }
 #endif
       SgFr_num_deps((retroactive_fr_ptr)sg_fr)--;
-      dprintf("num_deps %d\n", SgFr_num_deps((retroactive_fr_ptr)sg_fr));
       if(SgFr_num_deps((retroactive_fr_ptr)sg_fr) == 0) {
-        dprintf("incomplete retroactive consumer goal abolished\n");
+        //dprintf("incomplete retroactive consumer goal abolished\n");
         abolish_incomplete_retroactive_consumer_subgoal((retroactive_fr_ptr)sg_fr);
       }
       break;
@@ -1217,10 +1212,10 @@ void abolish_incomplete_subgoals(choiceptr prune_cp) {
     LOCAL_top_sg_fr = SgFr_next(sg_fr);
     
     LOCK(SgFr_lock(sg_fr));
-    #ifdef FDEBUG
-              printSubgoalTriePath(stdout, sg_fr);
-              dprintf("\n");
-    #endif
+#ifdef FDEBUG
+    printSubgoalTriePath(stdout, sg_fr);
+    dprintf("\n");
+#endif
     abolish_incomplete_producer_subgoal(sg_fr);
     
     UNLOCK(SgFr_lock(sg_fr));
