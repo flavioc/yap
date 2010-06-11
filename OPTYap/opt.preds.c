@@ -89,6 +89,7 @@ static Int p_show_all_tables(void);
 static Int p_show_global_trie(void);
 #endif /* GLOBAL_TRIE */
 static Int p_table_statistics(void);
+static Int p_show_all_tables_statistics(void);
 static Int p_tabling_statistics(void);
 #endif /* TABLING */
 
@@ -173,6 +174,7 @@ void Yap_init_optyap_preds(void) {
   Yap_InitCPred("show_tabled_predicates", 0, p_show_tabled_predicates, SafePredFlag|SyncPredFlag);
   Yap_InitCPred("$c_show_table", 2, p_show_table, SafePredFlag|SyncPredFlag|HiddenPredFlag);
   Yap_InitCPred("show_all_tables", 0, p_show_all_tables, SafePredFlag|SyncPredFlag);
+  Yap_InitCPred("show_all_tables_statistics", 0, p_show_all_tables_statistics, SafePredFlag|SyncPredFlag);
 #ifdef GLOBAL_TRIE
   Yap_InitCPred("show_global_trie", 0, p_show_global_trie, SafePredFlag|SyncPredFlag);
 #endif /* GLOBAL_TRIE */
@@ -983,6 +985,19 @@ Int p_table_statistics(void) {
   return (TRUE);
 }
 
+static
+Int p_show_all_tables_statistics(void) {
+  tab_ent_ptr tab_ent;
+  
+  tab_ent = GLOBAL_root_tab_ent;
+  while(tab_ent) {
+    show_table(tab_ent, SHOW_MODE_STATISTICS);
+    tab_ent = TabEnt_next(tab_ent);
+  }
+  
+  return (TRUE);
+}
+
 #ifdef TABLING_CALL_SUBSUMPTION
 static inline long
 tst_node_structs_in_use(void) {
@@ -1244,7 +1259,7 @@ Int p_opt_statistics(void) {
   fprintf(Yap_stdout, "  Subgoal trie nodes:                    %10ld structs in use\n", subgoal_node_structs_in_use());
   bytes_in_use += subgoal_node_structs_size();
   
-#ifdef TABLING_CALL_SUBSUMPTION
+#ifdef TABLING_RETROACTIVE
   fprintf(Yap_stdout, "  Subgoal generator index nodes:         %10ld structs in use\n", Pg_str_in_use(GLOBAL_PAGES_gen_index_node));
   bytes_in_use += Pg_str_in_use(GLOBAL_PAGES_gen_index_node) * sizeof(struct gen_index_node);
 #endif
