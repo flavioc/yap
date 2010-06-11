@@ -379,12 +379,10 @@ complete_dependency_frame(dep_fr_ptr dep_fr)
     
       if(SgFr_num_deps((retroactive_fr_ptr)sg_fr) == 0) {
         mark_retroactive_consumer_as_completed((retroactive_fr_ptr)sg_fr);
-        dprintf("One retroactive consumer completed\n");
       }
       break;
 #endif /* TABLING_RETROACTIVE */
     default:
-    printf("FAIL\n");
       break;
   }
 #endif /* TABLING_CALL_SUBSUMPTION */
@@ -1067,7 +1065,9 @@ void traverse_subgoal_trie(sg_node_ptr current_node, char *str, int str_index, i
               SHOW_TABLE_STRUCTURE("    NO\n");
             }
           } else { // has answers
-            show_consumer_subsumptive_with_answers(cons_sg, prod_sg);
+            if(TrStat_show == SHOW_MODE_STRUCTURE) {
+              show_consumer_subsumptive_with_answers(cons_sg, prod_sg);
+            }
           }
         }
         break;
@@ -1075,7 +1075,7 @@ void traverse_subgoal_trie(sg_node_ptr current_node, char *str, int str_index, i
       case RETROACTIVE_PRODUCER_SFT:
       case RETROACTIVE_CONSUMER_SFT:
         {
-          CELL* vars = (CELL *)YENV - 1;
+          CELL* vars = (CELL*)YENV-1;
           CELL *saved_H = NULL;
           CELL *answer_template = NULL;
           
@@ -1095,7 +1095,16 @@ void traverse_subgoal_trie(sg_node_ptr current_node, char *str, int str_index, i
                 create_retroactive_answer_template(retro_sg, answer_template);
               }
 
+              continuation_ptr start = SgFr_first_answer(sg_fr);
+
               build_next_retroactive_consumer_return_list(retro_sg);
+
+              if(start != SgFr_first_answer(sg_fr)) {
+                while(start) {
+                  start = continuation_next(start);
+                  TrStat_answers++;
+                }
+              }
             }
           }
           
@@ -1112,7 +1121,7 @@ void traverse_subgoal_trie(sg_node_ptr current_node, char *str, int str_index, i
               saved_H = construct_subgoal_heap(SgFr_leaf(sg_fr), &vars, SgFr_arity(sg_fr), FALSE);
               answer_template = construct_answer_template_from_sg(saved_H, SgFr_arity(sg_fr), vars-1);
             }
-            
+
             if((int)*vars == 0) {
               TrStat_answers_true++;
               SHOW_TABLE_STRUCTURE("    TRUE\n");
@@ -1121,13 +1130,13 @@ void traverse_subgoal_trie(sg_node_ptr current_node, char *str, int str_index, i
                 show_retroactive_answers(sg_fr, answer_template, vars);
               }
             }
-            
+
             if(SgFr_state(sg_fr) < complete) {
               TrStat_sg_incomplete++;
               SHOW_TABLE_STRUCTURE("    ---> INCOMPLETE\n");
             }
           }
-          
+
           if(saved_H)
             H = saved_H;
         }
