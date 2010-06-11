@@ -1197,11 +1197,11 @@ traverse_retroactive_trie(ans_node_ptr node)
   else
     TrStat_ans_nodes++;
     
-  if(!IS_ANSWER_LEAF_NODE(node)) {
-    if(TrNode_next(node))
-      traverse_retroactive_trie(TrNode_next(node));
+  if(TrNode_next(node))
+    traverse_retroactive_trie(TrNode_next(node));
+    
+  if(!IS_ANSWER_LEAF_NODE(node))
     traverse_retroactive_trie(TrNode_child(node));
-  }
 }
 #endif /* TABLING_RETROACTIVE */
 
