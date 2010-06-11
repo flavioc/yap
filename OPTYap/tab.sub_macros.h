@@ -297,6 +297,7 @@ init_consumer_subgoal_frame(sg_fr_ptr sg_fr)
       break;
 #ifdef TABLING_RETROACTIVE
     case RETROACTIVE_CONSUMER_SFT:
+      SgFr_num_deps(sg_fr)++;
       SgFr_num_deps(SgFr_producer((retroactive_fr_ptr)sg_fr))++;
       break;
     case RETROACTIVE_PRODUCER_SFT:
