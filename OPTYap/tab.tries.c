@@ -642,7 +642,6 @@ static struct trie_statistics{
 #define TrStat_subcons_subgoals  trie_stats.sub_consumer_subgoals
 #define TrStat_tst_indexes       trie_stats.tst_indexes
 #define TrStat_ans_hash          trie_stats.answers_trie_hash
-#define TrStat_retro_leaf_nodes  trie_stats.retro_leaf_nodes
 
 #define SHOW_TABLE_STRUCTURE(MESG, ARGS...)  if (TrStat_show == SHOW_MODE_STRUCTURE) fprintf(Yap_stdout, MESG, ##ARGS)
 #define STR_ARRAY_SIZE  100000
@@ -666,9 +665,6 @@ void show_table(tab_ent_ptr tab_ent, int show_mode) {
 #ifdef TABLING_CALL_SUBSUMPTION
     TrStat_sg_indexes = 0;
     TrStat_tst_indexes = 0;
-#ifdef TABLING_RETROACTIVE
-    TrStat_retro_leaf_nodes = 0;
-#endif /* TABLING_RETROACTIVE */
 #endif /* TABLING_CALL_SUBSUMPTION */
     TrStat_answers_true = 0;
     TrStat_answers_no = 0;
@@ -741,7 +737,6 @@ void show_table(tab_ent_ptr tab_ent, int show_mode) {
       if(TabEnt_is_retroactive(tab_ent)) {
         bytes += TrStat_subgoals * sizeof(struct retroactive_subgoal_frame);
         retroactive_trie_statistics(tab_ent);
-        bytes += TrStat_retro_leaf_nodes * sizeof(struct node_list);
       } else
 #endif /* TABLING_RETROACTIVE */
       {
@@ -1206,14 +1201,6 @@ traverse_retroactive_trie(ans_node_ptr node)
     if(TrNode_next(node))
       traverse_retroactive_trie(TrNode_next(node));
     traverse_retroactive_trie(TrNode_child(node));
-  } else {
-    /* count retro leaf nodes */
-    node_list_ptr list = (node_list_ptr)TrNode_child(node);
-    
-    while(list) {
-      TrStat_retro_leaf_nodes++;
-      list = NodeList_next(list);
-    }
   }
 }
 #endif /* TABLING_RETROACTIVE */
