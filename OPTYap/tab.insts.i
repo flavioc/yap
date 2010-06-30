@@ -1043,7 +1043,6 @@ try_answer_jump: {
       GONext();
 #if defined(INCOMPLETE_TABLING) || defined(TABLING_RETROACTIVE)
     } else if (SgFr_state(sg_fr) == incomplete || SgFr_state(sg_fr) == suspended) {
-      dprintf("incomplete!!\n");
       /* subgoal incomplete --> start by loading the answers already found */
       continuation_ptr cont = SgFr_first_answer(sg_fr);
       ans_node_ptr ans_node = continuation_answer(cont);
@@ -1460,18 +1459,14 @@ try_answer_jump: {
       
 #ifdef TABLING_RETROACTIVE
       if(SgFr_is_retroactive_local_producer(sg_fr)) {
-        dprintf("RETROACTIVE_LOCAL PRODUCER\n");
         retroactive_fr_ptr retro = (retroactive_fr_ptr)sg_fr;
         SgFr_num_ans(retro)++;
-        dprintf("SgFr_num_ans(retro)=%d\n", SgFr_num_ans(retro));
         
         if(FALSE && SgFr_num_ans(retro) > 1 && POWER_OF_TWO(SgFr_num_ans(retro))) {
-          dprintf("Act as batched\n");
+          /* deactivated for benchmarking */
           choiceptr mycp = SgFr_choice_point(sg_fr);
           choiceptr target = mycp->cp_b;
           SgFr_saved_cp(retro) = B;
-          dprintf("TR %d B->cp_tr %d target->cp_tr %d mycp->cp_tr %d\n", (int)TR, (int)B->cp_tr, (int)target->cp_tr, (int)mycp->cp_tr);
-          dprintf("Saved_cp %d target %d\n", (int)B, target);
           unbind_variables(TR, target->cp_tr);
           
           /* protect stacks */
@@ -1480,7 +1475,6 @@ try_answer_jump: {
           if(B_FZ > B)
             B_FZ = B;
             
-          dprintf("TR %d B->cp_tr %d target->cp_tr %d mycp->cp_tr %d\n", (int)TR, (int)B->cp_tr, (int)target->cp_tr, (int)mycp->cp_tr);
           B = target;
           H = HBREG = PROTECT_FROZEN_H(B);
           restore_yaam_reg_cpdepth(B);
@@ -1489,10 +1483,8 @@ try_answer_jump: {
           PREG = (yamop *)CPREG;
           PREFETCH_OP(PREG);
           YENV = ENV;
-          dprintf("Go specific goal!\n");
           GONext();
         } else {
-          dprintf("Act as local\n");
           /* act as local scheduling */
           goto fail;
         }
@@ -1550,7 +1542,6 @@ try_answer_jump: {
         goto fail;
       }
     } else {
-      dprintf("REPEATED ANSWER\n");
       /* repeated answer */
 #if defined(TABLE_LOCK_AT_ENTRY_LEVEL)
       UNLOCK(SgFr_lock(sg_fr));
@@ -1600,7 +1591,6 @@ try_answer_jump: {
     continuation_ptr next = get_next_answer_continuation(dep_fr);
     
     if(next) {
-      dprintf("found unconsumed answer for this dep frame\n");
       /* unconsumed answer */
       ans_node = continuation_answer(next);
       DepFr_last_answer(dep_fr) = next;
@@ -1616,8 +1606,6 @@ try_answer_jump: {
       retroactive_fr_ptr prod = SgFr_producer(sg_fr);
       if(SgFr_state(prod) < complete && SgFr_saved_cp(prod)) {
         choiceptr cp = SgFr_saved_cp(prod);
-        dprintf("saved_cp %d B %d\n", (int)cp, (int)B);
-        dprintf("rebind_variables cp->cp_tr %d B->cp_tr %d\n", (int)cp->cp_tr, (int)B->cp_tr);
         rebind_variables(cp->cp_tr, B->cp_tr);
         B = cp;
         SgFr_saved_cp(prod) = NULL;
@@ -1693,12 +1681,10 @@ try_answer_jump: {
         next = get_next_answer_continuation(dep_fr);
         
         if(next) {
-          dprintf("UNCONSUMED ANSWERS\n");
           /* dependency frame with unconsumed answers */
           ans_node = continuation_answer(next);
           DepFr_last_answer(dep_fr) = next;
         } else
-          dprintf("no unconsumed answers!\n");
 
         if(ans_node != NULL) {
 #ifdef YAPOR
@@ -1890,7 +1876,6 @@ try_answer_jump: {
         B = chain_cp;
         TR = TR_FZ;
         TRAIL_LINK(B->cp_tr);
-        dprintf("goto completion\n");
         goto completion;
       }
       /* backtrack to chain choice point */
@@ -1943,7 +1928,6 @@ try_answer_jump: {
           /* not leader on that node */
           B = B->cp_b;
           SET_TOP_GEN_SG(SgFr_top_gen_sg(sg_fr));
-          dprintf("not leader on that node 3\n");
           goto fail;
         }
       } else
@@ -1979,7 +1963,6 @@ try_answer_jump: {
 
 
   completion:
-  dprintf("on completion\n");
     INIT_PREFETCH()
     dep_fr_ptr dep_fr;
     ans_node_ptr ans_node;
@@ -1999,7 +1982,6 @@ try_answer_jump: {
     }
 #endif /* YAPOR */
 
-    dprintf("checking deps\n");
     /* check for dependency frames with unconsumed answers */
     dep_fr = LOCAL_top_dep_fr;
     while (YOUNGER_CP(DepFr_cons_cp(dep_fr), B)) {
@@ -2021,12 +2003,10 @@ try_answer_jump: {
       next = get_next_answer_continuation(dep_fr);
       
       if(next) {
-        dprintf("UNCONSUMED ANSWERS!\n");
         /* dependency frame with unconsumed answers */
         ans_node = continuation_answer(next);
         DepFr_last_answer(dep_fr) = next;
       } else
-        dprintf("EVERYTHING WAS CONSUMED!\n");
       
       if(ans_node != NULL) {
         if (B->cp_ap) {
@@ -2279,7 +2259,6 @@ try_answer_jump: {
       if (IS_BATCHED_GEN_CP(B)) {
         /* batched scheduling -> backtrack */
         B = B->cp_b;
-        dprintf("Backtrack\n");
         SET_BB(PROTECT_FROZEN_B(B));
         SET_TOP_GEN_SG(SgFr_top_gen_sg(sg_fr));
         goto fail;

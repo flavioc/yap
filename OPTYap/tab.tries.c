@@ -1213,7 +1213,7 @@ retroactive_trie_statistics(tab_ent_ptr tab_ent)
     return;
     
   ans_node_ptr root = (ans_node_ptr)TabEnt_retroactive_trie(tab_ent);
-  
+
   traverse_retroactive_trie(root);
 }
 #endif /* TABLING_RETROACTIVE || TABLING_COMPLETE_TABLE */
@@ -1232,6 +1232,7 @@ void traverse_answer_trie(ans_node_ptr current_node, char *str, int str_index, i
     current_arity = (int *) malloc(sizeof(int) * (arity[0] + 1));
     memcpy(current_arity, arity, sizeof(int) * (arity[0] + 1));
     
+    TrStat_ans_nodes++;
     TrStat_ans_hash++;
     TrStat_hash_buckets += Hash_num_buckets(hash);
     
