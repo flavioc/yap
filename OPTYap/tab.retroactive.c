@@ -348,55 +348,6 @@ expand_hash_table(retro_leaf_ptr hash) {
 }
 
 static inline int
-mark_answer_hash(tst_node_ptr node, retroactive_fr_ptr sf) {
-  retro_leaf_ptr hash = (retro_leaf_ptr)TrNode_child(node);
-  node_list_ptr *bucket;
-  
-  bucket = Hash_bucket(hash, HASH_ELEM(sf, Hash_seed(hash)));
-  
-  int total = 0;
-  if(find_elem_list(*bucket, (ans_node_ptr)sf, &total))
-    return FALSE;
-  
-  node_list_ptr new_node = new_list_elem((ans_node_ptr)sf, *bucket);
-  ++total;
-  *bucket = new_node;
-  
-  Hash_num_sgs(hash)++;
-  
-  if(total > THRESHOLD_BUCKET)
-    expand_hash_table((retro_leaf_ptr)TrNode_child(node));
-  
-  return TRUE;
-}
-
-/* returns TRUE if new answer */
-int
-mark_answer_subgoal(tst_node_ptr node, retroactive_fr_ptr sf) {
-  node_list_ptr list = (node_list_ptr)TSTN_child(node);
-  
-  if(list != NULL && LeafIndex_is_hash((retro_leaf_ptr)list))
-    return mark_answer_hash(node, sf);
-
-  int total = 0;
-  
-  if(find_elem_list(list, (ans_node_ptr)sf, &total))
-    return FALSE;
-  
-  /* not found, add */
-  node_list_ptr new_node = new_list_elem((ans_node_ptr)sf, (node_list_ptr)TSTN_child(node));
-  TSTN_child(node) = (tst_node_ptr)new_node;
-  ++total;
-  
-  if(total > THRESHOLD_HASHTABLE) {
-    TSTN_child(node) =
-        (tst_node_ptr)create_hash_table((node_list_ptr)TSTN_child(node), total);
-  }
-  
-  return TRUE;
-}
-
-static inline int
 locate_pending_answers_hash(tst_node_ptr node, retro_leaf_ptr hash)
 {
   node_list_ptr *bucket;
@@ -561,23 +512,15 @@ TSTNptr retroactive_answer_search(retroactive_fr_ptr sf, CPtr answerVector) {
   
   new_timestamp = TabEnt_retroactive_time_stamp(tab_ent);
   
-#if 1
-  /*dprintf("old_timestamp %d new_timestamp %d sf timestamp %d ans %d ts %lu\n",
-    (int)old_timestamp, (int)new_timestamp, (int)SgFr_timestamp(sf), (int)tstn, GetTimeStamp(tstn, tab_ent));*/
-
   if(old_timestamp == new_timestamp-1 && SgFr_timestamp(sf) == old_timestamp) {
-    /* ok answer! */
-    dprintf("ok answer\n");
     TrNode_unset_is_ans(tstn);
     SgFr_timestamp(sf) = new_timestamp;
   } else if(old_timestamp == new_timestamp &&
       SgFr_timestamp(sf) == old_timestamp-1 && GetTimeStamp(tstn, tab_ent) == new_timestamp)
   {
-    dprintf("one answer inserted by someone else\n");
     TrNode_unset_is_ans(tstn);
     SgFr_timestamp(sf) = new_timestamp;
   } else if(GetTimeStamp(tstn, tab_ent) <= SgFr_timestamp(sf)) {
-    dprintf("answer old for trie\n");
     /* answer is old for the trie */
     if(locate_pending_answers(tstn, sf))
       TrNode_unset_is_ans(tstn); /* new answer */
@@ -587,7 +530,6 @@ TSTNptr retroactive_answer_search(retroactive_fr_ptr sf, CPtr answerVector) {
     /* multiple answers were inserted */
     ensure_has_proper_consumers(tab_ent);
 
-    dprintf("multiple answers were inserted\n");
     CELL *answer_template = SgFr_answer_template(sf);
     const int size = SgFr_at_size(sf);
 
@@ -601,9 +543,6 @@ TSTNptr retroactive_answer_search(retroactive_fr_ptr sf, CPtr answerVector) {
     TrNode_unset_is_ans(tstn);
     SgFr_timestamp(sf) = new_timestamp;
   }
-#else
-  SgFr_timestamp(sf) = new_timestamp;
-#endif
   
   Trail_Unwind_All;
   return tstn;

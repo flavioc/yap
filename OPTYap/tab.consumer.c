@@ -102,11 +102,9 @@ update_external_consumers(sg_fr_ptr specific_sg, choiceptr min, choiceptr max, s
   
   while(count && top && YOUNGER_CP(DepFr_cons_cp(top), min)) {
     if(DepFr_sg_fr(top) == gen) {
-      dprintf("found a dep fr for gencp %d\n", (int)SgFr_choice_point(gen));
       choiceptr cp = DepFr_cons_cp(top);
 
       --count;
-      dprintf("Found one external dep_fr %d cp %d\n", (int)top, (int)DepFr_cons_cp(top));
       if(!found) {
         choiceptr leader_cp = DepFr_leader_cp(top);
         sg_fr_ptr leader_sg = GEN_CP(leader_cp)->cp_sg_fr;
@@ -241,7 +239,6 @@ transform_external_subsumed_consumers(choiceptr min, sg_fr_ptr sg_fr,
   
   while(count && top && YOUNGER_CP(DepFr_cons_cp(top), min)) {
     sg_fr_ptr dep = DepFr_sg_fr(top);
-    dprintf("CONSIDERING EXTERNAL SUB %d\n", (int)DepFr_cons_cp(top));
     if(SgFr_is_sub_consumer(dep)) {
       if((sg_fr_ptr)SgFr_producer((subcons_fr_ptr)dep) == sg_fr) {
         /* add to list */
@@ -301,15 +298,12 @@ transform_external_subsumed_consumers(choiceptr min, sg_fr_ptr sg_fr,
             NodeList_node(new_new_list) = (ans_node_ptr)new_sg;
             NodeList_next(new_new_list) = new_sg_list;
             new_sg_list = new_new_list;
-            
-            dprintf("new sub generator\n");
           }
           
           DepFr_last_answer(top) = (continuation_ptr)CONSUMER_DEFAULT_LAST_ANSWER(new_sg, top);
           DepFr_sg_fr(top) = (sg_fr_ptr)new_sg;
           DepFr_set_subtransform(top);
           CONS_CP(cp)->cp_sg_fr = (sg_fr_ptr)new_sg;
-          dprintf("SUB EXTERNAL CP %d NEW SG %d\n", (int)cp, (int)new_sg);
         } else {
           CONS_CP(cp)->cp_sg_fr = DepFr_sg_fr(top);
         }
@@ -352,8 +346,6 @@ update_external_retro_consumers(sg_fr_ptr specific_sg, choiceptr min, choiceptr 
   int is_specific = (specific_sg == (sg_fr_ptr)gen);
   retroactive_fr_ptr general = NULL;
 
-  dprintf("COUNT: %d\n", count);
-  
   while(count && top && YOUNGER_CP(DepFr_cons_cp(top), min)) {
     /* try to go to producer */
     retroactive_fr_ptr dep_sg_fr = (retroactive_fr_ptr)DepFr_sg_fr(top);
@@ -361,13 +353,10 @@ update_external_retro_consumers(sg_fr_ptr specific_sg, choiceptr min, choiceptr 
       dep_sg_fr = SgFr_producer(dep_sg_fr);
 
     if(dep_sg_fr == gen || (is_specific && dep_sg_fr == general)) {
-      dprintf("found a dep fr for gencp %d\n", (int)SgFr_choice_point(gen));
-
       /* update the pruned subgoal consumers */
       if(SgFr_is_retroactive_consumer(DepFr_sg_fr(top)) &&
           dep_sg_fr == (retroactive_fr_ptr)specific_sg)
       {
-        dprintf("Update producer %d\n", (int)SgFr_producer((retroactive_fr_ptr)specific_sg));
         general = SgFr_producer((retroactive_fr_ptr)specific_sg);
         SgFr_num_deps(general)++;
         SgFr_producer((retroactive_fr_ptr)DepFr_sg_fr(top)) = general;
@@ -378,7 +367,6 @@ update_external_retro_consumers(sg_fr_ptr specific_sg, choiceptr min, choiceptr 
 
       --count;
 
-      dprintf("Found one external dep_fr %d cp %d\n", (int)top, (int)DepFr_cons_cp(top));
       if(first_consumer) {
         choiceptr leader_cp = DepFr_leader_cp(top);
         sg_fr_ptr leader_sg = GEN_CP(leader_cp)->cp_sg_fr;
@@ -478,7 +466,6 @@ abolish_generator_subgoals_between(sg_fr_ptr specific_sg, choiceptr min, choicep
           remove_subgoal_frame_from_stack(sg_fr);
           
           if(SgFr_num_proper_deps(prod_sg) > 0) {
-            dprintf("Num proper deps: %d\n", SgFr_num_proper_deps(prod_sg));
             update_external_consumers(specific_sg, gen_cp, max, sg_fr, SgFr_num_proper_deps(prod_sg));
             SgFr_state(sg_fr) = suspended;
           } else {
@@ -677,11 +664,9 @@ process_pending_subgoal_list(node_list_ptr list, retroactive_fr_ptr sg_fr) {
         if(min_internal == NULL || min > min_internal) {
           min_internal = min;
           min_sg = pending;
-          dprintf("found new min\n");
         }
         REMOVE_PENDING_NODE();
       } else {
-        dprintf("skipping external node\n");
         /* skip this subgoal */
         before = list;
         list = NodeList_next(list);
@@ -694,7 +679,6 @@ process_pending_subgoal_list(node_list_ptr list, retroactive_fr_ptr sg_fr) {
 
   if(!min_internal && !orig) {
     /* no relevant nodes */
-    dprintf("No relevant nodes\n");
     return;
   }
 
@@ -725,7 +709,6 @@ process_pending_subgoal_list(node_list_ptr list, retroactive_fr_ptr sg_fr) {
   }
   
   if(min_internal) {
-    dprintf("doing a min internal\n");
     internal_producer_to_consumer(min_sg, sg_fr);
   }
   
@@ -733,7 +716,6 @@ process_pending_subgoal_list(node_list_ptr list, retroactive_fr_ptr sg_fr) {
     before = NULL;
     list = orig;
     node_list_ptr all = orig;
-    dprintf("removing external internal of externals\n");
     
     /* look for external subgoals */
     while(list) {
@@ -742,15 +724,12 @@ process_pending_subgoal_list(node_list_ptr list, retroactive_fr_ptr sg_fr) {
       if(is_internal_to_set(pending, all)) {
         /* some specific subgoal already includes this subgoal */
         REMOVE_PENDING_NODE();
-        dprintf("One internal to set deleted\n");
       } else {
-        dprintf("not internal\n");
         before = list;
         list = NodeList_next(list);
       }
     }
     
-    dprintf("prune external computations\n");
     list = orig;
     /* prune external computations */
     while(list) {
