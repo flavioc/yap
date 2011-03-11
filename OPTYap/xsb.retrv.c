@@ -667,6 +667,10 @@ xsbBool tst_collect_relevant_answers(CTXTdeclc TSTNptr tstRoot, TimeStamp ts,
   if (numTerms < 1)
     Collection_Error("Called with < 1 terms",NoCleanupRequired);
 
+#ifdef SUBSUMPTION_YAP
+	start_relevant_collect_benchmark();
+#endif
+
   /* Initialize data structures
      -------------------------- */
   TermStack_ResetTOS;
@@ -978,6 +982,7 @@ end_retrv:
   Sys_Trail_Unwind(trail_base);
   Restore_WAM_Registers;
 #ifdef SUBSUMPTION_YAP
+	end_relevant_collect_benchmark();
   return any_answers;
 #else
   return tstAnswerList;

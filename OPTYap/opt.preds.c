@@ -76,6 +76,9 @@ static Int p_use_variant_tabling(void);
 static Int p_use_subsumptive_tabling(void);
 #ifdef TABLING_RETROACTIVE
 static Int p_use_retroactive_tabling(void);
+#ifdef BENCHMARK_EXECUTION
+static Int p_benchmark_execution(void);
+#endif
 #endif /* TABLING_RETROACTIVE */
 #endif /* TABLING_CALL_SUBSUMPTION */
 
@@ -167,6 +170,9 @@ void Yap_init_optyap_preds(void) {
   Yap_InitCPred("$c_use_subsumptive_tabling", 2, p_use_subsumptive_tabling, SafePredFlag|SyncPredFlag|HiddenPredFlag);
 #ifdef TABLING_RETROACTIVE
   Yap_InitCPred("$c_use_retroactive_tabling", 2, p_use_retroactive_tabling, SafePredFlag|SyncPredFlag|HiddenPredFlag);
+#ifdef BENCHMARK_EXECUTION
+	Yap_InitCPred("benchmark_execution", 0, p_benchmark_execution, SafePredFlag|SyncPredFlag|HiddenPredFlag);
+#endif
 #endif /* TABLING_RETROACTIVE */
 #endif /* TABLING_CALL_SUBSUMPTION */
   Yap_InitCPred("$c_abolish_table", 2, p_abolish_table, SafePredFlag|SyncPredFlag|HiddenPredFlag);
@@ -648,8 +654,10 @@ Int p_table(void) {
     SetMode_Variant(TabEnt_mode(tab_ent));
   else if (IsMode_Subsumptive(yap_flags[TABLING_MODE_FLAG]))
     SetMode_Subsumptive(TabEnt_mode(tab_ent));
+#ifdef TABLING_RETROACTIVE
   else if (IsMode_Retroactive(yap_flags[TABLING_MODE_FLAG]))
     SetMode_Retroactive(TabEnt_mode(tab_ent));
+#endif
 #endif
   pe->TableOfPred = tab_ent;
   return (TRUE);
@@ -686,6 +694,9 @@ void tab_entry_set_retroactive_mode(tab_ent_ptr tab_ent) {
   SetDefaultMode_Retroactive(TabEnt_mode(tab_ent));
   if (IsMode_ChecksOff(yap_flags[TABLING_MODE_FLAG]))
     TabEnt_set_retroactive(tab_ent)
+#ifndef EFFICIENT_SUBSUMED_COLLECT
+	tab_ent->subgoal_list = NULL;
+#endif
 }
 
 static
@@ -730,6 +741,69 @@ Int p_use_retroactive_tabling(void) {
   } else
     return TabEnt_is_retroactive(tab_ent);
 }
+
+#ifdef BENCHMARK_EXECUTION
+static Int
+p_benchmark_execution(void)
+{
+	DECLARE_BENCHMARK();
+  
+#ifdef TIME_SUBSUMED_BENCHMARK
+	/*
+	extern int total_exec_collect_subsumed;
+  extern int total_sg_fr_collect_subsumed;
+  extern int total_nodes_touched_collect_subsumed;
+
+  printf("COLLECT EXEC: %d\n", total_exec_collect_subsumed);
+  printf("SGFR COLLECTED: %d\n", total_sg_fr_collect_subsumed);
+  printf("NODES TOUCHED: %d\n", total_nodes_touched_collect_subsumed);
+	*/
+	printf("TIME SUBSUMED COLLECT: %lf %ld\n", GET_BENCHMARK(TIME_SUBSUMED_BENCHMARK), GET_BENCHMARK_HITS(TIME_SUBSUMED_BENCHMARK));
+#endif
+
+#ifdef CREATE_TSI_BENCHMARK
+	printf("TIME CREATE TSI: %lf %ld\n", GET_BENCHMARK(CREATE_TSI_BENCHMARK), GET_BENCHMARK_HITS(CREATE_TSI_BENCHMARK));
+#endif
+
+#ifdef UPDATE_TIMESTAMPS_BENCHMARK
+	printf("TIME UPDATE TIMESTAMPS: %lf %ld\n", GET_BENCHMARK(UPDATE_TIMESTAMPS_BENCHMARK), GET_BENCHMARK_HITS(UPDATE_TIMESTAMPS_BENCHMARK));
+#endif
+
+#ifdef INSERT_ANSWER_BENCHMARK
+	printf("TIME INSERT ANSWER: %lf %ld\n", GET_BENCHMARK(INSERT_ANSWER_BENCHMARK), GET_BENCHMARK_HITS(INSERT_ANSWER_BENCHMARK));
+#endif
+
+#ifdef PENDING_ANSWER_INDEX_BENCHMARK
+	printf("TIME PENDING ANSWER INDEX: %lf %ld\n", GET_BENCHMARK(PENDING_ANSWER_INDEX_BENCHMARK), GET_BENCHMARK_HITS(PENDING_ANSWER_INDEX_BENCHMARK));
+#endif
+
+#ifdef PRUNING_BENCHMARK
+	printf("TIME PRUNING BENCHMARK: %lf %ld\n", GET_BENCHMARK(PRUNING_BENCHMARK));
+#endif
+
+#ifdef LOOKUP_SUBGOAL_TRIE_BENCHMARK
+	printf("TIME LOOKUP SUBGOAL TRIE: %lf %ld\n", GET_BENCHMARK(LOOKUP_SUBGOAL_TRIE_BENCHMARK), GET_BENCHMARK_HITS(LOOKUP_SUBGOAL_TRIE_BENCHMARK));
+#endif
+
+#ifdef INITIAL_COLLECT_BENCHMARK
+	printf("TIME INITIAL COLLECT: %lf %ld\n", GET_BENCHMARK(INITIAL_COLLECT_BENCHMARK), GET_BENCHMARK_HITS(INITIAL_COLLECT_BENCHMARK));
+#endif
+
+#ifdef RELEVANT_COLLECT_BENCHMARK
+	printf("TIME RELEVANT COLLECT: %lf %ld\n", GET_BENCHMARK(RELEVANT_COLLECT_BENCHMARK), GET_BENCHMARK_HITS(RELEVANT_COLLECT_BENCHMARK));
+#endif
+
+#ifdef IN_EVAL_BENCHMARK
+	printf("TIME IN EVAL: %lf %ld\n", GET_BENCHMARK(IN_EVAL_BENCHMARK), GET_BENCHMARK_HITS(IN_EVAL_BENCHMARK));
+#endif
+
+#ifdef TOP_GEN_BENCHMARK
+	printf("TIME TOP GEN: %ld\n", GET_BENCHMARK_HITS(TOP_GEN_BENCHMARK));
+#endif
+
+	return (TRUE);
+}
+#endif
 #endif /* TABLING_RETROACTIVE */
 #endif /* TABLING_CALL_SUBSUMPTION */
 

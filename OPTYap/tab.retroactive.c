@@ -31,9 +31,19 @@
 
 void
 decrement_generator_path(sg_node_ptr node) {
+#ifdef EFFICIENT_SUBSUMED_COLLECT
+  start_time_subsumed();
+	{start_in_eval_benchmark();
   while(!TrNode_is_root(node)) {
+    #ifdef TIME_SUBSUMED_BENCHMARK
+    extern total_nodes_touched_collect_subsumed;
+      total_nodes_touched_collect_subsumed++;
+    #endif
     if(IsHashedNode(node)) {
       gen_index_ptr gen_index = TrNode_index_node((subg_node_ptr)node);
+      #ifdef TIME_SUBSUMED_BENCHMARK
+        total_nodes_touched_collect_subsumed++;
+      #endif
       if(GNIN_num_gen(gen_index) == 1) {
         gen_index_remove((subg_node_ptr)node, (subg_hash_ptr)TrNode_child(TrNode_parent(node)));
       } else
@@ -45,12 +55,26 @@ decrement_generator_path(sg_node_ptr node) {
   }
   
   TrNode_num_gen((subg_node_ptr)node)--;
+	end_in_eval_benchmark();}
+  end_time_subsumed();
+#endif
 }
 
 void
 update_generator_path(sg_node_ptr node) {
+#ifdef EFFICIENT_SUBSUMED_COLLECT
+	start_time_subsumed();
+	{start_in_eval_benchmark();
+  
   while(!TrNode_is_root(node)) {
+    #ifdef TIME_SUBSUMED_BENCHMARK
+    extern total_nodes_touched_collect_subsumed;
+      total_nodes_touched_collect_subsumed++;
+    #endif
     if(IsHashedNode(node)) {
+      #ifdef TIME_SUBSUMED_BENCHMARK
+        total_nodes_touched_collect_subsumed++;
+      #endif
       if(TrNode_num_gen((subg_node_ptr)node) == 0)
         gen_index_add((subg_node_ptr)node, (subg_hash_ptr)TrNode_child(TrNode_parent(node)), 1);
       else
@@ -62,6 +86,9 @@ update_generator_path(sg_node_ptr node) {
   }
   
   TrNode_num_gen((subg_node_ptr)node)++;
+	end_in_eval_benchmark();}
+  end_time_subsumed();
+#endif
 }
 
 static inline retroactive_fr_ptr
@@ -89,7 +116,8 @@ create_new_retroactive_producer_subgoal(sg_node_ptr leaf_node, tab_ent_ptr tab_e
 }
 
 static inline retroactive_fr_ptr
-create_new_retroactive_consumer_subgoal(sg_node_ptr leaf_node, tab_ent_ptr tab_ent, yamop *code, retroactive_fr_ptr subsumer) {
+create_new_retroactive_consumer_subgoal(sg_node_ptr leaf_node, tab_ent_ptr tab_ent, yamop *code, retroactive_fr_ptr subsumer)
+{
   retroactive_fr_ptr sg_fr;
   
   new_retroactive_consumer_subgoal_frame(sg_fr, code, leaf_node, subsumer);
@@ -175,6 +203,7 @@ sg_fr_ptr retroactive_call_search(yamop *code, CELL *answer_template, CELL **new
   TriePathType path_type;
   retroactive_fr_ptr sg_fr = NULL;
   int arity = CODE_ARITY(code);
+  int isNew = FALSE;
   
   /* create answer template on local stack */
   *new_local_stack = copy_arguments_as_the_answer_template(answer_template, arity);
@@ -194,7 +223,9 @@ sg_fr_ptr retroactive_call_search(yamop *code, CELL *answer_template, CELL **new
   Trail_ResetTOS;
   TermStack_PushLowToHighVector(CALL_ARGUMENTS(), arity);
   
+  AnsVarCtr = 0;
   btn = iter_sub_trie_lookup(CTXTc btRoot, &path_type);
+	int is_ground_subgoal = (AnsVarCtr == 0);
   Trail_Unwind_All;
   
 #ifdef FDEBUG
@@ -206,15 +237,16 @@ sg_fr_ptr retroactive_call_search(yamop *code, CELL *answer_template, CELL **new
 #endif
   
   if(path_type == NO_PATH) { /* new producer */
-    sg_node_ptr leaf = variant_call_cont_insert(tab_ent, (sg_node_ptr)stl_restore_variant_cont(),
+    btn = variant_call_cont_insert(tab_ent, (sg_node_ptr)stl_restore_variant_cont(),
       variant_cont.bindings.num, CALL_SUB_TRIE_NT);
+    isNew = TRUE;
       
-    sg_fr = create_new_retroactive_producer_subgoal(leaf, tab_ent, code);
+    sg_fr = create_new_retroactive_producer_subgoal(btn, tab_ent, code);
     
     Trail_Unwind_All;
     
     /* determine if is most general */
-    if(is_most_general_call(leaf, arity))
+    if(is_most_general_call(btn, arity))
       SgFr_set_most_general(sg_fr);
     
     create_retroactive_answer_template(sg_fr, *new_local_stack);
@@ -236,13 +268,31 @@ sg_fr_ptr retroactive_call_search(yamop *code, CELL *answer_template, CELL **new
         break;
       case SUBSUMPTIVE_PATH:
         if(SgFr_state(subsumer) < complete || retroactive_table_load(tab_ent)) {
+						if(is_ground_subgoal && SgFr_state(subsumer) >= complete) {
+							TermStack_ResetTOS;
+							TermStackLog_ResetTOS;
+							Trail_ResetTOS;
+							TermStack_PushLowToHighVector(CALL_ARGUMENTS(), arity);
+  
+							btn = iter_sub_trie_lookup(CTXTc TabEnt_retroactive_trie(tab_ent), &path_type);
+
+							if(path_type != NO_PATH) {
+								return 1;
+							} else {
+								return 0;
+							}
+
+							exit(1);
+						}
+
             btn = variant_call_cont_insert(tab_ent, (sg_node_ptr)stl_restore_variant_cont(), variant_cont.bindings.num, CALL_SUB_TRIE_NT);
+            isNew = TRUE;
             Trail_Unwind_All;
             
             sg_fr = create_new_retroactive_consumer_subgoal(btn, tab_ent, code, subsumer);
             
             create_retroactive_answer_template(sg_fr, *new_local_stack);
-            
+
             ensure_has_proper_consumers(tab_ent);
         } else
           sg_fr = subsumer;
@@ -261,6 +311,25 @@ sg_fr_ptr retroactive_call_search(yamop *code, CELL *answer_template, CELL **new
       }
     }
   }
+  
+#ifndef EFFICIENT_SUBSUMED_COLLECT
+  start_time_subsumed();
+  if(isNew) {
+    node_list_ptr new;
+    
+    ALLOC_NODE_LIST(new);
+    NodeList_node(new) = (ans_node_ptr)btn;
+    NodeList_next(new) = (node_list_ptr)tab_ent->subgoal_list;
+    
+    tab_ent->subgoal_list = new;
+    
+#ifdef TIME_SUBSUMED_BENCHMARK
+    extern total_nodes_touched_collect_subsumed;
+  total_nodes_touched_collect_subsumed++;
+#endif
+  }
+  end_time_subsumed();
+#endif
   
   return (sg_fr_ptr)sg_fr;
 }
@@ -428,14 +497,8 @@ locate_pending_answers_hash(tst_node_ptr node, retro_leaf_ptr hash)
 }
 
 static inline int
-locate_pending_answers(tst_node_ptr node, retroactive_fr_ptr sf)
+locate_pending_answers(tst_node_ptr node, node_list_ptr list, retroactive_fr_ptr sf)
 {
-  node_list_ptr list = SgFr_pending_answers(sf);
-  
-  if(!list) {
-    return FALSE;
-  }
-    
   if(LeafIndex_is_hash((retro_leaf_ptr)list))
     return locate_pending_answers_hash(node, (retro_leaf_ptr)list);
     
@@ -462,6 +525,7 @@ locate_pending_answers(tst_node_ptr node, retroactive_fr_ptr sf)
   }
   
   dprintf("not found answer\n");
+
   return FALSE;
 }
 
@@ -562,8 +626,10 @@ TSTNptr retroactive_answer_search(retroactive_fr_ptr sf, CPtr answerVector) {
   new_timestamp = TabEnt_retroactive_time_stamp(tab_ent);
   
 #if 1
-  /*dprintf("old_timestamp %d new_timestamp %d sf timestamp %d ans %d ts %lu\n",
-    (int)old_timestamp, (int)new_timestamp, (int)SgFr_timestamp(sf), (int)tstn, GetTimeStamp(tstn, tab_ent));*/
+  //printf("old_timestamp %d new_timestamp %d sf timestamp %d ts %lu\n",
+   // (int)old_timestamp, (int)new_timestamp, (int)SgFr_timestamp(sf), GetTimeStamp(tstn, tab_ent));
+
+//	printf("new_timestamp %d old_timestamp %d sf ts %d \n", new_timestamp, old_timestamp, SgFr_timestamp(sf));
 
   if(old_timestamp == new_timestamp-1 && SgFr_timestamp(sf) == old_timestamp) {
     /* ok answer! */
@@ -579,10 +645,15 @@ TSTNptr retroactive_answer_search(retroactive_fr_ptr sf, CPtr answerVector) {
   } else if(GetTimeStamp(tstn, tab_ent) <= SgFr_timestamp(sf)) {
     dprintf("answer old for trie\n");
     /* answer is old for the trie */
-    if(locate_pending_answers(tstn, sf))
-      TrNode_unset_is_ans(tstn); /* new answer */
-    else
-      TrNode_set_ans(tstn); /* old answer */
+		node_list_ptr pending_list = SgFr_pending_answers(sf);
+		if(pending_list) {
+			start_pending_answer_index_benchmark();
+			if(locate_pending_answers(tstn, pending_list, sf))
+				TrNode_unset_is_ans(tstn); /* new answer */
+			else
+				TrNode_set_ans(tstn); /* old answer */
+			end_pending_answer_index_benchmark();
+		} else TrNode_set_ans(tstn); /* old answer */
   } else {
     /* multiple answers were inserted */
     ensure_has_proper_consumers(tab_ent);
@@ -594,8 +665,10 @@ TSTNptr retroactive_answer_search(retroactive_fr_ptr sf, CPtr answerVector) {
     AT = answer_template;
     AT_SIZE = SgFr_at_full_size(sf);
     
+		start_pending_answer_index_benchmark();
     tst_collect_relevant_answers(root, SgFr_timestamp(sf), size,
             STANDARDIZE_AT_PTR(answer_template, size), (sg_fr_ptr)sf, (int)tstn);
+		end_pending_answer_index_benchmark();
     
     /* approve this answer */
     TrNode_unset_is_ans(tstn);

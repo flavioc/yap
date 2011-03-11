@@ -14,7 +14,6 @@
 #include "tab.macros.h"
 #include "tab.tst.h"
 
-
 typedef enum {
   PRINT_ANSWER_VAR,
   PRINT_VAR
@@ -829,5 +828,10 @@ construct_answer_template_from_sg(CELL* subgoal_args, int arity, CELL* ans_tmplt
   return ans_tmplt;
 }
 #endif /* TABLING_RETROACTIVE */
+
+#ifdef BENCHMARK_EXECUTION
+double benchmark_array[BENCHMARK_TOTAL];
+int benchmark_hits_array[BENCHMARK_TOTAL];
+#endif
 
 #endif /* TABLING_CALL_SUBSUMPTION */

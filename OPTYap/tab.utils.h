@@ -559,6 +559,146 @@ extern int AT_SIZE;
 #endif
 //#define RETRO_CHECKS 1
 
+#define EFFICIENT_SUBSUMED_COLLECT
+#define SUBSUMED_CHECK_BEFORE_MATCHING
+//#define BENCHMARK_EXECUTION
+//#define TIME_SUBSUMED_COLLECT
+
+#ifdef BENCHMARK_EXECUTION
+#define BENCHMARK_TOTAL 25
+#define DECLARE_BENCHMARK() extern double benchmark_array[BENCHMARK_TOTAL]; extern int benchmark_hits_array[BENCHMARK_TOTAL]
+#define GET_BENCHMARK(IDX) benchmark_array[IDX]
+#define GET_BENCHMARK_HITS(IDX) benchmark_hits_array[IDX]
+#define start_benchmark()																															\
+		struct rusage rusage_start;		\
+		getrusage(RUSAGE_SELF, &rusage_start)
+#define end_benchmark(IDX)																														\
+		DECLARE_BENCHMARK();																															\
+		struct rusage rusage_end;																													\
+		getrusage(RUSAGE_SELF, &rusage_end);																							\
+		double clock_elapsed = (rusage_end.ru_utime.tv_sec - rusage_start.ru_utime.tv_sec) * 1000.0 +	\
+				(rusage_end.ru_utime.tv_usec - rusage_start.ru_utime.tv_usec) / 1000.0;					\
+		GET_BENCHMARK_HITS(IDX)++; 																												\
+		GET_BENCHMARK(IDX) += clock_elapsed
+#define increment_benchmark(IDX) \
+		extern int benchmark_hits_array[BENCHMARK_TOTAL]; \
+	GET_BENCHMARK_HITS(IDX)++
+#else
+#define increment_benchmark(IDX)
+/*
+	 old version:
+#define start_benchmark()																															\
+		clock_t clock_start = clock()
+#define end_benchmark(IDX)																														\
+		DECLARE_BENCHMARK();																															\
+		double clock_elapsed = ((double)(clock()-clock_start)) / (CLOCKS_PER_SEC / 1000);	\
+		GET_BENCHMARK_HITS(IDX)++; 																												\
+		GET_BENCHMARK(IDX) += clock_elapsed
+		*/
+#define start_benchmark()
+#define end_benchmark(IDX)
+#endif
+
+#define TIME_SUBSUMED_BENCHMARK 0
+#define CREATE_TSI_BENCHMARK 1
+#define UPDATE_TIMESTAMPS_BENCHMARK 2
+#define INSERT_ANSWER_BENCHMARK 3
+#define PENDING_ANSWER_INDEX_BENCHMARK 4
+#define PRUNING_BENCHMARK 5
+#define LOOKUP_SUBGOAL_TRIE_BENCHMARK 6
+#define INITIAL_COLLECT_BENCHMARK 7
+#define RELEVANT_COLLECT_BENCHMARK 8
+#define IN_EVAL_BENCHMARK 9
+#define TOP_GEN_BENCHMARK 10
+
+#ifdef TIME_SUBSUMED_BENCHMARK
+#define start_time_subsumed()	start_benchmark()
+#define end_time_subsumed()		end_benchmark(TIME_SUBSUMED_BENCHMARK)
+#else
+#define end_time_subsumed()
+#define start_time_subsumed()
+#endif
+
+#ifdef CREATE_TSI_BENCHMARK
+#define start_createtsi_benchmark() start_benchmark()
+#define end_createtsi_benchmark() end_benchmark(CREATE_TSI_BENCHMARK)
+#else
+#define start_createtsi_benchmark()
+#define end_createtsi_benchmark()
+#endif
+
+#ifdef UPDATE_TIMESTAMPS_BENCHMARK
+#define start_update_timestamps_benchmark() start_benchmark()
+#define end_update_timestamps_benchmark() end_benchmark(UPDATE_TIMESTAMPS_BENCHMARK)
+#else
+#define start_update_timestamps_benchmark()
+#define end_update_timestamps_benchmark()
+#endif
+
+#ifdef INSERT_ANSWER_BENCHMARK
+#define start_insert_answer_benchmark() start_benchmark()
+#define end_insert_answer_benchmark() end_benchmark(INSERT_ANSWER_BENCHMARK)
+#else
+#define start_insert_answer_benchmark()
+#define end_insert_answer_benchmark()
+#endif
+
+#ifdef PENDING_ANSWER_INDEX_BENCHMARK
+#define start_pending_answer_index_benchmark() start_benchmark()
+#define end_pending_answer_index_benchmark() end_benchmark(PENDING_ANSWER_INDEX_BENCHMARK)
+#else
+#define start_pending_answer_index_benchmark()
+#define end_pending_answer_index_benchmark()
+#endif
+
+#ifdef PRUNING_BENCHMARK
+#define start_pruning_benchmark() start_benchmark()
+#define end_pruning_benchmark() end_benchmark(PRUNING_BENCHMARK)
+#else
+#define start_pruning_benchmark()
+#define end_pruning_benchmark()
+#endif
+
+#ifdef LOOKUP_SUBGOAL_TRIE_BENCHMARK
+#define start_lookup_subgoal_trie_benchmark() start_benchmark()
+#define end_lookup_subgoal_trie_benchmark() end_benchmark(LOOKUP_SUBGOAL_TRIE_BENCHMARK)
+#else
+#define start_lookup_subgoal_trie_benchmark() start_benchmark()
+#define end_lookup_subgoal_trie_benchmark() end_benchmark(LOOKUP_SUBGOAL_TRIE_BENCHMARK)
+#endif
+
+#ifdef INITIAL_COLLECT_BENCHMARK
+#define start_initial_collect_benchmark() start_benchmark()
+#define end_initial_collect_benchmark() end_benchmark(INITIAL_COLLECT_BENCHMARK)
+#else
+#define start_initial_collect_benchmark()
+#define end_initial_collect_benchmark()
+#endif
+
+#ifdef RELEVANT_COLLECT_BENCHMARK
+#define start_relevant_collect_benchmark() start_benchmark()
+#define end_relevant_collect_benchmark() end_benchmark(RELEVANT_COLLECT_BENCHMARK)
+#else
+#define start_relevant_collect_benchmark()
+#define end_relevant_collect_benchmark()
+#endif
+
+#ifdef IN_EVAL_BENCHMARK
+#define start_in_eval_benchmark() start_benchmark()
+#define end_in_eval_benchmark() end_benchmark(IN_EVAL_BENCHMARK)
+#else
+#define start_in_eval_benchmark()
+#define end_in_eval_benchmark()
+#endif
+
+#ifdef TOP_GEN_BENCHMARK
+#define start_top_gen_benchmark() start_benchmark()
+#define end_top_gen_benchmark() end_benchmark(TOP_GEN_BENCHMARK)
+#else
+#define start_top_gen_benchmark()
+#define end_top_gen_benchmark()
+#endif
+
 #endif /* TABLING */
 
 #endif

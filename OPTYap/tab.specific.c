@@ -21,6 +21,8 @@
 #include "tab.collect.h"
 #include "xsb.collect_utils.h"
 
+//#define DEBUG_SPECIFIC2
+
 #define GetGeneratorNode(Node) TrNode_num_gen((subg_node_ptr)(Node))
 #define GetGeneratorIndex(Node) GNIN_num_gen((gen_index_ptr)TrNode_num_gen((subg_node_ptr)(Node)))
 #define ValidGenerator(NumGenerator) ((NumGenerator) > 0)
@@ -65,6 +67,25 @@
    IsStandardizedVariable(pDerefedPrologVar)
 
 #define PrologVar_Index(VarEnumAddr)  IndexOfStdVar(VarEnumAddr)
+
+#ifdef TIME_SUBSUMED_BENCHMARK
+int total_exec_collect_subsumed = 0;
+int total_sg_fr_collect_subsumed = 0;
+int total_nodes_touched_collect_subsumed = 0;
+
+static int
+list_length(ALNptr list)
+{
+  int ret = 0;
+  
+  while (list) {
+    ++ret;
+    list = NodeList_next(list);
+  }
+  
+  return ret;
+}
+#endif
 
 static inline
 xsbBool
@@ -153,7 +174,179 @@ Unify_with_Variable(Cell symbol, Cell subterm, BTNptr node) {
   return TRUE;
 }
 
-ALNptr collect_specific_generator_goals(tab_ent_ptr tab_ent, int arity, CELL* template)
+static inline ALNptr
+create_subgoal_trie_path_as_list(BTNptr node)
+{
+	ALNptr path = NULL;
+	int n = 0;
+
+	while(!IsTrieRoot(node)) {
+		ALN_InsertAnswer(path, node);
+		node = BTN_Parent(node);
+		++n;
+	}
+
+#ifdef DEBUG_SPECIFIC2
+	printf("Path with %d nodes\n", n);
+#endif
+
+	return path;
+}
+
+static inline void
+free_subgoal_trie_path_list(ALNptr list)
+{
+	while(list != NULL) {
+		ALNptr next = NodeList_next(list);
+		FREE_NODE_LIST(list);
+		list = next;
+	}
+}
+
+static int
+is_subgoal_frame_active_generator(sg_fr_ptr sg_fr, sg_fr_ptr self)
+{
+	switch(SgFr_state(sg_fr)) {
+		case changed:
+		case evaluating:
+		case suspended:
+			if(sg_fr != self && SgFr_is_retroactive_producer(sg_fr)) {
+        return TRUE;
+			}
+			break;
+	}
+  return FALSE;
+}
+
+ALNptr create_trie_path_lists(ALNptr leafs, sg_fr_ptr self)
+{
+  ALNptr ret = NULL;
+  
+  while (leafs) {
+    ALNptr next = NodeList_next(leafs);
+    BTNptr leaf = NodeList_node(leafs);
+    sg_fr_ptr sg_fr = TrNode_sg_fr(leaf);
+    
+#ifdef TIME_SUBSUMED_BENCHMARK
+    total_nodes_touched_collect_subsumed++;
+#endif
+    
+    if(is_subgoal_frame_active_generator(sg_fr, self)) {
+      ALN_InsertAnswer(ret, create_subgoal_trie_path_as_list(leaf));
+    }
+    
+    leafs = next;
+  }
+  
+  return ret;
+}
+
+ALNptr collect_specific_generator_goals2(tab_ent_ptr tab_ent, int arity, CELL* template,
+		retroactive_fr_ptr retro_fr_ptr)
+{
+	if(arity < 1)
+		return NULL;
+
+  ALNptr all_leafs = (ALNptr)tab_ent->subgoal_list;
+
+	if(all_leafs == NULL)
+		return NULL;
+	
+	ALNptr all_subgoals = create_trie_path_lists(all_leafs, (sg_fr_ptr)retro_fr_ptr);
+
+#define CURRENT_NODE ((sg_node_ptr)NodeList_node(trie_path))
+#define NEXT_NODE_TERM() \
+		previous_path = trie_path; \
+		trie_path = NodeList_next(trie_path)
+#define MATCH_FAILED() goto failed
+#define TRY_MATCH_HERE(TermStack_PushOp) \
+		if(symbol == BTN_Symbol(CURRENT_NODE)) { \
+			TermStack_PushOp;	\
+			NEXT_NODE_TERM(); \
+		}	else							\
+			MATCH_FAILED()
+
+  Cell symbol, subterm;
+	ALNptr returnList = NULL;
+
+	while (all_subgoals != NULL) {
+		ALNptr next = NodeList_next(all_subgoals);
+		ALNptr list = (ALNptr)NodeList_node(all_subgoals);
+		ALNptr trie_path = list;
+		ALNptr previous_path = NULL;
+
+		/* initialize state */
+		TermStack_ResetTOS;
+		TermStack_PushHighToLowVector(template, arity);
+  
+		trail_base = top_of_trail;
+		symbol = 0;
+		Save_and_Set_WAM_Registers;
+
+		/* do matching */
+		while (!TermStack_IsEmpty) {
+#ifdef TIME_SUBSUMED_BENCHMARK
+			total_nodes_touched_collect_subsumed++;
+#endif
+			TermStack_Pop(subterm);
+			XSB_Deref(subterm);
+			switch(cell_tag(subterm)) {
+				case XSB_INT:
+#ifdef SUBSUMPTION_XSB
+				case XSB_FLOAT:
+#endif
+				case XSB_STRING:
+					symbol = EncodeTrieConstant(subterm);
+					TRY_MATCH_HERE(TermStack_NOOP);
+					break;
+				case XSB_STRUCT:
+					symbol = EncodeTrieFunctor(subterm);
+					TRY_MATCH_HERE(TermStack_PushFunctorArgs(subterm));
+					break;
+				case XSB_LIST:
+					symbol = EncodeTrieList(subterm);
+					TRY_MATCH_HERE(TermStack_PushListArgs(subterm));
+					break;
+				case XSB_REF:
+#ifdef SUBSUMPTION_XSB
+				case XSB_REF1:
+#endif
+					symbol = BTN_Symbol(CURRENT_NODE);
+					if(Unify_with_Variable(symbol, subterm, CURRENT_NODE)) {
+						NEXT_NODE_TERM();
+					} else {
+						MATCH_FAILED();
+					}
+					break;
+			}
+		}
+
+		/* success */
+		sg_fr_ptr sg_fr = TrNode_sg_fr((sg_node_ptr)NodeList_node(previous_path));
+		if(is_subgoal_frame_active_generator(sg_fr, (sg_fr_ptr)retro_fr_ptr)) {
+#ifdef DEBUG_SPECIFIC2
+			printf("SGFR %p is producer\n", sg_fr);
+      printSubgoalTriePath(stdout, sg_fr);
+#endif
+			ALN_InsertAnswer(returnList, sg_fr);
+		}
+
+failed:
+		/* restore WAM state */
+		Sys_Trail_Unwind(trail_base);
+		Restore_WAM_Registers;
+
+		free_subgoal_trie_path_list(list);
+		FREE_NODE_LIST(all_subgoals);
+		all_subgoals = next;
+	}
+
+	return returnList;
+}
+
+
+ALNptr collect_specific_generator_goals(tab_ent_ptr tab_ent, int arity, CELL* template,
+		retroactive_fr_ptr retro_sg_fr)
 {
   ALNptr returnList;
   Cell subterm;
@@ -167,6 +360,11 @@ ALNptr collect_specific_generator_goals(tab_ent_ptr tab_ent, int arity, CELL* te
     return NULL;
   if(cur_chain == NULL)
     return NULL;
+    
+#ifdef TIME_SUBSUMED_BENCHMARK
+  total_nodes_touched_collect_subsumed++;
+#endif
+
   if(TrNode_num_gen((subg_node_ptr)parent_node) == 0)
     return NULL;
   
@@ -183,6 +381,9 @@ ALNptr collect_specific_generator_goals(tab_ent_ptr tab_ent, int arity, CELL* te
   
 While_TSnotEmpty:
   while (!TermStack_IsEmpty) {
+#ifdef TIME_SUBSUMED_BENCHMARK
+    total_nodes_touched_collect_subsumed++;
+#endif
     TermStack_Pop(subterm);
     XSB_Deref(subterm);
     switch(cell_tag(subterm)) {
@@ -320,7 +521,29 @@ While_TSnotEmpty:
 end_collect:
   Sys_Trail_Unwind(trail_base);
   Restore_WAM_Registers;
+
   return returnList;
+}
+
+ALNptr collect_specific_generator_subgoals(tab_ent_ptr tab_ent, int arity,
+		CELL* template,
+		retroactive_fr_ptr retro_sg_fr)
+{
+	ALNptr ret;
+
+  start_time_subsumed();
+#ifdef EFFICIENT_SUBSUMED_COLLECT
+	ret = collect_specific_generator_goals(tab_ent, arity, template, retro_sg_fr);
+#else
+	ret = collect_specific_generator_goals2(tab_ent, arity, template, retro_sg_fr);
+#endif
+  end_time_subsumed();
+#ifdef TIME_SUBSUMED_BENCHMARK
+  ++total_exec_collect_subsumed;
+  total_sg_fr_collect_subsumed += list_length(ret);
+#endif
+  
+	return ret;
 }
 
 #endif /* TABLING_CALL_SUBSUMPTION */

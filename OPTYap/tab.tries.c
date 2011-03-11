@@ -86,6 +86,8 @@ sg_fr_ptr subgoal_search(yamop *preg, CELL **local_stack_ptr)
   printf("\n");
 #endif
   
+	start_lookup_subgoal_trie_benchmark();
+
 #ifdef TABLING_CALL_SUBSUMPTION
   if(TabEnt_is_variant(tab_ent)) {
     sg_fr = variant_call_search(preg, local_stack, local_stack_ptr);
@@ -94,11 +96,16 @@ sg_fr_ptr subgoal_search(yamop *preg, CELL **local_stack_ptr)
 #ifdef TABLING_RETROACTIVE
   } else if(TabEnt_is_retroactive(tab_ent)) {
     sg_fr = retroactive_call_search(preg, local_stack, local_stack_ptr);
+
+		return sg_fr;
+
 #endif /* TABLING_RETROACTIVE */
   }
 #else
   sg_fr = variant_call_search(preg, local_stack, local_stack_ptr);
 #endif /* TABLING_CALL_SUBSUMPTION */
+
+	end_lookup_subgoal_trie_benchmark();
   
 #ifdef FDEBUG
   dprintf("SUBGOAL IS: ");
@@ -110,22 +117,29 @@ sg_fr_ptr subgoal_search(yamop *preg, CELL **local_stack_ptr)
 }
 
 ans_node_ptr answer_search(sg_fr_ptr sg_fr, CELL *subs_ptr) {
+	start_insert_answer_benchmark();
+
+	ans_node_ptr ret = NULL;
+
   if(SgFr_is_variant(sg_fr))
-    return variant_answer_search(sg_fr, subs_ptr);
+    ret = variant_answer_search(sg_fr, subs_ptr);
 #ifdef TABLING_CALL_SUBSUMPTION
   else if(SgFr_is_sub_producer(sg_fr)) {
     int nTerms = *subs_ptr;
     CELL* answerVector = subs_ptr + nTerms;
-    return (ans_node_ptr)subsumptive_answer_search((subprod_fr_ptr)sg_fr, nTerms, answerVector);
+    ret = (ans_node_ptr)subsumptive_answer_search((subprod_fr_ptr)sg_fr, nTerms, answerVector);
 #ifdef TABLING_RETROACTIVE
   } else if(SgFr_is_retroactive_producer(sg_fr)) {
     int nTerms = *subs_ptr;
     CELL* answerVector = subs_ptr + nTerms;
-    return (ans_node_ptr)retroactive_answer_search((retroactive_fr_ptr)sg_fr, answerVector);
+    ret = (ans_node_ptr)retroactive_answer_search((retroactive_fr_ptr)sg_fr, answerVector);
 #endif /* TABLING_RETROACTIVE */
   }
 #endif /* TABLING_CALL_SUBSUMPTION */
-  return NULL;
+
+	end_insert_answer_benchmark();
+
+  return ret;
 }
 
 #ifdef TABLING_CALL_SUBSUMPTION
@@ -939,6 +953,7 @@ void traverse_subgoal_trie(sg_node_ptr current_node, char *str, int str_index, i
     sg_hash_ptr hash;
     hash = (sg_hash_ptr) current_node;
     bucket = Hash_buckets(hash);
+    printf("\n%p\n", bucket);
     last_bucket = bucket + Hash_num_buckets(hash);
     current_arity = (int *) malloc(sizeof(int) * (arity[0] + 1));
     memcpy(current_arity, arity, sizeof(int) * (arity[0] + 1));

@@ -197,6 +197,7 @@ STD_PROTO(static inline void move_pending_answers, (retroactive_fr_ptr));
         }                                                               \
       }
       
+#ifdef EFFICIENT_SUBSUMED_COLLECT
 #define increment_subgoal_path(SG_FR)                                   \
       { subg_node_ptr leaf = (subg_node_ptr)SgFr_leaf(SG_FR);           \
         /*printf("increment "); printSubgoalTriePath(stdout, SG_FR); printf("\n");*/  \
@@ -208,18 +209,21 @@ STD_PROTO(static inline void move_pending_answers, (retroactive_fr_ptr));
           update_generator_path((sg_node_ptr)leaf);                     \
         }                                                               \
       }
+#else
+#define increment_subgoal_path(SG_FR)
+#endif
       
+#ifdef EFFICIENT_SUBSUMED_COLLECT
 #define decrement_subgoal_path(SG_FR)                               \
       { subg_node_ptr leaf = (subg_node_ptr)SgFr_leaf(SG_FR);       \
         /*printf("decrement "); printSubgoalTriePath(stdout, SG_FR); printf("\n");*/  \
-        if(TrNode_get_num_gen(leaf) != 1) {                         \
-          Yap_Error(INTERNAL_ERROR, TermNil,                        \
-              "leaf node be == 1, is %d (decrement_subgoal_path)",  \
-                  TrNode_get_num_gen(leaf));                        \
-        } else {                                                    \
+        if(TrNode_get_num_gen(leaf) == 1) {                         \
           decrement_generator_path((sg_node_ptr)leaf);              \
         }                                                           \
       }
+#else
+#define decrement_subgoal_path(SG_FR)
+#endif
       
 #define count_subgoal_hash_index(HASH, COUNTER)                     \
       { subg_hash_ptr subg_hash = (subg_hash_ptr)(HASH);            \
@@ -590,9 +594,11 @@ void free_tst_hash_index(tst_ans_hash_ptr hash) {
     { ALNptr list = NULL;                                              \
       CELL *answer_template = SgFr_answer_template(RETRO_SG);          \
       const int size = SgFr_at_size(RETRO_SG);                         \
-      list = collect_specific_generator_goals(TAB_ENT, size,           \
-          STANDARDIZE_AT_PTR(answer_template, size));                  \
+      list = collect_specific_generator_subgoals(TAB_ENT, size,        \
+          STANDARDIZE_AT_PTR(answer_template, size), RETRO_SG);        \
+			start_pruning_benchmark();																			 \
       process_pending_subgoal_list(list, RETRO_SG);                    \
+			end_pruning_benchmark();																				 \
       increment_subgoal_path(SG_FR);                                   \
     }
 #else

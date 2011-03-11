@@ -23,7 +23,8 @@
 #include "tab.utils.h"
 #include "tab.structs.h"
 
-ALNptr collect_specific_generator_goals(tab_ent_ptr tab_ent, int arity, CELL* template);
+ALNptr collect_specific_generator_goals(tab_ent_ptr tab_ent, int arity, CELL* template,
+    retroactive_fr_ptr retro_fr_ptr);
 
 #endif /* TABLING_CALL_SUBSUMPTION */
 #endif

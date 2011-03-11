@@ -532,7 +532,9 @@
     if(SgFr_is_retroactive_producer(SG_FR)) {                             \
       retroactive_fr_ptr retro_sg = (retroactive_fr_ptr)(SG_FR);          \
       check_retroactive_pending_subgoals(SG_FR, TAB_ENT, retro_sg);       \
+      start_initial_collect_benchmark();                                  \
       build_next_retroactive_producer_return_list(retro_sg);              \
+      end_initial_collect_benchmark();                                    \
       if(!SgFr_is_retroactive_local_producer(SG_FR)) {                    \
         check_retroactive_pre_stored_answers(SG_FR, TAB_ENT, retro_sg);   \
       }                                                                   \
@@ -732,6 +734,12 @@ try_answer_jump: {
     YENV2MEM;
     sg_fr = subgoal_search(PREG, YENV_ADDRESS);
     MEM2YENV;
+
+    if(sg_fr == 0) {
+      goto fail; /* no answer */
+    } else if(sg_fr == 1) {
+      procceed_yes_answer();
+    }
     
     LOCK(SgFr_lock(sg_fr));
     
@@ -880,6 +888,12 @@ try_answer_jump: {
     YENV2MEM;
     sg_fr = subgoal_search(PREG, YENV_ADDRESS);
     MEM2YENV;
+
+    if(sg_fr == 0) {
+      goto fail; /* no answer */
+    } else if(sg_fr == 1) {
+      procceed_yes_answer();
+    }
     
     LOCK(SgFr_lock(sg_fr));
     
@@ -1023,6 +1037,12 @@ try_answer_jump: {
     YENV2MEM;
     sg_fr = subgoal_search(PREG, YENV_ADDRESS);
     MEM2YENV;
+
+    if(sg_fr == 0) {
+      goto fail; /* no answer */
+    } else if(sg_fr == 1) {
+      procceed_yes_answer();
+    }
     
     LOCK(SgFr_lock(sg_fr));
     

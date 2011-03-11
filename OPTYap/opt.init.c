@@ -251,6 +251,14 @@ void Yap_init_local(void) {
 #ifdef TABLING_CALL_SUBSUMPTION
   initCollectStack();
   initSubsumptiveLookup();
+#ifdef BENCHMARK_EXECUTION
+	int i;
+	DECLARE_BENCHMARK();
+	for(i = 0; i < BENCHMARK_TOTAL; ++i) {
+		GET_BENCHMARK(i) = 0.0; 
+		GET_BENCHMARK_HITS(i) = 0;
+	}
+#endif
 #endif /* TABLING_CALL_SUBSUMPTION */
 
 #endif /* TABLING */

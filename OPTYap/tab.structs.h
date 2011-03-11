@@ -90,6 +90,11 @@ typedef struct table_entry {
   Atom pred_atom;
   int pred_arity;
   int mode_flags;
+#ifdef TABLING_RETROACTIVE
+#ifndef EFFICIENT_SUBSUMED_COLLECT
+  void *subgoal_list;
+#endif
+#endif
   struct subgoal_trie_node *subgoal_trie;
   struct table_entry *next;
 } *tab_ent_ptr;

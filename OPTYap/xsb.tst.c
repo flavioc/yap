@@ -154,6 +154,8 @@ void tstCreateTSIs(CTXTdeclc TSTNptr pTST) {
   if ( IsNULL(pTST) )
     return;
 
+	start_createtsi_benchmark();
+
   /*** For each hash table ... ***/
   for ( ht = TSTRoot_GetHTList(pTST);  IsNonNULL(ht);
         ht = TSTHT_InternalLink(ht) ) {
@@ -169,6 +171,8 @@ void tstCreateTSIs(CTXTdeclc TSTNptr pTST) {
 	/*** Create a TSIN for each symbol (TSTN) ***/
 	TSTN_SetTSIN(tstn,tsiOrderedInsert(CTXTc ht,tstn));
   }
+
+	end_createtsi_benchmark();
 }
 
 /*=========================================================================*/
@@ -339,6 +343,8 @@ inline static  void tsiPromoteEntry(TSTNptr tstn, TimeStamp ts) {
 inline static  void update_timestamps(TSTNptr tstLeaf, TSTNptr tstRoot,
 				      xsbBool containsTSIs) {
 
+	start_update_timestamps_benchmark();
+
   TimeStamp tsNewAnswer;
 
   tsNewAnswer = TSTN_TimeStamp(tstRoot) + 1;
@@ -356,6 +362,8 @@ inline static  void update_timestamps(TSTNptr tstLeaf, TSTNptr tstRoot,
       tstLeaf = TSTN_Parent(tstLeaf);
     } while ( tstLeaf != tstRoot );
   TSTN_TimeStamp(tstRoot) = tsNewAnswer;
+
+	end_update_timestamps_benchmark();
 }
 
 /*=========================================================================*/
